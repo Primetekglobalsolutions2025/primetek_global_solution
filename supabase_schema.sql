@@ -97,6 +97,8 @@ CREATE TABLE public.employees (
     role TEXT DEFAULT 'employee' CHECK (role IN ('employee', 'hr')),
     join_date DATE NOT NULL,
     department TEXT,
+    designation TEXT,
+    phone TEXT,
     status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Inactive', 'On Leave')),
     avatar_url TEXT, -- Path to file in Supabase Storage
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
