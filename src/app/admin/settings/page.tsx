@@ -47,18 +47,36 @@ export default function AdminSettingsPage() {
   }, []);
 
   const handleSave = async () => {
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+    const parsedRadius = parseInt(radius);
+
+    if (isNaN(parsedLat) || parsedLat < -90 || parsedLat > 90) {
+      alert('Please enter a valid numeric latitude between -90 and 90.');
+      return;
+    }
+    if (isNaN(parsedLng) || parsedLng < -180 || parsedLng > 180) {
+      alert('Please enter a valid numeric longitude between -180 and 180.');
+      return;
+    }
+    if (isNaN(parsedRadius) || parsedRadius < 50 || parsedRadius > 5000) {
+      alert('Please enter a valid radius between 50 and 5000 meters.');
+      return;
+    }
+
     setSaving(true);
     try {
       await saveOfficeLocation({
         name,
-        lat: parseFloat(lat),
-        lng: parseFloat(lng),
-        radius_meters: parseInt(radius)
+        lat: parsedLat,
+        lng: parsedLng,
+        radius_meters: parsedRadius
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 4000);
-    } catch (err) {
-      alert('Failed to save settings');
+    } catch (err: any) {
+      console.error('Failed to save settings:', err);
+      alert(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -142,8 +160,8 @@ export default function AdminSettingsPage() {
               <div className="space-y-2">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Latitude Axis</label>
                 <input
-                  type="number"
-                  step="0.000001"
+                  type="text"
+                  placeholder="e.g. 17.448294"
                   value={lat}
                   onChange={(e) => {
                     setLat(e.target.value);
@@ -155,8 +173,8 @@ export default function AdminSettingsPage() {
               <div className="space-y-2">
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Longitude Axis</label>
                 <input
-                  type="number"
-                  step="0.000001"
+                  type="text"
+                  placeholder="e.g. 78.374182"
                   value={lng}
                   onChange={(e) => {
                     setLng(e.target.value);

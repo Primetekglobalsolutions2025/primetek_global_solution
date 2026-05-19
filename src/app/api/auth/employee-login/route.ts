@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
 
         response.cookies.set('mfa-pending-token', tempToken, {
           httpOnly: true,
-          secure: true,
-          sameSite: 'strict',
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
           maxAge: 5 * 60,
           path: '/',
         });
@@ -72,10 +72,10 @@ export async function POST(request: NextRequest) {
 
       response.cookies.set('auth-token', token, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
         path: '/',
-        maxAge: 60 * 60 * 24,
+        maxAge: 30 * 24 * 60 * 60, // 30 days
       });
 
       const elapsed = Date.now() - startTime;

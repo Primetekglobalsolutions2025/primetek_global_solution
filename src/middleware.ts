@@ -22,10 +22,13 @@ export async function middleware(request: NextRequest) {
     }
 
     const session = await verifyToken(token);
-    if (!session || session.role !== 'admin') {
+    if (!session) {
       const response = NextResponse.redirect(new URL('/admin/login', request.url));
       response.cookies.delete('auth-token');
       return response;
+    }
+    if (session.role !== 'admin') {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
     }
   }
 
@@ -38,10 +41,13 @@ export async function middleware(request: NextRequest) {
     }
 
     const session = await verifyToken(token);
-    if (!session || (session.role !== 'employee' && session.role !== 'hr')) {
+    if (!session) {
       const response = NextResponse.redirect(new URL('/employee/login', request.url));
       response.cookies.delete('auth-token');
       return response;
+    }
+    if (session.role !== 'employee' && session.role !== 'hr') {
+      return NextResponse.redirect(new URL('/employee/login', request.url));
     }
   }
 
