@@ -39,7 +39,7 @@ export default async function AdminAppDashboard() {
     { href: '/admin/approvals', label: 'Review Requests', icon: CheckSquare, desc: 'Leaves & WFH', color: 'bg-violet-500' },
     { href: '/admin/employees', label: 'Staff Directory', icon: Users, desc: 'Manage profiles', color: 'bg-primary-500' },
     { href: '/admin/attendance', label: 'Live Reports', icon: TrendingUp, desc: 'View analytics', color: 'bg-emerald-500' },
-    { href: '/admin/settings', label: 'Configuration', icon: Settings, desc: 'System nodes', color: 'bg-navy-900' },
+    { href: '/admin/settings', label: 'Settings', icon: Settings, desc: 'System settings', color: 'bg-navy-900' },
   ];
 
   const statusColors: Record<string, string> = {
@@ -127,7 +127,7 @@ export default async function AdminAppDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
         <div className="lg:col-span-2 space-y-6 md:space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-heading font-black text-navy-900 tracking-tight">Performance Intelligence</h2>
+            <h2 className="text-xl font-heading font-black text-navy-900 tracking-tight">Performance Analytics</h2>
             <div className="flex gap-2">
               <span className="px-3 py-1 rounded-full bg-surface-alt text-[10px] font-bold text-text-muted uppercase tracking-widest">Last 7 Days</span>
             </div>
@@ -140,9 +140,9 @@ export default async function AdminAppDashboard() {
 
           <div className="bg-white rounded-[2.5rem] border border-border/60 shadow-sm overflow-hidden">
             <div className="px-8 py-6 border-b border-border/50 flex items-center justify-between bg-surface-alt/30">
-              <h2 className="font-heading font-black text-navy-900 text-sm uppercase tracking-widest">Global Inquiries</h2>
+              <h2 className="font-heading font-black text-navy-900 text-sm uppercase tracking-widest">Inquiries Received</h2>
               <Link href="/admin/inquiries" className="group flex items-center gap-2 text-[10px] font-bold text-primary-500 uppercase tracking-widest hover:text-primary-600 transition-colors">
-                View Ledger <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+                View All <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
             <div className="divide-y divide-border/50">
@@ -199,8 +199,8 @@ export default async function AdminAppDashboard() {
             <div className="absolute top-0 right-0 p-8 opacity-10">
               <Zap className="w-24 h-24" />
             </div>
-            <h3 className="text-lg font-heading font-black tracking-tight mb-2 relative z-10 text-white">Node Status</h3>
-            <p className="text-xs text-gray-400 font-medium mb-6 relative z-10">Real-time health check across all service modules.</p>
+            <h3 className="text-lg font-heading font-black tracking-tight mb-2 relative z-10 text-white">System Status</h3>
+            <p className="text-xs text-gray-400 font-medium mb-6 relative z-10">Real-time status check across all services.</p>
             
             <div className="space-y-4 relative z-10">
               {nodes.map(node => (

@@ -118,10 +118,10 @@ export default function AdminSettingsPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="w-5 h-5 text-primary-400" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">Infrastructure Config</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">System Config</span>
           </div>
           <h1 className="text-3xl font-heading font-black tracking-tight text-white">System Settings</h1>
-          <p className="text-gray-400 text-xs mt-1 font-medium italic">Define the geofence and operational boundaries for the PWA nodes.</p>
+          <p className="text-gray-400 text-xs mt-1 font-medium italic">Define the office geofence and radius boundaries for employee attendance validation.</p>
         </div>
       </div>
 
@@ -138,14 +138,14 @@ export default function AdminSettingsPage() {
             </div>
             <div>
               <h2 className="font-heading font-black text-xl text-navy-900 tracking-tight">Office Geofence</h2>
-              <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-0.5">Verification Parameters</p>
+              <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-0.5">Office Configuration</p>
             </div>
           </div>
 
           <div className="space-y-8">
             {/* Office Name */}
             <div className="space-y-2">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Entity Identifier</label>
+              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Office Name</label>
               <input
                 type="text"
                 value={name}
@@ -158,7 +158,7 @@ export default function AdminSettingsPage() {
             {/* Lat / Lng */}
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Latitude Axis</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Latitude</label>
                 <input
                   type="text"
                   placeholder="e.g. 17.448294"
@@ -171,7 +171,7 @@ export default function AdminSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Longitude Axis</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Longitude</label>
                 <input
                   type="text"
                   placeholder="e.g. 78.374182"
@@ -193,7 +193,7 @@ export default function AdminSettingsPage() {
               className="flex items-center gap-2 text-xs font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest transition-all disabled:opacity-50 group"
             >
               {detectingLocation ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Calibrating...</>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Locating...</>
               ) : (
                 <><Crosshair className="w-4 h-4 group-hover:scale-125 transition-transform" /> Sync with Current Position</>
               )}
@@ -202,7 +202,7 @@ export default function AdminSettingsPage() {
             {/* Radius */}
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">
-                Blast Radius (Meters)
+                Geofence Radius (Meters)
               </label>
               <div className="relative group">
                 <input
@@ -217,7 +217,7 @@ export default function AdminSettingsPage() {
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-text-muted">METERS</div>
               </div>
               <p className="text-[10px] text-text-muted mt-2 font-bold italic">
-                Tolerance for attendance verification. Recommended: 300m for high accuracy.
+                Allowable distance from the office coordinate for check-in validation. Recommended: 300 meters.
               </p>
             </div>
 
@@ -229,9 +229,9 @@ export default function AdminSettingsPage() {
                 className="bg-navy-900 hover:bg-navy-800 text-white rounded-2xl px-8 py-4 font-black shadow-xl shadow-navy-900/10 active:scale-95 transition-all text-sm"
               >
                 {saving ? (
-                  <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Syncing...</>
+                  <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Saving...</>
                 ) : (
-                  <><Save className="w-5 h-5 mr-2" /> Commit Changes</>
+                  <><Save className="w-5 h-5 mr-2" /> Save Settings</>
                 )}
               </Button>
               {saved && (
@@ -240,7 +240,7 @@ export default function AdminSettingsPage() {
                   animate={{ opacity: 1, x: 0 }} 
                   className="flex items-center gap-1.5 text-xs font-black text-emerald-600 uppercase tracking-widest"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Config Locked
+                  <CheckCircle2 className="w-4 h-4" /> Settings Saved
                 </motion.div>
               )}
             </div>
@@ -252,9 +252,9 @@ export default function AdminSettingsPage() {
           {/* Map Preview */}
           <Card hover={false} className="p-10 rounded-[2.5rem] border-border/60 shadow-sm bg-white overflow-hidden">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="font-heading font-black text-xl text-navy-900 tracking-tight">Geospatial Preview</h2>
+              <h2 className="font-heading font-black text-xl text-navy-900 tracking-tight">Office Location Preview</h2>
               <div className="px-3 py-1 rounded-full bg-surface-alt border border-border/60 text-[9px] font-black text-text-muted uppercase tracking-widest">
-                Real-time Feedback
+                Google Maps Coordinates
               </div>
             </div>
             
@@ -274,8 +274,8 @@ export default function AdminSettingsPage() {
                   <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mb-4">
                     <AlertCircle className="w-8 h-8" />
                   </div>
-                  <p className="text-sm font-black text-navy-900 uppercase tracking-tight">Telemetry Blocked</p>
-                  <p className="text-xs text-text-muted mt-2 font-medium">Coordinate data invalid or API synchronization failed.</p>
+                  <p className="text-sm font-black text-navy-900 uppercase tracking-tight">Preview Unavailable</p>
+                  <p className="text-xs text-text-muted mt-2 font-medium">Please enter valid latitude and longitude coordinates to view the map.</p>
                 </div>
               )}
               
@@ -290,14 +290,14 @@ export default function AdminSettingsPage() {
               <div className="absolute bottom-4 right-4 z-20">
                 <div className="px-4 py-2 rounded-xl bg-white/90 backdrop-blur-md border border-white/20 shadow-xl flex items-center gap-2 text-[10px] font-black text-navy-900 uppercase tracking-widest">
                   <MapPin className="w-3 h-3 text-red-500" />
-                  Point Active
+                  Office Coordinate
                 </div>
               </div>
             </div>
             
             <div className="flex items-center justify-between mt-6 px-2">
               <div className="space-y-1">
-                <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Global Coordinates</p>
+                <p className="text-[10px] font-black text-text-muted uppercase tracking-widest">Coordinates</p>
                 <p className="text-xs font-bold text-navy-900 font-mono">{lat}, {lng}</p>
               </div>
               <a
@@ -306,7 +306,7 @@ export default function AdminSettingsPage() {
                 rel="noopener noreferrer"
                 className="group flex items-center gap-2 text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest transition-all"
               >
-                External Node <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                Google Maps <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
               </a>
             </div>
           </Card>
@@ -319,24 +319,24 @@ export default function AdminSettingsPage() {
             
             <h2 className="font-heading font-black text-xl mb-8 tracking-tight flex items-center gap-2 text-white">
               <HelpCircle className="w-6 h-6 text-primary-400" />
-              Provisioning Guide
+              Geofence Guide
             </h2>
             
             <div className="space-y-6">
               {[
                 { 
-                  title: 'Mobile Calibration', 
+                  title: 'Mobile Check-in', 
                   desc: 'Stand at the center of the office facility using a mobile device for maximum GPS precision.', 
                   icon: Crosshair 
                 },
                 { 
-                  title: 'Maps Integration', 
+                  title: 'Google Maps Coordinates', 
                   desc: 'Right-click on Google Maps to extract raw coordinate strings for manual injection.', 
                   icon: MapPin 
                 },
                 { 
-                  title: 'Radius Protocol', 
-                  desc: 'Default 300m ensures balance between security and GPS signal fluctuation.', 
+                  title: 'Geofence Radius', 
+                  desc: 'A geofence radius of 300m ensures a balance between accurate validation and mobile GPS fluctuations.', 
                   icon: Building 
                 }
               ].map((step, idx) => (
@@ -353,7 +353,7 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="mt-10 pt-8 border-t border-white/10 space-y-2">
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Node Vitality Check:</p>
+              <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">System Integrations:</p>
               {systemNodes.map((node, i) => (
                 <p key={i} className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center justify-between">
                   {node.node_name}: <span className={cn(
