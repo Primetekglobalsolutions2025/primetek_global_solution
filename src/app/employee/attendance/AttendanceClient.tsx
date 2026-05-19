@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, Navigation, History, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { MapPin, CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, Navigation, History, Calendar as CalendarIcon, Clock, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance } from '@/lib/utils';
 import Card from '@/components/ui/Card';
@@ -33,6 +33,19 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [wfhRequest, setWfhRequest] = useState<{ active: boolean; distance?: number; officeName?: string } | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setNotification({ message, type });
+  };
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const getLocalDateString = (date: Date) => {
     const year = date.getFullYear();
@@ -74,15 +87,16 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           setGpsStatus('idle');
         } else {
           setGpsStatus('error');
-          alert(result.error || 'Check-in failed');
+          showNotification(result.error || 'Check-in failed', 'error');
         }
         return;
       }
 
       setGpsStatus('success');
+      showNotification('Clocked in successfully.', 'success');
     } catch (err: any) {
       setGpsStatus('error');
-      alert(err.message || 'Could not get location');
+      showNotification(err.message || 'Could not retrieve your GPS location. Please check browser permissions.', 'error');
     }
   };
 
@@ -94,63 +108,77 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       if (result.success) {
         setGpsStatus('success');
         setWfhRequest(null);
+        showNotification('Work From Home request submitted successfully.', 'success');
       } else {
-        alert(result.error);
+        showNotification(result.error || 'Failed to request WFH', 'error');
         setGpsStatus('error');
       }
     } catch {
       setGpsStatus('error');
-      alert('Failed to request WFH');
+      showNotification('Failed to request WFH', 'error');
     }
   };
 
   const handleCheckOut = async () => {
     if (!todayRecord) return;
-    if (!window.confirm('Clock out now?')) return;
-    let lat: number | undefined;
-    let lng: number | undefined;
+    setConfirmAction({
+      message: 'Are you sure you want to clock out for today?',
+      onConfirm: async () => {
+        setGpsStatus('loading');
+        let lat: number | undefined;
+        let lng: number | undefined;
 
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { 
-          enableHighAccuracy: true, 
-          timeout: 5000 
-        });
-      });
-      lat = position.coords.latitude;
-      lng = position.coords.longitude;
-    } catch (gpsErr) {
-      console.warn('GPS failed for checkout, proceeding without location:', gpsErr);
-    }
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              enableHighAccuracy: true, 
+              timeout: 5000 
+            });
+          });
+          lat = position.coords.latitude;
+          lng = position.coords.longitude;
+        } catch (gpsErr) {
+          console.warn('GPS failed for checkout, proceeding without location:', gpsErr);
+        }
 
-    try {
-      const result = await checkOut(todayRecord.id, lat || 0, lng || 0);
-      if (result.success) {
-        setGpsStatus('success');
-      } else {
-        alert(result.error);
-        setGpsStatus('error');
+        try {
+          const result = await checkOut(todayRecord.id, lat || 0, lng || 0);
+          if (result.success) {
+            setGpsStatus('success');
+            showNotification('Clocked out successfully.', 'success');
+          } else {
+            showNotification(result.error || 'Check-out failed', 'error');
+            setGpsStatus('error');
+          }
+        } catch (err: any) {
+          setGpsStatus('error');
+          showNotification(err.message || 'Check-out failed', 'error');
+        }
       }
-    } catch (err: any) {
-      setGpsStatus('error');
-      alert(err.message || 'Check-out failed');
-    }
+    });
   };
 
   const handleResume = async () => {
     if (!todayRecord) return;
-    setGpsStatus('loading');
-    try {
-      const result = await resumeSession(todayRecord.id);
-      if (result.success) setGpsStatus('success');
-      else {
-        alert(result.error);
-        setGpsStatus('error');
+    setConfirmAction({
+      message: 'Are you sure you want to undo your clock out and resume the current session?',
+      onConfirm: async () => {
+        setGpsStatus('loading');
+        try {
+          const result = await resumeSession(todayRecord.id);
+          if (result.success) {
+            setGpsStatus('success');
+            showNotification('Clock out undone. Session resumed.', 'success');
+          } else {
+            showNotification(result.error || 'Failed to resume session', 'error');
+            setGpsStatus('error');
+          }
+        } catch {
+          setGpsStatus('error');
+          showNotification('Failed to resume session', 'error');
+        }
       }
-    } catch {
-      setGpsStatus('error');
-      alert('Failed to resume');
-    }
+    });
   };
 
   const elapsed = (checkInTime && !isCheckedOut) ? Math.floor((currentTime.getTime() - checkInTime.getTime()) / 1000) : 0;
@@ -449,6 +477,87 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               </Card>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Confirmation Modal */}
+      <AnimatePresence>
+        {confirmAction && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="w-full max-w-sm"
+            >
+              <Card hover={false} className="p-8 rounded-[2.5rem] border-0 shadow-2xl bg-white relative overflow-hidden">
+                <div className="flex flex-col items-center text-center space-y-5">
+                  <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-heading font-black text-navy-900 tracking-tight">Confirm Action</h3>
+                    <p className="text-xs text-text-muted mt-2 font-medium leading-relaxed">{confirmAction.message}</p>
+                  </div>
+                  <div className="flex w-full gap-3 pt-4">
+                    <button
+                      onClick={() => setConfirmAction(null)}
+                      className="flex-1 py-3 px-4 rounded-xl bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-black transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <Button
+                      onClick={() => {
+                        confirmAction.onConfirm();
+                        setConfirmAction(null);
+                      }}
+                      className="flex-1 py-3 px-4 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black transition-all cursor-pointer"
+                    >
+                      Confirm
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Toast Notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: "spring", duration: 0.4 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[110] w-full max-w-sm px-4"
+          >
+            <div className={cn(
+              "rounded-2xl p-4 shadow-2xl border backdrop-blur-md flex items-start gap-3 bg-white/95",
+              notification.type === 'success' ? "border-emerald-500/20 text-emerald-600" :
+              notification.type === 'error' ? "border-red-500/20 text-red-600" :
+              "border-primary-500/20 text-primary-600"
+            )}>
+              {notification.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-500" />
+              ) : notification.type === 'error' ? (
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-500" />
+              ) : (
+                <Info className="w-5 h-5 shrink-0 mt-0.5 text-primary-500" />
+              )}
+              <div className="flex-1">
+                <p className="text-xs font-black uppercase tracking-wider text-navy-900">
+                  {notification.type === 'success' ? 'Success' : notification.type === 'error' ? 'Error' : 'Notification'}
+                </p>
+                <p className="text-[11px] mt-1 text-text-muted font-bold leading-relaxed">{notification.message}</p>
+              </div>
+              <button onClick={() => setNotification(null)} className="text-navy-950/40 hover:text-navy-950 transition-colors cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

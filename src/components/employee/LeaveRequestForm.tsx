@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Calendar, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { applyForLeave } from '@/app/employee/leaves/actions';
+import { cn } from '@/lib/utils';
 
 const leaveTypes = ['Sick', 'Casual', 'Earned', 'Maternity', 'Paternity'];
 
@@ -99,9 +100,4 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
       )}
     </form>
   );
-}
-
-// Minimal cn helper since I can't import easily here
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Save, Loader2, CheckCircle2, ExternalLink, Navigation, Building, AlertCircle, Sparkles, Crosshair, HelpCircle, ArrowRight } from 'lucide-react';
+import { MapPin, Save, Loader2, CheckCircle2, ExternalLink, Navigation, Building, AlertCircle, Sparkles, Crosshair, HelpCircle, ArrowRight, X, Info } from 'lucide-react';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -9,7 +9,7 @@ import { OFFICE_LOCATION } from '@/lib/location';
 import { getOfficeLocation, saveOfficeLocation, getSystemStatus } from './actions';
 import { env } from '@/lib/env';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AdminSettingsPage() {
   const [lat, setLat] = useState(String(OFFICE_LOCATION.lat));
@@ -21,8 +21,19 @@ export default function AdminSettingsPage() {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const [systemNodes, setSystemNodes] = useState<any[]>([]);
+  const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setNotification({ message, type });
+  };
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => setNotification(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   useEffect(() => {
     async function loadLocation() {
@@ -52,15 +63,15 @@ export default function AdminSettingsPage() {
     const parsedRadius = parseInt(radius);
 
     if (isNaN(parsedLat) || parsedLat < -90 || parsedLat > 90) {
-      alert('Please enter a valid numeric latitude between -90 and 90.');
+      showNotification('Please enter a valid numeric latitude between -90 and 90.', 'error');
       return;
     }
     if (isNaN(parsedLng) || parsedLng < -180 || parsedLng > 180) {
-      alert('Please enter a valid numeric longitude between -180 and 180.');
+      showNotification('Please enter a valid numeric longitude between -180 and 180.', 'error');
       return;
     }
     if (isNaN(parsedRadius) || parsedRadius < 50 || parsedRadius > 5000) {
-      alert('Please enter a valid radius between 50 and 5000 meters.');
+      showNotification('Please enter a valid radius between 50 and 5000 meters.', 'error');
       return;
     }
 
@@ -73,10 +84,11 @@ export default function AdminSettingsPage() {
         radius_meters: parsedRadius
       });
       setSaved(true);
+      showNotification('Settings saved successfully.', 'success');
       setTimeout(() => setSaved(false), 4000);
     } catch (err: any) {
       console.error('Failed to save settings:', err);
-      alert(err instanceof Error ? err.message : 'Failed to save settings');
+      showNotification(err instanceof Error ? err.message : 'Failed to save settings', 'error');
     } finally {
       setSaving(false);
     }
@@ -90,9 +102,10 @@ export default function AdminSettingsPage() {
         setLng(position.coords.longitude.toFixed(6));
         setDetectingLocation(false);
         setMapError(false);
+        showNotification('Location synced successfully.', 'success');
       },
       () => {
-        alert('Could not detect location. Please enter coordinates manually.');
+        showNotification('Could not detect location automatically. Please enter coordinates manually or verify geolocation permissions.', 'error');
         setDetectingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -370,6 +383,43 @@ export default function AdminSettingsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Floating Toast Notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: "spring", duration: 0.4 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[110] w-full max-w-sm px-4"
+          >
+            <div className={cn(
+              "rounded-2xl p-4 shadow-2xl border backdrop-blur-md flex items-start gap-3 bg-white/95",
+              notification.type === 'success' ? "border-emerald-500/20 text-emerald-600" :
+              notification.type === 'error' ? "border-red-500/20 text-red-600" :
+              "border-primary-500/20 text-primary-600"
+            )}>
+              {notification.type === 'success' ? (
+                <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-500" />
+              ) : notification.type === 'error' ? (
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-500" />
+              ) : (
+                <Info className="w-5 h-5 shrink-0 mt-0.5 text-primary-500" />
+              )}
+              <div className="flex-1">
+                <p className="text-xs font-black uppercase tracking-wider text-navy-900">
+                  {notification.type === 'success' ? 'Success' : notification.type === 'error' ? 'Error' : 'Notification'}
+                </p>
+                <p className="text-[11px] mt-1 text-text-muted font-bold leading-relaxed">{notification.message}</p>
+              </div>
+              <button onClick={() => setNotification(null)} className="text-navy-950/40 hover:text-navy-950 transition-colors cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
