@@ -32,7 +32,7 @@ export default async function EmployeeAppDashboard() {
     return acc;
   }, {});
 
-  const operationalPolicy = configMap['operational_policy'] || "Deployment to Remote (WFH) nodes requires geospatial verification and Administrative authorization to maintain synchronized attendance metrics.";
+  const operationalPolicy = configMap['operational_policy'] || "Working from home (WFH) requires checking in with your location. Please ensure you enable location access when submitting a WFH request.";
 
   const empRecords = (records || []).map(r => {
     const checkIn = r.check_in ? new Date(r.check_in) : null;
@@ -95,7 +95,7 @@ export default async function EmployeeAppDashboard() {
           <div className="space-y-6">
             <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-inner">
               <Sparkles className="w-4 h-4 text-primary-400" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">System Node: {employee?.employee_id || 'ACTIVE'}</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">Employee ID: {employee?.employee_id || 'Active'}</span>
             </div>
             
             <div>
@@ -104,7 +104,7 @@ export default async function EmployeeAppDashboard() {
                 <span className="text-primary-400 drop-shadow-md brightness-125">{firstName}</span>
               </h1>
               <p className="text-gray-400 text-sm md:text-base mt-4 max-w-md font-medium leading-relaxed italic">
-                Infrastructure synchronization complete. Your current operational node is active and ready for commands.
+                Welcome to your dashboard. You can record daily attendance, apply for leaves, and review your assigned clients.
               </p>
             </div>
 
@@ -112,18 +112,18 @@ export default async function EmployeeAppDashboard() {
               <Link href="/employee/attendance">
                 <Button className="bg-white text-navy-900 hover:bg-white/90 rounded-2xl px-10 py-6 font-black shadow-2xl shadow-white/5 transition-all active:scale-95 group">
                   <Clock className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" /> 
-                  {todayRecord ? 'Review Session' : 'Initiate Session'}
+                  {todayRecord ? 'View Today\'s Entry' : 'Clock In / Clock Out'}
                 </Button>
               </Link>
               <Link href="/employee/leaves">
                 <Button className="bg-primary-500/20 backdrop-blur-md text-primary-200 hover:bg-primary-500/30 rounded-2xl px-8 py-6 font-black border border-primary-500/30 transition-all active:scale-95">
-                  Deploy Request <ArrowRight className="w-5 h-5 ml-3" />
+                  Request Leave <ArrowRight className="w-5 h-5 ml-3" />
                 </Button>
               </Link>
             </div>
           </div>
 
-          {/* Identity Node Card */}
+          {/* Profile Card */}
           <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-emerald-500 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
             <div className="relative bg-navy-900/50 backdrop-blur-2xl rounded-[2rem] p-8 border border-white/10 w-full lg:w-[320px] shadow-2xl">
@@ -132,18 +132,18 @@ export default async function EmployeeAppDashboard() {
                   <User className="w-8 h-8 text-white" />
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-primary-400 uppercase tracking-widest">Employee Node</p>
+                  <p className="text-[10px] font-black text-primary-400 uppercase tracking-widest">Employee Profile</p>
                   <p className="text-sm font-bold text-white">{employee?.employee_id}</p>
                 </div>
               </div>
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Assigned Domain</p>
+                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Department</p>
                   <p className="text-base font-bold text-white">{employee?.department || 'Operations'}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Access Protocol</p>
+                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">System Role</p>
                   <p className="text-xs font-bold text-primary-200 uppercase tracking-widest">{employee?.role || 'Staff'}</p>
                 </div>
               </div>
@@ -151,7 +151,7 @@ export default async function EmployeeAppDashboard() {
               <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Synchronized</span>
+                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Connected</span>
                 </div>
                 <MapPin className="w-4 h-4 text-gray-600" />
               </div>
@@ -180,9 +180,9 @@ export default async function EmployeeAppDashboard() {
           <div className="flex items-center justify-between px-4">
             <div className="flex items-center gap-3">
               <div className="w-1.5 h-6 bg-primary-500 rounded-full" />
-              <h2 className="font-heading font-black text-navy-900 text-2xl tracking-tight">System Logs</h2>
+              <h2 className="font-heading font-black text-navy-900 text-2xl tracking-tight">Attendance Log</h2>
             </div>
-            <Link href="/employee/attendance" className="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest bg-primary-50 px-4 py-2 rounded-xl transition-all">Full Archives</Link>
+            <Link href="/employee/attendance" className="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest bg-primary-50 px-4 py-2 rounded-xl transition-all">View All</Link>
           </div>
           
           <div className="bg-white rounded-[2.5rem] border border-border/60 shadow-sm overflow-hidden">
@@ -192,8 +192,8 @@ export default async function EmployeeAppDashboard() {
                   <div className="w-16 h-16 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
                     <Clock className="w-8 h-8 text-text-muted" />
                   </div>
-                  <p className="text-sm font-black text-navy-900 uppercase tracking-tight">No Logs Detected</p>
-                  <p className="text-xs text-text-muted mt-1">Initiate your first session to start logging.</p>
+                  <p className="text-sm font-black text-navy-900 uppercase tracking-tight">No Records Found</p>
+                  <p className="text-xs text-text-muted mt-1">Clock in today to start recording your attendance.</p>
                 </div>
               ) : (
                 empRecords.map((record) => (
@@ -216,13 +216,13 @@ export default async function EmployeeAppDashboard() {
                           <LogIn className="w-3 h-3 text-emerald-500" /> {record.check_in}
                         </div>
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-alt border border-border/40 text-[10px] font-bold text-text-secondary">
-                          <LogOut className="w-3 h-3 text-primary-500" /> {record.check_out || 'Active Session'}
+                          <LogOut className="w-3 h-3 text-primary-500" /> {record.check_out || 'Clocked In'}
                         </div>
                       </div>
                     </div>
                     
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-black text-navy-900 mb-2">{record.duration_hours > 0 ? `${record.duration_hours}h` : 'Running'}</div>
+                      <div className="text-sm font-black text-navy-900 mb-2">{record.duration_hours > 0 ? `${record.duration_hours}h` : 'Clocked In'}</div>
                       <span className={cn(
                         "inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
                         statusColors[record.status?.toLowerCase()] || statusColors.present
@@ -246,13 +246,13 @@ export default async function EmployeeAppDashboard() {
               <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
                 <Briefcase className="w-6 h-6 text-primary-400" />
               </div>
-              <h3 className="text-2xl font-heading font-black mb-3 tracking-tight">Assignment<br />Protocol</h3>
+              <h3 className="text-2xl font-heading font-black mb-3 tracking-tight">Assigned<br />Clients</h3>
               <p className="text-gray-400 text-xs mb-8 leading-relaxed font-medium">
-                Review and update telemetry for client nodes assigned to your operative profile.
+                View and update project profiles and client details assigned to your account.
               </p>
               <Link href="/employee/assigned-profiles">
                 <Button className="w-full bg-primary-500 text-white hover:bg-primary-600 font-black rounded-2xl py-5 border-0 shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
-                  Open Assignments <ArrowRight className="w-5 h-5 ml-auto" />
+                  View Clients <ArrowRight className="w-5 h-5 ml-auto" />
                 </Button>
               </Link>
             </div>

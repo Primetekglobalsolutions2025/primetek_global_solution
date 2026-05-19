@@ -20,6 +20,7 @@ export interface EmployeeProfile {
   avatar_url?: string;
   created_at?: string;
   mfa_enabled?: boolean;
+  employee_id?: string;
 }
 
 export default function ProfileClient({ employee }: { employee: EmployeeProfile }) {
@@ -112,7 +113,7 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
 
           <div className="text-center md:text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 mb-3">
-              <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest">Active Member</span>
+              <span className="text-[10px] font-black text-primary-400 uppercase tracking-widest">Employee</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-heading font-black text-white mb-2 tracking-tight">
               {employee.name}
@@ -126,9 +127,9 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
 
           <div className="md:ml-auto flex items-center gap-4">
             <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-center min-w-[100px]">
-              <p className="text-[9px] text-primary-300 uppercase font-black tracking-widest mb-1">ID Tag</p>
+              <p className="text-[9px] text-primary-300 uppercase font-black tracking-widest mb-1">Employee ID</p>
               <p className="text-sm font-mono font-bold text-white uppercase tracking-tighter">
-                {employee.id.substring(0, 8)}
+                {employee.employee_id || 'Active'}
               </p>
             </div>
           </div>

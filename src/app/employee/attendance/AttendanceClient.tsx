@@ -189,13 +189,13 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-5 h-5 text-primary-400" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">Temporal Node</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">Attendance Status</span>
             </div>
             <h1 className="text-3xl font-heading font-black tracking-tight text-white">Time & Attendance</h1>
-            <p className="text-gray-400 text-xs mt-1 font-medium italic">Synchronize your operational hours with the global HQ.</p>
+            <p className="text-gray-400 text-xs mt-1 font-medium italic">Clock in and clock out to record your daily working hours.</p>
           </div>
           <div className="hidden md:block text-right">
-            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Local Matrix Time</p>
+            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Current Time</p>
             <p className="text-2xl font-black text-white font-mono">
               {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
             </p>
@@ -228,7 +228,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 className="w-full max-w-xs p-6 rounded-3xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-2xl shadow-emerald-500/20 text-center relative overflow-hidden"
               >
                 <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2">Session Active For</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2">Logged In For</p>
                 <p className="text-4xl font-black font-mono tracking-tight">
                   {String(elapsedHrs).padStart(2, '0')}:{String(elapsedMin).padStart(2, '0')}:{String(elapsedSec).padStart(2, '0')}
                 </p>
@@ -244,9 +244,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   disabled={gpsStatus === 'loading'}
                 >
                   {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-6 h-6 animate-spin mr-3" /> Locating Node...</>
+                    <><Loader2 className="w-6 h-6 animate-spin mr-3" /> Getting location...</>
                   ) : (
-                    <><LogIn className="w-6 h-6 mr-3 group-hover:-translate-x-1 transition-transform" /> Initiate Session</>
+                    <><LogIn className="w-6 h-6 mr-3 group-hover:-translate-x-1 transition-transform" /> Clock In</>
                   )}
                 </Button>
               ) : !isCheckedOut ? (
@@ -257,23 +257,23 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   disabled={gpsStatus === 'loading'}
                 >
                   {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-6 h-6 animate-spin mr-3" /> Syncing...</>
+                    <><Loader2 className="w-6 h-6 animate-spin mr-3" /> Clocking out...</>
                   ) : (
-                    <><LogOut className="w-6 h-6 mr-3 group-hover:translate-x-1 transition-transform" /> Terminate Session</>
+                    <><LogOut className="w-6 h-6 mr-3 group-hover:translate-x-1 transition-transform" /> Clock Out</>
                   )}
                 </Button>
               ) : (
                 <div className="space-y-4 text-center">
                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6">
                     <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-                    <p className="text-sm font-black text-navy-900 uppercase tracking-tight">Deployment Complete</p>
-                    <p className="text-[10px] text-text-muted mt-1 font-bold">Your hours have been committed to the mainframe.</p>
+                    <p className="text-sm font-black text-navy-900 uppercase tracking-tight">Clock Out Complete</p>
+                    <p className="text-[10px] text-text-muted mt-1 font-bold">Your attendance has been recorded successfully.</p>
                   </div>
                   <button 
                     onClick={handleResume} 
                     className="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest"
                   >
-                    Resynchronize Session
+                    Undo Clock Out
                   </button>
                 </div>
               )}
@@ -288,7 +288,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           </div>
           
           <div className="flex items-center justify-between mb-8">
-            <h2 className="font-heading font-black text-xl tracking-tight text-white">Temporal Matrix</h2>
+            <h2 className="font-heading font-black text-xl tracking-tight text-white">Monthly Attendance</h2>
             <div className="px-4 py-1.5 rounded-xl bg-white/10 text-[10px] font-black uppercase tracking-widest text-primary-300">
               {currentTime.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
             </div>
@@ -346,7 +346,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       <div className="space-y-6">
         <div className="flex items-center gap-3 px-4">
           <div className="w-1.5 h-6 bg-primary-500 rounded-full" />
-          <h2 className="font-heading font-black text-navy-900 text-2xl tracking-tight">Sync History</h2>
+          <h2 className="font-heading font-black text-navy-900 text-2xl tracking-tight">Attendance History</h2>
         </div>
 
         <Card hover={false} className="p-0 overflow-hidden rounded-[2.5rem] border-border/60 shadow-sm bg-white">
@@ -354,10 +354,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             <table className="w-full text-sm text-left border-collapse">
               <thead>
                 <tr className="bg-surface-alt/50 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">
-                  <th className="px-8 py-5">Temporal Stamp</th>
-                  <th className="px-8 py-5">Node Status</th>
-                  <th className="px-8 py-5">Metric (Hours)</th>
-                  <th className="px-8 py-5 text-right">Telemetry</th>
+                  <th className="px-8 py-5">Date</th>
+                  <th className="px-8 py-5">Status</th>
+                  <th className="px-8 py-5">Work Hours</th>
+                  <th className="px-8 py-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
@@ -365,7 +365,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   <tr key={r.id} className="hover:bg-surface-alt/20 transition-all group">
                     <td className="px-8 py-6">
                       <p className="font-black text-navy-900 tracking-tight">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
-                      <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-0.5">{r.check_in || '--:--'} → {r.check_out || 'Active'}</p>
+                      <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-0.5">{r.check_in || '--:--'} → {r.check_out || 'Clocked In'}</p>
                     </td>
                     <td className="px-8 py-6">
                       <span className={cn(
@@ -423,10 +423,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   </div>
                   
                   <div>
-                    <h3 className="text-2xl font-heading font-black text-navy-900 tracking-tight leading-tight">Remote Node<br />Deployment?</h3>
+                    <h3 className="text-2xl font-heading font-black text-navy-900 tracking-tight leading-tight">Work from Home<br />Request?</h3>
                     <div className="mt-6 p-4 rounded-2xl bg-surface-alt border border-border/40 text-xs text-text-muted font-medium leading-relaxed">
-                      You are currently <span className="font-black text-navy-900 text-sm">{(wfhRequest.distance || 0).toLocaleString()}m</span> from <span className="font-black text-navy-900">{wfhRequest.officeName}</span>.
-                      <p className="mt-2 italic">Standard HQ synchronization is unavailable. Deploy to WFH protocol instead?</p>
+                      You are currently <span className="font-black text-navy-900 text-sm">{(wfhRequest.distance || 0).toLocaleString()}m</span> away from the office (<span className="font-black text-navy-900">{wfhRequest.officeName}</span>).
+                      <p className="mt-2 italic">You are outside the office range. Would you like to submit a Work From Home (WFH) check-in request instead?</p>
                     </div>
                   </div>
                   
@@ -436,13 +436,13 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                       disabled={gpsStatus === 'loading'} 
                       className="w-full py-6 rounded-2xl bg-primary-500 hover:bg-primary-600 text-white font-black shadow-xl shadow-primary-500/20 transition-all text-sm"
                     >
-                      Initialize WFH Request
+                      Submit WFH Check-In
                     </Button>
                     <button 
                       onClick={() => setWfhRequest(null)} 
                       className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] hover:text-navy-900 transition-colors"
                     >
-                      Abort Deployment
+                      Cancel
                     </button>
                   </div>
                 </div>

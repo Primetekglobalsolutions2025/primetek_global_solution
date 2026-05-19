@@ -298,9 +298,9 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <Sparkles className="w-4 h-4 text-primary-500" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">Personnel Node</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">Employee Management</span>
                   </div>
-                  <h3 className="font-heading font-black text-2xl text-navy-900 tracking-tight">Onboard Staff</h3>
+                  <h3 className="font-heading font-black text-2xl text-navy-900 tracking-tight">Add New Employee</h3>
                 </div>
                 <button 
                   onClick={() => { setIsModalOpen(false); setSuccessMessage(null); }} 
@@ -321,8 +321,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       <ShieldCheck className="w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="font-heading font-black text-emerald-900 text-xl tracking-tight">Access Provisioned</h4>
-                      <p className="text-sm text-emerald-700/80 mt-2 font-medium">Capture these credentials securely. They are non-recoverable.</p>
+                      <h4 className="font-heading font-black text-emerald-900 text-xl tracking-tight">Account Created</h4>
+                      <p className="text-sm text-emerald-700/80 mt-2 font-medium">Please save these login credentials. The password is encrypted and cannot be retrieved later.</p>
                     </div>
                     
                     <div className="bg-white/60 backdrop-blur-md p-6 rounded-[2rem] border border-emerald-100 text-left space-y-4">
@@ -331,20 +331,20 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         <span className="text-sm font-black text-navy-900 font-mono bg-white px-3 py-1 rounded-lg">{successMessage.id}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Initial Token</span>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Initial Password</span>
                         <span className="text-sm font-black text-primary-600 font-mono bg-white px-3 py-1 rounded-lg">{successMessage.pass}</span>
                       </div>
                     </div>
                     
                     <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-emerald-600/60 uppercase tracking-widest animate-pulse">
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      Synchronizing Registry...
+                      Updating database...
                     </div>
                   </motion.div>
                 ) : (
                   <form onSubmit={handleAddEmployee} className="space-y-6">
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Identity Name</label>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Full Name</label>
                       <div className="relative group">
                         <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                         <input required type="text" placeholder="John Doe" value={newEmployeeData.name} onChange={(e) => setNewEmployeeData({...newEmployeeData, name: e.target.value})} className="w-full pl-11 pr-4 py-4 rounded-2xl bg-surface-alt border-0 focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all text-sm font-medium text-navy-900" />
@@ -352,7 +352,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Communication Channel</label>
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Email Address</label>
                       <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                         <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => setNewEmployeeData({...newEmployeeData, email: e.target.value})} className="w-full pl-11 pr-4 py-4 rounded-2xl bg-surface-alt border-0 focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all text-sm font-medium text-navy-900" />
@@ -361,7 +361,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Access Tier</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">User Role</label>
                         <select value={newEmployeeData.role} onChange={(e) => setNewEmployeeData({...newEmployeeData, role: e.target.value})} className="w-full px-4 py-4 rounded-2xl bg-surface-alt border-0 focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all text-sm font-black text-navy-900 uppercase">
                           <option value="employee">Employee</option>
                           <option value="admin">Admin</option>
@@ -369,7 +369,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Operational Dept</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Department</label>
                         <div className="relative group">
                           <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
                           <input required type="text" placeholder="Engineering" value={newEmployeeData.department} onChange={(e) => setNewEmployeeData({...newEmployeeData, department: e.target.value})} className="w-full pl-11 pr-4 py-4 rounded-2xl bg-surface-alt border-0 focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all text-sm font-medium text-navy-900" />
@@ -388,7 +388,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         ) : (
                           <div className="flex items-center justify-center gap-2">
                             <Plus className="w-5 h-5" />
-                            <span>Onboard Identity</span>
+                            <span>Create Account</span>
                           </div>
                         )}
                       </Button>
@@ -412,7 +412,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
             >
               <div className="flex items-center justify-between px-10 py-8 border-b border-border/40">
                 <div>
-                  <h3 className="font-heading font-black text-xl text-navy-900 tracking-tight">Leave Credits</h3>
+                  <h3 className="font-heading font-black text-xl text-navy-900 tracking-tight">Leave Balance</h3>
                   <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-1">{selectedEmployee.name}</p>
                 </div>
                 <button 
@@ -447,7 +447,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                   disabled={isUpdatingBalance}
                   className="w-full bg-navy-900 hover:bg-navy-800 text-white font-black rounded-2xl py-5 shadow-xl shadow-navy-900/10 border-0 active:scale-98 transition-all"
                 >
-                  {isUpdatingBalance ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Synchronize Balances'}
+                  {isUpdatingBalance ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Update Balances'}
                 </Button>
               </form>
             </motion.div>

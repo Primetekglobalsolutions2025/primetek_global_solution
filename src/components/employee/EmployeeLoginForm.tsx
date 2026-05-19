@@ -115,7 +115,7 @@ export default function EmployeeLoginForm() {
           className="w-full bg-primary-500 hover:bg-primary-600 text-white font-black rounded-2xl py-5" 
           disabled={loading || mfaCode.length !== 6}
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Confirm Identity'}
+          {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Verify Code'}
         </Button>
 
         <button 
@@ -133,8 +133,8 @@ export default function EmployeeLoginForm() {
     <form onSubmit={handleLogin} className="space-y-6 relative z-10">
       {lockout && (
         <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-center space-y-2 mb-6 animate-in slide-in-from-top-4">
-          <p className="text-xs font-black text-red-400 uppercase tracking-widest">Access Blocked</p>
-          <p className="text-[11px] text-red-400/70 font-medium leading-relaxed">Security threshold exceeded. System access is temporarily locked for this endpoint.</p>
+          <p className="text-xs font-black text-red-400 uppercase tracking-widest">Account Locked</p>
+          <p className="text-[11px] text-red-400/70 font-medium leading-relaxed">Too many failed login attempts. Your access is temporarily locked for 15 minutes.</p>
         </div>
       )}
 
@@ -147,7 +147,7 @@ export default function EmployeeLoginForm() {
       {/* Email */}
       <div className="space-y-2">
         <label htmlFor="emp-email" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-          Portal Identity
+          Email or Employee ID
         </label>
         <div className="relative group">
           <input
@@ -166,7 +166,7 @@ export default function EmployeeLoginForm() {
       {/* Password */}
       <div className="space-y-2">
         <label htmlFor="emp-password" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-          Access Key
+          Password
         </label>
         <div className="relative">
           <input
@@ -206,8 +206,8 @@ export default function EmployeeLoginForm() {
           <Loader2 className="w-5 h-5 animate-spin mx-auto" />
         ) : (
           <div className="flex items-center justify-center gap-2">
-            <ShieldCheck className="w-5 h-5" /> 
-            <span>Authenticate</span>
+            <LogIn className="w-5 h-5" /> 
+            <span>Sign In</span>
           </div>
         )}
       </Button>
