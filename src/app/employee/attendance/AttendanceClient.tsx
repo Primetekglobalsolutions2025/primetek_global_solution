@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, Navigation, History, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { cn, formatDistance } from '@/lib/utils';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { checkIn, checkOut, resumeSession, requestWFH } from './actions';
@@ -425,7 +425,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   <div>
                     <h3 className="text-2xl font-heading font-black text-navy-900 tracking-tight leading-tight">Work from Home<br />Request?</h3>
                     <div className="mt-6 p-4 rounded-2xl bg-surface-alt border border-border/40 text-xs text-text-muted font-medium leading-relaxed">
-                      You are currently <span className="font-black text-navy-900 text-sm">{(wfhRequest.distance || 0).toLocaleString()}m</span> away from the office (<span className="font-black text-navy-900">{wfhRequest.officeName}</span>).
+                      You are currently <span className="font-black text-navy-900 text-sm">{formatDistance(wfhRequest.distance || 0)}</span> away from the office (<span className="font-black text-navy-900">{wfhRequest.officeName}</span>).
                       <p className="mt-2 italic">You are outside the office range. Would you like to submit a Work From Home (WFH) check-in request instead?</p>
                     </div>
                   </div>

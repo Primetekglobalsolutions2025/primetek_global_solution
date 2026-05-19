@@ -51,3 +51,11 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
 
   return R * c;
 }
+
+export function formatDistance(meters: number): string {
+  if (meters >= 1000) {
+    const km = meters / 1000;
+    return `${km.toFixed(1)} km`;
+  }
+  return `${Math.round(meters)}m`;
+}
