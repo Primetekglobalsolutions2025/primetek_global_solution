@@ -12,14 +12,14 @@ export async function getOfficeLocation() {
     .from('office_locations')
     .select('*')
     .eq('is_active', true)
-    .limit(1)
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(1);
 
   if (error) {
     console.error('Error fetching office location:', error);
     return null;
   }
-  return data;
+  return data && data.length > 0 ? data[0] : null;
 }
 
 export async function saveOfficeLocation(data: {

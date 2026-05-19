@@ -21,7 +21,7 @@ export default function EmployeeLoginPage() {
           </div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-2">
             <span className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />
-            <span className="text-[10px] font-bold text-primary-200 uppercase tracking-[0.2em]">Secure Node</span>
+            <span className="text-[10px] font-bold text-primary-200 uppercase tracking-[0.2em]">Secure Portal</span>
           </div>
           <h1 className="text-2xl font-heading font-black text-white tracking-tight">Employee Portal</h1>
           <p className="text-gray-400 text-xs mt-2 font-medium">Global workforce authentication</p>

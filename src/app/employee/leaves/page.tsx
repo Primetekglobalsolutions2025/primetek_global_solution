@@ -55,17 +55,17 @@ export default function LeavesPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="w-5 h-5 text-primary-400" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">Personnel Status</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">Leave Balance</span>
             </div>
             <h1 className="text-3xl font-heading font-black tracking-tight text-white">Leave Management</h1>
-            <p className="text-gray-400 text-xs mt-1 font-medium italic">Track your operational downtime and allocation credits.</p>
+            <p className="text-gray-400 text-xs mt-1 font-medium italic">Track your available leave balances and request time off.</p>
           </div>
           <Button 
             onClick={() => setIsApplying(true)} 
             className="bg-white text-navy-900 hover:bg-white/90 rounded-2xl px-8 py-6 font-black shadow-2xl shadow-white/5 transition-all active:scale-95 group shrink-0"
           >
             <Plus className="w-5 h-5 mr-3 group-hover:rotate-90 transition-transform" /> 
-            Deploy Request
+            Request Leave
           </Button>
         </div>
       </div>
@@ -73,10 +73,10 @@ export default function LeavesPage() {
       {/* Summary Matrix */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-          { label: 'Sick Credits', type: 'Sick', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: 'Casual Credits', type: 'Casual', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { label: 'Earned Credits', type: 'Earned', color: 'text-primary-500', bg: 'bg-primary-500/10' },
-          { label: 'Pending Auth', type: 'Pending', color: 'text-amber-500', bg: 'bg-amber-500/10' },
+          { label: 'Sick Leave', type: 'Sick', color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          { label: 'Casual Leave', type: 'Casual', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+          { label: 'Earned Leave', type: 'Earned', color: 'text-primary-500', bg: 'bg-primary-500/10' },
+          { label: 'Pending Approval', type: 'Pending', color: 'text-amber-500', bg: 'bg-amber-500/10' },
         ].map((stat) => (
           <div key={stat.label} className="group bg-white rounded-[2rem] p-6 border border-border/60 shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
             <div className={`w-10 h-10 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
@@ -102,7 +102,7 @@ export default function LeavesPage() {
             {loading ? (
               <div className="p-20 text-center text-text-muted">
                 <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 opacity-10" />
-                <p className="text-[10px] font-black uppercase tracking-widest">Scanning Registry...</p>
+                <p className="text-[10px] font-black uppercase tracking-widest">Loading Requests...</p>
               </div>
             ) : leaves.length === 0 ? (
               <div className="p-20 text-center">
@@ -110,7 +110,7 @@ export default function LeavesPage() {
                   <Calendar className="w-10 h-10 text-text-muted/30" />
                 </div>
                 <p className="text-sm font-black text-navy-900 uppercase tracking-tight">No Requests Found</p>
-                <p className="text-xs text-text-muted mt-1 italic">Your personnel record is currently clear of time-off requests.</p>
+                <p className="text-xs text-text-muted mt-1 italic">You have no leave requests at the moment.</p>
               </div>
             ) : (
               leaves.map((leave) => {
@@ -126,11 +126,11 @@ export default function LeavesPage() {
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-3">
-                          <p className="text-lg font-black text-navy-900 tracking-tight">{leave.type} Deployment</p>
+                          <p className="text-lg font-black text-navy-900 tracking-tight">{leave.type} Leave</p>
                           <span className={cn(
                             "px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border",
                             statusColors[leave.status.toLowerCase()]
-                          )}>
+                      )}>
                             {leave.status}
                           </span>
                         </div>
@@ -147,8 +147,8 @@ export default function LeavesPage() {
                     
                     <div className="flex items-center gap-4 text-right">
                       <div className="hidden md:block">
-                        <p className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-1">Authorization</p>
-                        <p className="text-xs font-bold text-navy-900">{leave.status === 'Approved' ? 'HQ Verified' : 'Awaiting Review'}</p>
+                        <p className="text-[9px] font-black text-text-muted uppercase tracking-widest mb-1">Approval Status</p>
+                        <p className="text-xs font-bold text-navy-900">{leave.status === 'Approved' ? 'Approved' : 'Awaiting Approval'}</p>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-surface-alt flex items-center justify-center group-hover:bg-navy-900 group-hover:text-white transition-all">
                         <TrendingUp className="w-4 h-4 opacity-40 group-hover:opacity-100" />
@@ -186,9 +186,9 @@ export default function LeavesPage() {
                 <div className="mb-10">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-2 h-6 bg-primary-500 rounded-full" />
-                    <h2 className="text-3xl font-heading font-black text-navy-900 tracking-tight">Apply for Downtime</h2>
+                    <h2 className="text-3xl font-heading font-black text-navy-900 tracking-tight">Apply for Leave</h2>
                   </div>
-                  <p className="text-sm text-text-muted font-medium italic">Initialize a personnel unavailability request for HQ authorization.</p>
+                  <p className="text-sm text-text-muted font-medium italic">Submit a leave request for manager approval.</p>
                 </div>
 
                 <LeaveRequestForm onSuccess={() => {

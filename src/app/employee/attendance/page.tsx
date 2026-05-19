@@ -5,7 +5,7 @@ import AttendanceClient from './AttendanceClient';
 
 export default async function EmployeeAppAttendancePage() {
   const session = await getSession();
-  if (!session || !session.id) redirect('/admin/login');
+  if (!session || !session.id) redirect('/employee/login');
 
   const { data: records } = await supabaseAdmin
     .from('attendance')

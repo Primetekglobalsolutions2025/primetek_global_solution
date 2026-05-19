@@ -35,7 +35,18 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (error || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      if (error && error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+      console.warn('Transient DB fetch issue for employee, falling back to JWT session payload:', error);
+      return NextResponse.json({
+        user: {
+          id: session.id,
+          name: session.name || 'Employee',
+          role: session.role || 'employee',
+          email: session.email
+        }
+      });
     }
 
     return NextResponse.json({

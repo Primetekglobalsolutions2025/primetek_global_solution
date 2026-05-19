@@ -39,12 +39,14 @@ export async function checkIn(lat: number, lng: number) {
     }
 
     // 1. Get Office Location
-    const { data: office } = await supabaseAdmin
+    const { data: officeList } = await supabaseAdmin
       .from('office_locations')
       .select('name, lat, lng, radius_meters')
       .eq('is_active', true)
-      .limit(1)
-      .maybeSingle();
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const office = officeList && officeList.length > 0 ? officeList[0] : null;
 
     const officeLat = Number(office?.lat || 17.3850);
     const officeLng = Number(office?.lng || 78.4867);
