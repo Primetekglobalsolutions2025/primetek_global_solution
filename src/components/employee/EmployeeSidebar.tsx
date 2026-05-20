@@ -18,6 +18,9 @@ export default function EmployeeSidebar() {
   const [collapsed, setCollapsed] = useState(false);
 
   const handleLogout = async () => {
+    try {
+      localStorage.removeItem('primetek-session');
+    } catch {}
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/employee/login');
     router.refresh();

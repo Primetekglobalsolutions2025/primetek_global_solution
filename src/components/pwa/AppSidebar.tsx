@@ -67,12 +67,11 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   const mobileEmployeeBottom = [
     { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Home' },
     { href: '/employee/attendance', icon: Clock, label: 'Attendance' },
-    { href: '/employee/attendance#history', icon: History, label: 'History' },
-    { href: '/employee/leaves', icon: Calendar, label: 'Requests' },
+    { href: '/employee/leaves', icon: Calendar, label: 'Leaves' },
+    { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles' },
   ];
 
   const mobileEmployeeMore = [
-    { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles' },
     { href: '/employee/profile', icon: UserCircle, label: 'My Profile' },
   ];
 
@@ -87,6 +86,9 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     setIsMoreOpen(false);
     if (!window.confirm('Are you sure you want to sign out?')) return;
     
+    try {
+      localStorage.removeItem('primetek-session');
+    } catch {}
     await fetch('/api/auth/logout', { method: 'POST' });
     router.replace(role === 'admin' ? '/admin/login' : '/employee/login');
     router.refresh();

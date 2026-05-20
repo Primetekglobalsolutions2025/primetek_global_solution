@@ -34,26 +34,71 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
     }
 
     const checkAuth = async () => {
+      // Try to load session and token from localStorage
+      let currentSession = null;
+      let token = null;
+      try {
+        const savedSession = localStorage.getItem('primetek-session');
+        token = localStorage.getItem('primetek-token');
+        if (savedSession) {
+          currentSession = JSON.parse(savedSession);
+          setSession(currentSession);
+        }
+      } catch (err) {
+        console.warn('Error reading session from localStorage:', err);
+      }
+
       if (isLoginPage) {
+        if (token && currentSession) {
+          try {
+            const res = await fetch('/api/auth/me', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              router.replace('/employee/dashboard');
+              return;
+            }
+          } catch {}
+        }
         setIsLoading(false);
         return;
       }
 
-      if (session) {
-        setIsLoading(false);
-        return;
+      // If offline, keep the local session (if exists) and don't redirect
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        if (currentSession) {
+          setIsLoading(false);
+          return;
+        }
       }
 
       try {
-        const res = await fetch('/api/auth/me');
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await fetch('/api/auth/me', { headers });
         if (res.ok) {
           const data = await res.json();
           setSession(data.user);
-        } else {
+          try {
+            localStorage.setItem('primetek-session', JSON.stringify(data.user));
+          } catch {}
+        } else if (res.status === 401 || res.status === 403 || res.status === 404) {
+          // Genuine unauthenticated response
+          try {
+            localStorage.removeItem('primetek-session');
+            localStorage.removeItem('primetek-token');
+          } catch {}
+          setSession(null);
           router.replace('/employee/login');
+        } else {
+          // Server errors (500, 502, etc.) -> keep local session, do not redirect
+          console.warn(`Auth check received server status ${res.status}. Session retained.`);
         }
-      } catch {
-        router.replace('/employee/login');
+      } catch (err) {
+        // Network/fetch error -> keep local session, do not redirect
+        console.warn('Network error during auth verification. Session retained:', err);
       } finally {
         setIsLoading(false);
       }

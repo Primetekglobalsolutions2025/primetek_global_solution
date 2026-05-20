@@ -16,11 +16,21 @@ export default function PWAStandaloneGuard() {
     if (isStandalone) {
       document.body.classList.add('pwa-standalone');
       
-      // If user tries to access website pages while in standalone app, redirect to /admin/login
+      // If user tries to access website pages while in standalone app, redirect to appropriate login portal
       const isPortalRoute = pathname.startsWith('/admin') || pathname.startsWith('/employee');
       
       if (!isPortalRoute) {
-        router.replace('/admin/login');
+        let role = 'admin';
+        try {
+          const saved = localStorage.getItem('primetek-session');
+          if (saved) {
+            const user = JSON.parse(saved);
+            if (user?.role === 'employee' || user?.role === 'hr') {
+              role = 'employee';
+            }
+          }
+        } catch {}
+        router.replace(role === 'admin' ? '/admin/login' : '/employee/login');
       }
     } else {
       document.body.classList.remove('pwa-standalone');

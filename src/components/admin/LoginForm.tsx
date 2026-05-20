@@ -51,6 +51,12 @@ export default function LoginForm() {
         return;
       }
 
+      if (result.token) {
+        try {
+          localStorage.setItem('primetek-token', result.token);
+        } catch {}
+      }
+
       router.push('/admin');
       router.refresh();
     } catch {
@@ -62,7 +68,7 @@ export default function LoginForm() {
     e.preventDefault();
     setError('');
     setVerifying(true);
-
+ 
     try {
       const res = await fetch('/api/auth/mfa-login', {
         method: 'POST',
@@ -75,6 +81,12 @@ export default function LoginForm() {
         setError(data.error || 'Invalid verification code');
         setVerifying(false);
         return;
+      }
+
+      if (data.token) {
+        try {
+          localStorage.setItem('primetek-token', data.token);
+        } catch {}
       }
 
       router.push('/admin');

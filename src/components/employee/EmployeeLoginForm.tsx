@@ -47,6 +47,12 @@ export default function EmployeeLoginForm() {
         return;
       }
 
+      if (data.token) {
+        try {
+          localStorage.setItem('primetek-token', data.token);
+        } catch {}
+      }
+
       router.push('/employee');
       router.refresh();
     } catch {
@@ -72,6 +78,12 @@ export default function EmployeeLoginForm() {
         setError(data.error || 'Invalid verification code');
         setLoading(false);
         return;
+      }
+
+      if (data.token) {
+        try {
+          localStorage.setItem('primetek-token', data.token);
+        } catch {}
       }
 
       router.push('/employee');

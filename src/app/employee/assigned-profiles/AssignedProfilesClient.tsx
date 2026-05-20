@@ -10,6 +10,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { updateProfileStatus } from './actions';
 import { useToast } from '@/components/ui/Toast';
+import { cn } from '@/lib/utils';
 
 interface ClientProfile {
   id: string;
@@ -93,12 +94,18 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
                   value={profile.status}
                   onChange={(e) => handleStatusChange(profile.id, e.target.value)}
                   disabled={updating === profile.id}
-                  className="text-[10px] font-semibold uppercase tracking-wider py-1 px-2 rounded border border-border/60 bg-white text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer"
+                  className={cn(
+                    "text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary-400/50 cursor-pointer transition-all duration-200",
+                    profile.status === 'assigned' && "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100/75",
+                    profile.status === 'processing' && "bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100/75",
+                    profile.status === 'completed' && "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100/75",
+                    profile.status === 'rejected' && "bg-red-50 text-red-600 border-red-200 hover:bg-red-100/75"
+                  )}
                 >
-                  <option value="assigned">Assigned</option>
-                  <option value="processing">Processing</option>
-                  <option value="completed">Completed</option>
-                  <option value="rejected">Rejected</option>
+                  <option value="assigned" className="bg-white text-navy-900 font-sans">Assigned</option>
+                  <option value="processing" className="bg-white text-navy-900 font-sans">Processing</option>
+                  <option value="completed" className="bg-white text-navy-900 font-sans">Completed</option>
+                  <option value="rejected" className="bg-white text-navy-900 font-sans">Rejected</option>
                 </select>
                 
                 {profile.resume_url && (
@@ -203,7 +210,15 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
               <div className="pt-4 border-t border-border flex items-center justify-between">
                 <div>
                   <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Current Status</p>
-                  <p className="text-xs font-bold text-navy-900 capitalize">{selectedProfile.status}</p>
+                  <span className={cn(
+                    "inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border mt-1",
+                    selectedProfile.status === 'assigned' && "bg-blue-50 text-blue-600 border-blue-200",
+                    selectedProfile.status === 'processing' && "bg-violet-50 text-violet-600 border-violet-200",
+                    selectedProfile.status === 'completed' && "bg-emerald-50 text-emerald-600 border-emerald-200",
+                    selectedProfile.status === 'rejected' && "bg-red-50 text-red-600 border-red-200"
+                  )}>
+                    {selectedProfile.status}
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   {selectedProfile.status !== 'completed' && (

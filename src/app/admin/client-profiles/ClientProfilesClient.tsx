@@ -5,12 +5,21 @@ import {
   Search, Plus, UserPlus, Eye, 
   Trash2, Download, X, Mail, 
   Globe, Phone, MapPin, Briefcase, 
-  GraduationCap, FileText, Loader2 
+  GraduationCap, FileText, Loader2, FileUser 
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { createProfile, updateProfile, deleteProfile, uploadClientResume } from './actions';
 import { useToast } from '@/components/ui/Toast';
+import { cn } from '@/lib/utils';
+
+const statusColors: Record<string, string> = {
+  assigned: 'bg-blue-100 text-blue-700',
+  processing: 'bg-amber-100 text-amber-700',
+  completed: 'bg-emerald-100 text-emerald-700',
+  rejected: 'bg-red-100 text-red-600',
+  pending: 'bg-violet-100 text-violet-700',
+};
 
 interface ClientProfile {
   id?: string;
@@ -177,20 +186,29 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         </Button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+      <div className="relative max-w-md group">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
         <input 
           type="text" 
           placeholder="Search profiles..." 
           value={search} 
           onChange={(e) => setSearch(e.target.value)} 
-          className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-400"
+          className="w-full pl-9 pr-4 py-2 rounded-lg border border-border/60 bg-white text-sm text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm"
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filtered.length === 0 && (
+          <div className="col-span-full p-16 text-center bg-white rounded-xl border border-dashed border-border/60">
+            <div className="w-14 h-14 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
+              <FileUser className="w-7 h-7 text-gray-300" />
+            </div>
+            <p className="text-sm font-bold text-navy-900 mb-1">No Client Profiles Found</p>
+            <p className="text-xs text-text-muted font-medium">Create a new profile to get started, or adjust your search filter.</p>
+          </div>
+        )}
         {filtered.map(profile => (
-          <Card key={profile.id} className="p-5 flex flex-col h-full border-t-4 border-t-primary-500">
+          <Card key={profile.id} className="p-5 flex flex-col h-full border-t-4 border-t-primary-500 hover:shadow-md transition-all duration-200 group">
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="font-heading font-bold text-navy-900">{profile.client_name}</h3>
@@ -218,10 +236,11 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
             </div>
 
             <div className="mt-5 pt-4 border-t border-border flex justify-between items-center">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
-                profile.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-              }`}>
-                {profile.status}
+              <span className={cn(
+                "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",
+                statusColors[profile.status?.toLowerCase() || ''] || 'bg-blue-100 text-blue-700'
+              )}>
+                {profile.status || 'Pending'}
               </span>
               {profile.resume_url && (
                 <a href={profile.resume_url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-primary-600 flex items-center gap-1 hover:underline">

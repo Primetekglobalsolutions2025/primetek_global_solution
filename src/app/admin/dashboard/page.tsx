@@ -182,7 +182,7 @@ export default async function AdminAppDashboard() {
                       {inq.status?.toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-xs text-text-secondary line-clamp-1 mb-1.5 font-medium">{inq.message}</p>
+                  <p className="text-xs text-text-secondary line-clamp-1 mb-1.5 font-medium">{inq.requirement}</p>
                   <div className="flex items-center gap-3 text-[10px] text-text-muted font-semibold uppercase tracking-tighter">
                     {inq.company && <span className="text-navy-900/40">{inq.company}</span>}
                     {inq.company && <span>•</span>}

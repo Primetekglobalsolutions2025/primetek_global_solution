@@ -209,8 +209,104 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
         </div>
       </div>
 
-      {/* 2. Table */}
-      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white">
+      {/* 2. Mobile Card Layout */}
+      <div className="block md:hidden space-y-3">
+        {paginated.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-xl border border-border/60">
+            <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-2">
+              <MessageSquare className="w-5 h-5 text-gray-300" />
+            </div>
+            <p className="text-xs text-text-muted font-semibold">No active inquiries in the ledger.</p>
+          </div>
+        ) : (
+          paginated.map((inquiry) => (
+            <Card key={inquiry.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-navy-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
+                    {inquiry.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-navy-900 leading-tight">{inquiry.name}</h4>
+                    <p className="text-[10px] text-text-muted font-medium mt-0.5">{inquiry.email}</p>
+                  </div>
+                </div>
+                <div className={cn(
+                  "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase shrink-0",
+                  statusColors[inquiry.status]
+                )}>
+                  {inquiry.status}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 bg-surface-alt/40 p-2.5 rounded-lg text-[10px] mb-3">
+                <div>
+                  <span className="text-gray-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Company</span>
+                  <div className="flex items-center gap-1 font-bold text-navy-900">
+                    <Building2 className="w-3 h-3 text-primary-500/50" />
+                    {inquiry.company || 'Private'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Received</span>
+                  <span className="font-bold text-navy-900">{formatDate(inquiry.created_at)}</span>
+                </div>
+              </div>
+
+              {inquiry.requirement && (
+                <p className="text-xs text-text-secondary line-clamp-2 font-medium mb-3 leading-relaxed">
+                  {inquiry.requirement}
+                </p>
+              )}
+
+              <div className="flex items-center justify-between border-t border-border/40 pt-3">
+                <button
+                  onClick={() => setSelectedInquiry(inquiry)}
+                  className="text-xs text-primary-500 hover:text-primary-600 font-semibold flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Details</span>
+                </button>
+                <button
+                  onClick={() => handleDelete(inquiry.id, inquiry.name)}
+                  className="text-xs text-gray-400 hover:text-red-500 font-semibold flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete</span>
+                </button>
+              </div>
+            </Card>
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-1 pt-2">
+            <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">
+              {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, filtered.length)} of {filtered.length}
+            </p>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="w-8 h-8 rounded-lg border border-border/60 flex items-center justify-center bg-white text-navy-900 hover:bg-surface-alt disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="w-8 h-8 rounded-lg border border-border/60 flex items-center justify-center bg-white text-navy-900 hover:bg-surface-alt disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-95 cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Desktop Table */}
+      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>

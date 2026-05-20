@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Sparkles, Plane, TrendingUp, History } from 'lucide-react';
+import { Calendar, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Sparkles, Plane, TrendingUp, History, HeartPulse, Coffee, Award, Hourglass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -73,21 +73,24 @@ export default function LeavesPage() {
       {/* Summary Matrix */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Sick Leave', type: 'Sick', color: 'text-blue-500', bg: 'bg-blue-500/10' },
-          { label: 'Casual Leave', type: 'Casual', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-          { label: 'Earned Leave', type: 'Earned', color: 'text-primary-500', bg: 'bg-primary-500/10' },
-          { label: 'Pending Approval', type: 'Pending', color: 'text-amber-500', bg: 'bg-amber-500/10' },
-        ].map((stat) => (
-          <div key={stat.label} className="group bg-white rounded-xl p-4 border border-border/60 shadow-sm transition-all duration-300">
-            <div className={`w-8 h-8 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-3 transition-transform shrink-0`}>
-              <Plane className="w-4 h-4" />
+          { label: 'Sick Leave', type: 'Sick', color: 'text-rose-500', bg: 'bg-rose-500/10', icon: HeartPulse },
+          { label: 'Casual Leave', type: 'Casual', color: 'text-amber-500', bg: 'bg-amber-500/10', icon: Coffee },
+          { label: 'Earned Leave', type: 'Earned', color: 'text-primary-500', bg: 'bg-primary-500/10', icon: Award },
+          { label: 'Pending Approval', type: 'Pending', color: 'text-indigo-500', bg: 'bg-indigo-500/10', icon: Hourglass },
+        ].map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <div key={stat.label} className="group bg-white rounded-xl p-4 border border-border/60 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary-200 hover:-translate-y-0.5">
+              <div className={`w-8 h-8 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-3 transition-transform group-hover:scale-110 duration-200 shrink-0`}>
+                <Icon className="w-4.5 h-4.5" />
+              </div>
+              <p className="text-2xl font-black text-navy-900 tracking-tight leading-none mb-1 group-hover:text-primary-600 transition-colors">
+                {loading ? '...' : stat.type === 'Pending' ? leaves.filter(l => l.status.toLowerCase() === 'pending').length : getBalance(stat.type)}
+              </p>
+              <p className="text-[9px] text-text-muted font-bold uppercase tracking-wider">{stat.label}</p>
             </div>
-            <p className="text-2xl font-bold text-navy-900 tracking-tight leading-none mb-1 group-hover:text-primary-600 transition-colors">
-              {loading ? '...' : stat.type === 'Pending' ? leaves.filter(l => l.status === 'Pending').length : getBalance(stat.type)}
-            </p>
-            <p className="text-[9px] text-text-muted font-bold uppercase tracking-wider">{stat.label}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* History Sequence */}
