@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, Navigation, History, Calendar as CalendarIcon, Clock, Info } from 'lucide-react';
+import { MapPin, CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, Navigation, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance } from '@/lib/utils';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { checkIn, checkOut, resumeSession, requestWFH } from './actions';
+import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { enqueueOfflineAction } from '@/lib/offline-queue';
 
 const statusColors: Record<string, string> = {
   present: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -35,6 +38,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   const [wfhRequest, setWfhRequest] = useState<{ active: boolean; distance?: number; officeName?: string } | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const { isOnline, pendingCount, isSyncing, syncQueue, refreshPendingCount } = useOfflineSync();
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
@@ -79,7 +83,23 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       const lng = position.coords.longitude;
       setCoords({ lat, lng });
       
-      const result = await checkIn(lat, lng);
+      const fingerprint = getOrCreateFingerprint();
+
+      // Offline fallback: queue locally if no network
+      if (!navigator.onLine) {
+        try {
+          enqueueOfflineAction('check_in', lat, lng, fingerprint);
+          refreshPendingCount();
+          setGpsStatus('success');
+          showNotification('Offline mode — check-in saved locally. It will sync when you reconnect.', 'info');
+        } catch (queueErr: any) {
+          setGpsStatus('error');
+          showNotification(queueErr.message || 'Failed to queue offline check-in', 'error');
+        }
+        return;
+      }
+
+      const result = await checkIn(lat, lng, undefined, undefined, fingerprint);
       
       if (!result.success) {
         if (result.outOfRadius) {
@@ -95,6 +115,17 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       setGpsStatus('success');
       showNotification('Clocked in successfully.', 'success');
     } catch (err: any) {
+      // Network error during server action — attempt offline queue
+      if (!navigator.onLine && coords) {
+        try {
+          const fingerprint = getOrCreateFingerprint();
+          enqueueOfflineAction('check_in', coords.lat, coords.lng, fingerprint);
+          refreshPendingCount();
+          setGpsStatus('success');
+          showNotification('Network lost — check-in saved offline. Will sync automatically.', 'info');
+          return;
+        } catch { /* fall through to error */ }
+      }
       setGpsStatus('error');
       showNotification(err.message || 'Could not retrieve your GPS location. Please check browser permissions.', 'error');
     }
@@ -104,7 +135,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     if (!coords) return;
     setGpsStatus('loading');
     try {
-      const result = await requestWFH(coords.lat, coords.lng);
+      const fingerprint = getOrCreateFingerprint();
+      const result = await requestWFH(coords.lat, coords.lng, undefined, undefined, fingerprint);
       if (result.success) {
         setGpsStatus('success');
         setWfhRequest(null);
@@ -142,7 +174,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         }
 
         try {
-          const result = await checkOut(todayRecord.id, lat || 0, lng || 0);
+          const fingerprint = getOrCreateFingerprint();
+          const result = await checkOut(todayRecord.id, lat || 0, lng || 0, undefined, undefined, fingerprint);
           if (result.success) {
             setGpsStatus('success');
             showNotification('Clocked out successfully.', 'success');
@@ -210,6 +243,40 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
   return (
     <div className="space-y-6 pb-16">
+      {/* Offline / Pending Sync Indicator */}
+      <AnimatePresence>
+        {(!isOnline || pendingCount > 0) && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className={cn(
+              'flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-xs font-semibold',
+              !isOnline
+                ? 'bg-amber-500/10 border-amber-500/20 text-amber-700'
+                : 'bg-blue-500/10 border-blue-500/20 text-blue-700'
+            )}
+          >
+            <div className="flex items-center gap-2">
+              {!isOnline ? (
+                <><WifiOff className="w-4 h-4" /> You are offline. Attendance actions will be saved locally.</>
+              ) : (
+                <><RefreshCw className={cn('w-4 h-4', isSyncing && 'animate-spin')} /> {pendingCount} pending attendance {pendingCount === 1 ? 'action' : 'actions'} to sync.</>
+              )}
+            </div>
+            {isOnline && pendingCount > 0 && (
+              <button
+                onClick={syncQueue}
+                disabled={isSyncing}
+                className="px-3 py-1 rounded-lg bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-blue-600 transition-colors disabled:opacity-50"
+              >
+                {isSyncing ? 'Syncing...' : 'Sync Now'}
+              </button>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Premium Header */}
       <div className="relative overflow-hidden rounded-xl bg-navy-900 p-6 text-white shadow-md shadow-navy-900/10">
         <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[100%] bg-primary-500/10 rounded-full blur-[80px]" />
@@ -377,7 +444,39 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           <h2 className="font-semibold text-navy-900 text-lg tracking-tight">Attendance History</h2>
         </div>
 
-        <Card hover={false} className="p-0 overflow-hidden rounded-xl border border-border/80 shadow-sm bg-white">
+        {/* Mobile: Card List Layout */}
+        <div className="block md:hidden space-y-2">
+          {initialRecords.map(r => (
+            <Card key={r.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-semibold text-navy-900 tracking-tight text-xs">
+                  {new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                </p>
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border",
+                  statusColors[r.status.toLowerCase()] || 'bg-gray-100'
+                )}>
+                  {r.status}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[10px] text-text-muted font-medium">
+                  <Clock className="w-3 h-3" />
+                  <span>{r.check_in || '--:--'} → {r.check_out || 'Active'}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-10 h-1.5 bg-surface-alt rounded-full overflow-hidden">
+                    <div className="h-full bg-primary-500 rounded-full" style={{ width: `${Math.min((r.duration_hours / 9) * 100, 100)}%` }} />
+                  </div>
+                  <span className="text-[11px] font-bold text-navy-900">{r.duration_hours}h</span>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop: Full Table Layout */}
+        <Card hover={false} className="p-0 overflow-hidden rounded-xl border border-border/80 shadow-sm bg-white hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>

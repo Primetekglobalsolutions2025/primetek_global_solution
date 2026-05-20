@@ -2,6 +2,8 @@
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
+import { assessAttendanceRisk } from '@/lib/security/risk-engine';
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { calculateDistance } from '@/lib/utils';
 
@@ -12,14 +14,27 @@ function getISTDate() {
   return new Date(now.getTime() + offset);
 }
 
-export async function checkIn(lat: number, lng: number) {
+export async function checkIn(lat: number, lng: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
   try {
     const session = await getSession();
     if (!session || !session.id) {
       return { success: false, error: 'Unauthorized' };
     }
+    const reqHeaders = await headers();
+    const ip = ipAddress || reqHeaders.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
 
-    // --- Safety Feature: Close any stale sessions from previous days ---
+    // Assess risk before proceeding
+    const risk = await assessAttendanceRisk({
+      userId: session.id,
+      userRole: session.role ?? 'employee',
+      ipAddress: ip,
+      userAgent: ua,
+      deviceFingerprint,
+      latitude: lat,
+      longitude: lng,
+      action: 'check_in',
+    });
     const { data: stale } = await supabaseAdmin
       .from('attendance')
       .select('id, check_in')
@@ -38,7 +53,9 @@ export async function checkIn(lat: number, lng: number) {
       }
     }
 
-    // 1. Get Office Location
+    if (risk && risk.level === 'high') {
+      return { success: false, error: 'High risk attendance attempt detected', riskLevel: risk.level };
+    }
     const { data: officeList } = await supabaseAdmin
       .from('office_locations')
       .select('name, lat, lng, radius_meters')
@@ -86,7 +103,7 @@ export async function checkIn(lat: number, lng: number) {
     const minutes = istNow.getUTCMinutes();
     const isLate = hours > 9 || (hours === 9 && minutes > 30);
 
-    const { error } = await supabaseAdmin
+    const { data: attRecord, error } = await supabaseAdmin
       .from('attendance')
       .insert([{
         employee_id: session.id,
@@ -95,9 +112,18 @@ export async function checkIn(lat: number, lng: number) {
         lat: Number(lat),
         lng: Number(lng),
         status: isLate ? 'Late' : 'Present',
-      }]);
+      }])
+      .select('id')
+      .single();
 
     if (error) throw error;
+
+    if (risk && risk.riskEventId && attRecord) {
+      await supabaseAdmin
+        .from('attendance_risk_events')
+        .update({ attendance_id: attRecord.id })
+        .eq('id', risk.riskEventId);
+    }
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
@@ -107,11 +133,26 @@ export async function checkIn(lat: number, lng: number) {
   }
 }
 
-export async function requestWFH(lat: number, lng: number) {
+export async function requestWFH(lat: number, lng: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
   try {
+    const reqHeaders = await headers();
+    const ip = ipAddress || reqHeaders.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
-
+    const risk = await assessAttendanceRisk({
+      userId: session.id,
+      userRole: session.role ?? 'employee',
+      ipAddress: ip,
+      userAgent: ua,
+      deviceFingerprint,
+      latitude: lat,
+      longitude: lng,
+      action: 'wfh_request',
+    });
+    if (risk && risk.level === 'high') {
+      return { success: false, error: 'High risk WFH request', riskLevel: risk.level };
+    }
     const istNow = getISTDate();
     const todayStr = istNow.toISOString().split('T')[0];
 
@@ -124,7 +165,7 @@ export async function requestWFH(lat: number, lng: number) {
 
     if (existing) return { success: false, error: 'Already exists for today' };
 
-    const { error } = await supabaseAdmin
+    const { data: attRecord, error } = await supabaseAdmin
       .from('attendance')
       .insert([{
         employee_id: session.id,
@@ -133,9 +174,18 @@ export async function requestWFH(lat: number, lng: number) {
         lat: Number(lat),
         lng: Number(lng),
         status: 'Pending WFH',
-      }]);
+      }])
+      .select('id')
+      .single();
 
     if (error) throw error;
+
+    if (risk && risk.riskEventId && attRecord) {
+      await supabaseAdmin
+        .from('attendance_risk_events')
+        .update({ attendance_id: attRecord.id })
+        .eq('id', risk.riskEventId);
+    }
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
@@ -145,10 +195,26 @@ export async function requestWFH(lat: number, lng: number) {
   }
 }
 
-export async function checkOut(recordId: string, lat: number, lng: number) {
+export async function checkOut(recordId: string, lat: number, lng: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
   try {
+    const reqHeaders = await headers();
+    const ip = ipAddress || reqHeaders.get('x-forwarded-for')?.split(',')[0] || 'unknown';
+    const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    const risk = await assessAttendanceRisk({
+      userId: session.id,
+      userRole: session.role ?? 'employee',
+      ipAddress: ip,
+      userAgent: ua,
+      deviceFingerprint,
+      latitude: lat,
+      longitude: lng,
+      action: 'check_out',
+    });
+    if (risk && risk.level === 'high') {
+      return { success: false, error: 'High risk check‑out attempt detected', riskLevel: risk.level };
+    }
 
     // Fetch the check-in time to compute duration
     const { data: record, error: fetchError } = await supabaseAdmin
@@ -165,7 +231,7 @@ export async function checkOut(recordId: string, lat: number, lng: number) {
     const checkOutTime = Date.now();
     const durationHours = Number(((checkOutTime - checkInTime) / (1000 * 60 * 60)).toFixed(2));
 
-    const { error } = await supabaseAdmin
+    const { data: attRecord, error } = await supabaseAdmin
       .from('attendance')
       .update({
         check_out: new Date(checkOutTime).toISOString(),
@@ -174,9 +240,18 @@ export async function checkOut(recordId: string, lat: number, lng: number) {
         lng: Number(lng),
       })
       .eq('id', recordId)
-      .eq('employee_id', session.id);
+      .eq('employee_id', session.id)
+      .select('id')
+      .single();
 
     if (error) throw error;
+
+    if (risk && risk.riskEventId && attRecord) {
+      await supabaseAdmin
+        .from('attendance_risk_events')
+        .update({ attendance_id: attRecord.id })
+        .eq('id', risk.riskEventId);
+    }
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');

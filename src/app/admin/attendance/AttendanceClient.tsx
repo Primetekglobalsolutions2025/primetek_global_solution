@@ -20,6 +20,9 @@ export interface AttendanceRecord {
   status: string;
   lat: number;
   lng: number;
+  risk_level?: 'low' | 'medium' | 'high';
+  risk_score?: number;
+  risk_reasons?: { signal: string; weight: number; detail: string }[];
 }
 
 const statusColors: Record<string, string> = {
@@ -42,6 +45,7 @@ export default function AttendanceClient({
   const [search, setSearch] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [riskFilter, setRiskFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
 
@@ -50,9 +54,10 @@ export default function AttendanceClient({
       const matchesSearch = !search || r.employee_name.toLowerCase().includes(search.toLowerCase());
       const matchesEmployee = employeeFilter === 'all' || r.employee_id === employeeFilter;
       const matchesStatus = statusFilter === 'all' || r.status.toLowerCase() === statusFilter.toLowerCase();
-      return matchesSearch && matchesEmployee && matchesStatus;
+      const matchesRisk = riskFilter === 'all' || (r.risk_level || 'low').toLowerCase() === riskFilter.toLowerCase();
+      return matchesSearch && matchesEmployee && matchesStatus && matchesRisk;
     });
-  }, [initialAttendance, search, employeeFilter, statusFilter]);
+  }, [initialAttendance, search, employeeFilter, statusFilter, riskFilter]);
 
   const exportCsv = () => {
     const headers = 'Employee,Date,Check In,Check Out,Hours,Status,Latitude,Longitude';
@@ -114,11 +119,11 @@ export default function AttendanceClient({
               className="w-full pl-9 pr-3 py-2 rounded-lg border border-border/60 bg-white text-xs text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm" 
             />
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 sm:flex gap-2">
             <select 
               value={employeeFilter} 
               onChange={(e) => setEmployeeFilter(e.target.value)} 
-              className="pl-3 pr-8 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm min-w-[130px] appearance-none"
+              className="pl-3 pr-8 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm min-w-0 sm:min-w-[130px] appearance-none"
             >
               <option value="all">Personnel: ALL</option>
               {employees.map((e) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
@@ -126,7 +131,7 @@ export default function AttendanceClient({
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)} 
-              className="pl-3 pr-8 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm min-w-[130px] appearance-none"
+              className="pl-3 pr-8 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm min-w-0 sm:min-w-[130px] appearance-none"
             >
               <option value="all">Status: ALL</option>
               <option value="Present">PRESENT</option>
@@ -134,6 +139,16 @@ export default function AttendanceClient({
               <option value="Absent">ABSENT</option>
               <option value="Pending WFH">WFH PENDING</option>
               <option value="Approved WFH">WFH APPROVED</option>
+            </select>
+            <select 
+              value={riskFilter} 
+              onChange={(e) => setRiskFilter(e.target.value)} 
+              className="pl-3 pr-8 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm min-w-0 sm:min-w-[130px] appearance-none col-span-2 sm:col-span-1"
+            >
+              <option value="all">Trust: ALL</option>
+              <option value="low">Trust: LOW RISK</option>
+              <option value="medium">Trust: MEDIUM RISK</option>
+              <option value="high">Trust: HIGH RISK</option>
             </select>
           </div>
         </div>
@@ -167,8 +182,69 @@ export default function AttendanceClient({
         </div>
       </div>
 
-      {/* 3. Table */}
-      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white">
+      {/* 3. Mobile Card Layout */}
+      <div className="block md:hidden space-y-2">
+        {filtered.length === 0 ? (
+          <Card hover={false} className="p-8 rounded-xl border border-border/60 shadow-sm bg-white text-center">
+            <Calendar className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-xs text-text-muted font-bold">No logs found.</p>
+          </Card>
+        ) : (
+          filtered.map((record) => (
+            <Card key={record.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-surface-alt flex items-center justify-center text-navy-900">
+                    <User className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-xs font-semibold text-navy-900 tracking-tight">{record.employee_name}</span>
+                </div>
+                <span className={cn(
+                  "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
+                  statusColors[record.status?.toLowerCase()] || statusColors.present
+                )}>
+                  {record.status}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-text-muted font-medium">
+                <span>
+                  {!isNaN(new Date(record.date).getTime())
+                    ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' }).toUpperCase()
+                    : record.date?.toUpperCase() || '—'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span>{record.check_in || '—'} → {record.check_out || '—'}</span>
+                  {record.duration_hours > 0 && (
+                    <span className="bg-surface-alt px-1.5 py-0.5 rounded border border-border/50 text-[10px] font-bold text-navy-900">
+                      {record.duration_hours}H
+                    </span>
+                  )}
+                </div>
+              </div>
+              {/* Trust indicator row */}
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+                <div className="flex items-center gap-1.5">
+                  <span className={cn(
+                    "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
+                    record.risk_level === 'high' ? "bg-red-500/10 text-red-600 border-red-500/20" :
+                    record.risk_level === 'medium' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                    "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                  )}>
+                    {record.risk_level || 'low'}
+                  </span>
+                  {record.risk_score !== undefined && record.risk_score > 0 && (
+                    <span className="text-[10px] font-mono text-gray-400">({record.risk_score} pts)</span>
+                  )}
+                </div>
+                <MapPin className="w-3.5 h-3.5 text-gray-300" />
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* 3b. Desktop Table */}
+      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -179,12 +255,13 @@ export default function AttendanceClient({
                 <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Clock Out</th>
                 <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Intensity</th>
                 <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Compliance</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Trust Engine</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
                       <Calendar className="w-5 h-5 text-gray-300" />
                     </div>
@@ -236,6 +313,26 @@ export default function AttendanceClient({
                         statusColors[record.status?.toLowerCase()] || statusColors.present
                       )}>
                         {record.status}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div 
+                        className="flex items-center gap-1.5 cursor-help"
+                        title={record.risk_reasons && record.risk_reasons.length > 0 
+                          ? record.risk_reasons.map((r) => `• ${r.detail} (+${r.weight} pts)`).join('\n') 
+                          : 'All trust signals secure (0 pts)'}
+                      >
+                        <span className={cn(
+                          "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
+                          record.risk_level === 'high' ? "bg-red-500/10 text-red-600 border-red-500/20" :
+                          record.risk_level === 'medium' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                          "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                        )}>
+                          {record.risk_level || 'low'}
+                        </span>
+                        {record.risk_score !== undefined && record.risk_score > 0 && (
+                          <span className="text-[10px] font-mono text-gray-400">({record.risk_score} pts)</span>
+                        )}
                       </div>
                     </td>
                   </tr>

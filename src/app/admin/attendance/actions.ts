@@ -22,6 +22,24 @@ export async function getAdminAttendance() {
     console.error('Error fetching admin attendance:', error);
     return [];
   }
+
+  // Fetch risk events to associate with attendance records
+  const { data: riskEvents } = await supabaseAdmin
+    .from('attendance_risk_events')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  const riskMap: Record<string, any[]> = {};
+  if (riskEvents) {
+    riskEvents.forEach((evt) => {
+      if (evt.attendance_id) {
+        if (!riskMap[evt.attendance_id]) {
+          riskMap[evt.attendance_id] = [];
+        }
+        riskMap[evt.attendance_id].push(evt);
+      }
+    });
+  }
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return data.map((record: Record<string, any>) => {
@@ -32,6 +50,21 @@ export async function getAdminAttendance() {
     if (checkIn && checkOut) {
       durationHours = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10;
     }
+
+    const recordRisks = riskMap[record.id] || [];
+    let riskLevel: 'low' | 'medium' | 'high' = 'low';
+    let riskScore = 0;
+    let riskReasons: any[] = [];
+    
+    recordRisks.forEach((r) => {
+      if (r.risk_score > riskScore) {
+        riskScore = r.risk_score;
+        riskLevel = r.risk_level as 'low' | 'medium' | 'high';
+      }
+      if (r.risk_reasons) {
+        riskReasons = [...riskReasons, ...(Array.isArray(r.risk_reasons) ? r.risk_reasons : [])];
+      }
+    });
 
     return {
       id: record.id,
@@ -44,6 +77,10 @@ export async function getAdminAttendance() {
       status: record.status,
       lat: record.lat || 0,
       lng: record.lng || 0,
+      risk_level: riskLevel,
+      risk_score: riskScore,
+      risk_reasons: riskReasons,
+      risk_events: recordRisks,
     };
   });
 }

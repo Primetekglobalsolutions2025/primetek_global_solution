@@ -1,12 +1,14 @@
 {
   "name": "Primetek Global Solutions",
   "short_name": "Primetek",
-  "description": "Enterprise Portal for Primetek Global Solutions",
-  "start_url": "/admin/login",
+  "description": "Enterprise HR Portal for Primetek Global Solutions",
+  "start_url": "/employee/login",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait-primary",
   "scope": "/",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/icons/icon-192.png",

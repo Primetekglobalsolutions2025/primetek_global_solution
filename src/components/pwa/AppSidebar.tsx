@@ -6,8 +6,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Briefcase, Users, FileUser,
-  Settings, ChevronLeft, History, Calendar, CheckSquare
+  Settings, ChevronLeft, History, Calendar, CheckSquare,
+  MoreHorizontal, X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/ui/Logo';
 
@@ -20,6 +22,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const adminItems = [
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview' },
@@ -43,8 +46,15 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   ];
 
   const navItems = role === 'admin' ? adminItems : employeeItems;
+  const bottomBarItems = navItems.slice(0, 4);
+  const overflowItems = navItems.slice(4);
+  const hasOverflow = overflowItems.length > 0;
+
+  // Check if any overflow item is currently active (to highlight the "More" button)
+  const isOverflowActive = overflowItems.some((item) => pathname === item.href);
 
   const handleLogout = async () => {
+    setIsMoreOpen(false);
     if (!window.confirm('Are you sure you want to sign out?')) return;
     
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -132,7 +142,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
       {/* ─── Mobile Bottom Navigation Bar ─── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around h-16 px-2 pb-[env(safe-area-inset-bottom)]">
-          {navItems.slice(0, 4).map((item) => {
+          {bottomBarItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link 
@@ -161,18 +171,127 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
             );
           })}
           
-          {/* Logout in bottom nav */}
-          <button 
-            onClick={handleLogout}
-            className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 text-gray-400 active:text-red-500 transition-all"
-          >
-            <div className="p-1.5 rounded-xl">
-              <LogOut className="w-5 h-5" />
-            </div>
-            <span className="text-[10px] leading-none font-medium">Exit</span>
-          </button>
+          {/* "More" button (replaces static logout when overflow items exist) */}
+          {hasOverflow ? (
+            <button 
+              onClick={() => setIsMoreOpen(true)}
+              className={cn(
+                'flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 transition-all',
+                isOverflowActive ? 'text-primary-500' : 'text-gray-400 active:text-gray-600'
+              )}
+              aria-label="More navigation options"
+            >
+              <div className={cn(
+                'p-1.5 rounded-xl transition-all',
+                isOverflowActive && 'bg-primary-50'
+              )}>
+                <MoreHorizontal className="w-5 h-5" />
+              </div>
+              <span className={cn(
+                'text-[10px] leading-none font-medium',
+                isOverflowActive && 'font-bold'
+              )}>
+                More
+              </span>
+            </button>
+          ) : (
+            <button 
+              onClick={handleLogout}
+              className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 text-gray-400 active:text-red-500 transition-all"
+            >
+              <div className="p-1.5 rounded-xl">
+                <LogOut className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] leading-none font-medium">Exit</span>
+            </button>
+          )}
         </div>
       </nav>
+
+      {/* ─── Mobile "More" Bottom Sheet Drawer ─── */}
+      <AnimatePresence>
+        {isMoreOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="md:hidden fixed inset-0 z-[60] bg-navy-900/60 backdrop-blur-sm"
+              onClick={() => setIsMoreOpen(false)}
+            />
+
+            {/* Sheet */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[2rem] shadow-2xl pb-[env(safe-area-inset-bottom)]"
+            >
+              {/* Drag Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+              </div>
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 pb-4">
+                <h3 className="text-sm font-black text-navy-900 uppercase tracking-wider">Portal Menu</h3>
+                <button
+                  onClick={() => setIsMoreOpen(false)}
+                  className="p-2 rounded-xl bg-surface-alt text-gray-400 hover:text-navy-900 transition-colors"
+                  aria-label="Close menu"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Overflow Nav Items */}
+              <div className="px-5 pb-3">
+                <div className="grid grid-cols-3 gap-3">
+                  {overflowItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsMoreOpen(false)}
+                        className={cn(
+                          'flex flex-col items-center justify-center p-3 rounded-2xl gap-1.5 transition-all active:scale-95 border',
+                          isActive
+                            ? 'bg-primary-50 border-primary-100 text-primary-600'
+                            : 'bg-surface-alt/60 border-transparent text-gray-600 hover:bg-surface-alt'
+                        )}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        <span className="text-[10px] font-semibold text-center truncate w-full">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* User Info + Sign Out */}
+              <div className="mx-5 mt-2 mb-4 p-4 rounded-2xl bg-surface-alt/60 border border-border/40">
+                {userName && (
+                  <div className="mb-3 pb-3 border-b border-border/40">
+                    <p className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-bold mb-0.5">Signed in as</p>
+                    <p className="text-xs font-semibold text-navy-900 truncate">{userName}</p>
+                  </div>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2.5 w-full text-red-500 hover:text-red-600 transition-colors active:scale-95"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="text-xs font-bold">Sign Out</span>
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

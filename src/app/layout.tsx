@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
@@ -18,6 +18,14 @@ const playfair = Playfair_Display({
   variable: '--font-playfair',
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#020617',
+};
+
 export const metadata: Metadata = {
   title: {
     default: 'Primetek Global Solutions | Staffing & Consulting',
@@ -32,7 +40,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'Primetek Portal',
   },
 };
@@ -54,3 +62,4 @@ export default function RootLayout({
     </html>
   );
 }
+
