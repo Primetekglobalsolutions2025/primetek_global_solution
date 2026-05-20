@@ -40,6 +40,7 @@ export async function getAdminAttendance() {
       }
     });
   }
+  if (!data) return [];
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return data.map((record: Record<string, any>) => {

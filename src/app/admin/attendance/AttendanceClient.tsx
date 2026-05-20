@@ -51,9 +51,9 @@ export default function AttendanceClient({
 
   const filtered = useMemo(() => {
     return initialAttendance.filter((r) => {
-      const matchesSearch = !search || r.employee_name.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = !search || (r.employee_name || '').toLowerCase().includes(search.toLowerCase());
       const matchesEmployee = employeeFilter === 'all' || r.employee_id === employeeFilter;
-      const matchesStatus = statusFilter === 'all' || r.status.toLowerCase() === statusFilter.toLowerCase();
+      const matchesStatus = statusFilter === 'all' || (r.status || '').toLowerCase() === statusFilter.toLowerCase();
       const matchesRisk = riskFilter === 'all' || (r.risk_level || 'low').toLowerCase() === riskFilter.toLowerCase();
       return matchesSearch && matchesEmployee && matchesStatus && matchesRisk;
     });
