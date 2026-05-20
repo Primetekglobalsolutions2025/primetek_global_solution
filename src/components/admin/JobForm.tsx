@@ -58,14 +58,14 @@ export default function JobForm({ jobId, defaultValues, isEditing, saveAction, o
     }
   };
 
-  const inputClasses = 'w-full px-4 py-3 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent text-sm';
+  const inputClasses = 'w-full px-3 py-2 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent text-sm transition-all duration-150';
 
   return (
     <Card hover={false} className="max-w-3xl">
-      <form onSubmit={handleSubmit(onSubmit)} className="p-6 md:p-8 space-y-5">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Title */}
         <div>
-          <label htmlFor="job-title" className="block text-sm font-medium text-navy-900 mb-1.5">
+          <label htmlFor="job-title" className="block text-xs font-semibold text-navy-900 mb-1">
             Job Title <span className="text-error">*</span>
           </label>
           <input id="job-title" type="text" placeholder="Senior React Developer" {...register('title')} className={inputClasses} />
@@ -73,9 +73,9 @@ export default function JobForm({ jobId, defaultValues, isEditing, saveAction, o
         </div>
 
         {/* Department + Location */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="job-dept" className="block text-sm font-medium text-navy-900 mb-1.5">
+            <label htmlFor="job-dept" className="block text-xs font-semibold text-navy-900 mb-1">
               Department <span className="text-error">*</span>
             </label>
             <select id="job-dept" {...register('department')} className={inputClasses}>
@@ -85,7 +85,7 @@ export default function JobForm({ jobId, defaultValues, isEditing, saveAction, o
             {errors.department && <p className="text-error text-xs mt-1">{errors.department.message}</p>}
           </div>
           <div>
-            <label htmlFor="job-loc" className="block text-sm font-medium text-navy-900 mb-1.5">
+            <label htmlFor="job-loc" className="block text-xs font-semibold text-navy-900 mb-1">
               Location <span className="text-error">*</span>
             </label>
             <select id="job-loc" {...register('location')} className={inputClasses}>
@@ -97,9 +97,9 @@ export default function JobForm({ jobId, defaultValues, isEditing, saveAction, o
         </div>
 
         {/* Type + Salary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="job-type" className="block text-sm font-medium text-navy-900 mb-1.5">
+            <label htmlFor="job-type" className="block text-xs font-semibold text-navy-900 mb-1">
               Job Type <span className="text-error">*</span>
             </label>
             <select id="job-type" {...register('type')} className={inputClasses}>
@@ -109,7 +109,7 @@ export default function JobForm({ jobId, defaultValues, isEditing, saveAction, o
             {errors.type && <p className="text-error text-xs mt-1">{errors.type.message}</p>}
           </div>
           <div>
-            <label htmlFor="job-salary" className="block text-sm font-medium text-navy-900 mb-1.5">
+            <label htmlFor="job-salary" className="block text-xs font-semibold text-navy-900 mb-1">
               Salary Range
             </label>
             <input id="job-salary" type="text" placeholder="₹15L – ₹25L" {...register('salary_range')} className={inputClasses} />
@@ -118,36 +118,36 @@ export default function JobForm({ jobId, defaultValues, isEditing, saveAction, o
 
         {/* Description */}
         <div>
-          <label htmlFor="job-desc" className="block text-sm font-medium text-navy-900 mb-1.5">
+          <label htmlFor="job-desc" className="block text-xs font-semibold text-navy-900 mb-1">
             Description <span className="text-error">*</span>
           </label>
-          <textarea id="job-desc" rows={5} placeholder="Describe the role, responsibilities, and what the candidate will work on..." {...register('description')} className={`${inputClasses} resize-none`} />
+          <textarea id="job-desc" rows={4} placeholder="Describe the role, responsibilities, and what the candidate will work on..." {...register('description')} className={`${inputClasses} resize-none`} />
           {errors.description && <p className="text-error text-xs mt-1">{errors.description.message}</p>}
         </div>
 
         {/* Requirements */}
         <div>
-          <label htmlFor="job-reqs" className="block text-sm font-medium text-navy-900 mb-1.5">
+          <label htmlFor="job-reqs" className="block text-xs font-semibold text-navy-900 mb-1">
             Requirements <span className="text-error">*</span>
           </label>
-          <textarea id="job-reqs" rows={5} placeholder="• 5+ years React experience&#10;• TypeScript proficiency&#10;• Strong communication skills" {...register('requirements')} className={`${inputClasses} resize-none`} />
+          <textarea id="job-reqs" rows={4} placeholder="• 5+ years React experience&#10;• TypeScript proficiency&#10;• Strong communication skills" {...register('requirements')} className={`${inputClasses} resize-none`} />
           {errors.requirements && <p className="text-error text-xs mt-1">{errors.requirements.message}</p>}
         </div>
 
         {/* Active Toggle */}
-        <div className="flex items-center gap-3">
-          <input id="job-active" type="checkbox" {...register('is_active')} className="w-4 h-4 rounded border-border text-primary-500 focus:ring-primary-400" />
-          <label htmlFor="job-active" className="text-sm font-medium text-navy-900">
+        <div className="flex items-center gap-2.5">
+          <input id="job-active" type="checkbox" {...register('is_active')} className="w-4 h-4 rounded border-border text-primary-500 focus:ring-primary-400 cursor-pointer" />
+          <label htmlFor="job-active" className="text-xs font-semibold text-navy-900 cursor-pointer">
             Publish this job (visible on careers page)
           </label>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3 pt-2">
-          <Button type="submit" disabled={isSubmitting}>
+        <div className="flex items-center gap-2 pt-2 border-t border-border/40">
+          <Button type="submit" disabled={isSubmitting} size="sm">
             <Save className="w-4 h-4" /> {isEditing ? 'Update Job' : 'Create Job'}
           </Button>
-          <Button type="button" variant="outline" onClick={() => router.back()}>
+          <Button type="button" variant="outline" size="sm" onClick={() => router.back()}>
             <ArrowLeft className="w-4 h-4" /> Cancel
           </Button>
         </div>

@@ -36,20 +36,20 @@ export default function EmployeeSidebar() {
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
       </div>
-      <nav className="flex-1 py-4 px-2 space-y-1">
+      <nav className="flex-1 py-4 px-3 space-y-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
-            <Link key={item.href} href={item.href} className={cn('flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200', isActive ? 'bg-primary-500/20 text-primary-400' : 'text-gray-400 hover:text-white hover:bg-white/5')} title={collapsed ? item.label : undefined}>
-              <item.icon className="w-5 h-5 shrink-0" />
+            <Link key={item.href} href={item.href} className={cn('flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-all duration-150', isActive ? 'bg-primary-500/15 text-primary-400 font-semibold' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5')} title={collapsed ? item.label : undefined}>
+              <item.icon className="w-4 h-4 shrink-0" />
               {!collapsed && <span>{item.label}</span>}
             </Link>
           );
         })}
       </nav>
-      <div className="p-4 border-t border-white/10">
-        <button onClick={handleLogout} className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors" title={collapsed ? 'Logout' : undefined}>
-          <LogOut className="w-5 h-5 shrink-0" />
+      <div className="p-3 border-t border-white/5">
+        <button onClick={handleLogout} className="flex items-center gap-3 w-full px-3 h-10 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer" title={collapsed ? 'Logout' : undefined}>
+          <LogOut className="w-4 h-4 shrink-0" />
           {!collapsed && <span>Logout</span>}
         </button>
       </div>

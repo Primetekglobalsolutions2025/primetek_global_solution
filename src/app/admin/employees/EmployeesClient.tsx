@@ -142,138 +142,138 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* 1. Stats Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         {[
           { label: 'Total', value: stats.total, icon: Users, color: 'text-navy-900', bg: 'bg-white' },
           { label: 'Active', value: stats.active, icon: ShieldCheck, color: 'text-emerald-500', bg: 'bg-emerald-50/50' },
           { label: 'Inactive', value: stats.inactive, icon: X, color: 'text-red-500', bg: 'bg-red-50/50' },
         ].map((s) => (
-          <div key={s.label} className={cn("rounded-3xl p-4 border border-border/50 shadow-sm flex items-center gap-4", s.bg)}>
-            <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center bg-white shadow-sm", s.color)}>
-              <s.icon className="w-5 h-5" />
+          <div key={s.label} className={cn("rounded-xl p-3 border border-border/50 shadow-sm flex items-center gap-3 bg-white", s.bg)}>
+            <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center bg-white shadow-sm border border-border/20", s.color)}>
+              <s.icon className="w-4 h-4" />
             </div>
             <div>
-              <p className="text-xl font-black text-navy-900 leading-none">{s.value}</p>
-              <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest mt-1">{s.label}</p>
+              <p className="text-lg font-bold text-navy-900 leading-none">{s.value}</p>
+              <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider mt-0.5">{s.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* 2. Search & Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="relative w-full max-w-sm group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
           <input 
             type="text" 
             placeholder="Search by ID, name, email..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            className="w-full pl-11 pr-4 py-3 rounded-2xl border border-border/60 bg-white text-sm text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm" 
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-border/60 bg-white text-xs text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm" 
           />
         </div>
         <Button 
           onClick={() => setIsModalOpen(true)} 
-          className="w-full sm:w-auto bg-navy-900 hover:bg-navy-800 text-white rounded-2xl px-6 py-3 font-bold shadow-xl shadow-navy-900/10 active:scale-95 transition-all"
+          className="w-full sm:w-auto bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-4 py-2 text-xs font-semibold shadow-sm active:scale-95 transition-all"
         >
-          <Plus className="w-4 h-4 mr-2" /> Add Employee
+          <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Employee
         </Button>
       </div>
 
       {/* 3. Employees Table */}
-      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-[2rem] shadow-sm bg-white">
+      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-border bg-surface-alt/50">
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Identity</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Staff ID</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Function</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Status</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted text-right">Access</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Identity</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Staff ID</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Function</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Status</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted text-right">Access</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-8 py-20 text-center">
-                    <div className="w-16 h-16 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
-                      <Users className="w-8 h-8 text-gray-300" />
+                  <td colSpan={5} className="px-4 py-12 text-center">
+                    <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
+                      <Users className="w-5 h-5 text-gray-300" />
                     </div>
-                    <p className="text-sm text-text-muted font-bold">No active personnel matching your query.</p>
+                    <p className="text-xs text-text-muted font-bold">No active personnel matching your query.</p>
                   </td>
                 </tr>
               ) : (
                 filtered.map((emp) => (
                   <tr key={emp.id} className="group hover:bg-surface-alt/30 transition-colors">
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-4">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-3">
                         <div className="relative shrink-0">
                           {emp.avatar_url ? (
-                            <div className="w-11 h-11 rounded-2xl overflow-hidden shadow-sm border border-border/50">
-                              <Image src={emp.avatar_url} alt={emp.name} fill className="object-cover" sizes="44px" />
+                            <div className="w-7 h-7 rounded-lg overflow-hidden shadow-sm border border-border/50">
+                              <Image src={emp.avatar_url} alt={emp.name} fill className="object-cover" sizes="28px" />
                             </div>
                           ) : (
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-primary-500/20 ring-2 ring-white">
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-[9px] font-bold shadow-sm border border-white">
                               {emp.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
                             </div>
                           )}
                           <div className={cn(
-                            "absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm",
+                            "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white shadow-sm",
                             emp.status === 'Active' ? "bg-emerald-500" : "bg-gray-300"
                           )} />
                         </div>
                         <div>
-                          <p className="text-sm font-black text-navy-900 leading-tight group-hover:text-primary-600 transition-colors">{emp.name}</p>
-                          <p className="text-[11px] text-text-muted font-medium mt-0.5">{emp.email}</p>
+                          <p className="text-xs font-semibold text-navy-900 leading-tight group-hover:text-primary-600 transition-colors">{emp.name}</p>
+                          <p className="text-[10px] text-text-muted font-medium mt-0.5">{emp.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <span className="text-xs font-black text-navy-900 bg-surface-alt px-2.5 py-1 rounded-lg border border-border/50 uppercase tracking-tighter">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <span className="text-[10px] font-bold text-navy-900 bg-surface-alt px-1.5 py-0.5 rounded border border-border/50 uppercase tracking-wider">
                         {emp.employee_id}
                       </span>
                     </td>
-                    <td className="px-8 py-5">
-                      <div className="space-y-1">
-                        <p className="text-[11px] font-black text-navy-900 uppercase tracking-widest">{emp.role}</p>
-                        <p className="text-[10px] text-text-muted font-medium">{emp.department || 'General'}</p>
+                    <td className="px-4 py-2.5">
+                      <div className="space-y-0.5">
+                        <p className="text-[10px] font-semibold text-navy-900 uppercase tracking-wider">{emp.role}</p>
+                        <p className="text-[9px] text-text-muted font-medium">{emp.department || 'General'}</p>
                       </div>
                     </td>
-                    <td className="px-8 py-5">
-                      <button onClick={() => handleToggle(emp.id, emp.status)} className="flex items-center gap-3 active:scale-95 transition-transform group/toggle">
+                    <td className="px-4 py-2.5">
+                      <button onClick={() => handleToggle(emp.id, emp.status)} className="flex items-center gap-2 active:scale-95 transition-transform group/toggle cursor-pointer">
                         <div className={cn(
-                          "w-10 h-5 rounded-full relative transition-colors duration-300",
+                          "w-8 h-4.5 rounded-full relative transition-colors duration-300",
                           emp.status === 'Active' ? "bg-emerald-500" : "bg-gray-200"
                         )}>
                           <div className={cn(
-                            "absolute top-1 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm",
-                            emp.status === 'Active' ? "left-6" : "left-1"
+                            "absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-all duration-300 shadow-sm",
+                            emp.status === 'Active' ? "left-4" : "left-0.5"
                           )} />
                         </div>
                         <span className={cn(
-                          "text-[10px] font-black uppercase tracking-widest",
+                          "text-[9px] font-bold uppercase tracking-wider",
                           emp.status === 'Active' ? "text-emerald-600" : "text-gray-400"
                         )}>{emp.status}</span>
                       </button>
                     </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button 
                           onClick={() => handleOpenBalanceModal(emp)}
-                          className="w-9 h-9 rounded-xl text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition-all flex items-center justify-center active:scale-90"
+                          className="w-6.5 h-6.5 rounded text-gray-400 hover:text-primary-500 hover:bg-primary-50 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
                           title="Manage Balances"
                         >
-                          <Wallet className="w-4 h-4" />
+                          <Wallet className="w-3.5 h-3.5" />
                         </button>
                         <button 
                           onClick={() => handleDelete(emp.id, emp.name)}
-                          className="w-9 h-9 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center active:scale-90"
+                          className="w-6.5 h-6.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
                           title="Delete Employee"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>

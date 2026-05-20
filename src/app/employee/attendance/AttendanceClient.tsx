@@ -209,41 +209,41 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   };
 
   return (
-    <div className="space-y-8 pb-24">
+    <div className="space-y-6 pb-16">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-navy-900 p-8 text-white shadow-xl shadow-navy-900/10">
+      <div className="relative overflow-hidden rounded-xl bg-navy-900 p-6 text-white shadow-md shadow-navy-900/10">
         <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[100%] bg-primary-500/10 rounded-full blur-[80px]" />
         <div className="relative z-10 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-5 h-5 text-primary-400" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">Attendance Status</span>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Sparkles className="w-4 h-4 text-primary-400" />
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary-200">Attendance Status</span>
             </div>
-            <h1 className="text-3xl font-heading font-black tracking-tight text-white">Time & Attendance</h1>
-            <p className="text-gray-400 text-xs mt-1 font-medium italic">Clock in and clock out to record your daily working hours.</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-white">Time & Attendance</h1>
+            <p className="text-gray-400 text-xs mt-1 font-medium">Clock in and clock out to record your daily working hours.</p>
           </div>
           <div className="hidden md:block text-right">
-            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Current Time</p>
-            <p className="text-2xl font-black text-white font-mono">
+            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Current Time</p>
+            <p className="text-xl font-bold text-white font-mono">
               {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Main Clock-in Control */}
-        <Card hover={false} className="p-10 rounded-[2.5rem] border-border/60 shadow-sm bg-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none">
-            <Clock className="w-48 h-48 text-navy-900" />
+        <Card hover={false} className="p-6 rounded-xl border border-border shadow-sm bg-white overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-6 opacity-[0.02] pointer-events-none">
+            <Clock className="w-36 h-36 text-navy-900" />
           </div>
 
-          <div className="flex flex-col items-center justify-center space-y-10 py-4">
+          <div className="flex flex-col items-center justify-center space-y-6 py-2">
             <div className="text-center">
-              <p className="text-6xl md:text-7xl font-black text-navy-900 font-mono tracking-tighter drop-shadow-sm">
+              <p className="text-5xl font-bold text-navy-900 font-mono tracking-tight">
                 {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
               </p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-alt border border-border/40 text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mt-6">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-alt border border-border/40 text-[9px] font-bold text-text-muted uppercase tracking-wider mt-4">
                 <CalendarIcon className="w-3 h-3" />
                 {currentTime.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
               </div>
@@ -251,55 +251,55 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
             {checkedIn && !isCheckedOut && (
               <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-xs p-6 rounded-3xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-2xl shadow-emerald-500/20 text-center relative overflow-hidden"
+                className="w-full max-w-[240px] p-4 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md shadow-emerald-500/10 text-center relative overflow-hidden"
               >
-                <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/10 rounded-full blur-2xl" />
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-2">Logged In For</p>
-                <p className="text-4xl font-black font-mono tracking-tight">
+                <div className="absolute -top-10 -right-10 w-20 h-20 bg-white/10 rounded-full blur-xl" />
+                <p className="text-[9px] font-bold uppercase tracking-wider opacity-95 mb-1">Logged In For</p>
+                <p className="text-2xl font-bold font-mono tracking-tight">
                   {String(elapsedHrs).padStart(2, '0')}:{String(elapsedMin).padStart(2, '0')}:{String(elapsedSec).padStart(2, '0')}
                 </p>
               </motion.div>
             )}
 
-            <div className="w-full max-w-sm">
+            <div className="w-full max-w-[280px]">
               {!checkedIn ? (
                 <Button 
-                  size="lg" 
-                  className="w-full py-8 rounded-[2rem] bg-navy-900 hover:bg-navy-800 text-white font-black shadow-2xl shadow-navy-900/10 active:scale-95 transition-all text-lg group"
+                  size="md" 
+                  className="w-full py-3.5 rounded-lg bg-navy-900 hover:bg-navy-800 text-white font-semibold shadow active:scale-95 transition-all text-sm group"
                   onClick={handleCheckIn} 
                   disabled={gpsStatus === 'loading'}
                 >
                   {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-6 h-6 animate-spin mr-3" /> Getting location...</>
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Locating...</>
                   ) : (
-                    <><LogIn className="w-6 h-6 mr-3 group-hover:-translate-x-1 transition-transform" /> Clock In</>
+                    <><LogIn className="w-4 h-4 mr-2 group-hover:-translate-x-0.5 transition-transform" /> Clock In</>
                   )}
                 </Button>
               ) : !isCheckedOut ? (
                 <Button 
-                  size="lg" 
-                  className="w-full py-8 rounded-[2rem] bg-white border-2 border-red-500 text-red-500 hover:bg-red-50 font-black active:scale-95 transition-all text-lg group"
+                  size="md" 
+                  className="w-full py-3.5 rounded-lg bg-white border border-red-500 text-red-500 hover:bg-red-50 font-semibold active:scale-95 transition-all text-sm group"
                   onClick={handleCheckOut} 
                   disabled={gpsStatus === 'loading'}
                 >
                   {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-6 h-6 animate-spin mr-3" /> Clocking out...</>
+                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Clocking out...</>
                   ) : (
-                    <><LogOut className="w-6 h-6 mr-3 group-hover:translate-x-1 transition-transform" /> Clock Out</>
+                    <><LogOut className="w-4 h-4 mr-2 group-hover:translate-x-0.5 transition-transform" /> Clock Out</>
                   )}
                 </Button>
               ) : (
-                <div className="space-y-4 text-center">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" />
-                    <p className="text-sm font-black text-navy-900 uppercase tracking-tight">Clock Out Complete</p>
-                    <p className="text-[10px] text-text-muted mt-1 font-bold">Your attendance has been recorded successfully.</p>
+                <div className="space-y-3 text-center">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-navy-900 uppercase tracking-tight">Clock Out Complete</p>
+                    <p className="text-[10px] text-text-muted mt-0.5 font-medium">Your attendance has been recorded successfully.</p>
                   </div>
                   <button 
                     onClick={handleResume} 
-                    className="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest"
+                    className="text-[9px] font-bold text-primary-600 hover:text-primary-700 uppercase tracking-wider cursor-pointer"
                   >
                     Undo Clock Out
                   </button>
@@ -310,21 +310,21 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         </Card>
 
         {/* Temporal Matrix (Calendar) */}
-        <Card hover={false} className="p-10 rounded-[2.5rem] border-border/60 shadow-sm bg-navy-900 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-10 opacity-[0.05] pointer-events-none">
-            <CalendarIcon className="w-48 h-48 text-white" />
+        <Card hover={false} className="p-6 rounded-xl border border-white/5 bg-navy-900 text-white overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
+            <CalendarIcon className="w-36 h-36 text-white" />
           </div>
           
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-heading font-black text-xl tracking-tight text-white">Monthly Attendance</h2>
-            <div className="px-4 py-1.5 rounded-xl bg-white/10 text-[10px] font-black uppercase tracking-widest text-primary-300">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-semibold text-base tracking-tight text-white">Monthly Attendance</h2>
+            <div className="px-3 py-1 rounded bg-white/10 text-[9px] font-bold uppercase tracking-wider text-primary-300">
               {currentTime.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 text-center">
+          <div className="grid grid-cols-7 gap-1.5 text-center">
             {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-              <div key={d} className="text-[10px] font-black text-gray-500 py-2 uppercase tracking-widest">{d}</div>
+              <div key={d} className="text-[9px] font-bold text-gray-500 py-1 uppercase tracking-wider">{d}</div>
             ))}
             {calendarDays.map((day, i) => {
               const status = day ? getStatusForDay(day) : null;
@@ -332,15 +332,15 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 <div key={i} className="aspect-square flex items-center justify-center relative group">
                   {day && (
                     <motion.div 
-                      whileHover={{ scale: 1.1 }}
+                      whileHover={{ scale: 1.08 }}
                       className={cn(
-                        "w-10 h-10 rounded-2xl flex items-center justify-center text-xs font-black transition-all cursor-default relative z-10",
+                        "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition-all cursor-default relative z-10",
                         status && calendarColors[status] ? calendarColors[status] : "bg-white/5 text-gray-400 hover:bg-white/10"
                       )}
                     >
                       {day}
                       {day === new Date().getDate() && !status && (
-                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary-500 rounded-full border-2 border-navy-900" />
+                        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary-500 rounded-full border border-navy-900" />
                       )}
                     </motion.div>
                   )}
@@ -349,21 +349,21 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             })}
           </div>
 
-          <div className="mt-10 pt-8 border-t border-white/10 grid grid-cols-4 gap-4">
+          <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-4 gap-2">
             <div className="text-center">
-              <p className="text-[8px] font-black text-gray-500 uppercase tracking-tighter mb-1">Present</p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">Present</p>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mx-auto" />
             </div>
             <div className="text-center">
-              <p className="text-[8px] font-black text-gray-500 uppercase tracking-tighter mb-1">WFH</p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">WFH</p>
               <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mx-auto" />
             </div>
             <div className="text-center">
-              <p className="text-[8px] font-black text-gray-500 uppercase tracking-tighter mb-1">Late</p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">Late</p>
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mx-auto" />
             </div>
             <div className="text-center">
-              <p className="text-[8px] font-black text-gray-500 uppercase tracking-tighter mb-1">Absent</p>
+              <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">Absent</p>
               <div className="w-1.5 h-1.5 rounded-full bg-red-500 mx-auto" />
             </div>
           </div>
@@ -371,51 +371,51 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       </div>
 
       {/* History Sequence */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-3 px-4">
-          <div className="w-1.5 h-6 bg-primary-500 rounded-full" />
-          <h2 className="font-heading font-black text-navy-900 text-2xl tracking-tight">Attendance History</h2>
+      <div className="space-y-4">
+        <div className="flex items-center gap-2.5 px-1">
+          <div className="w-1 h-5 bg-primary-500 rounded-full" />
+          <h2 className="font-semibold text-navy-900 text-lg tracking-tight">Attendance History</h2>
         </div>
 
-        <Card hover={false} className="p-0 overflow-hidden rounded-[2.5rem] border-border/60 shadow-sm bg-white">
+        <Card hover={false} className="p-0 overflow-hidden rounded-xl border border-border/80 shadow-sm bg-white">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
-                <tr className="bg-surface-alt/50 text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">
-                  <th className="px-8 py-5">Date</th>
-                  <th className="px-8 py-5">Status</th>
-                  <th className="px-8 py-5">Work Hours</th>
-                  <th className="px-8 py-5 text-right">Actions</th>
+                <tr className="bg-surface-alt/50 text-[10px] font-bold text-text-muted uppercase tracking-wider">
+                  <th className="px-4 py-2.5">Date</th>
+                  <th className="px-4 py-2.5">Status</th>
+                  <th className="px-4 py-2.5">Work Hours</th>
+                  <th className="px-4 py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
                 {initialRecords.map(r => (
                   <tr key={r.id} className="hover:bg-surface-alt/20 transition-all group">
-                    <td className="px-8 py-6">
-                      <p className="font-black text-navy-900 tracking-tight">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
-                      <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest mt-0.5">{r.check_in || '--:--'} → {r.check_out || 'Clocked In'}</p>
+                    <td className="px-4 py-2.5">
+                      <p className="font-semibold text-navy-900 tracking-tight text-xs">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
+                      <p className="text-[9px] text-text-muted font-medium uppercase tracking-wider mt-0.5">{r.check_in || '--:--'} → {r.check_out || 'Clocked In'}</p>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-4 py-2.5">
                       <span className={cn(
-                        "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                        "px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border",
                         statusColors[r.status.toLowerCase()] || 'bg-gray-100'
                       )}>
                         {r.status}
                       </span>
                     </td>
-                    <td className="px-8 py-6">
+                    <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2">
-                        <div className="w-12 h-2 bg-surface-alt rounded-full overflow-hidden">
+                        <div className="w-12 h-1.5 bg-surface-alt rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-primary-500 rounded-full" 
                             style={{ width: `${Math.min((r.duration_hours / 9) * 100, 100)}%` }} 
                           />
                         </div>
-                        <span className="text-xs font-black text-navy-900">{r.duration_hours}h</span>
+                        <span className="text-[11px] font-semibold text-navy-900">{r.duration_hours}h</span>
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-right">
-                      <History className="w-4 h-4 text-gray-300 ml-auto group-hover:text-primary-500 transition-colors" />
+                    <td className="px-4 py-2.5 text-right">
+                      <History className="w-3.5 h-3.5 text-gray-300 ml-auto group-hover:text-primary-500 transition-colors" />
                     </td>
                   </tr>
                 ))}
@@ -430,45 +430,46 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         {wfhRequest && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 15 }} 
               className="w-full max-w-md"
             >
-              <Card hover={false} className="p-10 rounded-[3rem] border-0 shadow-2xl bg-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8">
+              <Card hover={false} className="p-6 rounded-xl border border-border shadow-md bg-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4">
                   <button 
                     onClick={() => setWfhRequest(null)}
-                    className="w-10 h-10 rounded-2xl bg-surface-alt flex items-center justify-center text-navy-900 hover:bg-navy-900 hover:text-white transition-all"
+                    className="w-8 h-8 rounded-lg bg-surface-alt flex items-center justify-center text-navy-900 hover:bg-navy-900 hover:text-white transition-all cursor-pointer"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
                 
-                <div className="flex flex-col items-center text-center space-y-6">
-                  <div className="w-20 h-20 rounded-3xl bg-primary-500 text-white flex items-center justify-center shadow-2xl shadow-primary-500/20 mb-2">
-                    <Home className="w-10 h-10" />
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-14 h-14 rounded-xl bg-primary-500 text-white flex items-center justify-center shadow shadow-primary-500/10 mb-1">
+                    <Home className="w-7 h-7" />
                   </div>
                   
                   <div>
-                    <h3 className="text-2xl font-heading font-black text-navy-900 tracking-tight leading-tight">Work from Home<br />Request?</h3>
-                    <div className="mt-6 p-4 rounded-2xl bg-surface-alt border border-border/40 text-xs text-text-muted font-medium leading-relaxed">
-                      You are currently <span className="font-black text-navy-900 text-sm">{formatDistance(wfhRequest.distance || 0)}</span> away from the office (<span className="font-black text-navy-900">{wfhRequest.officeName}</span>).
-                      <p className="mt-2 italic">You are outside the office range. Would you like to submit a Work From Home (WFH) check-in request instead?</p>
+                    <h3 className="text-lg font-semibold text-navy-900 tracking-tight leading-tight">Work from Home Request?</h3>
+                    <div className="mt-3 p-3 rounded-lg bg-surface-alt border border-border/40 text-xs text-text-muted font-medium leading-relaxed">
+                      You are currently <span className="font-bold text-navy-900 text-xs">{formatDistance(wfhRequest.distance || 0)}</span> away from the office (<span className="font-bold text-navy-900">{wfhRequest.officeName}</span>).
+                      <p className="mt-1.5 italic">You are outside the office range. Would you like to submit a Work From Home (WFH) check-in request instead?</p>
                     </div>
                   </div>
                   
-                  <div className="flex flex-col w-full gap-4 pt-6">
+                  <div className="flex flex-col w-full gap-2 pt-4">
                     <Button 
                       onClick={handleWFHRequest} 
                       disabled={gpsStatus === 'loading'} 
-                      className="w-full py-6 rounded-2xl bg-primary-500 hover:bg-primary-600 text-white font-black shadow-xl shadow-primary-500/20 transition-all text-sm"
+                      size="sm"
+                      className="w-full"
                     >
                       Submit WFH Check-In
                     </Button>
                     <button 
                       onClick={() => setWfhRequest(null)} 
-                      className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] hover:text-navy-900 transition-colors"
+                      className="text-[9px] font-bold text-text-muted uppercase tracking-wider hover:text-navy-900 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -491,19 +492,19 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               transition={{ type: "spring", duration: 0.4 }}
               className="w-full max-w-sm"
             >
-              <Card hover={false} className="p-8 rounded-[2.5rem] border-0 shadow-2xl bg-white relative overflow-hidden">
-                <div className="flex flex-col items-center text-center space-y-5">
-                  <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                    <AlertCircle className="w-8 h-8" />
+              <Card hover={false} className="p-5 rounded-xl border border-border shadow-md bg-white relative overflow-hidden">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                    <AlertCircle className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-heading font-black text-navy-900 tracking-tight">Confirm Action</h3>
-                    <p className="text-xs text-text-muted mt-2 font-medium leading-relaxed">{confirmAction.message}</p>
+                    <h3 className="text-sm font-bold text-navy-900 tracking-tight">Confirm Action</h3>
+                    <p className="text-xs text-text-muted mt-1.5 font-medium leading-relaxed">{confirmAction.message}</p>
                   </div>
-                  <div className="flex w-full gap-3 pt-4">
+                  <div className="flex w-full gap-2 pt-2">
                     <button
                       onClick={() => setConfirmAction(null)}
-                      className="flex-1 py-3 px-4 rounded-xl bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-black transition-all cursor-pointer"
+                      className="flex-1 py-2 px-3 rounded-lg bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-semibold transition-all cursor-pointer border border-border"
                     >
                       Cancel
                     </button>
@@ -512,7 +513,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                         confirmAction.onConfirm();
                         setConfirmAction(null);
                       }}
-                      className="flex-1 py-3 px-4 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-black transition-all cursor-pointer"
+                      size="sm"
+                      className="flex-1 bg-red-500 hover:bg-red-600 border-red-500"
                     >
                       Confirm
                     </Button>

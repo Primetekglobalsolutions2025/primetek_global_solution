@@ -215,19 +215,19 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-border bg-surface-alt/50">
-                <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Inquirer</th>
-                <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Entity</th>
-                <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Message Preview</th>
-                <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Engagement</th>
-                <th className="px-6 py-3.5 text-[10px] font-bold uppercase tracking-wider text-text-muted text-right">Actions</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Inquirer</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Entity</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Message Preview</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Engagement</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center">
-                    <div className="w-12 h-12 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
-                      <MessageSquare className="w-6 h-6 text-gray-300" />
+                  <td colSpan={5} className="px-4 py-12 text-center">
+                    <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-2.5">
+                      <MessageSquare className="w-5 h-5 text-gray-300" />
                     </div>
                     <p className="text-xs text-text-muted font-semibold">No active inquiries in the ledger.</p>
                   </td>
@@ -235,48 +235,48 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
               ) : (
                 paginated.map((inquiry) => (
                   <tr key={inquiry.id} className="group hover:bg-surface-alt/20 transition-colors">
-                    <td className="px-6 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-navy-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded bg-navy-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
                           {inquiry.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-semibold text-navy-900 leading-tight group-hover:text-primary-600 transition-colors">{inquiry.name}</p>
-                          <p className="text-[11px] text-text-muted font-medium mt-0.5">{inquiry.email}</p>
+                          <p className="text-xs font-semibold text-navy-900 leading-tight group-hover:text-primary-600 transition-colors">{inquiry.name}</p>
+                          <p className="text-[10px] text-text-muted font-medium mt-0.5">{inquiry.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-[11px] font-semibold text-navy-900 uppercase tracking-tighter">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-navy-900 uppercase tracking-tighter">
                         <Building2 className="w-3.5 h-3.5 text-primary-500/50" />
                         {inquiry.company || 'Private'}
                       </div>
                     </td>
-                    <td className="px-6 py-3">
-                      <p className="text-xs text-text-secondary line-clamp-1 max-w-[300px] font-medium">
+                    <td className="px-4 py-2.5">
+                      <p className="text-xs text-text-secondary line-clamp-1 max-w-[280px] font-medium">
                         {inquiry.requirement}
                       </p>
                     </td>
-                    <td className="px-6 py-3">
+                    <td className="px-4 py-2.5">
                       <div className={cn(
-                        "inline-flex px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider border uppercase",
+                        "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
                         statusColors[inquiry.status]
                       )}>
                         {inquiry.status}
                       </div>
                     </td>
-                    <td className="px-6 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
                         <button 
                           onClick={() => setSelectedInquiry(inquiry)}
-                          className="w-7 h-7 rounded-lg text-primary-500 hover:bg-primary-50 transition-all flex items-center justify-center active:scale-95"
+                          className="w-6.5 h-6.5 rounded text-primary-500 hover:bg-primary-50 transition-all flex items-center justify-center active:scale-95 cursor-pointer"
                           title="View Details"
                         >
                           <Eye className="w-3.5 h-3.5" />
                         </button>
                         <button 
                           onClick={() => handleDelete(inquiry.id, inquiry.name)}
-                          className="w-7 h-7 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center active:scale-95"
+                          className="w-6.5 h-6.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all flex items-center justify-center active:scale-95 cursor-pointer"
                           title="Delete"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

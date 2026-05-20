@@ -98,23 +98,23 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
   const uniqueJobs = [...new Map(apps.map((j) => [j.job_id, { id: j.job_id, title: j.job_title }])).values()];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex flex-1 flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-            <input type="text" placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-white text-sm text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400" />
+            <input type="text" placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400" />
           </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-white text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer">
             {statusOptions.map((s) => <option key={s} value={s}>{s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
           </select>
-          <select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-white text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400">
+          <select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer">
             <option value="all">All Jobs</option>
             {uniqueJobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
           </select>
         </div>
-        <Button size="sm" onClick={() => setIsAdding(true)} className="w-full sm:w-auto">
-          <Plus className="w-4 h-4" /> Add Application
+        <Button onClick={() => setIsAdding(true)} className="w-full sm:w-auto bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-4 py-2 text-xs font-semibold shadow-sm active:scale-95 transition-all">
+          <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Application
         </Button>
       </div>
 
@@ -129,11 +129,11 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
               className="w-full max-w-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <Card hover={false} className="max-h-[90vh] overflow-y-auto p-6 md:p-8 relative">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-heading font-bold text-navy-900">New Application</h2>
-                  <button onClick={() => setIsAdding(false)} className="p-2 hover:bg-surface-alt rounded-lg text-text-muted transition-colors">
-                    <X className="w-5 h-5" />
+              <Card hover={false} className="max-h-[90vh] overflow-y-auto p-5 md:p-6 rounded-xl relative">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-navy-900">New Application</h2>
+                  <button onClick={() => setIsAdding(false)} className="p-1.5 hover:bg-surface-alt rounded-lg text-text-muted transition-colors cursor-pointer">
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
                 <AddApplicationForm 
@@ -149,65 +149,65 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
         )}
       </AnimatePresence>
 
-      <Card hover={false} className="p-0 overflow-hidden">
+      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-surface-alt/50">
-                <th className="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Applicant</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Job</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Status</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Assigned To</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Date</th>
-                <th className="text-left px-6 py-3 text-xs font-semibold text-text-muted uppercase tracking-wider">Actions</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Applicant</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Job</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Status</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Assigned To</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Date</th>
+                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border/60">
               {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-12 text-center text-text-muted text-sm">No applications found.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-12 text-center text-text-muted text-xs">No applications found.</td></tr>
               ) : (
                 filtered.map((app) => (
-                  <tr key={app.id} className="border-b border-border last:border-0 hover:bg-surface-alt/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-navy-900">{app.name}</p>
-                      <p className="text-xs text-text-muted">{app.email}</p>
+                  <tr key={app.id} className="hover:bg-surface-alt/30 transition-colors group">
+                    <td className="px-4 py-2.5">
+                      <p className="text-xs font-semibold text-navy-900 leading-tight">{app.name}</p>
+                      <p className="text-[10px] text-text-muted mt-0.5">{app.email}</p>
                     </td>
-                    <td className="px-6 py-4 text-sm text-text-secondary">{app.job_title}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5 text-[11px] font-medium text-text-secondary">{app.job_title}</td>
+                    <td className="px-4 py-2.5">
                       <select
                         value={app.status}
                         onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer ${statusColors[app.status] || statusColors.new} focus:outline-none`}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border cursor-pointer ${statusColors[app.status] || statusColors.new} focus:outline-none`}
                       >
                         {statusOptions.filter((s) => s !== 'all').map((s) => (
                           <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                         ))}
                       </select>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="relative min-w-[140px]">
+                    <td className="px-4 py-2.5">
+                      <div className="relative min-w-[130px]">
                         <select
                           value={app.assigned_to || 'none'}
                           onChange={(e) => handleAssign(app.id, e.target.value)}
                           disabled={assigning === app.id}
-                          className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-white text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-50 appearance-none"
+                          className="w-full pl-7 pr-3 py-1 rounded border border-border bg-white text-[11px] text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-50 appearance-none cursor-pointer"
                         >
                           <option value="none">Unassigned</option>
                           {employees.map(emp => (
                             <option key={emp.id} value={emp.id}>{emp.name}</option>
                           ))}
                         </select>
-                        <UserPlus className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
+                        <UserPlus className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none" />
                         {assigning === app.id && <Loader2 className="absolute right-8 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-primary-500" />}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-text-muted whitespace-nowrap">{formatDate(app.created_at)}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5 text-[10px] font-semibold text-text-muted whitespace-nowrap">{formatDate(app.created_at)}</td>
+                    <td className="px-4 py-2.5">
                       <button
                         onClick={() => setSelectedApp(app)}
-                        className="text-sm text-primary-500 hover:text-primary-600 font-medium flex items-center gap-1"
+                        className="text-xs text-primary-500 hover:text-primary-600 font-semibold flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
                       >
-                        <Eye className="w-4 h-4" /> View
+                        <Eye className="w-3.5 h-3.5" /> View
                       </button>
                     </td>
                   </tr>

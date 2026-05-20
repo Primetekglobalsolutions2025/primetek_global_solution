@@ -14,7 +14,7 @@ export default function DashboardGreeting({ userName }: DashboardGreetingProps) 
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-[2.5rem] bg-navy-900 p-8 md:p-10 text-white shadow-2xl shadow-navy-900/20 mb-6 group"
+      className="relative overflow-hidden rounded-xl bg-navy-900 p-6 md:p-8 text-white shadow-md shadow-navy-900/10 mb-6 group"
     >
       {/* Dynamic Background */}
       <div className="absolute inset-0 overflow-hidden">
@@ -25,28 +25,28 @@ export default function DashboardGreeting({ userName }: DashboardGreetingProps) 
 
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-4">
-            <Sparkles className="w-3 h-3 text-primary-400" />
-            <span className="text-[10px] font-bold text-primary-200 uppercase tracking-[0.2em]">System Status: Optimal</span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-3">
+            <Sparkles className="w-3 h-3 text-primary-400 animate-pulse" />
+            <span className="text-[9px] font-bold text-primary-200 uppercase tracking-wider">System Status: Optimal</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-heading font-black tracking-tight leading-tight text-white">
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight leading-tight text-white">
             Welcome Back,<br />
             <span className="text-primary-400 drop-shadow-md brightness-110">
               {firstName}
             </span>
           </h1>
-          <p className="text-gray-300 text-sm mt-3 font-medium max-w-md">
+          <p className="text-gray-300 text-xs mt-2 font-medium max-w-md opacity-90">
             Here's what's happening across the Primetek Global ecosystem today.
           </p>
         </div>
 
-        <div className="w-full md:w-auto md:min-w-[300px]">
+        <div className="w-full md:w-auto md:min-w-[280px]">
           <div className="relative group/search">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within/search:text-primary-400 transition-colors" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within/search:text-primary-400 transition-colors" />
             <input
               type="text"
               placeholder="Search anything..."
-              className="w-full pl-11 pr-4 py-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all font-medium"
+              className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 backdrop-blur-xl text-white text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all font-medium"
             />
           </div>
         </div>

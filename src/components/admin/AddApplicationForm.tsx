@@ -47,19 +47,19 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
     }
   };
 
-  const inputClasses = "w-full px-4 py-2 rounded-lg border border-border bg-white text-navy-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400";
-  const labelClasses = "block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1";
+  const inputClasses = "w-full px-3 py-2 rounded-lg border border-border bg-white text-navy-900 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all duration-150";
+  const labelClasses = "block text-xs font-semibold text-navy-900 mb-1";
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {/* 1. Basic Info */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 text-primary-600 border-b border-primary-50 pb-2">
-          <Briefcase className="w-4 h-4" />
-          <h3 className="text-sm font-bold uppercase tracking-tight">Job & Basic Info</h3>
+      <div className="space-y-3">
+        <div className="flex items-center gap-1.5 text-primary-600 border-b border-primary-50 pb-1.5">
+          <Briefcase className="w-3.5 h-3.5" />
+          <h3 className="text-xs font-bold uppercase tracking-wider">Job & Basic Info</h3>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
             <label className={labelClasses}>Select Job</label>
             <select {...register('job_id')} className={inputClasses}>
@@ -78,7 +78,7 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
             <label className={labelClasses}>Applicant Name</label>
             <input {...register('name')} placeholder="Full Name" className={inputClasses} />
@@ -91,7 +91,7 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
             <label className={labelClasses}>Phone Number</label>
             <input {...register('phone')} placeholder="+91 ..." className={inputClasses} />
@@ -104,13 +104,13 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
       </div>
 
       {/* 2. Profile Details */}
-      <div className="space-y-4 pt-2">
-        <div className="flex items-center gap-2 text-primary-600 border-b border-primary-50 pb-2">
-          <Info className="w-4 h-4" />
-          <h3 className="text-sm font-bold uppercase tracking-tight">Client Profile Details</h3>
+      <div className="space-y-3 pt-1">
+        <div className="flex items-center gap-1.5 text-primary-600 border-b border-primary-50 pb-1.5">
+          <Info className="w-3.5 h-3.5" />
+          <h3 className="text-xs font-bold uppercase tracking-wider">Client Profile Details</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
             <label className={labelClasses}>Current Role</label>
             <input {...register('client_role')} placeholder="e.g. Senior Developer" className={inputClasses} />
@@ -118,7 +118,7 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
           <div>
             <label className={labelClasses}>LinkedIn Link</label>
             <div className="relative">
-              <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted" />
+              <Link2 className="absolute left-3 top-2.5 w-3.5 h-3.5 text-text-muted" />
               <input {...register('client_linkedin')} placeholder="linkedin.com/in/..." className={`${inputClasses} pl-9`} />
             </div>
           </div>
@@ -127,25 +127,24 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
         <div>
           <label className={labelClasses}>Address</label>
           <div className="relative">
-            <MapPin className="absolute left-3 top-3 w-3.5 h-3.5 text-text-muted" />
-            <textarea {...register('client_address')} rows={2} placeholder="Full current address" className={`${inputClasses} pl-9 pt-2`} />
+            <MapPin className="absolute left-3 top-2.5 w-3.5 h-3.5 text-text-muted" />
+            <textarea {...register('client_address')} rows={2} placeholder="Full current address" className={`${inputClasses} pl-9 pt-1.5`} />
           </div>
         </div>
       </div>
 
       {/* 3. Education */}
-      <div className="space-y-4 pt-2">
-        <div className="flex items-center gap-2 text-primary-600 border-b border-primary-50 pb-2">
-          <GraduationCap className="w-4 h-4" />
-          <h3 className="text-sm font-bold uppercase tracking-tight">Education</h3>
+      <div className="space-y-3 pt-1">
+        <div className="flex items-center gap-1.5 text-primary-600 border-b border-primary-50 pb-1.5">
+          <GraduationCap className="w-3.5 h-3.5" />
+          <h3 className="text-xs font-bold uppercase tracking-wider">Education</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div>
             <label className={labelClasses}>Bachelor&apos;s Degree</label>
             <input {...register('education_bachelors')} placeholder="Degree, University, Year" className={inputClasses} />
           </div>
-  { }
           <div>
             <label className={labelClasses}>Master&apos;s Degree</label>
             <input {...register('education_masters')} placeholder="Degree, University, Year" className={inputClasses} />
@@ -153,11 +152,11 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
         </div>
       </div>
 
-      <div className="flex items-center gap-3 pt-4">
-        <Button variant="outline" className="flex-1" onClick={onCancel} type="button">
+      <div className="flex items-center gap-2 pt-3 border-t border-border/40">
+        <Button variant="outline" className="flex-1" size="sm" onClick={onCancel} type="button">
           Cancel
         </Button>
-        <Button className="flex-1" type="submit" disabled={status === 'loading'}>
+        <Button className="flex-1" size="sm" type="submit" disabled={status === 'loading'}>
           {status === 'loading' ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating...</> : <><UserPlus className="w-4 h-4" /> Create Application</>}
         </Button>
       </div>

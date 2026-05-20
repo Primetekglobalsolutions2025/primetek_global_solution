@@ -100,25 +100,25 @@ export default function AttendanceClient({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       {/* 1. Filters & Actions */}
-      <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
-        <div className="flex flex-1 flex-col sm:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+        <div className="flex flex-1 flex-col sm:flex-row gap-3">
           <div className="relative flex-1 max-w-sm group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
             <input 
               type="text" 
               placeholder="Filter by name..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
-              className="w-full pl-11 pr-4 py-3 rounded-2xl border border-border/60 bg-white text-sm text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm" 
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-border/60 bg-white text-xs text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm" 
             />
           </div>
           <div className="flex gap-2">
             <select 
               value={employeeFilter} 
               onChange={(e) => setEmployeeFilter(e.target.value)} 
-              className="pl-4 pr-10 py-3 rounded-2xl border border-border/60 bg-white text-[10px] font-black uppercase tracking-widest text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 appearance-none cursor-pointer shadow-sm min-w-[140px]"
+              className="pl-3 pr-8 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm min-w-[130px] appearance-none"
             >
               <option value="all">Personnel: ALL</option>
               {employees.map((e) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
@@ -126,7 +126,7 @@ export default function AttendanceClient({
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)} 
-              className="pl-4 pr-10 py-3 rounded-2xl border border-border/60 bg-white text-[10px] font-black uppercase tracking-widest text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 appearance-none cursor-pointer shadow-sm min-w-[140px]"
+              className="pl-3 pr-8 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm min-w-[130px] appearance-none"
             >
               <option value="all">Status: ALL</option>
               <option value="Present">PRESENT</option>
@@ -138,101 +138,101 @@ export default function AttendanceClient({
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             onClick={exportCsv} 
-            className="rounded-2xl border-border/60 font-bold px-6 py-3 h-auto active:scale-95 transition-all shadow-sm bg-white"
+            className="rounded-lg border-border/60 font-semibold px-4 py-2 text-xs active:scale-95 transition-all shadow-sm bg-white"
           >
-            <Download className="w-4 h-4 mr-2" /> CSV
+            <Download className="w-3.5 h-3.5 mr-1.5" /> CSV
           </Button>
           <Button 
             onClick={exportExcel} 
             disabled={isExporting} 
-            className="rounded-2xl bg-teal-600 hover:bg-teal-700 text-white font-black px-6 py-3 h-auto active:scale-95 transition-all shadow-xl shadow-teal-500/20"
+            className="rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold px-4 py-2 text-xs active:scale-95 transition-all shadow shadow-teal-500/20"
           >
-            {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
+            {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5" />}
             Excel Master
           </Button>
         </div>
       </div>
 
       {/* 2. Overview Stats */}
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary-500" />
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
-            <span className="text-navy-900">{filtered.length}</span> entries synchronized
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-primary-500" />
+          <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">
+            <span className="text-navy-900 font-extrabold">{filtered.length}</span> entries synchronized
           </p>
         </div>
       </div>
 
       {/* 3. Table */}
-      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-[2rem] shadow-sm bg-white">
+      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-border bg-surface-alt/50">
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Staff Member</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Timeline</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Clock In</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Clock Out</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Intensity</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.15em] text-text-muted">Compliance</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Staff Member</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Timeline</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Clock In</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Clock Out</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Intensity</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Compliance</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-20 text-center">
-                    <div className="w-16 h-16 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
-                      <Calendar className="w-8 h-8 text-gray-300" />
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
+                      <Calendar className="w-5 h-5 text-gray-300" />
                     </div>
-                    <p className="text-sm text-text-muted font-bold">No synchronization logs found for this period.</p>
+                    <p className="text-xs text-text-muted font-bold">No synchronization logs found for this period.</p>
                   </td>
                 </tr>
               ) : (
                 filtered.map((record) => (
                   <tr key={record.id} className="group hover:bg-surface-alt/30 transition-colors">
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-surface-alt flex items-center justify-center text-navy-900 group-hover:bg-primary-500 group-hover:text-white transition-colors">
-                          <User className="w-4 h-4" />
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded bg-surface-alt flex items-center justify-center text-navy-900 group-hover:bg-primary-500 group-hover:text-white transition-colors">
+                          <User className="w-3.5 h-3.5" />
                         </div>
-                        <span className="text-sm font-black text-navy-900 tracking-tight">{record.employee_name}</span>
+                        <span className="text-xs font-semibold text-navy-900 tracking-tight">{record.employee_name}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <div className="text-[11px] font-bold text-text-secondary">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="text-[10px] font-semibold text-text-secondary">
                         {!isNaN(new Date(record.date).getTime()) 
                           ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' }).toUpperCase() 
                           : record.date?.toUpperCase() || '—'}
                       </div>
                     </td>
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-navy-900">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1 text-xs font-medium text-navy-900">
                         <Clock className="w-3.5 h-3.5 text-emerald-500/50" />
                         {record.check_in || '—'}
                       </div>
                     </td>
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-navy-900">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1 text-xs font-medium text-navy-900">
                         <Clock className="w-3.5 h-3.5 text-red-500/50" />
                         {record.check_out || '—'}
                       </div>
                     </td>
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <div className="text-xs font-black text-text-secondary">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="text-xs font-semibold text-text-secondary">
                         {record.duration_hours > 0 ? (
-                          <span className="bg-surface-alt px-2 py-1 rounded-lg border border-border/50">
+                          <span className="bg-surface-alt px-1.5 py-0.5 rounded border border-border/50 text-[10px]">
                             {record.duration_hours}H
                           </span>
                         ) : '—'}
                       </div>
                     </td>
-                    <td className="px-8 py-5">
+                    <td className="px-4 py-2.5">
                       <div className={cn(
-                        "inline-flex px-3 py-1 rounded-full text-[9px] font-black tracking-widest border uppercase",
+                        "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
                         statusColors[record.status?.toLowerCase()] || statusColors.present
                       )}>
                         {record.status}
