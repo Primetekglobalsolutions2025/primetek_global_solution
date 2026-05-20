@@ -107,29 +107,29 @@ export default async function AdminAppDashboard() {
   ];
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10">
       <DashboardGreeting userName={userName} />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-[2rem] p-6 border border-border/60 shadow-sm hover:shadow-xl hover:shadow-navy-900/5 transition-all duration-300 group">
-            <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-              <stat.icon className="w-6 h-6" />
+          <div key={stat.label} className="bg-white rounded-xl p-4 md:p-5 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 group">
+            <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-3.5 group-hover:scale-105 transition-transform`}>
+              <stat.icon className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-3xl font-black text-navy-900 tracking-tight">{stat.value}</p>
-              <p className="text-xs text-text-muted font-bold uppercase tracking-[0.15em] mt-1">{stat.label}</p>
+              <p className="text-2xl font-bold text-navy-900 tracking-tight leading-none">{stat.value}</p>
+              <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wider mt-1.5">{stat.label}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-        <div className="lg:col-span-2 space-y-6 md:space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-heading font-black text-navy-900 tracking-tight">Performance Analytics</h2>
+            <h2 className="text-lg font-semibold text-navy-900 tracking-tight">Performance Analytics</h2>
             <div className="flex gap-2">
-              <span className="px-3 py-1 rounded-full bg-surface-alt text-[10px] font-bold text-text-muted uppercase tracking-widest">Last 7 Days</span>
+              <span className="px-2.5 py-0.5 rounded-full bg-surface-alt text-[9px] font-semibold text-text-muted uppercase tracking-widest">Last 7 Days</span>
             </div>
           </div>
           
@@ -138,24 +138,24 @@ export default async function AdminAppDashboard() {
             applicationData={applicationData}
           />
 
-          <div className="bg-white rounded-[2.5rem] border border-border/60 shadow-sm overflow-hidden">
-            <div className="px-8 py-6 border-b border-border/50 flex items-center justify-between bg-surface-alt/30">
-              <h2 className="font-heading font-black text-navy-900 text-sm uppercase tracking-widest">Inquiries Received</h2>
-              <Link href="/admin/inquiries" className="group flex items-center gap-2 text-[10px] font-bold text-primary-500 uppercase tracking-widest hover:text-primary-600 transition-colors">
-                View All <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+          <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between bg-surface-alt/30">
+              <h2 className="font-semibold text-navy-900 text-xs uppercase tracking-wider">Inquiries Received</h2>
+              <Link href="/admin/inquiries" className="group flex items-center gap-1.5 text-[10px] font-semibold text-primary-500 uppercase tracking-wider hover:text-primary-600 transition-colors">
+                View All <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
             <div className="divide-y divide-border/50">
               {recentInquiries?.map((inq) => (
-                <div key={inq.id} className="px-8 py-5 hover:bg-surface-alt/30 transition-all group">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-navy-900 group-hover:text-primary-600 transition-colors">{inq.name}</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black tracking-widest border shrink-0 ${statusColors[inq.status] || statusColors.new}`}>
+                <div key={inq.id} className="px-5 py-3.5 hover:bg-surface-alt/30 transition-all group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-sm font-semibold text-navy-900 group-hover:text-primary-600 transition-colors">{inq.name}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider border shrink-0 ${statusColors[inq.status] || statusColors.new}`}>
                       {inq.status?.toUpperCase()}
                     </span>
                   </div>
-                  <p className="text-xs text-text-secondary line-clamp-1 mb-2 font-medium">{inq.message}</p>
-                  <div className="flex items-center gap-3 text-[10px] text-text-muted font-bold uppercase tracking-tighter">
+                  <p className="text-xs text-text-secondary line-clamp-1 mb-1.5 font-medium">{inq.message}</p>
+                  <div className="flex items-center gap-3 text-[10px] text-text-muted font-semibold uppercase tracking-tighter">
                     {inq.company && <span className="text-navy-900/40">{inq.company}</span>}
                     {inq.company && <span>•</span>}
                     <span>{formatDate(inq.created_at)}</span>
@@ -163,52 +163,54 @@ export default async function AdminAppDashboard() {
                 </div>
               ))}
               {(!recentInquiries || recentInquiries.length === 0) && (
-                <div className="px-8 py-16 text-center">
-                  <div className="w-16 h-16 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
-                    <MessageSquare className="w-8 h-8 text-gray-300" />
+                <div className="px-5 py-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
+                    <MessageSquare className="w-6 h-6 text-gray-300" />
                   </div>
-                  <p className="text-sm text-text-muted font-bold">No active inquiries in the queue.</p>
+                  <p className="text-xs text-text-muted font-semibold">No active inquiries in the queue.</p>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        <div className="space-y-6 md:space-y-8">
-          <h2 className="text-xl font-heading font-black text-navy-900 tracking-tight">Rapid Controls</h2>
-          <div className="grid grid-cols-1 gap-4">
-            {quickActions.map((action) => (
-              <Link key={action.href} href={action.href}>
-                <div className="bg-white rounded-[2rem] p-6 border border-border/60 shadow-sm hover:shadow-xl hover:shadow-navy-900/5 transition-all duration-300 group flex items-center gap-5">
-                  <div className={`w-14 h-14 rounded-2xl ${action.color} text-white flex items-center justify-center shrink-0 shadow-lg shadow-black/5 group-hover:scale-105 transition-transform`}>
-                    <action.icon className="w-6 h-6" />
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-lg font-semibold text-navy-900 tracking-tight mb-4">Rapid Controls</h2>
+            <div className="grid grid-cols-1 gap-3.5">
+              {quickActions.map((action) => (
+                <Link key={action.href} href={action.href}>
+                  <div className="bg-white rounded-xl p-4 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 group flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-lg ${action.color} text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform`}>
+                      <action.icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-navy-900 tracking-tight leading-snug">{action.label}</p>
+                      <p className="text-[11px] text-text-muted mt-0.5 font-medium">{action.desc}</p>
+                    </div>
+                    <div className="w-7 h-7 rounded-full bg-surface-alt flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0">
+                      <ArrowRight className="w-3.5 h-3.5 text-navy-900" />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black text-navy-900 tracking-tight">{action.label}</p>
-                    <p className="text-[11px] text-text-muted mt-1 font-medium">{action.desc}</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-surface-alt flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
-                    <ArrowRight className="w-4 h-4 text-navy-900" />
-                  </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
           </div>
 
-          <div className="bg-navy-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-10">
-              <Zap className="w-24 h-24" />
+          <div className="bg-navy-900 rounded-xl p-6 text-white relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-6 opacity-5">
+              <Zap className="w-20 h-20" />
             </div>
-            <h3 className="text-lg font-heading font-black tracking-tight mb-2 relative z-10 text-white">System Status</h3>
-            <p className="text-xs text-gray-400 font-medium mb-6 relative z-10">Real-time status check across all services.</p>
+            <h3 className="text-base font-semibold tracking-tight mb-1 relative z-10 text-white">System Status</h3>
+            <p className="text-xs text-gray-400 font-medium mb-4 relative z-10">Real-time status check across all services.</p>
             
-            <div className="space-y-4 relative z-10">
+            <div className="space-y-3 relative z-10">
               {nodes.map(node => (
                 <div key={node.node_name} className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-gray-300 uppercase tracking-widest">{node.node_name}</span>
+                  <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">{node.node_name}</span>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase text-gray-500">{node.status}</span>
-                    <div className={`w-1.5 h-1.5 rounded-full ${node.color} shadow-[0_0_8px_rgba(16,185,129,0.5)]`} />
+                    <span className="text-[10px] font-semibold uppercase text-gray-500">{node.status}</span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${node.color} shadow-[0_0_8px_rgba(16,185,129,0.3)]`} />
                   </div>
                 </div>
               ))}

@@ -84,40 +84,40 @@ export default async function EmployeeAppDashboard() {
   const firstName = employee?.name?.split(' ')[0] || 'Employee';
 
   return (
-    <div className="space-y-8 pb-24">
+    <div className="space-y-6 pb-24">
       {/* Premium Hero Section with Glassmorphism */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-navy-900 p-8 md:p-12 text-white shadow-2xl shadow-navy-900/30">
+      <div className="relative overflow-hidden rounded-xl bg-navy-900 p-6 md:p-8 text-white shadow-xl shadow-navy-900/20">
         {/* Mesh Background */}
         <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[120%] bg-primary-500/20 rounded-full blur-[100px] animate-pulse" />
         <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[80%] bg-emerald-500/10 rounded-full blur-[80px]" />
         
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-10">
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-inner">
-              <Sparkles className="w-4 h-4 text-primary-400" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">Employee ID: {employee?.employee_id || 'Active'}</span>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 backdrop-blur-xl border border-white/10 shadow-inner">
+              <Sparkles className="w-3.5 h-3.5 text-primary-400" />
+              <span className="text-[9px] font-bold uppercase tracking-wider text-primary-200">Employee ID: {employee?.employee_id || 'Active'}</span>
             </div>
             
             <div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-black tracking-tighter leading-tight text-white">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight text-white">
                 Welcome Back,<br />
-                <span className="text-primary-400 drop-shadow-md brightness-125">{firstName}</span>
+                <span className="text-primary-400 drop-shadow-sm brightness-125">{firstName}</span>
               </h1>
-              <p className="text-gray-400 text-sm md:text-base mt-4 max-w-md font-medium leading-relaxed italic">
+              <p className="text-gray-400 text-sm mt-2.5 max-w-md font-medium leading-relaxed">
                 Welcome to your dashboard. You can record daily attendance, apply for leaves, and review your assigned clients.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3 pt-1">
               <Link href="/employee/attendance">
-                <Button className="bg-white text-navy-900 hover:bg-white/90 rounded-2xl px-10 py-6 font-black shadow-2xl shadow-white/5 transition-all active:scale-95 group">
-                  <Clock className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" /> 
-                  {todayRecord ? 'View Today\'s Entry' : 'Clock In / Clock Out'}
+                <Button className="bg-white text-navy-900 hover:bg-white/90 rounded-lg px-5 py-2 font-semibold shadow-sm transition-all group">
+                  <Clock className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" /> 
+                  {todayRecord ? 'View Today\'s Entry' : 'Clock In / Out'}
                 </Button>
               </Link>
               <Link href="/employee/leaves">
-                <Button className="bg-primary-500/20 backdrop-blur-md text-primary-200 hover:bg-primary-500/30 rounded-2xl px-8 py-6 font-black border border-primary-500/30 transition-all active:scale-95">
-                  Request Leave <ArrowRight className="w-5 h-5 ml-3" />
+                <Button className="bg-primary-500/20 backdrop-blur-md text-primary-200 hover:bg-primary-500/30 rounded-lg px-4 py-2 font-semibold border border-primary-500/30 transition-all">
+                  Request Leave <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
             </div>
@@ -125,35 +125,35 @@ export default async function EmployeeAppDashboard() {
 
           {/* Profile Card */}
           <div className="relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-emerald-500 rounded-[2rem] blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-            <div className="relative bg-navy-900/50 backdrop-blur-2xl rounded-[2rem] p-8 border border-white/10 w-full lg:w-[320px] shadow-2xl">
-              <div className="flex items-start justify-between mb-8">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-xl shadow-primary-500/20">
-                  <User className="w-8 h-8 text-white" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-emerald-500 rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-1000" />
+            <div className="relative bg-navy-900/50 backdrop-blur-2xl rounded-xl p-5 border border-white/10 w-full lg:w-[280px] shadow-xl">
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-md">
+                  <User className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-primary-400 uppercase tracking-widest">Employee Profile</p>
-                  <p className="text-sm font-bold text-white">{employee?.employee_id}</p>
+                  <p className="text-[9px] font-bold text-primary-400 uppercase tracking-wider">Employee Profile</p>
+                  <p className="text-xs font-bold text-white">{employee?.employee_id}</p>
                 </div>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">Department</p>
-                  <p className="text-base font-bold text-white">{employee?.department || 'Operations'}</p>
+                  <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">Department</p>
+                  <p className="text-sm font-bold text-white">{employee?.department || 'Operations'}</p>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-1">System Role</p>
-                  <p className="text-xs font-bold text-primary-200 uppercase tracking-widest">{employee?.role || 'Staff'}</p>
+                  <p className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">System Role</p>
+                  <p className="text-xs font-bold text-primary-200 uppercase tracking-wider">{employee?.role || 'Staff'}</p>
                 </div>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Connected</span>
+              <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider">Connected</span>
                 </div>
-                <MapPin className="w-4 h-4 text-gray-600" />
+                <MapPin className="w-3.5 h-3.5 text-gray-600" />
               </div>
             </div>
           </div>
@@ -161,70 +161,70 @@ export default async function EmployeeAppDashboard() {
       </div>
 
       {/* Modern Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, idx) => (
-          <div key={stat.label} className="group bg-white rounded-[2rem] p-6 border border-border/60 shadow-sm hover:shadow-xl transition-all duration-500 hover:-translate-y-2">
-            <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
-              <stat.icon className="w-6 h-6" />
+          <div key={stat.label} className="group bg-white rounded-xl p-4 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
+            <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
+              <stat.icon className="w-5 h-5" />
             </div>
-            <p className="text-4xl font-black text-navy-900 tracking-tight leading-none mb-1 group-hover:text-primary-600 transition-colors">{stat.value}</p>
-            <p className="text-[10px] text-text-muted font-black uppercase tracking-[0.2em]">{stat.label}</p>
+            <p className="text-2xl font-bold text-navy-900 tracking-tight leading-none mb-1 group-hover:text-primary-600 transition-colors">{stat.value}</p>
+            <p className="text-[9px] text-text-muted font-bold uppercase tracking-wider">{stat.label}</p>
           </div>
         ))}
       </div>
 
       {/* Dashboard Matrix */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Activity Logs */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between px-4">
-            <div className="flex items-center gap-3">
-              <div className="w-1.5 h-6 bg-primary-500 rounded-full" />
-              <h2 className="font-heading font-black text-navy-900 text-2xl tracking-tight">Attendance Log</h2>
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-5 bg-primary-500 rounded-full" />
+              <h2 className="text-lg font-semibold text-navy-900 tracking-tight">Attendance Log</h2>
             </div>
-            <Link href="/employee/attendance" className="text-[10px] font-black text-primary-600 hover:text-primary-700 uppercase tracking-widest bg-primary-50 px-4 py-2 rounded-xl transition-all">View All</Link>
+            <Link href="/employee/attendance" className="text-[9px] font-bold text-primary-600 hover:text-primary-700 uppercase tracking-wider bg-primary-50 px-3 py-1.5 rounded-lg transition-all">View All</Link>
           </div>
           
-          <div className="bg-white rounded-[2.5rem] border border-border/60 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
             <div className="divide-y divide-border/40">
               {empRecords.length === 0 ? (
-                <div className="p-16 text-center">
-                  <div className="w-16 h-16 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
-                    <Clock className="w-8 h-8 text-text-muted" />
+                <div className="p-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
+                    <Clock className="w-6 h-6 text-text-muted" />
                   </div>
-                  <p className="text-sm font-black text-navy-900 uppercase tracking-tight">No Records Found</p>
-                  <p className="text-xs text-text-muted mt-1">Clock in today to start recording your attendance.</p>
+                  <p className="text-xs font-bold text-navy-900 uppercase tracking-wider">No Records Found</p>
+                  <p className="text-[11px] text-text-muted mt-0.5">Clock in today to start recording your attendance.</p>
                 </div>
               ) : (
                 empRecords.map((record) => (
-                  <div key={record.id} className="p-6 flex items-center gap-6 hover:bg-surface-alt/30 transition-all group">
-                    <div className="flex flex-col items-center justify-center w-16 h-16 rounded-2xl bg-white border border-border/60 shadow-sm shrink-0 group-hover:bg-navy-900 group-hover:text-white transition-all duration-500">
-                      <span className="text-xl font-black leading-none">
+                  <div key={record.id} className="p-4 flex items-center gap-4 hover:bg-surface-alt/30 transition-all group">
+                    <div className="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-white border border-border/60 shadow-sm shrink-0 group-hover:bg-navy-900 group-hover:text-white transition-all duration-200">
+                      <span className="text-lg font-bold leading-none">
                         {new Date(record.date).getDate()}
                       </span>
-                      <span className="text-[9px] uppercase font-black tracking-widest mt-1 opacity-60">
+                      <span className="text-[9px] uppercase font-bold tracking-wider mt-0.5 opacity-60">
                         {new Date(record.date).toLocaleDateString('en-IN', { month: 'short' })}
                       </span>
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <p className="text-lg font-black text-navy-900 mb-1 tracking-tight">
+                      <p className="text-sm font-semibold text-navy-900 mb-1 tracking-tight">
                         {new Date(record.date).toLocaleDateString('en-IN', { weekday: 'long' })}
                       </p>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-alt border border-border/40 text-[10px] font-bold text-text-secondary">
-                          <LogIn className="w-3 h-3 text-emerald-500" /> {record.check_in}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-surface-alt border border-border/40 text-[9px] font-semibold text-text-secondary">
+                          <LogIn className="w-2.5 h-2.5 text-emerald-500" /> {record.check_in}
                         </div>
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-alt border border-border/40 text-[10px] font-bold text-text-secondary">
-                          <LogOut className="w-3 h-3 text-primary-500" /> {record.check_out || 'Clocked In'}
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-surface-alt border border-border/40 text-[9px] font-semibold text-text-secondary">
+                          <LogOut className="w-2.5 h-2.5 text-primary-500" /> {record.check_out || 'Clocked In'}
                         </div>
                       </div>
                     </div>
                     
                     <div className="text-right shrink-0">
-                      <div className="text-sm font-black text-navy-900 mb-2">{record.duration_hours > 0 ? `${record.duration_hours}h` : 'Clocked In'}</div>
+                      <div className="text-xs font-semibold text-navy-900 mb-1.5">{record.duration_hours > 0 ? `${record.duration_hours}h` : 'Clocked In'}</div>
                       <span className={cn(
-                        "inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border",
+                        "inline-flex px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider border",
                         statusColors[record.status?.toLowerCase()] || statusColors.present
                       )}>
                         {record.status}
@@ -238,36 +238,36 @@ export default async function EmployeeAppDashboard() {
         </div>
 
         {/* Action Matrix */}
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Assignments */}
-          <div className="relative group overflow-hidden bg-navy-900 rounded-[2.5rem] p-8 text-white shadow-2xl shadow-navy-900/20">
-            <div className="absolute top-[-20%] right-[-10%] w-32 h-32 bg-primary-500/10 rounded-full blur-2xl" />
+          <div className="relative group overflow-hidden bg-navy-900 rounded-xl p-6 text-white shadow-md shadow-navy-900/20">
+            <div className="absolute top-[-20%] right-[-10%] w-24 h-24 bg-primary-500/10 rounded-full blur-2xl" />
             <div className="relative z-10">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
-                <Briefcase className="w-6 h-6 text-primary-400" />
+              <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center mb-4">
+                <Briefcase className="w-5 h-5 text-primary-400" />
               </div>
-              <h3 className="text-2xl font-heading font-black mb-3 tracking-tight">Assigned<br />Clients</h3>
-              <p className="text-gray-400 text-xs mb-8 leading-relaxed font-medium">
+              <h3 className="text-lg font-bold mb-1.5 tracking-tight">Assigned Clients</h3>
+              <p className="text-gray-400 text-xs mb-5 leading-relaxed font-medium">
                 View and update project profiles and client details assigned to your account.
               </p>
               <Link href="/employee/assigned-profiles">
-                <Button className="w-full bg-primary-500 text-white hover:bg-primary-600 font-black rounded-2xl py-5 border-0 shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
-                  View Clients <ArrowRight className="w-5 h-5 ml-auto" />
+                <Button className="w-full bg-primary-500 text-white hover:bg-primary-600 font-semibold rounded-lg py-2 border-0 shadow-sm active:scale-95 transition-all">
+                  View Clients <ArrowRight className="w-4 h-4 ml-auto" />
                 </Button>
               </Link>
             </div>
           </div>
 
           {/* Information Card */}
-          <div className="bg-emerald-500/5 rounded-[2.5rem] p-8 border border-emerald-500/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <CheckCircle2 className="w-16 h-16 text-emerald-500" />
+          <div className="bg-emerald-500/5 rounded-xl p-6 border border-emerald-500/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-5">
+              <CheckCircle2 className="w-12 h-12 text-emerald-500" />
             </div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Compass className="w-5 h-5" />
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shadow-sm">
+                <Compass className="w-4 h-4" />
               </div>
-              <p className="text-sm font-black text-emerald-900 uppercase tracking-widest">Operational Policy</p>
+              <p className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Operational Policy</p>
             </div>
             <p className="text-xs text-emerald-800/70 leading-relaxed font-medium italic">
               "{operationalPolicy}"
