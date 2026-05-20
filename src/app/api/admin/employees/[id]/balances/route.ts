@@ -40,9 +40,9 @@ export async function POST(
     const { sick, casual, earned } = await req.json();
 
     const updates = [
-      { employee_id: id, leave_type: 'Sick', total_days: sick, remaining_days: sick, used_days: 0 },
-      { employee_id: id, leave_type: 'Casual', total_days: casual, remaining_days: casual, used_days: 0 },
-      { employee_id: id, leave_type: 'Earned', total_days: earned, remaining_days: earned, used_days: 0 },
+      { employee_id: id, leave_type: 'Sick', total_days: sick, used_days: 0 },
+      { employee_id: id, leave_type: 'Casual', total_days: casual, used_days: 0 },
+      { employee_id: id, leave_type: 'Earned', total_days: earned, used_days: 0 },
     ];
 
     for (const update of updates) {

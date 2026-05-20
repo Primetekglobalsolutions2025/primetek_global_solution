@@ -10,28 +10,86 @@ const serverSchema = publicSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   RESEND_API_KEY: z.string().min(1).optional(),
   JWT_SECRET: z.string().min(10).default('primetek-fallback-secret-key-2026'),
+}).superRefine((data, ctx) => {
+  if (process.env.NODE_ENV === 'production') {
+    if (!data.JWT_SECRET || data.JWT_SECRET === 'primetek-fallback-secret-key-2026') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'In production, JWT_SECRET must be explicitly set and cannot be the default fallback key.',
+        path: ['JWT_SECRET'],
+      });
+    } else if (data.JWT_SECRET.length < 32) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'In production, JWT_SECRET must be at least 32 characters long.',
+        path: ['JWT_SECRET'],
+      });
+    }
+
+    if (!data.SUPABASE_SERVICE_ROLE_KEY || data.SUPABASE_SERVICE_ROLE_KEY === 'placeholder-key') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'In production, SUPABASE_SERVICE_ROLE_KEY must be explicitly set.',
+        path: ['SUPABASE_SERVICE_ROLE_KEY'],
+      });
+    }
+  }
 });
 
 // Detect if we are on the server or client
 const isServer = typeof window === 'undefined';
 
-const rawEnv = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  NEXT_PUBLIC_GEOAPIFY_API_KEY: process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY,
-  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  RESEND_API_KEY: process.env.RESEND_API_KEY,
-  JWT_SECRET: process.env.JWT_SECRET,
-};
+/**
+ * Lazy-validated environment variables.
+ * Uses a Proxy so validation only runs the first time a property is accessed
+ * at runtime (not during module evaluation / build time).
+ */
+function createLazyEnv() {
+  let cached: z.infer<typeof serverSchema> | null = null;
 
-// Validate based on environment
-export const env = isServer 
-  ? serverSchema.parse(rawEnv) 
-  : publicSchema.parse({
-      NEXT_PUBLIC_SUPABASE_URL: rawEnv.NEXT_PUBLIC_SUPABASE_URL,
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: rawEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      NEXT_PUBLIC_GEOAPIFY_API_KEY: rawEnv.NEXT_PUBLIC_GEOAPIFY_API_KEY,
-    }) as any;
+  return new Proxy({} as z.infer<typeof serverSchema>, {
+    get(_target, prop: string) {
+      if (!cached) {
+        const rawEnv: Record<string, string | undefined> = {
+          NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          NEXT_PUBLIC_GEOAPIFY_API_KEY: process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY,
+          SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+          RESEND_API_KEY: process.env.RESEND_API_KEY,
+          JWT_SECRET: process.env.JWT_SECRET,
+        };
+
+        // During `next build` page-data collection, env vars may not be
+        // available. Return raw values without crashing the build.
+        const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+
+        try {
+          cached = isServer
+            ? serverSchema.parse(rawEnv)
+            : publicSchema.parse({
+                NEXT_PUBLIC_SUPABASE_URL: rawEnv.NEXT_PUBLIC_SUPABASE_URL,
+                NEXT_PUBLIC_SUPABASE_ANON_KEY: rawEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                NEXT_PUBLIC_GEOAPIFY_API_KEY: rawEnv.NEXT_PUBLIC_GEOAPIFY_API_KEY,
+              }) as any;
+        } catch (err) {
+          if (isBuildPhase) {
+            // Provide placeholder values so build doesn't crash
+            cached = rawEnv as any;
+            return (cached as any)[prop] ?? '';
+          }
+          if (err instanceof z.ZodError) {
+            const missing = err.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+            throw new Error(`❌ Environment validation failed: ${missing}`);
+          }
+          throw err;
+        }
+      }
+      return (cached as any)[prop];
+    },
+  });
+}
+
+export const env = createLazyEnv();
 
 /**
  * Validates that all required environment variables are present.
@@ -39,17 +97,13 @@ export const env = isServer
  */
 export function validateEnv() {
   try {
-    if (isServer) {
-      serverSchema.parse(process.env);
-    } else {
-      publicSchema.parse(process.env);
-    }
+    // Access a property to trigger lazy validation
+    void env.NEXT_PUBLIC_SUPABASE_URL;
     console.log('✅ Environment variables validated');
   } catch (err) {
-    if (err instanceof z.ZodError) {
-      const missing = err.issues.map(e => e.path.join('.')).join(', ');
-      console.error('❌ Missing or invalid environment variables:', missing);
-      throw new Error(`Environment validation failed: ${missing}`);
+    if (err instanceof Error) {
+      console.error(err.message);
+      throw err;
     }
     throw err;
   }

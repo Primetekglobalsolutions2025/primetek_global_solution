@@ -5,6 +5,7 @@ import { Search, Download, FileSpreadsheet, Loader2, User, Clock, Calendar, MapP
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { exportAttendanceExcel } from './actions';
+import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -42,6 +43,7 @@ export default function AttendanceClient({
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
+  const { toast } = useToast();
 
   const filtered = useMemo(() => {
     return initialAttendance.filter((r) => {
@@ -71,6 +73,7 @@ export default function AttendanceClient({
     try {
       setIsExporting(true);
       const year = new Date().getFullYear();
+      toast.success('Excel export started.');
       const base64Str = await exportAttendanceExcel(year);
       
       const byteCharacters = atob(base64Str);
@@ -87,9 +90,10 @@ export default function AttendanceClient({
       a.download = `Primetek_Attendance_${year}_Master.xlsx`;
       a.click();
       URL.revokeObjectURL(url);
+      toast.success('Excel file generated successfully.');
     } catch (error) {
       console.error('Failed to export Excel:', error);
-      alert('Failed to generate Excel file.');
+      toast.error('Failed to generate Excel file.');
     } finally {
       setIsExporting(false);
     }

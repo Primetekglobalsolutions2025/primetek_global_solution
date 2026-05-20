@@ -150,10 +150,26 @@ export async function checkOut(recordId: string, lat: number, lng: number) {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
 
+    // Fetch the check-in time to compute duration
+    const { data: record, error: fetchError } = await supabaseAdmin
+      .from('attendance')
+      .select('check_in')
+      .eq('id', recordId)
+      .single();
+
+    if (fetchError || !record || !record.check_in) {
+      return { success: false, error: 'Attendance check-in record not found' };
+    }
+
+    const checkInTime = new Date(record.check_in).getTime();
+    const checkOutTime = Date.now();
+    const durationHours = Number(((checkOutTime - checkInTime) / (1000 * 60 * 60)).toFixed(2));
+
     const { error } = await supabaseAdmin
       .from('attendance')
       .update({
-        check_out: new Date().toISOString(),
+        check_out: new Date(checkOutTime).toISOString(),
+        duration_hours: durationHours,
         lat: Number(lat),
         lng: Number(lng),
       })

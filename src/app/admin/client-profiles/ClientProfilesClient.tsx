@@ -10,6 +10,7 @@ import {
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { createProfile, updateProfile, deleteProfile, uploadClientResume } from './actions';
+import { useToast } from '@/components/ui/Toast';
 
 interface ClientProfile {
   id?: string;
@@ -32,6 +33,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<ClientProfile | null>(null);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState('');
 
@@ -127,24 +129,26 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         if (!editingProfile.id) return;
         const res = await updateProfile(editingProfile.id, profileToSave);
         if (res.error) {
-          alert(res.error);
+          toast.error(res.error);
           setLoading(false);
           return;
         }
         setProfiles(prev => prev.map(p => p.id === editingProfile.id ? { ...p, ...profileToSave } : p));
+        toast.success('Profile updated successfully.');
       } else {
         const res = await createProfile(profileToSave);
         if (res.error) {
-          alert(res.error);
+          toast.error(res.error);
           setLoading(false);
           return;
         }
+        toast.success('Profile created successfully.');
         window.location.reload(); 
       }
    
       setIsModalOpen(false);
     } catch (err: any) {
-      alert(err.message || 'Failed to save profile');
+      toast.error(err.message || 'Failed to save profile.');
     } finally {
       setLoading(false);
     }
@@ -155,8 +159,9 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
     try {
       await deleteProfile(id);
       setProfiles(prev => prev.filter(p => p.id !== id));
+      toast.success('Profile deleted successfully.');
     } catch (err) {
-      alert('Failed to delete');
+      toast.error('Failed to delete profile.');
     }
   };
 

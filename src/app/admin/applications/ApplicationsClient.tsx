@@ -8,6 +8,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { updateApplicationStatus, assignApplication, getAllEmployees } from './actions';
 import AddApplicationForm from '@/components/admin/AddApplicationForm';
+import { useToast } from '@/components/ui/Toast';
 
 export interface ApplicationRecord {
   id: string;
@@ -44,6 +45,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
   const [employees, setEmployees] = useState<{id: string, name: string}[]>([]);
   const [assigning, setAssigning] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     getAllEmployees().then(setEmployees);
@@ -54,8 +56,9 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
     try {
       await assignApplication(appId, empId === 'none' ? null : empId);
       setApps(prev => prev.map(a => a.id === appId ? { ...a, assigned_to: empId === 'none' ? undefined : empId } : a));
+      toast.success('Application assigned successfully.');
     } catch (err) {
-      alert('Failed to assign application');
+      toast.error('Failed to assign application.');
     } finally {
       setAssigning(null);
     }
@@ -74,6 +77,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
   }, [apps, search, statusFilter, jobFilter]);
 
   const handleUpdateStatus = async (id: string, status: string) => {
+    const oldApps = apps;
     setApps((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
     if (selectedApp?.id === id) {
       setSelectedApp((prev) => (prev ? { ...prev, status } : null));
@@ -81,8 +85,13 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
     
     try {
       await updateApplicationStatus(id, status);
+      toast.success(`Application status updated to ${status}.`);
     } catch {
-      alert('Failed to update status.');
+      setApps(oldApps);
+      if (selectedApp?.id === id) {
+        setSelectedApp((prev) => (prev ? { ...prev, status: oldApps.find(a => a.id === id)?.status || 'new' } : null));
+      }
+      toast.error('Failed to update status.');
     }
   };
 

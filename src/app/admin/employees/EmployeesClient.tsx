@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { toggleEmployeeStatus, createEmployee, deleteEmployee } from './actions';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/components/ui/Toast';
 
 export interface EmployeeRecord {
   id: string;
@@ -24,6 +25,7 @@ export interface EmployeeRecord {
 export default function EmployeesClient({ initialEmployees }: { initialEmployees: EmployeeRecord[] }) {
   const [employees, setEmployees] = useState<EmployeeRecord[]>(initialEmployees);
   const [search, setSearch] = useState('');
+  const { toast } = useToast();
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,9 +61,10 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     
     try {
       await toggleEmployeeStatus(id, currentStatus);
+      toast.success(`Employee status updated to ${newStatus}.`);
     } catch (err) {
       setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, status: currentStatus } : e)));
-      alert('Failed to update employee status');
+      toast.error('Failed to update employee status.');
     }
   };
 
@@ -72,14 +75,15 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     try {
       const res = await createEmployee(newEmployeeData);
       setSuccessMessage({ id: res.employee_id, pass: res.password });
+      toast.success('Employee created successfully.');
       setTimeout(() => {
         window.location.reload();
       }, 8000); 
     } catch (err: unknown) {
       if (err instanceof Error) {
-        alert(err.message || 'Failed to create employee');
+        toast.error(err.message || 'Failed to create employee.');
       } else {
-        alert('Failed to create employee');
+        toast.error('Failed to create employee.');
       }
       setIsSubmitting(false);
     }
@@ -91,8 +95,9 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     try {
       await deleteEmployee(id);
       setEmployees((prev) => prev.filter((e) => e.id !== id));
+      toast.success('Employee deleted successfully.');
     } catch (err) {
-      alert('Failed to delete employee');
+      toast.error('Failed to delete employee.');
     }
   };
 
@@ -127,10 +132,10 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
         body: JSON.stringify(balances),
       });
       if (!res.ok) throw new Error('Failed to update');
-      alert('Balances updated successfully');
+      toast.success('Balances updated successfully.');
       setIsBalanceModalOpen(false);
     } catch (err) {
-      alert('Failed to update balances');
+      toast.error('Failed to update balances.');
     } finally {
       setIsUpdatingBalance(false);
     }

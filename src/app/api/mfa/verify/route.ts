@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { verifyMFAToken } from '@/lib/mfa';
+import { verifyMFAToken, decryptSecret } from '@/lib/mfa';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
@@ -25,7 +25,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'MFA not set up' }, { status: 400 });
     }
 
-    const isValid = await verifyMFAToken(code, user.mfa_secret);
+    const decryptedSecret = decryptSecret(user.mfa_secret);
+    const isValid = await verifyMFAToken(code, decryptedSecret);
 
     if (isValid) {
       // Enable MFA formally

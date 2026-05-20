@@ -72,6 +72,9 @@ export async function saveOfficeLocation(data: {
 }
 
 export async function getSystemStatus() {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+ 
   const { data, error } = await supabaseAdmin
     .from('system_status')
     .select('*')

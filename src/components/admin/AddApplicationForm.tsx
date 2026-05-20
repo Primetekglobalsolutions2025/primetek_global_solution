@@ -7,6 +7,7 @@ import { Loader2, UserPlus, Briefcase, Info, GraduationCap, Link2, MapPin } from
 import { fullApplicationSchema, type FullApplicationFormData } from '@/lib/validations';
 import { createFullApplication, getActiveJobs, getAllEmployees } from '@/app/admin/applications/actions';
 import Button from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 
 interface AddApplicationFormProps {
   onSuccess: () => void;
@@ -17,6 +18,7 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
   const [jobs, setJobs] = useState<{ id: string; title: string }[]>([]);
   const [employees, setEmployees] = useState<{ id: string; name: string }[]>([]);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const { toast } = useToast();
 
   const {
     register,
@@ -36,11 +38,12 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
     try {
       await createFullApplication(data);
       setStatus('success');
+      toast.success('Application created successfully!');
       setTimeout(onSuccess, 1000);
     } catch (err) {
       console.error(err);
       setStatus('error');
-      alert('Failed to create application');
+      toast.error('Failed to create application.');
     }
   };
 

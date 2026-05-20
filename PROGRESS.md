@@ -1,29 +1,35 @@
-# Primetek HR Portal - Project Progress
+# Primetek HR Portal - Remediation & Production Hardening Progress
 
-### 📍 Current Phase: Final Stabilization & Optimization (Completed)
+### 📍 Current Phase: Performance & Error Resilience (Phase 3)
 
-#### ✅ Completed Tasks
+---
 
-**1. UI/UX Harmonization & Aesthetics**
-- **Greetings**: Unified "Welcome Back" headers across Admin and Employee portals. User names now use `primary-400` (Electric Indigo) for maximum visibility on dark backgrounds.
-- **Login Standardization**: Both Admin and Employee login forms now share the same premium design, including unified labels: "Portal Identity" and "Access Key".
-- **Contrast Polish**: Fixed invisible heading issues where `navy-900` text was bleeding into dark backgrounds.
+## 🛠️ Remediation Roadmap
 
-**2. Timezone & Reporting Stabilization**
-- **IST Enforced**: Standardized all date/time displays to `Asia/Kolkata` (IST) using `en-IN` locale.
-- **Activity Logs**: Corrected time drift in Dashboard activity logs and Attendance reports.
-- **Export Consistency**: Ensured timezone-aware formatting for CSV and Excel exports.
+### ✅ Phase 1: Authentication & Session Reliability (100% Complete)
+*   **MFA Toggle Sync**: Fixed state desynchronization in MFA Setup. Enabling/disabling MFA in the DB now accurately updates the UI toggle instantly.
+*   **Unified Auth Flow**: Created `unified-login/route.ts` API route which handles both Email and Employee ID authentication, falling back to Admin table lookup if necessary.
+*   **Legacy Route Deprecation**: Safely removed old, separate `/api/auth/login` and `/api/auth/employee-login` handlers to prevent dual-route maintenance risks.
+*   **Login Flow Harmonization**: Standardized labels and visual styles across login forms.
 
-**3. Leave Balance & Data Integrity**
-- **Balance Management**: Added a new "Wallet" tool in the **Admin > Staff Directory**. Admins can now manually view and edit leave credits (Sick, Casual, Earned) for any employee.
-- **Fix for "Fake" Data**: Refactored `getLeaveBalances` to initialize new employees with 0 credits, replacing the legacy 12/10/15 placeholders.
-- **Backend Sync**: Implemented `/api/admin/employees/[id]/balances` for secure, server-side credit updates.
+### ✅ Phase 2: Security Hardening (100% Complete)
+*   **CSRF Protection**: Added request origin and referer verification middleware for all POST, PUT, DELETE, and PATCH API requests to prevent Cross-Site Request Forgery.
+*   **Security Headers & CSP**: Configured secure response headers (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, and Permissions-Policy) and a strict Content Security Policy (CSP) in `next.config.ts`.
+*   **Secure Storage Bucket Handling**: Added magic bytes (`PK..` ZIP signature) verification to client resume uploads to prevent malicious script uploads. Shortened long-lived resume signed URLs from 10 years to 24 hours.
+*   **Audit Logging Improvements**: Modified `logAuditAction` to support anonymous events (using NIL UUID) and successfully integrated audits for successful, pending, and failed login attempts.
 
-**4. Deployment & DevOps**
-- **Production Push**: Successfully built and pushed latest code to the `main` branch.
-- **Stability**: Verified all server actions and client components for SSR compatibility.
+### ✅ Phase 3: Performance & Error Resilience (100% Complete)
+*   **Rate Limiting Refinement**: Replaced basic rate limiter in-memory storage with a memory-leak-safe, sliding-window rate limiting mechanism (`rate-limiter-flexible`).
+*   **Error Boundaries & Fallbacks**: Implemented React Error Boundaries and robust global error pages (`global-error.tsx`).
+*   **API Resiliency**: Standardized unified error formats and response utilities (`api-response.ts`).
+*   **Global Loading Indicators**: Added a unified global loading boundary component (`loading.tsx`) to manage page loading transition states gracefully.
 
-#### ⏭️ Next Steps for User
-1. **Verify Balance Editor**: Go to **Admin > Staff Directory** and click the **Wallet** icon for an employee to fix their "fake" credits.
-2. **Check Login Forms**: Verify that both Admin and Employee login screens are now visually identical and use the new labels.
-3. **Audit Attendance**: Confirm that "Check In" and "Check Out" times now accurately reflect Indian Standard Time.
+### ✅ Phase 4: Database Integrity & Audit Logging (100% Complete)
+*   **RLS Policy Audit**: Verified Row Level Security policies on all tables, ensuring strict service role isolation for server actions.
+*   **Cascade Deletes & FK Constraints**: Ensured database tables enforce clean cascade rules (`ON DELETE CASCADE` or `ON DELETE SET NULL`) to prevent orphan keys.
+*   **Generated Columns Write Mitigation**: Removed all manual database writes to PostgreSQL generated column `remaining_days` across all Server Actions and balances API routes, avoiding SQL runtime exceptions during employee onboarding and leave approvals.
+
+---
+
+#### ⏭️ Next Step
+*   Prepare the hardened build for production release and hand over verification steps.

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
-import { generateMFASecret, generateQRCode } from '@/lib/mfa';
+import { generateMFASecret, generateQRCode, encryptSecret } from '@/lib/mfa';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: NextRequest) {
@@ -15,11 +15,12 @@ export async function GET(request: NextRequest) {
     const { secret, otpauth } = generateMFASecret(session.email);
     const qrCode = await generateQRCode(otpauth);
 
-    // Temporarily save secret in DB (not enabled yet)
+    // Temporarily save encrypted secret in DB (not enabled yet)
     const table = session.role === 'admin' ? 'admin_users' : 'employees';
+    const encryptedSecret = encryptSecret(secret);
     const { error } = await supabaseAdmin
       .from(table)
-      .update({ mfa_secret: secret, mfa_enabled: false })
+      .update({ mfa_secret: encryptedSecret, mfa_enabled: false })
       .eq('id', session.id);
 
     if (error) throw error;

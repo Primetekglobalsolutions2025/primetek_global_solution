@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Search, Download, Filter, ChevronLeft, ChevronRight, Eye, X, Trash2, MessageSquare, Building2, Phone, Mail, Clock, ShieldCheck } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/components/ui/Toast';
 
 interface Inquiry {
   id: string;
@@ -41,6 +42,60 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
   const [page, setPage] = useState(1);
   const [localInquiries, setLocalInquiries] = useState(inquiries);
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const { toast } = useToast();
+
+  // Focus trap, Escape closing, and focus restoration for accessibility
+  useEffect(() => {
+    if (!selectedInquiry) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedInquiry(null);
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        const drawer = document.getElementById('inquiry-details-drawer');
+        if (!drawer) return;
+
+        const focusableElements = drawer.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (!firstElement || !lastElement) return;
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    const previousActiveElement = document.activeElement as HTMLElement | null;
+
+    // Set focus to the close button inside the drawer for immediate keyboard access
+    const timer = setTimeout(() => {
+      const drawer = document.getElementById('inquiry-details-drawer');
+      const closeBtn = drawer?.querySelector<HTMLElement>('button');
+      closeBtn?.focus();
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      previousActiveElement?.focus();
+    };
+  }, [selectedInquiry]);
 
   const filtered = useMemo(() => {
     return localInquiries.filter((inq) => {
@@ -66,6 +121,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
     );
     try {
       await updateStatus(id, newStatus);
+      toast.success('Inquiry status updated successfully.');
       if (selectedInquiry?.id === id) {
         setSelectedInquiry({ ...selectedInquiry, status: newStatus });
       }
@@ -73,6 +129,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
       setLocalInquiries((prev) =>
         prev.map((inq) => (inq.id === id ? { ...inq, status: oldStatus } : inq))
       );
+      toast.error('Failed to update inquiry status.');
     }
   };
   
@@ -81,9 +138,10 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
     try {
       await deleteInquiry(id);
       setLocalInquiries(prev => prev.filter(inq => inq.id !== id));
+      toast.success('Inquiry deleted successfully.');
       if (selectedInquiry?.id === id) setSelectedInquiry(null);
     } catch (error) {
-      alert('Failed to delete inquiry');
+      toast.error('Failed to delete inquiry.');
     }
   };
 
@@ -270,6 +328,10 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
               onClick={() => setSelectedInquiry(null)} 
             />
             <motion.div 
+              id="inquiry-details-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="drawer-title"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
@@ -284,7 +346,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
                     <div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">Inquiry Context</span>
                   </div>
-                  <h2 className="text-2xl font-heading font-black text-navy-900 tracking-tight">Request Details</h2>
+                  <h2 id="drawer-title" className="text-2xl font-heading font-black text-navy-900 tracking-tight">Request Details</h2>
                 </div>
                 <button 
                   onClick={() => setSelectedInquiry(null)} 

@@ -4,6 +4,7 @@ import './globals.css';
 
 import PWAStandaloneGuard from '@/components/pwa/PWAStandaloneGuard';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
+import { ToastProvider } from '@/components/ui/Toast';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -44,7 +45,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`h-full antialiased overflow-x-hidden ${inter.variable} ${playfair.variable}`}>
       <body className="min-h-full flex flex-col overflow-x-hidden w-full">
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
         <PWAStandaloneGuard />
         <PWAInstallPrompt />
       </body>

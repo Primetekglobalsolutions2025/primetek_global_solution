@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { applicationSchema } from '@/lib/validations';
 import { z } from 'zod';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { apiRateLimiter, consumeRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit public submissions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
+    const rateResult = await consumeRateLimit(apiRateLimiter, ip);
+    if (!rateResult.allowed) {
+      const retryAfterSec = Math.ceil(rateResult.retryAfterMs / 1000);
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.', retryAfter: retryAfterSec },
+        { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
+      );
+    }
+
     const formData = await request.formData();
 
     const body = {
@@ -35,15 +48,39 @@ export async function POST(request: NextRequest) {
       ];
 
       if (!validTypes.includes(resume.type)) {
-        return NextResponse.json({ error: 'Only PDF and DOCX files are accepted' }, { status: 400 });
+        return NextResponse.json({ error: 'Only PDF and Word documents are accepted' }, { status: 400 });
       }
 
-      // Upload to Supabase Storage
-      const fileExt = resume.name.split('.').pop();
-      const fileName = `${validated.job_id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
+      const fileExt = resume.name.split('.').pop()?.toLowerCase();
+      const validExtensions = ['pdf', 'doc', 'docx'];
+      if (!fileExt || !validExtensions.includes(fileExt)) {
+        return NextResponse.json({ error: 'Only PDF and Word documents are accepted' }, { status: 400 });
+      }
+
       const buffer = Buffer.from(await resume.arrayBuffer());
-      
+
+      // Magic bytes verification
+      const hex = buffer.toString('hex', 0, 4).toUpperCase();
+      let isMagicValid = false;
+      // PDF: %PDF (25504446)
+      if (hex === '25504446') {
+        isMagicValid = true;
+      }
+      // DOCX/ZIP: PK.. (504B0304)
+      else if (hex === '504B0304') {
+        isMagicValid = true;
+      }
+      // DOC: D0CF11E0
+      else if (hex === 'D0CF11E0') {
+        isMagicValid = true;
+      }
+
+      if (!isMagicValid) {
+        return NextResponse.json({ error: 'Invalid file content. Only PDF and Word documents are accepted' }, { status: 400 });
+      }
+
+      const fileName = `${validated.job_id}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
       const { data: uploadData, error: uploadError } = await supabaseAdmin
         .storage
         .from('resumes')

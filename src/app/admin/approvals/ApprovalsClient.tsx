@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { updateLeaveStatus, updateWFHStatus } from './actions';
+import { useToast } from '@/components/ui/Toast';
 import { formatDate, cn } from '@/lib/utils';
 
 export default function ApprovalsClient({ 
@@ -23,14 +24,16 @@ export default function ApprovalsClient({
   const [wfh, setWfh] = useState(initialWFH);
   const [activeTab, setActiveTab] = useState<'leaves' | 'wfh'>('leaves');
   const [processing, setProcessing] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleLeaveAction = async (id: string, status: 'Approved' | 'Rejected') => {
     setProcessing(id);
     try {
       await updateLeaveStatus(id, status);
       setLeaves(prev => prev.filter(l => l.id !== id));
+      toast.success(`Leave request ${status.toLowerCase()} successfully.`);
     } catch (err) {
-      alert('Action failed');
+      toast.error('Failed to update leave request status.');
     } finally {
       setProcessing(null);
     }
@@ -41,8 +44,9 @@ export default function ApprovalsClient({
     try {
       await updateWFHStatus(id, status);
       setWfh(prev => prev.filter(w => w.id !== id));
+      toast.success(`Remote work request ${status === 'Approved WFH' ? 'approved' : 'rejected'} successfully.`);
     } catch (err) {
-      alert('Action failed');
+      toast.error('Failed to update remote work request status.');
     } finally {
       setProcessing(null);
     }

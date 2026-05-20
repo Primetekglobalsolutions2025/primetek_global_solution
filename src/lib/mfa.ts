@@ -1,5 +1,52 @@
 import { generateSecret, generateURI, verify } from 'otplib';
 import QRCode from 'qrcode';
+import crypto from 'crypto';
+import { env } from './env';
+
+const ALGORITHM = 'aes-256-gcm';
+
+// Derive encryption key lazily (not at module evaluation time)
+let _encryptionKey: Buffer | null = null;
+function getEncryptionKey(): Buffer {
+  if (!_encryptionKey) {
+    const secret = env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET is required for MFA encryption');
+    }
+    _encryptionKey = crypto.scryptSync(secret, 'primetek-mfa-salt', 32);
+  }
+  return _encryptionKey;
+}
+
+export function encryptSecret(text: string): string {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv(ALGORITHM, getEncryptionKey(), iv);
+  let encrypted = cipher.update(text, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag().toString('hex');
+  return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+export function decryptSecret(encryptedData: string): string {
+  try {
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) {
+      // Legacy unencrypted secret fallback
+      return encryptedData;
+    }
+    const [ivHex, authTagHex, encryptedText] = parts;
+    const iv = Buffer.from(ivHex!, 'hex');
+    const authTag = Buffer.from(authTagHex!, 'hex');
+    const decipher = crypto.createDecipheriv(ALGORITHM, getEncryptionKey(), iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encryptedText!, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    console.error('Failed to decrypt MFA secret, attempting raw fallback:', err);
+    return encryptedData;
+  }
+}
 
 export function generateMFASecret(email: string) {
   const secret = generateSecret();

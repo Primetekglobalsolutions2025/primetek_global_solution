@@ -147,9 +147,15 @@ export async function uploadClientResume(formData: FormData) {
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     if (fileExt !== 'docx') return { error: 'Only DOCX format is supported' };
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Magic bytes verification
+    const hex = buffer.toString('hex', 0, 4).toUpperCase();
+    if (hex !== '504B0304') {
+      return { error: 'Invalid file content. Only valid DOCX documents are accepted' };
+    }
+
     const fileName = `client-${Date.now()}.docx`;
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     const { data: uploadData, error: uploadError } = await supabaseAdmin
       .storage
@@ -167,7 +173,7 @@ export async function uploadClientResume(formData: FormData) {
     const { data: signedData, error: signedError } = await supabaseAdmin
       .storage
       .from('resumes')
-      .createSignedUrl(uploadData.path, 315360000); // 10 years
+      .createSignedUrl(uploadData.path, 86400); // 24 hours (1 day)
 
     if (signedError) return { error: 'Failed to generate secure link' };
 

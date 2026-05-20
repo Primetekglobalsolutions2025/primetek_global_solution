@@ -74,9 +74,9 @@ export async function getLeaveBalances() {
     const earned = parseInt(configMap['default_earned_leave'] || '15');
 
     const defaults = [
-      { employee_id: session.id, leave_type: 'Sick', total_days: sick, used_days: 0, remaining_days: sick },
-      { employee_id: session.id, leave_type: 'Casual', total_days: casual, used_days: 0, remaining_days: casual },
-      { employee_id: session.id, leave_type: 'Earned', total_days: earned, used_days: 0, remaining_days: earned },
+      { employee_id: session.id, leave_type: 'Sick', total_days: sick, used_days: 0 },
+      { employee_id: session.id, leave_type: 'Casual', total_days: casual, used_days: 0 },
+      { employee_id: session.id, leave_type: 'Earned', total_days: earned, used_days: 0 },
     ];
 
     const { data: newData, error: initError } = await supabaseAdmin

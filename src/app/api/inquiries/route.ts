@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { inquirySchema } from '@/lib/validations';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { apiRateLimiter, consumeRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit public submissions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
+    const rateResult = await consumeRateLimit(apiRateLimiter, ip);
+    if (!rateResult.allowed) {
+      const retryAfterSec = Math.ceil(rateResult.retryAfterMs / 1000);
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.', retryAfter: retryAfterSec },
+        { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
+      );
+    }
+
     const body = await request.json();
     const validated = inquirySchema.parse(body);
 

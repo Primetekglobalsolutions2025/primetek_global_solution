@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, createToken } from '@/lib/auth';
-import { verifyMFAToken } from '@/lib/mfa';
+import { verifyMFAToken, decryptSecret } from '@/lib/mfa';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { logAuditAction } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +26,8 @@ export async function POST(request: NextRequest) {
 
     if (!user?.mfa_secret) return NextResponse.json({ error: 'MFA not configured' }, { status: 400 });
 
-    const isValid = await verifyMFAToken(code, user.mfa_secret);
+    const decryptedSecret = decryptSecret(user.mfa_secret);
+    const isValid = await verifyMFAToken(code, decryptedSecret);
 
     if (isValid) {
       // Create full auth token
@@ -39,16 +41,18 @@ export async function POST(request: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 7 * 24 * 60 * 60, // 7 days
         path: '/',
       });
 
       // Clear temp token
       response.cookies.delete('mfa-pending-token');
 
+      await logAuditAction('LOGIN_MFA_SUCCESS', table, session.id, null, null, { id: session.id, role: session.role });
       return response;
     }
 
+    await logAuditAction('LOGIN_MFA_FAILED', table, session.id, null, { reason: 'Invalid code' }, { id: session.id, role: session.role });
     return NextResponse.json({ error: 'Invalid verification code' }, { status: 401 });
   } catch (err) {
     console.error('MFA login error:', err);

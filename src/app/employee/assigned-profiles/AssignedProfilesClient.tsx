@@ -9,6 +9,7 @@ import {
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { updateProfileStatus } from './actions';
+import { useToast } from '@/components/ui/Toast';
 
 interface ClientProfile {
   id: string;
@@ -29,16 +30,19 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
   const [selectedProfile, setSelectedProfile] = useState<ClientProfile | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
 
+  const { toast } = useToast();
+
   const handleStatusChange = async (id: string, status: string) => {
     setUpdating(id);
     try {
       await updateProfileStatus(id, status);
       setProfiles(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+      toast.success('Profile status updated successfully.');
       if (selectedProfile?.id === id) {
         setSelectedProfile({...selectedProfile, status});
       }
     } catch (err) {
-      alert('Failed to update status');
+      toast.error('Failed to update status.');
     } finally {
       setUpdating(null);
     }

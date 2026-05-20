@@ -35,7 +35,6 @@ export async function toggleJobActive(id: string, currentStatus: boolean) {
   }
 
   revalidatePath('/admin/jobs');
-  revalidatePath('/admin/jobs');
 }
 
 export async function saveJob(data: Record<string, unknown>, id?: string) {
@@ -49,6 +48,5 @@ export async function saveJob(data: Record<string, unknown>, id?: string) {
     const { error } = await supabaseAdmin.from('jobs').insert([data]);
     if (error) throw new Error(error.message);
   }
-  revalidatePath('/admin/jobs');
   revalidatePath('/admin/jobs');
 }

@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, Upload, FileText, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { applicationSchema, type ApplicationFormData } from '@/lib/validations';
 import Button from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
 
 interface ApplicationFormProps {
   jobId: string;
@@ -17,6 +18,7 @@ export default function ApplicationForm({ jobId, jobTitle }: ApplicationFormProp
   const [resume, setResume] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const {
     register,
@@ -36,11 +38,11 @@ export default function ApplicationForm({ jobId, jobTitle }: ApplicationFormProp
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
     if (!validTypes.includes(file.type)) {
-      alert('Please upload a PDF or DOCX file.');
+      toast.error('Please upload a PDF or DOCX file.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      alert('File must be under 5MB.');
+      toast.error('File must be under 5MB.');
       return;
     }
     setResume(file);
@@ -59,10 +61,12 @@ export default function ApplicationForm({ jobId, jobTitle }: ApplicationFormProp
       if (!res.ok) throw new Error('Submission failed');
 
       setStatus('success');
+      toast.success('Application submitted successfully!');
       reset();
       setResume(null);
     } catch {
       setStatus('error');
+      toast.error('Failed to submit application. Please try again.');
       setTimeout(() => setStatus('idle'), 5000);
     }
   };

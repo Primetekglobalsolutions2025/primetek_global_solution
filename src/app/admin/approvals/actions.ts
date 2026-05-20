@@ -117,8 +117,7 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
       await supabaseAdmin
         .from('leave_balances')
         .update({ 
-          used_days: newUsed,
-          remaining_days: newRemaining
+          used_days: newUsed
         })
         .eq('employee_id', request.employee_id)
         .eq('leave_type', request.type);

@@ -4,6 +4,37 @@ import { verifyToken } from '@/lib/auth';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // CSRF Protection: Validate Origin / Referer for state-mutating requests
+  if (pathname.startsWith('/api') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    const origin = request.headers.get('origin');
+    const host = request.headers.get('host');
+
+    if (origin) {
+      try {
+        const originUrl = new URL(origin);
+        if (originUrl.host !== host) {
+          console.warn(`[CSRF] Blocked request from unauthorized origin: ${origin} (host: ${host})`);
+          return NextResponse.json({ error: 'Forbidden: CSRF validation failed' }, { status: 403 });
+        }
+      } catch {
+        return NextResponse.json({ error: 'Forbidden: Malformed Origin' }, { status: 403 });
+      }
+    } else {
+      const referer = request.headers.get('referer');
+      if (referer) {
+        try {
+          const refererUrl = new URL(referer);
+          if (refererUrl.host !== host) {
+            console.warn(`[CSRF] Blocked request from unauthorized referer: ${referer} (host: ${host})`);
+            return NextResponse.json({ error: 'Forbidden: CSRF validation failed' }, { status: 403 });
+          }
+        } catch {
+          return NextResponse.json({ error: 'Forbidden: Malformed Referer' }, { status: 403 });
+        }
+      }
+    }
+  }
+
   // Define public routes that don't need auth
   const isPublicApiRoute = 
     pathname === '/api/test-env' ||

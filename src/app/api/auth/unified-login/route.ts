@@ -3,32 +3,24 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createClient } from '@/lib/supabase/server';
 import { createToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
-
-// Simple in-memory rate limiter for serverless functions
-// Note: In Vercel, this is scoped per isolate, so it's not a global limit,
-// but it is enough to slow down automated brute force attacks against a single instance.
-const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_ATTEMPTS_PER_WINDOW = 5;
+import { loginRateLimiter, consumeRateLimit } from '@/lib/rate-limit';
+import { logAuditAction } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
   try {
     // 1. Basic Security: Rate Limiting by IP
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
     console.log(`[Auth] Attempt from IP: ${ip}`);
 
-    const now = Date.now();
-    const limitRecord = rateLimitMap.get(ip);
-    
-    if (limitRecord && (now - limitRecord.timestamp < RATE_LIMIT_WINDOW_MS)) {
-      if (limitRecord.count >= MAX_ATTEMPTS_PER_WINDOW) {
-        console.warn(`[Auth] Rate limit exceeded for IP: ${ip}`);
-        return NextResponse.json({ error: 'Too many login attempts. Please try again in 60 seconds.' }, { status: 429 });
-      }
-      limitRecord.count += 1;
-    } else {
-      rateLimitMap.set(ip, { count: 1, timestamp: now });
+    const rateResult = await consumeRateLimit(loginRateLimiter, ip);
+    if (!rateResult.allowed) {
+      const retryAfterSec = Math.ceil(rateResult.retryAfterMs / 1000);
+      console.warn(`[Auth] Rate limit exceeded for IP: ${ip}`);
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.', retryAfter: retryAfterSec },
+        { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
+      );
     }
 
     const { email, password } = await request.json();
@@ -83,6 +75,38 @@ export async function POST(request: NextRequest) {
           await supabaseAdmin.from('admin_users').upsert({ id: authData.user.id, email: cleanEmail });
         }
 
+        const { data: freshAdmin } = await supabaseAdmin
+          .from('admin_users')
+          .select('mfa_enabled')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (freshAdmin?.mfa_enabled) {
+          const tempToken = await createToken({
+            id: authData.user.id,
+            email: authData.user.email || email,
+            role: 'admin',
+            name: authData.user.user_metadata?.full_name || 'Administrator',
+            mfa_pending: true,
+          });
+
+          const response = NextResponse.json({ 
+            mfaRequired: true,
+            role: 'admin'
+          });
+
+          response.cookies.set('mfa-pending-token', tempToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 5 * 60, // 5 minutes
+          });
+
+          await logAuditAction('LOGIN_MFA_PENDING', 'admin_users', authData.user.id, null, null, { id: authData.user.id, role: 'admin' });
+          return response;
+        }
+
         const token = await createToken({
           id: authData.user.id,
           email: authData.user.email || email,
@@ -101,9 +125,10 @@ export async function POST(request: NextRequest) {
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           path: '/',
-          maxAge: 30 * 24 * 60 * 60, // 30 days
+          maxAge: 7 * 24 * 60 * 60, // 7 days
         });
 
+        await logAuditAction('LOGIN_SUCCESS', 'admin_users', authData.user.id, null, null, { id: authData.user.id, role: 'admin' });
         return response;
       }
     }
@@ -111,7 +136,7 @@ export async function POST(request: NextRequest) {
     // 4. If not admin, try finding the user in the employees table
     const query = supabaseAdmin
       .from('employees')
-      .select('id, email, employee_id, password_hash, status, name, role');
+      .select('id, email, employee_id, password_hash, status, name, role, mfa_enabled');
       
     const { data: user, error } = await (isEmail 
       ? query.eq('email', cleanEmail).single() 
@@ -130,7 +155,34 @@ export async function POST(request: NextRequest) {
 
     const isValidPassword = await bcrypt.compare(cleanPassword, user.password_hash);
     if (!isValidPassword) {
+      await logAuditAction('LOGIN_FAILED', 'employees', user.id, null, { reason: 'Incorrect password', email: cleanEmail }, { id: user.id, role: user.role });
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    if (user.mfa_enabled) {
+      const tempToken = await createToken({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        mfa_pending: true,
+      });
+
+      const response = NextResponse.json({ 
+        mfaRequired: true,
+        role: user.role
+      });
+
+      response.cookies.set('mfa-pending-token', tempToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 5 * 60, // 5 minutes
+      });
+
+      await logAuditAction('LOGIN_MFA_PENDING', 'employees', user.id, null, null, { id: user.id, role: user.role });
+      return response;
     }
 
     const token = await createToken({
@@ -151,9 +203,10 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 7 * 24 * 60 * 60, // 7 days
     });
 
+    await logAuditAction('LOGIN_SUCCESS', 'employees', user.id, null, null, { id: user.id, role: user.role });
     return response;
   } catch (err) {
     console.error('Unified Login error:', err);

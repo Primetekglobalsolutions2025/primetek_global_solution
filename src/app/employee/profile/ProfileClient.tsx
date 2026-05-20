@@ -9,6 +9,7 @@ import PasswordChangeForm from '@/components/profile/PasswordChangeForm';
 import MFASetup from '@/components/profile/MFASetup';
 import { useRouter } from 'next/navigation';
 import { updateProfile, updateAvatar } from './actions';
+import { useToast } from '@/components/ui/Toast';
 
 export interface EmployeeProfile {
   id: string;
@@ -25,6 +26,7 @@ export interface EmployeeProfile {
 
 export default function ProfileClient({ employee }: { employee: EmployeeProfile }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [form, setForm] = useState({
     name: employee.name || '',
     email: employee.email || '',
@@ -44,11 +46,13 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
       const res = await updateProfile(form.name, form.phone);
       if (res.success) {
         setSaved(true);
+        toast.success('Profile details saved successfully.');
         router.refresh();
         setTimeout(() => setSaved(false), 3000);
       }
     } catch (err) {
       console.error(err);
+      toast.error('Failed to save profile details.');
     } finally {
       setSaving(false);
     }
@@ -59,11 +63,11 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert('File must be under 2MB');
+      toast.error('File size must be under 2MB.');
       return;
     }
     if (!file.type.startsWith('image/')) {
-      alert('File must be an image');
+      toast.error('File must be an image (PNG, JPG, etc).');
       return;
     }
 
@@ -75,10 +79,11 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
       const res = await updateAvatar(formData);
       if (res.success) {
         setCurrentAvatarUrl(res.avatarUrl);
+        toast.success('Avatar uploaded successfully!');
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to upload avatar');
+      toast.error('Failed to upload avatar.');
     } finally {
       setAvatarUploading(false);
     }

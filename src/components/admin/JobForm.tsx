@@ -7,6 +7,8 @@ import { Save, ArrowLeft } from 'lucide-react';
 import { jobSchema, type JobFormData } from '@/lib/validations';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
+import { useToast } from '@/components/ui/Toast';
+
 interface JobFormProps {
   jobId?: string;
   defaultValues?: Partial<JobFormData>;
@@ -27,6 +29,7 @@ const jobTypes = [
 
 export default function JobForm({ jobId, defaultValues, isEditing, saveAction, onSuccess }: JobFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
 
   const {
     register,
@@ -43,6 +46,7 @@ export default function JobForm({ jobId, defaultValues, isEditing, saveAction, o
   const onSubmit = async (data: JobFormData) => {
     try {
       await saveAction(data, jobId);
+      toast.success(isEditing ? 'Job updated successfully!' : 'Job created successfully!');
       if (onSuccess) {
         onSuccess();
       } else {
@@ -50,7 +54,7 @@ export default function JobForm({ jobId, defaultValues, isEditing, saveAction, o
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to save job. See console.');
+      toast.error('Failed to save job. Please check details and try again.');
     }
   };
 
