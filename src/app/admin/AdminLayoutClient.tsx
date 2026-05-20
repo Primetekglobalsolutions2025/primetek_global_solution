@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import AppSidebar from '@/components/pwa/AppSidebar';
 import AppHeader from '@/components/pwa/AppHeader';
 import { Loader2 } from 'lucide-react';
+import OfflineSyncBanner from '@/components/pwa/OfflineSyncBanner';
 
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -16,7 +17,19 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/admin/' })
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
+        .then((reg) => {
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  window.location.reload();
+                }
+              });
+            }
+          });
+        })
         .catch((err) => console.log('SW registration failed:', err));
     }
 
@@ -71,7 +84,8 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
       <div className="flex-1 flex flex-col min-w-0">
         <AppHeader userName={session?.name} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
-          <div className="max-w-7xl mx-auto">
+          <div className="max-w-7xl mx-auto space-y-4">
+            <OfflineSyncBanner />
             {children}
           </div>
         </main>

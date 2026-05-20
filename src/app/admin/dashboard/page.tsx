@@ -110,6 +110,34 @@ export default async function AdminAppDashboard() {
     <div className="space-y-6 pb-10">
       <DashboardGreeting userName={userName} />
 
+      {/* Mobile Quick Actions Block */}
+      <div className="block md:hidden bg-white/70 backdrop-blur-md rounded-2xl p-4 border border-border/50 shadow-sm space-y-3">
+        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Quick Actions</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/admin/approvals" className="col-span-2">
+            <button className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md active:scale-98 transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <CheckSquare className="w-5 h-5" />
+                <span>Pending Approvals ({totalPending})</span>
+              </div>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
+          <Link href="/admin/employees">
+            <button className="w-full flex flex-col items-center justify-center p-3.5 rounded-xl bg-white border border-border/60 hover:bg-surface-alt active:scale-95 transition-all text-center gap-1.5 shadow-sm cursor-pointer">
+              <Users className="w-5 h-5 text-primary-500" />
+              <span className="text-[10px] font-bold text-navy-900 uppercase tracking-wider">Employee Status</span>
+            </button>
+          </Link>
+          <Link href="/admin/attendance">
+            <button className="w-full flex flex-col items-center justify-center p-3.5 rounded-xl bg-white border border-border/60 hover:bg-surface-alt active:scale-95 transition-all text-center gap-1.5 shadow-sm cursor-pointer">
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+              <span className="text-[10px] font-bold text-navy-900 uppercase tracking-wider">Export Logs</span>
+            </button>
+          </Link>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl p-4 md:p-5 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 group">

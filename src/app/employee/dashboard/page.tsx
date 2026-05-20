@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Clock, CalendarCheck, CalendarX, AlertTriangle, ArrowRight, TrendingUp, Briefcase, LogIn, LogOut, CheckCircle2, Plane, Sparkles, User, MapPin, Compass } from 'lucide-react';
+import { Clock, CalendarCheck, CalendarX, AlertTriangle, ArrowRight, TrendingUp, Briefcase, LogIn, LogOut, CheckCircle2, Plane, Sparkles, User, MapPin, Compass, History } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { getSession } from '@/lib/auth';
@@ -157,6 +157,34 @@ export default async function EmployeeAppDashboard() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Mobile-Only Quick Actions Grid */}
+      <div className="block md:hidden bg-white/70 backdrop-blur-md rounded-2xl p-4 border border-border/50 shadow-sm space-y-3">
+        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Quick Actions</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Link href="/employee/attendance" className="col-span-2">
+            <button className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-bold text-sm shadow-md active:scale-98 transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5" />
+                <span>{todayRecord ? 'Check Today\'s Attendance' : 'Clock In / Out'}</span>
+              </div>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
+          <Link href="/employee/leaves">
+            <button className="w-full flex flex-col items-center justify-center p-3.5 rounded-xl bg-white border border-border/60 hover:bg-surface-alt active:scale-95 transition-all text-center gap-1.5 shadow-sm cursor-pointer">
+              <CalendarX className="w-5 h-5 text-blue-500" />
+              <span className="text-[10px] font-bold text-navy-900 uppercase tracking-wider">Request Leave</span>
+            </button>
+          </Link>
+          <Link href="/employee/attendance#history">
+            <button className="w-full flex flex-col items-center justify-center p-3.5 rounded-xl bg-white border border-border/60 hover:bg-surface-alt active:scale-95 transition-all text-center gap-1.5 shadow-sm cursor-pointer">
+              <History className="w-5 h-5 text-emerald-500" />
+              <span className="text-[10px] font-bold text-navy-900 uppercase tracking-wider">View History</span>
+            </button>
+          </Link>
         </div>
       </div>
 

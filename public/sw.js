@@ -1,4 +1,4 @@
-const CACHE_NAME = 'primetek-app-v2';
+const CACHE_NAME = 'primetek-app-v3';
 const SCOPES = ['/employee/', '/admin/'];
 
 // Install event - pre-cache critical login and shell assets
@@ -22,38 +22,61 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   const isTargetScope = SCOPES.some(scope => url.pathname.startsWith(scope));
 
-  // Only intercept page and asset requests within target scopes
+  // Skip caching for:
+  // 1. API endpoints (especially mutations and auth sessions)
+  // 2. Non-GET requests
+  // 3. Hot-reload WebSockets / webpack HMR
+  if (
+    event.request.method !== 'GET' ||
+    url.pathname.includes('/api/') ||
+    url.pathname.includes('/_next/') ||
+    url.pathname.includes('webpack')
+  ) {
+    return;
+  }
+
   if (isTargetScope) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        // Return cached asset if present, else fetch from network
-        return cachedResponse || fetch(event.request).then((networkResponse) => {
-          // Dynamic runtime caching criteria:
-          // 1. Must be GET request
-          // 2. Must return successful HTTP 200
-          // 3. Skip API endpoints and hot-reload WebSockets to prevent session/state issues
-          if (
-            event.request.method === 'GET' &&
-            networkResponse.status === 200 &&
-            !url.pathname.includes('/api/') &&
-            !url.pathname.includes('/_next/')
-          ) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
+    // Navigation Requests (HTML pages) -> Network-First
+    if (event.request.mode === 'navigate') {
+      event.respondWith(
+        fetch(event.request)
+          .then((networkResponse) => {
+            if (networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
+            return networkResponse;
+          })
+          .catch(() => {
+            // Offline fallback: serve cached page or matching login portal
+            return caches.match(event.request).then((cachedResponse) => {
+              if (cachedResponse) return cachedResponse;
+              if (url.pathname.startsWith('/admin/')) {
+                return caches.match('/admin/login');
+              }
+              return caches.match('/employee/login');
             });
-          }
-          return networkResponse;
-        });
-      }).catch(() => {
-        // Offline Fallback Handler
-        // Serve specific login routes depending on directory scope if network fails completely
-        if (url.pathname.startsWith('/admin/')) {
-          return caches.match('/admin/login');
-        }
-        return caches.match('/employee/login');
-      })
-    );
+          })
+      );
+    } else {
+      // Subresources (CSS, JS, Images, Fonts) -> Cache-First
+      event.respondWith(
+        caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          return fetch(event.request).then((networkResponse) => {
+            if (networkResponse.status === 200) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+            }
+            return networkResponse;
+          });
+        })
+      );
+    }
   }
 });
 

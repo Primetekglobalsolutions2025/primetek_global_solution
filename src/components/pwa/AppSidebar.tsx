@@ -24,7 +24,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
-  const adminItems = [
+  const desktopAdminItems = [
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview' },
     { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals' },
     { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
@@ -37,7 +37,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
   ];
 
-  const employeeItems = [
+  const desktopEmployeeItems = [
     { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Overview' },
     { href: '/employee/attendance', icon: Clock, label: 'Attendance' },
     { href: '/employee/leaves', icon: Calendar, label: 'Leaves' },
@@ -45,13 +45,43 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     { href: '/employee/profile', icon: UserCircle, label: 'My Profile' },
   ];
 
-  const navItems = role === 'admin' ? adminItems : employeeItems;
-  const bottomBarItems = navItems.slice(0, 4);
-  const overflowItems = navItems.slice(4);
+  const navItems = role === 'admin' ? desktopAdminItems : desktopEmployeeItems;
+
+  // Mobile navigation arrays
+  const mobileAdminBottom = [
+    { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/admin/attendance', icon: Clock, label: 'Attendance' },
+    { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals' },
+    { href: '/admin/employees', icon: Users, label: 'Employees' },
+  ];
+
+  const mobileAdminMore = [
+    { href: '/admin/client-profiles', icon: FileUser, label: 'Client Profiles' },
+    { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
+    { href: '/admin/jobs', icon: Briefcase, label: 'Jobs' },
+    { href: '/admin/audit', icon: History, label: 'Audit Logs' },
+    { href: '/admin/settings', icon: Settings, label: 'Settings' },
+    { href: '/admin/profile', icon: UserCircle, label: 'Profile' },
+  ];
+
+  const mobileEmployeeBottom = [
+    { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Home' },
+    { href: '/employee/attendance', icon: Clock, label: 'Attendance' },
+    { href: '/employee/attendance#history', icon: History, label: 'History' },
+    { href: '/employee/leaves', icon: Calendar, label: 'Requests' },
+  ];
+
+  const mobileEmployeeMore = [
+    { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles' },
+    { href: '/employee/profile', icon: UserCircle, label: 'My Profile' },
+  ];
+
+  const bottomBarItems = role === 'admin' ? mobileAdminBottom : mobileEmployeeBottom;
+  const overflowItems = role === 'admin' ? mobileAdminMore : mobileEmployeeMore;
   const hasOverflow = overflowItems.length > 0;
 
   // Check if any overflow item is currently active (to highlight the "More" button)
-  const isOverflowActive = overflowItems.some((item) => pathname === item.href);
+  const isOverflowActive = overflowItems.some((item) => pathname === item.href.split('#')[0]);
 
   const handleLogout = async () => {
     setIsMoreOpen(false);
@@ -143,7 +173,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around h-16 px-2 pb-[env(safe-area-inset-bottom)]">
           {bottomBarItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href.split('#')[0];
             return (
               <Link 
                 key={item.href} 
@@ -251,7 +281,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
               <div className="px-5 pb-3">
                 <div className="grid grid-cols-3 gap-3">
                   {overflowItems.map((item) => {
-                    const isActive = pathname === item.href;
+                    const isActive = pathname === item.href.split('#')[0];
                     return (
                       <Link
                         key={item.href}

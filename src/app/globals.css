@@ -140,9 +140,8 @@
   @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
 /* PWA Standalone Mode - Isolation */
-.pwa-standalone nav, 
-.pwa-standalone footer, 
-.pwa-standalone header:not(.portal-header),
+.pwa-standalone .public-header,
+.pwa-standalone .public-footer,
 .pwa-standalone .public-nav {
   display: none !important;
 }

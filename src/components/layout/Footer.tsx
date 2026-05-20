@@ -19,7 +19,7 @@ const serviceLinks = [
 
 export default function Footer() {
   return (
-    <footer className="bg-navy-900 text-text-on-dark">
+    <footer className="bg-navy-900 text-text-on-dark public-footer">
       {/* Main Footer */}
       <div className="container-wide py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">

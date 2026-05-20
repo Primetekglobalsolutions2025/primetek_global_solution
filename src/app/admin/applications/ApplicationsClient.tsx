@@ -149,7 +149,74 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
         )}
       </AnimatePresence>
 
-      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white">
+      {/* Applications Mobile Cards & Desktop Table */}
+      <div className="block md:hidden space-y-3">
+        {filtered.length === 0 ? (
+          <div className="p-8 text-center bg-white rounded-xl border border-border/60">
+            <p className="text-xs text-text-muted font-semibold">No applications found.</p>
+          </div>
+        ) : (
+          filtered.map((app) => (
+            <Card key={app.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h4 className="text-xs font-bold text-navy-900 leading-tight">{app.name}</h4>
+                  <p className="text-[10px] text-text-muted font-medium mt-0.5">{app.email}</p>
+                </div>
+                <span className="text-[9px] font-bold text-navy-900 bg-surface-alt px-1.5 py-0.5 rounded border border-border/50 uppercase tracking-wider">
+                  {app.job_title}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 bg-surface-alt/40 p-2.5 rounded-lg text-[10px] mb-3">
+                <div className="flex flex-col justify-center">
+                  <span className="text-gray-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Status</span>
+                  <select
+                    value={app.status}
+                    onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
+                    className={`w-fit px-1.5 py-0.5 rounded text-[10px] font-semibold border cursor-pointer ${statusColors[app.status] || statusColors.new} focus:outline-none`}
+                  >
+                    {statusOptions.filter((s) => s !== 'all').map((s) => (
+                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <span className="text-gray-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Assigned To</span>
+                  <div className="relative">
+                    <select
+                      value={app.assigned_to || 'none'}
+                      onChange={(e) => handleAssign(app.id, e.target.value)}
+                      disabled={assigning === app.id}
+                      className="w-full pl-6 pr-2 py-0.5 rounded border border-border bg-white text-[10px] text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 disabled:opacity-50 appearance-none cursor-pointer"
+                    >
+                      <option value="none">Unassigned</option>
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name}</option>
+                      ))}
+                    </select>
+                    <UserPlus className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted pointer-events-none" />
+                    {assigning === app.id && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-primary-500" />}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-border/40 pt-3 text-[10px]">
+                <span className="text-text-muted font-medium">{formatDate(app.created_at)}</span>
+                <button
+                  onClick={() => setSelectedApp(app)}
+                  className="text-xs text-primary-500 hover:text-primary-600 font-semibold flex items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Details</span>
+                </button>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
+
+      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
