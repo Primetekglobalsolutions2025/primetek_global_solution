@@ -62,6 +62,9 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     if (session.role !== 'admin') {
+      if (session.role === 'employee' || session.role === 'hr') {
+        return NextResponse.redirect(new URL('/employee/dashboard', request.url));
+      }
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
   }
@@ -81,13 +84,23 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     if (session.role !== 'employee' && session.role !== 'hr') {
+      if (session.role === 'admin') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      }
       return NextResponse.redirect(new URL('/employee/login', request.url));
     }
   }
 
   // 3. API route protection
   if (pathname.startsWith('/api') && !isPublicApiRoute) {
-    const token = request.cookies.get('auth-token')?.value;
+    let token = request.cookies.get('auth-token')?.value;
+
+    if (!token) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import Logo from '@/components/ui/Logo';
 
 interface AppSidebarProps {
-  role: 'admin' | 'employee';
+  role: 'admin' | 'employee' | 'hr';
   userName?: string;
 }
 

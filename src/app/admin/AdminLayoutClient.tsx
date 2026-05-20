@@ -10,7 +10,7 @@ import OfflineSyncBanner from '@/components/pwa/OfflineSyncBanner';
 export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [session, setSession] = useState<{ role: 'admin' | 'employee'; name: string } | null>(null);
+  const [session, setSession] = useState<{ role: 'admin' | 'employee' | 'hr'; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const isLoginPage = pathname === '/admin/login';
@@ -55,8 +55,14 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
-              router.replace('/admin/dashboard');
-              return;
+              const data = await res.json();
+              if (data.user?.role === 'admin') {
+                router.replace('/admin/dashboard');
+                return;
+              } else if (data.user?.role === 'employee' || data.user?.role === 'hr') {
+                router.replace('/employee/dashboard');
+                return;
+              }
             }
           } catch {}
         }
@@ -80,10 +86,23 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
         const res = await fetch('/api/auth/me', { headers });
         if (res.ok) {
           const data = await res.json();
-          setSession(data.user);
-          try {
-            localStorage.setItem('primetek-session', JSON.stringify(data.user));
-          } catch {}
+          if (data.user?.role === 'admin') {
+            setSession(data.user);
+            try {
+              localStorage.setItem('primetek-session', JSON.stringify(data.user));
+            } catch {}
+          } else if (data.user?.role === 'employee' || data.user?.role === 'hr') {
+            router.replace('/employee/dashboard');
+            return;
+          } else {
+            try {
+              localStorage.removeItem('primetek-session');
+              localStorage.removeItem('primetek-token');
+            } catch {}
+            setSession(null);
+            router.replace('/admin/login');
+            return;
+          }
         } else if (res.status === 401 || res.status === 403 || res.status === 404) {
           // Genuine unauthenticated response
           try {
@@ -92,6 +111,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
           } catch {}
           setSession(null);
           router.replace('/admin/login');
+          return;
         } else {
           // Server errors (500, 502, etc.) -> keep local session, do not redirect
           console.warn(`Auth check received server status ${res.status}. Session retained.`);
