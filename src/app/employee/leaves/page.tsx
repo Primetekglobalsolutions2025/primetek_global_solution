@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Sparkles, Plane, TrendingUp, History, HeartPulse, Coffee, Award, Hourglass } from 'lucide-react';
+import { Calendar, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Loader2, Sparkles, Coffee, Hourglass, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -58,7 +58,7 @@ export default function LeavesPage() {
               <span className="text-[9px] font-bold uppercase tracking-wider text-primary-200">Leave Balance</span>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-white">Leave Management</h1>
-            <p className="text-gray-400 text-xs mt-1 font-medium italic">Track your available leave balances and request time off.</p>
+            <p className="text-gray-400 text-xs mt-1 font-medium italic">Track your available Casual Leave balance and request time off.</p>
           </div>
           <Button 
             onClick={() => setIsApplying(true)} 
@@ -71,11 +71,9 @@ export default function LeavesPage() {
       </div>
 
       {/* Summary Matrix */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {[
-          { label: 'Sick Leave', type: 'Sick', color: 'text-rose-500', bg: 'bg-rose-500/10', icon: HeartPulse },
-          { label: 'Casual Leave', type: 'Casual', color: 'text-amber-500', bg: 'bg-amber-500/10', icon: Coffee },
-          { label: 'Earned Leave', type: 'Earned', color: 'text-primary-500', bg: 'bg-primary-500/10', icon: Award },
+          { label: 'Casual Leave (This Month)', type: 'Casual', color: 'text-amber-500', bg: 'bg-amber-500/10', icon: Coffee },
           { label: 'Pending Approval', type: 'Pending', color: 'text-indigo-500', bg: 'bg-indigo-500/10', icon: Hourglass },
         ].map((stat) => {
           const Icon = stat.icon;

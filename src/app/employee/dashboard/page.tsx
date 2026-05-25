@@ -48,6 +48,11 @@ export default async function EmployeeAppDashboard() {
       check_out: checkOut ? checkOut.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
       duration_hours: durationHours,
       status: r.status,
+      is_late: r.is_late,
+      late_approved: r.late_approved,
+      permission_approved: r.permission_approved,
+      shift_override: r.shift_override,
+      manager_exemption: r.manager_exemption,
     };
   });
 
@@ -60,8 +65,8 @@ export default async function EmployeeAppDashboard() {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  const present = monthRecords.filter(r => r.status.includes('Present') || r.status.includes('Approved WFH')).length;
-  const late = monthRecords.filter(r => r.status.toLowerCase() === 'late').length;
+  const present = monthRecords.filter(r => r.status.includes('Present') || r.status.includes('Approved WFH') || r.status.includes('Working') || r.status.includes('On Break') || r.status.includes('Logged Out')).length;
+  const late = monthRecords.filter(r => r.is_late && r.status !== 'Approved WFH' && !r.late_approved && !r.permission_approved && !r.shift_override && !r.manager_exemption).length;
   const absent = monthRecords.filter(r => r.status.toLowerCase() === 'absent').length;
   const totalRemainingLeaves = (balances || []).reduce((acc, curr) => acc + curr.remaining_days, 0);
 

@@ -74,6 +74,8 @@ export async function getAdminAttendance() {
       date: record.date || (record.check_in ? record.check_in.split('T')[0] : ''),
       check_in: checkIn && !isNaN(checkIn.getTime()) ? checkIn.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '—',
       check_out: checkOut && !isNaN(checkOut.getTime()) ? checkOut.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+      check_in_raw: record.check_in,
+      check_out_raw: record.check_out,
       duration_hours: durationHours,
       status: record.status,
       lat: record.lat || 0,
@@ -82,6 +84,19 @@ export async function getAdminAttendance() {
       risk_score: riskScore,
       risk_reasons: riskReasons,
       risk_events: recordRisks,
+      // Break monitoring
+      current_break_start: record.current_break_start,
+      total_break_seconds: record.total_break_seconds || 0,
+      productive_hours: record.productive_hours || 0.0,
+      // Late login penalty
+      is_late: record.is_late || false,
+      late_minutes: record.late_minutes || 0,
+      deduction_applied: record.deduction_applied || 0.0,
+      // Exemptions
+      late_approved: record.late_approved || false,
+      permission_approved: record.permission_approved || false,
+      shift_override: record.shift_override || false,
+      manager_exemption: record.manager_exemption || false,
     };
   });
 }
@@ -312,3 +327,101 @@ export async function exportAttendanceExcel(year: number) {
   const buffer = await wb.xlsx.writeBuffer();
   return Buffer.from(buffer).toString('base64');
 }
+
+export async function toggleExemption(recordId: string, fieldName: string, value: boolean) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const allowedFields = ['late_approved', 'permission_approved', 'shift_override', 'manager_exemption'];
+  if (!allowedFields.includes(fieldName)) {
+    throw new Error('Invalid exemption field');
+  }
+
+  const { data: oldRecord, error: fetchError } = await supabaseAdmin
+    .from('attendance')
+    .select('*')
+    .eq('id', recordId)
+    .single();
+
+  if (fetchError || !oldRecord) throw new Error('Record not found');
+
+  const { error } = await supabaseAdmin
+    .from('attendance')
+    .update({ [fieldName]: value })
+    .eq('id', recordId);
+
+  if (error) {
+    console.error('Error toggling exemption:', error);
+    throw new Error('Database update failed');
+  }
+
+  const { logAuditAction } = await import('@/lib/audit');
+  await logAuditAction(
+    'TOGGLE_ATTENDANCE_EXEMPTION',
+    'attendance',
+    recordId,
+    { [fieldName]: oldRecord[fieldName] },
+    { [fieldName]: value }
+  );
+
+  const recordDate = new Date(oldRecord.date);
+  const year = recordDate.getFullYear();
+  const month = recordDate.getMonth() + 1;
+  
+  await recalculateEmployeeLates(oldRecord.employee_id, year, month);
+
+  const { revalidatePath: nextRevalidatePath } = await import('next/cache');
+  nextRevalidatePath('/admin/attendance');
+  nextRevalidatePath('/employee/attendance');
+
+  return { success: true };
+}
+
+export async function recalculateEmployeeLates(employeeId: string, year: number, month: number) {
+  const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextMonthYear = month === 12 ? year + 1 : year;
+  const endOfMonth = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+  const { data: records, error } = await supabaseAdmin
+    .from('attendance')
+    .select('*')
+    .eq('employee_id', employeeId)
+    .eq('is_late', true)
+    .gte('date', startOfMonth)
+    .lt('date', endOfMonth)
+    .order('date', { ascending: true });
+
+  if (error || !records) return;
+
+  const unexempted = records.filter(r => 
+    !r.late_approved && 
+    !r.permission_approved && 
+    !r.shift_override && 
+    !r.manager_exemption &&
+    r.status !== 'Approved WFH'
+  );
+
+  const lateCount = unexempted.length;
+  
+  let deductionTotal = 0.0;
+  if (lateCount >= 6) {
+    deductionTotal = 1.0;
+  } else if (lateCount >= 3) {
+    deductionTotal = 0.5;
+  }
+
+  for (const r of records) {
+    if (r.deduction_applied !== 0.0) {
+      await supabaseAdmin.from('attendance').update({ deduction_applied: 0.0 }).eq('id', r.id);
+    }
+  }
+
+  if (deductionTotal === 0.5 && unexempted.length >= 3) {
+    await supabaseAdmin.from('attendance').update({ deduction_applied: 0.5 }).eq('id', unexempted[2].id);
+  } else if (deductionTotal === 1.0 && unexempted.length >= 6) {
+    await supabaseAdmin.from('attendance').update({ deduction_applied: 0.5 }).eq('id', unexempted[2].id);
+    await supabaseAdmin.from('attendance').update({ deduction_applied: 0.5 }).eq('id', unexempted[5].id);
+  }
+}
+

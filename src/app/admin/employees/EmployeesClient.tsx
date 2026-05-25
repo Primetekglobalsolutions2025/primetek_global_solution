@@ -544,14 +544,14 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
               <form onSubmit={handleUpdateBalances} className="p-10 space-y-6">
                 <div className="space-y-4">
                   {[
-                    { key: 'sick', label: 'Sick Leave Allocation' },
                     { key: 'casual', label: 'Casual Leave Allocation' },
-                    { key: 'earned', label: 'Earned Leave Allocation' },
                   ].map((field) => (
                     <div key={field.key} className="space-y-2">
                       <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">{field.label}</label>
                       <input 
                         type="number" 
+                        min={0}
+                        max={10}
                         value={(balances as any)[field.key]} 
                         onChange={(e) => setBalances({...balances, [field.key]: parseInt(e.target.value) || 0})}
                         className="w-full px-5 py-4 rounded-2xl bg-surface-alt border-0 focus:ring-2 focus:ring-primary-500/50 transition-all text-sm font-black text-navy-900"
@@ -565,7 +565,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                   disabled={isUpdatingBalance}
                   className="w-full bg-navy-900 hover:bg-navy-800 text-white font-black rounded-2xl py-5 shadow-xl shadow-navy-900/10 border-0 active:scale-98 transition-all"
                 >
-                  {isUpdatingBalance ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Update Balances'}
+                  {isUpdatingBalance ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Update Balance'}
                 </Button>
               </form>
             </motion.div>

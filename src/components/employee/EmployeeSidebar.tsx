@@ -20,6 +20,7 @@ export default function EmployeeSidebar() {
   const handleLogout = async () => {
     try {
       localStorage.removeItem('primetek-session');
+      localStorage.removeItem('primetek-token');
     } catch {}
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/employee/login');

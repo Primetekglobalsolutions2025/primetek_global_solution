@@ -88,6 +88,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     
     try {
       localStorage.removeItem('primetek-session');
+      localStorage.removeItem('primetek-token');
     } catch {}
     await fetch('/api/auth/logout', { method: 'POST' });
     router.replace(role === 'admin' ? '/admin/login' : '/employee/login');

@@ -86,3 +86,87 @@ export async function getSystemStatus() {
   }
   return data;
 }
+
+export async function getCasualLeaveConfig() {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data, error } = await supabaseAdmin
+    .from('portal_config')
+    .select('config_value')
+    .eq('config_key', 'default_casual_leave')
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching casual leave config:', error);
+    return 1;
+  }
+  return data ? parseInt(data.config_value) : 1;
+}
+
+export async function saveAndApplyCasualLeavePolicy(value: number) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  // 1. Update config
+  const { error: configError } = await supabaseAdmin
+    .from('portal_config')
+    .upsert({ config_key: 'default_casual_leave', config_value: String(value) }, { onConflict: 'config_key' });
+
+  if (configError) {
+    console.error('Error saving config:', configError);
+    throw new Error('Failed to update system config');
+  }
+
+  // 2. Fetch all active employees
+  const { data: employees, error: empError } = await supabaseAdmin
+    .from('employees')
+    .select('id')
+    .eq('status', 'Active');
+
+  if (empError) {
+    console.error('Error fetching active employees:', empError);
+    throw new Error('Failed to retrieve active employees');
+  }
+
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+
+  // 3. Upsert balances for all active employees for current month
+  for (const emp of employees) {
+    const { data: existing } = await supabaseAdmin
+      .from('leave_balances')
+      .select('id, used_days')
+      .eq('employee_id', emp.id)
+      .eq('leave_type', 'Casual')
+      .eq('year', currentYear)
+      .eq('month', currentMonth)
+      .maybeSingle();
+
+    if (existing) {
+      const { error: updateError } = await supabaseAdmin
+        .from('leave_balances')
+        .update({ total_days: value })
+        .eq('id', existing.id);
+      if (updateError) console.error(`Failed to update balance for ${emp.id}:`, updateError);
+    } else {
+      const { error: insertError } = await supabaseAdmin
+        .from('leave_balances')
+        .insert({
+          employee_id: emp.id,
+          leave_type: 'Casual',
+          total_days: value,
+          used_days: 0,
+          year: currentYear,
+          month: currentMonth
+        });
+      if (insertError) console.error(`Failed to insert balance for ${emp.id}:`, insertError);
+    }
+  }
+
+  revalidatePath('/admin/settings');
+  revalidatePath('/admin/employees');
+  revalidatePath('/employee/leaves');
+  return { success: true };
+}
+

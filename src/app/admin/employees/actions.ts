@@ -77,21 +77,26 @@ export async function createEmployee(data: {
     throw new Error(error?.message || 'Failed to create employee');
   }
 
-  // Initialize Balances from Portal Config
-  const { data: config } = await supabaseAdmin.from('portal_config').select('*');
-  const configMap = (config || []).reduce((acc: any, curr: any) => {
-    acc[curr.config_key] = curr.config_value;
-    return acc;
-  }, {});
+  // Initialize Balances from Portal Config (Casual Leave only for current month)
+  const { data: config } = await supabaseAdmin
+    .from('portal_config')
+    .select('config_value')
+    .eq('config_key', 'default_casual_leave')
+    .maybeSingle();
 
-  const sick = parseInt(configMap['default_sick_leave'] || '12');
-  const casual = parseInt(configMap['default_casual_leave'] || '10');
-  const earned = parseInt(configMap['default_earned_leave'] || '15');
+  const casual = config ? parseInt(config.config_value) : 1;
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
 
   await supabaseAdmin.from('leave_balances').insert([
-    { employee_id: newEmp.id, leave_type: 'Sick', total_days: sick, used_days: 0 },
-    { employee_id: newEmp.id, leave_type: 'Casual', total_days: casual, used_days: 0 },
-    { employee_id: newEmp.id, leave_type: 'Earned', total_days: earned, used_days: 0 },
+    { 
+      employee_id: newEmp.id, 
+      leave_type: 'Casual', 
+      total_days: casual, 
+      used_days: 0, 
+      year: currentYear, 
+      month: currentMonth 
+    },
   ]);
 
   revalidatePath('/admin/employees');

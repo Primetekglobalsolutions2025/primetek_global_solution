@@ -13,11 +13,67 @@ export async function applyForLeave(formData: {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
 
+  // 1. Enforce Casual Leave only
+  if (formData.type !== 'Casual') {
+    throw new Error('Only Casual Leave requests are supported.');
+  }
+
+  const start = new Date(formData.start_date);
+  const end = new Date(formData.end_date);
+
+  // 2. Limit to exactly 1 day per request
+  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  if (days !== 1) {
+    throw new Error('Casual Leave can only be requested in 1-day increments.');
+  }
+
+  // 3. Block requests falling on weekends (Saturday or Sunday)
+  const dayOfWeek = start.getDay(); // 0 = Sunday, 6 = Saturday
+  if (dayOfWeek === 0 || dayOfWeek === 6) {
+    throw new Error('Leave requests cannot fall on weekends (Saturday or Sunday).');
+  }
+
+  const startMonth = start.getMonth() + 1;
+  const startYear = start.getFullYear();
+
+  // 4. Verify employee does not exceed 1 CL/month limit
+  const startOfMonthStr = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
+  const nextMonth = startMonth === 12 ? 1 : startMonth + 1;
+  const nextMonthYear = startMonth === 12 ? startYear + 1 : startYear;
+  const endOfMonthStr = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+  const { data: existingRequests, error: reqError } = await supabaseAdmin
+    .from('leave_requests')
+    .select('id')
+    .eq('employee_id', session.id)
+    .in('status', ['Pending', 'Approved'])
+    .gte('start_date', startOfMonthStr)
+    .lt('start_date', endOfMonthStr);
+
+  if (reqError) throw reqError;
+  if (existingRequests && existingRequests.length > 0) {
+    throw new Error('You have already requested or taken Casual Leave in this calendar month.');
+  }
+
+  // 5. Check for overlapping requests on the exact date
+  const { data: overlaps, error: overlapError } = await supabaseAdmin
+    .from('leave_requests')
+    .select('id')
+    .eq('employee_id', session.id)
+    .in('status', ['Pending', 'Approved'])
+    .eq('start_date', formData.start_date);
+
+  if (overlapError) throw overlapError;
+  if (overlaps && overlaps.length > 0) {
+    throw new Error('You have an overlapping leave request for this date.');
+  }
+
+  // 6. Record request
   const { error } = await supabaseAdmin
     .from('leave_requests')
     .insert([{
       employee_id: session.id,
-      type: formData.type,
+      type: 'Casual',
       start_date: formData.start_date,
       end_date: formData.end_date,
       reason: formData.reason,
@@ -47,36 +103,47 @@ export async function getEmployeeLeaves() {
 
   return data;
 }
+
 export async function getLeaveBalances() {
   const session = await getSession();
   if (!session || !session.id) return [];
 
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+
+  // Fetch balance for the current month
   const { data, error } = await supabaseAdmin
     .from('leave_balances')
     .select('*')
-    .eq('employee_id', session.id);
+    .eq('employee_id', session.id)
+    .eq('year', currentYear)
+    .eq('month', currentMonth)
+    .eq('leave_type', 'Casual');
 
   if (error) {
     console.error('Error fetching balances:', error);
     return [];
   }
 
-  // If no balances exist, initialize them with defaults from portal_config
+  // Initialize balance for current month if missing
   if (data.length === 0) {
-    const { data: config } = await supabaseAdmin.from('portal_config').select('*');
-    const configMap = (config || []).reduce((acc: any, curr: any) => {
-      acc[curr.config_key] = curr.config_value;
-      return acc;
-    }, {});
+    const { data: config } = await supabaseAdmin
+      .from('portal_config')
+      .select('config_value')
+      .eq('config_key', 'default_casual_leave')
+      .maybeSingle();
 
-    const sick = parseInt(configMap['default_sick_leave'] || '12');
-    const casual = parseInt(configMap['default_casual_leave'] || '10');
-    const earned = parseInt(configMap['default_earned_leave'] || '15');
+    const defaultCL = config ? parseInt(config.config_value) : 1;
 
     const defaults = [
-      { employee_id: session.id, leave_type: 'Sick', total_days: sick, used_days: 0 },
-      { employee_id: session.id, leave_type: 'Casual', total_days: casual, used_days: 0 },
-      { employee_id: session.id, leave_type: 'Earned', total_days: earned, used_days: 0 },
+      { 
+        employee_id: session.id, 
+        leave_type: 'Casual', 
+        total_days: defaultCL, 
+        used_days: 0,
+        year: currentYear,
+        month: currentMonth
+      },
     ];
 
     const { data: newData, error: initError } = await supabaseAdmin
@@ -85,7 +152,7 @@ export async function getLeaveBalances() {
       .select();
 
     if (initError) {
-      console.error('Error initializing balances:', initError);
+      console.error('Error initializing monthly balance:', initError);
       return [];
     }
     return newData;

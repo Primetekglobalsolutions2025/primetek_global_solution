@@ -28,6 +28,7 @@ export default function Sidebar({ userName = 'Admin' }: SidebarProps) {
   const handleLogout = async () => {
     try {
       localStorage.removeItem('primetek-session');
+      localStorage.removeItem('primetek-token');
     } catch {}
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/admin/login');
