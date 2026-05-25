@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken, getTokenFromRequest } from '@/lib/auth';
 import { generateMFASecret, generateQRCode, encryptSecret } from '@/lib/mfa';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
+    const token = getTokenFromRequest(request);
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const session = await verifyToken(token);

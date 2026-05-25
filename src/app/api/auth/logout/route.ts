@@ -6,12 +6,15 @@ export async function POST() {
   await supabase.auth.signOut();
 
   const response = NextResponse.json({ success: true });
-  response.cookies.set('auth-token', '', {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     maxAge: 0,
     path: '/',
-  });
+  };
+  response.cookies.set('auth-token', '', cookieOptions);
+  response.cookies.set('admin-auth-token', '', cookieOptions);
+  response.cookies.set('employee-auth-token', '', cookieOptions);
   return response;
 }

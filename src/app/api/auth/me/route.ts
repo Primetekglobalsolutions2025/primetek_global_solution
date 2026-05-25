@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken, getTokenFromRequest } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: NextRequest) {
   try {
-    let token = request.cookies.get('auth-token')?.value;
-
-    if (!token) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-      }
-    }
+    const token = getTokenFromRequest(request);
 
     if (!token) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
@@ -63,9 +56,15 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({ user: responseUser });
 
+    // Clear legacy auth-token if present
+    if (request.cookies.has('auth-token')) {
+      response.cookies.delete('auth-token');
+    }
+
     // Restore HTTP-only cookie if it was missing from the request cookies
-    if (!request.cookies.has('auth-token')) {
-      response.cookies.set('auth-token', token, {
+    const cookieName = responseUser.role === 'admin' ? 'admin-auth-token' : 'employee-auth-token';
+    if (!request.cookies.has(cookieName)) {
+      response.cookies.set(cookieName, token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -80,3 +79,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+

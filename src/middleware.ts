@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken, getTokenFromRequest } from '@/lib/auth';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
 
   // 1. Admin route protection
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
-    const token = request.cookies.get('auth-token')?.value;
+    const token = request.cookies.get('admin-auth-token')?.value;
 
     if (!token) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
@@ -58,7 +58,7 @@ export async function middleware(request: NextRequest) {
     const session = await verifyToken(token);
     if (!session) {
       const response = NextResponse.redirect(new URL('/admin/login', request.url));
-      response.cookies.delete('auth-token');
+      response.cookies.delete('admin-auth-token');
       return response;
     }
     if (session.role !== 'admin') {
@@ -71,7 +71,7 @@ export async function middleware(request: NextRequest) {
 
   // 2. Employee route protection
   if (pathname.startsWith('/employee') && !pathname.startsWith('/employee/login')) {
-    const token = request.cookies.get('auth-token')?.value;
+    const token = request.cookies.get('employee-auth-token')?.value;
 
     if (!token) {
       return NextResponse.redirect(new URL('/employee/login', request.url));
@@ -80,7 +80,7 @@ export async function middleware(request: NextRequest) {
     const session = await verifyToken(token);
     if (!session) {
       const response = NextResponse.redirect(new URL('/employee/login', request.url));
-      response.cookies.delete('auth-token');
+      response.cookies.delete('employee-auth-token');
       return response;
     }
     if (session.role !== 'employee' && session.role !== 'hr') {
@@ -93,14 +93,7 @@ export async function middleware(request: NextRequest) {
 
   // 3. API route protection
   if (pathname.startsWith('/api') && !isPublicApiRoute) {
-    let token = request.cookies.get('auth-token')?.value;
-
-    if (!token) {
-      const authHeader = request.headers.get('authorization');
-      if (authHeader?.startsWith('Bearer ')) {
-        token = authHeader.substring(7);
-      }
-    }
+    const token = getTokenFromRequest(request);
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

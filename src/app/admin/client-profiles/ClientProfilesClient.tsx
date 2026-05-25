@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { 
-  Search, Plus, UserPlus, Eye, 
+  Search, Plus, UserPlus, Edit, 
   Trash2, Download, X, Mail, 
   Globe, Phone, MapPin, Briefcase, 
   GraduationCap, FileText, Loader2, FileUser 
@@ -55,7 +55,8 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
     client_linkedin: '',
     education_details: { bachelors: '', masters: '' },
     assigned_to: '',
-    resume_url: ''
+    resume_url: '',
+    status: 'Pending'
   });
 
   const filtered = useMemo(() => {
@@ -77,7 +78,8 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         client_linkedin: profile.client_linkedin || '',
         education_details: profile.education_details || { bachelors: '', masters: '' },
         assigned_to: profile.assigned_to || '',
-        resume_url: profile.resume_url || ''
+        resume_url: profile.resume_url || '',
+        status: profile.status || 'Pending'
       });
     } else {
       setEditingProfile(null);
@@ -90,7 +92,8 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         client_linkedin: '',
         education_details: { bachelors: '', masters: '' },
         assigned_to: '',
-        resume_url: ''
+        resume_url: '',
+        status: 'Pending'
       });
     }
     setResumeFile(null);
@@ -224,8 +227,8 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                 <p className="text-xs text-primary-600 font-bold uppercase tracking-wider">{profile.client_role}</p>
               </div>
               <div className="flex gap-1">
-                <button onClick={() => handleOpenModal(profile)} className="p-1.5 hover:bg-surface-alt rounded-lg text-text-muted transition-colors">
-                  <Eye className="w-4 h-4" />
+                <button onClick={() => handleOpenModal(profile)} className="p-1.5 hover:bg-surface-alt rounded-lg text-text-muted transition-colors" title="Edit Profile">
+                  <Edit className="w-4 h-4" />
                 </button>
                 <button onClick={() => handleDelete(profile.id!)} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400 transition-colors">
                   <Trash2 className="w-4 h-4" />
@@ -320,14 +323,26 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-navy-900">Assign to Employee</label>
-                <select value={formData.assigned_to} onChange={e => setFormData({...formData, assigned_to: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
-                  <option value="">Unassigned</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-navy-900">Assign to Employee</label>
+                  <select value={formData.assigned_to} onChange={e => setFormData({...formData, assigned_to: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
+                    <option value="">Unassigned</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-navy-900">Status</label>
+                  <select value={formData.status || 'Pending'} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
+                    <option value="Pending">Pending</option>
+                    <option value="Assigned">Assigned</option>
+                    <option value="Processing">Processing</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-1.5">

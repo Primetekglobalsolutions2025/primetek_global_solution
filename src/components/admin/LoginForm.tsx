@@ -53,7 +53,7 @@ export default function LoginForm() {
 
       if (result.token) {
         try {
-          localStorage.setItem('primetek-token', result.token);
+          localStorage.setItem('primetek-admin-token', result.token);
         } catch {}
       }
 
@@ -85,7 +85,7 @@ export default function LoginForm() {
 
       if (data.token) {
         try {
-          localStorage.setItem('primetek-token', data.token);
+          localStorage.setItem('primetek-admin-token', data.token);
         } catch {}
       }
 

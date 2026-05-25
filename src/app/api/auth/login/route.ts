@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
         user: { id: authUser.id, name: authUser.name, role: authUser.role },
       });
 
-      response.cookies.set('auth-token', token, {
+      const cookieName = authUser.role === 'admin' ? 'admin-auth-token' : 'employee-auth-token';
+      response.cookies.set(cookieName, token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

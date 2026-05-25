@@ -30,6 +30,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
     { href: '/admin/jobs', icon: Briefcase, label: 'Jobs' },
     { href: '/admin/client-profiles', icon: FileUser, label: 'Client Profiles' },
+    { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews' },
     { href: '/admin/employees', icon: Users, label: 'Employees' },
     { href: '/admin/attendance', icon: Clock, label: 'Reports' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports' },
@@ -59,6 +60,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
 
   const mobileAdminMore = [
     { href: '/admin/client-profiles', icon: FileUser, label: 'Client Profiles' },
+    { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports' },
     { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
     { href: '/admin/jobs', icon: Briefcase, label: 'Jobs' },
@@ -91,6 +93,10 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     if (!window.confirm('Are you sure you want to sign out?')) return;
     
     try {
+      localStorage.removeItem('primetek-admin-session');
+      localStorage.removeItem('primetek-admin-token');
+      localStorage.removeItem('primetek-employee-session');
+      localStorage.removeItem('primetek-employee-token');
       localStorage.removeItem('primetek-session');
       localStorage.removeItem('primetek-token');
     } catch {}

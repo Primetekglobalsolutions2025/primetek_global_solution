@@ -38,8 +38,8 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
       let currentSession = null;
       let token = null;
       try {
-        const savedSession = localStorage.getItem('primetek-session');
-        token = localStorage.getItem('primetek-token');
+        const savedSession = localStorage.getItem('primetek-employee-session');
+        token = localStorage.getItem('primetek-employee-token');
         if (savedSession) {
           currentSession = JSON.parse(savedSession);
           setSession(currentSession);
@@ -51,7 +51,7 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
       if (isLoginPage) {
         if (token && currentSession) {
           try {
-            const res = await fetch('/api/auth/me', {
+            const res = await fetch('/api/auth/me?role=employee', {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -83,21 +83,21 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
-        const res = await fetch('/api/auth/me', { headers });
+        const res = await fetch('/api/auth/me?role=employee', { headers });
         if (res.ok) {
           const data = await res.json();
           if (data.user?.role === 'employee' || data.user?.role === 'hr') {
             setSession(data.user);
             try {
-              localStorage.setItem('primetek-session', JSON.stringify(data.user));
+              localStorage.setItem('primetek-employee-session', JSON.stringify(data.user));
             } catch {}
           } else if (data.user?.role === 'admin') {
             router.replace('/admin/dashboard');
             return;
           } else {
             try {
-              localStorage.removeItem('primetek-session');
-              localStorage.removeItem('primetek-token');
+              localStorage.removeItem('primetek-employee-session');
+              localStorage.removeItem('primetek-employee-token');
             } catch {}
             setSession(null);
             router.replace('/employee/login');
@@ -106,8 +106,8 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
         } else if (res.status === 401 || res.status === 403 || res.status === 404) {
           // Genuine unauthenticated response
           try {
-            localStorage.removeItem('primetek-session');
-            localStorage.removeItem('primetek-token');
+            localStorage.removeItem('primetek-employee-session');
+            localStorage.removeItem('primetek-employee-token');
           } catch {}
           setSession(null);
           router.replace('/employee/login');

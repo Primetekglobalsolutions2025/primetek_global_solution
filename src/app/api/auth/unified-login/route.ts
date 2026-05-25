@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
           name: authData.user.user_metadata?.full_name || 'Administrator' 
         });
 
-        response.cookies.set('auth-token', token, {
+        response.cookies.set('admin-auth-token', token, {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
       name: user.name 
     });
 
-    response.cookies.set('auth-token', token, {
+    response.cookies.set('employee-auth-token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

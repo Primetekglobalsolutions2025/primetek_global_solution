@@ -19,6 +19,8 @@ export default function EmployeeSidebar() {
 
   const handleLogout = async () => {
     try {
+      localStorage.removeItem('primetek-employee-session');
+      localStorage.removeItem('primetek-employee-token');
       localStorage.removeItem('primetek-session');
       localStorage.removeItem('primetek-token');
     } catch {}

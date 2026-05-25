@@ -49,7 +49,7 @@ export default function EmployeeLoginForm() {
 
       if (data.token) {
         try {
-          localStorage.setItem('primetek-token', data.token);
+          localStorage.setItem('primetek-employee-token', data.token);
         } catch {}
       }
 
@@ -82,7 +82,7 @@ export default function EmployeeLoginForm() {
 
       if (data.token) {
         try {
-          localStorage.setItem('primetek-token', data.token);
+          localStorage.setItem('primetek-employee-token', data.token);
         } catch {}
       }
 

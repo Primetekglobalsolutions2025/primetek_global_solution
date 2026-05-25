@@ -22,12 +22,22 @@ export default function PWAStandaloneGuard() {
       if (!isPortalRoute) {
         let role = 'admin';
         try {
-          const saved = localStorage.getItem('primetek-session');
-          if (saved) {
-            const user = JSON.parse(saved);
+          const savedEmployee = localStorage.getItem('primetek-employee-session');
+          const savedAdmin = localStorage.getItem('primetek-admin-session');
+          const savedLegacy = localStorage.getItem('primetek-session');
+          
+          if (savedEmployee) {
+            const user = JSON.parse(savedEmployee);
             if (user?.role === 'employee' || user?.role === 'hr') {
               role = 'employee';
             }
+          } else if (savedLegacy) {
+            const user = JSON.parse(savedLegacy);
+            if (user?.role === 'employee' || user?.role === 'hr') {
+              role = 'employee';
+            }
+          } else if (savedAdmin) {
+            role = 'admin';
           }
         } catch {}
         router.replace(role === 'admin' ? '/admin/login' : '/employee/login');

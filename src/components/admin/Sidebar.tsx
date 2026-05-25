@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, MessageSquare, Briefcase, FileText, Users, Clock, Settings, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Briefcase, FileText, Calendar, Users, Clock, Settings, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
   { href: '/admin/jobs', icon: Briefcase, label: 'Jobs' },
   { href: '/admin/applications', icon: FileText, label: 'Applications' },
+  { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests' },
   { href: '/admin/employees', icon: Users, label: 'Employees' },
   { href: '/admin/attendance', icon: Clock, label: 'Attendance' },
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
@@ -27,6 +28,8 @@ export default function Sidebar({ userName = 'Admin' }: SidebarProps) {
 
   const handleLogout = async () => {
     try {
+      localStorage.removeItem('primetek-admin-session');
+      localStorage.removeItem('primetek-admin-token');
       localStorage.removeItem('primetek-session');
       localStorage.removeItem('primetek-token');
     } catch {}

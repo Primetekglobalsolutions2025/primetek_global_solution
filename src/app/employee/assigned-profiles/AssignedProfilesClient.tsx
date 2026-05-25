@@ -30,6 +30,7 @@ interface ClientProfile {
 export default function AssignedProfilesClient({ initialProfiles }: { initialProfiles: ClientProfile[] }) {
   const [profiles, setProfiles] = useState<ClientProfile[]>(initialProfiles);
   const [selectedProfile, setSelectedProfile] = useState<ClientProfile | null>(null);
+  const [requestProfile, setRequestProfile] = useState<ClientProfile | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
@@ -92,23 +93,39 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
               </div>
 
               <div className="flex items-center justify-between pt-3 border-t border-border/60">
-                <select 
-                  value={profile.status}
-                  onChange={(e) => handleStatusChange(profile.id, e.target.value)}
-                  disabled={updating === profile.id}
-                  className={cn(
-                    "text-[10px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary-400/50 cursor-pointer transition-all duration-200",
-                    profile.status === 'assigned' && "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100/75",
-                    profile.status === 'processing' && "bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100/75",
-                    profile.status === 'completed' && "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100/75",
-                    profile.status === 'rejected' && "bg-red-50 text-red-600 border-red-200 hover:bg-red-100/75"
-                  )}
-                >
-                  <option value="assigned" className="bg-white text-navy-900 font-sans">Assigned</option>
-                  <option value="processing" className="bg-white text-navy-900 font-sans">Processing</option>
-                  <option value="completed" className="bg-white text-navy-900 font-sans">Completed</option>
-                  <option value="rejected" className="bg-white text-navy-900 font-sans">Rejected</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  <select 
+                    value={profile.status}
+                    onChange={(e) => handleStatusChange(profile.id, e.target.value)}
+                    disabled={updating === profile.id}
+                    className={cn(
+                      "text-[10px] font-bold uppercase tracking-wider py-1.5 px-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary-400/50 cursor-pointer transition-all duration-200",
+                      profile.status === 'assigned' && "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100/75",
+                      profile.status === 'processing' && "bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100/75",
+                      profile.status === 'completed' && "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100/75",
+                      profile.status === 'rejected' && "bg-red-50 text-red-600 border-red-200 hover:bg-red-100/75"
+                    )}
+                  >
+                    {(profile.status === 'assigned' || profile.status === 'processing') && (
+                      <option value={profile.status} disabled className="bg-white text-navy-900/50 font-sans">
+                        {profile.status === 'assigned' ? 'Assigned' : 'Processing'}
+                      </option>
+                    )}
+                    <option value="completed" className="bg-white text-navy-900 font-sans">Completed</option>
+                    <option value="rejected" className="bg-white text-navy-900 font-sans">Rejected</option>
+                  </select>
+
+                  <Button 
+                    size="sm"
+                    onClick={() => {
+                      setRequestProfile(profile);
+                      setIsRequestModalOpen(true);
+                    }}
+                    className="bg-navy-900 hover:bg-navy-800 text-white text-[10px] py-1.5 px-2.5 rounded-lg font-bold shadow-sm cursor-pointer"
+                  >
+                    Request Interview
+                  </Button>
+                </div>
                 
                 {profile.resume_url && (
                   <a 
@@ -224,7 +241,10 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
                 </div>
                 <div className="flex gap-2">
                   <Button 
-                    onClick={() => setIsRequestModalOpen(true)}
+                    onClick={() => {
+                      setRequestProfile(selectedProfile);
+                      setIsRequestModalOpen(true);
+                    }}
                     className="bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm active:scale-95 transition-all cursor-pointer font-sans"
                   >
                     Request Interview
@@ -236,13 +256,17 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
         </div>
       )}
 
-      {selectedProfile && (
+      {requestProfile && (
         <InterviewRequestModal
-          profile={selectedProfile}
+          profile={requestProfile}
           isOpen={isRequestModalOpen}
-          onClose={() => setIsRequestModalOpen(false)}
+          onClose={() => {
+            setIsRequestModalOpen(false);
+            setRequestProfile(null);
+          }}
           onSubmitSuccess={() => {
-            // Re-fetch profiles or update state locally if needed
+            setRequestProfile(null);
+            setIsRequestModalOpen(false);
             setSelectedProfile(null);
           }}
         />

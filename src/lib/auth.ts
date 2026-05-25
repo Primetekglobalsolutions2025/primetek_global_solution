@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { NextRequest } from 'next/server';
 import { env } from './env';
 
 let _jwtSecret: Uint8Array | null = null;
@@ -37,7 +38,75 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
 
 export async function getSession(): Promise<TokenPayload | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
+  let tokenCookieName = 'auth-token';
+
+  try {
+    const headerStore = await headers();
+    const referer = headerStore.get('referer');
+    if (referer) {
+      const refererUrl = new URL(referer);
+      if (refererUrl.pathname.startsWith('/admin')) {
+        tokenCookieName = 'admin-auth-token';
+      } else if (refererUrl.pathname.startsWith('/employee')) {
+        tokenCookieName = 'employee-auth-token';
+      }
+    }
+  } catch {
+    // headers() might fail in some contexts, fall back to safe check
+  }
+
+  let token = cookieStore.get(tokenCookieName)?.value;
+  if (!token) {
+    const alternativeCookie = tokenCookieName === 'admin-auth-token' ? 'employee-auth-token' : 'admin-auth-token';
+    token = cookieStore.get(alternativeCookie)?.value;
+  }
+  if (!token) {
+    token = cookieStore.get('auth-token')?.value;
+  }
+
   if (!token) return null;
   return verifyToken(token);
 }
+
+export function getTokenFromRequest(request: NextRequest): string | null {
+  const { pathname, searchParams } = request.nextUrl;
+  const referer = request.headers.get('referer');
+  const roleParam = searchParams.get('role');
+  
+  let tokenCookieName = 'auth-token';
+  if (pathname.startsWith('/api/admin')) {
+    tokenCookieName = 'admin-auth-token';
+  } else if (pathname.startsWith('/api/attendance')) {
+    tokenCookieName = 'employee-auth-token';
+  } else if (roleParam === 'admin') {
+    tokenCookieName = 'admin-auth-token';
+  } else if (roleParam === 'employee') {
+    tokenCookieName = 'employee-auth-token';
+  } else if (referer) {
+    try {
+      const refererUrl = new URL(referer);
+      if (refererUrl.pathname.startsWith('/admin')) {
+        tokenCookieName = 'admin-auth-token';
+      } else if (refererUrl.pathname.startsWith('/employee')) {
+        tokenCookieName = 'employee-auth-token';
+      }
+    } catch {}
+  }
+
+  let token = request.cookies.get(tokenCookieName)?.value;
+  if (!token) {
+    const alternativeCookie = tokenCookieName === 'admin-auth-token' ? 'employee-auth-token' : 'admin-auth-token';
+    token = request.cookies.get(alternativeCookie)?.value;
+  }
+  if (!token) {
+    token = request.cookies.get('auth-token')?.value;
+  }
+  if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
+  return token || null;
+}
+
