@@ -65,6 +65,7 @@ export async function createEmployee(data: {
       email: data.email.trim().toLowerCase(),
       role: data.role,
       department: data.department,
+      designation: data.department,
       password_hash,
       join_date: new Date().toISOString().split('T')[0],
       status: 'Active',

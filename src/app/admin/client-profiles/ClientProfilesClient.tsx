@@ -164,12 +164,21 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
   };
 
   const handleDelete = async (id: string) => {
+    if (!id) {
+      toast.error('Cannot delete profile: Profile ID is missing.');
+      return;
+    }
     if (!confirm('Are you sure you want to delete this profile?')) return;
     try {
-      await deleteProfile(id);
+      const res = await deleteProfile(id);
+      if (res && res.error) {
+        toast.error(res.error);
+        return;
+      }
       setProfiles(prev => prev.filter(p => p.id !== id));
       toast.success('Profile deleted successfully.');
     } catch (err) {
+      console.error('Delete handler failed:', err);
       toast.error('Failed to delete profile.');
     }
   };

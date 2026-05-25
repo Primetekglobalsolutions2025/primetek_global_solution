@@ -9,7 +9,16 @@ export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || (request as any).ip || '127.0.0.1';
 
   try {
-    const rateLimitRes = await loginRateLimiter.get(ip);
+    const body = await request.json().catch(() => null);
+    if (!body || !body.email || !body.password) {
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    }
+
+    const { email, password } = body;
+    const cleanEmail = email.trim().toLowerCase();
+    const rateLimitKey = `${ip}_${cleanEmail}`;
+
+    const rateLimitRes = await loginRateLimiter.get(rateLimitKey);
     if (rateLimitRes && rateLimitRes.remainingPoints <= 0) {
       return NextResponse.json({ 
         error: 'Too many failed attempts. Please try again in 15 minutes.',
@@ -17,16 +26,14 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
-    const { email, password } = await request.json(); // 'email' field might actually contain employee_id
-
-    const isEmail = email.includes('@');
+    const isEmail = cleanEmail.includes('@');
     const query = supabaseAdmin
       .from('employees')
       .select('id, email, password_hash, status, name, role');
       
     const { data: employee } = await (isEmail 
-      ? query.eq('email', email).single() 
-      : query.eq('employee_id', email).single());
+      ? query.ilike('email', cleanEmail).single() 
+      : query.ilike('employee_id', cleanEmail).single());
 
     const dummyHash = '$2a$10$abcdefghijklmnopqrstuv'; // For constant time
     const hashToCompare = employee ? employee.password_hash : dummyHash;
@@ -34,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     if (isValidPassword && employee && employee.status === 'Active') {
       // SUCCESS: Clear rate limit
-      await loginRateLimiter.delete(ip);
+      await loginRateLimiter.delete(rateLimitKey);
 
       const authUser = {
         id: employee.id,
@@ -84,8 +91,8 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    // FAILURE: Consume point
-    const currentRes = await loginRateLimiter.consume(ip).catch(err => err);
+    // FAILURE: Consume point for this user on this IP
+    const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
     const failedAttempts = 5 - (currentRes.remainingPoints || 0);
 
     const responseData: any = { error: 'Invalid credentials. Please try again.' };

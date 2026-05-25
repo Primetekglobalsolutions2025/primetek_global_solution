@@ -11,18 +11,19 @@ export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || (request as any).ip || '127.0.0.1';
   
   try {
-    // 1. Check if IP is currently blocked
-    const rateLimitRes = await loginRateLimiter.get(ip);
+    const body = await request.json();
+    const { email, password } = loginSchema.parse(body);
+    const cleanEmail = email.trim().toLowerCase();
+    const rateLimitKey = `${ip}_${cleanEmail}`;
+
+    // 1. Check if user is currently blocked on this IP
+    const rateLimitRes = await loginRateLimiter.get(rateLimitKey);
     if (rateLimitRes && rateLimitRes.remainingPoints <= 0) {
       return NextResponse.json({ 
         error: 'Too many failed attempts. Please try again in 15 minutes.',
         lockout: true 
       }, { status: 429 });
     }
-
-    const body = await request.json();
-    const { email, password } = loginSchema.parse(body);
-    const cleanEmail = email.trim().toLowerCase();
 
     // 2. Auth Logic (Admin & Employee)
     const { data: adminRecord } = await supabaseAdmin
@@ -80,8 +81,8 @@ export async function POST(request: NextRequest) {
 
     // 3. Handle Result
     if (isAuthenticated && authUser) {
-      // SUCCESS: Clear rate limit for this IP
-      await loginRateLimiter.delete(ip);
+      // SUCCESS: Clear rate limit for this IP + user
+      await loginRateLimiter.delete(rateLimitKey);
 
       // Check if MFA is enabled
       const table = authUser.role === 'admin' ? 'admin_users' : 'employees';
@@ -133,8 +134,8 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    // FAILURE: Consume rate limit point
-    const currentRes = await loginRateLimiter.consume(ip).catch(err => err);
+    // FAILURE: Consume rate limit point for this user on this IP
+    const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
     const failedAttempts = 5 - (currentRes.remainingPoints || 0);
     
     const responseData: any = { error: 'Invalid credentials. Please try again.' };

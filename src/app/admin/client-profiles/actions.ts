@@ -101,24 +101,53 @@ export async function updateProfile(id: string, formData: any) {
 }
 
 export async function deleteProfile(id: string) {
-  const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
 
-  // Fetch data for audit before deleting
-  const { data: oldData } = await supabaseAdmin.from('application_profiles').select('*').eq('id', id).single();
+    if (!id) return { error: 'Profile ID is required' };
 
-  const { error } = await supabaseAdmin
-    .from('application_profiles')
-    .delete()
-    .eq('id', id);
+    // Fetch data for audit before deleting
+    const { data: oldData, error: fetchError } = await supabaseAdmin
+      .from('application_profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (error) throw error;
+    if (fetchError || !oldData) {
+      console.error('Fetch profile for deletion error:', fetchError);
+      return { error: 'Profile not found' };
+    }
 
-  // Log the action
-  await logAuditAction('DELETE_PROFILE', 'application_profiles', id, oldData, null);
+    // Try deleting parent application first to cascade delete profile cleanly
+    const { error: deleteError } = await supabaseAdmin
+      .from('applications')
+      .delete()
+      .eq('id', oldData.application_id);
 
-  revalidatePath('/admin/client-profiles');
-  return { success: true };
+    if (deleteError) {
+      console.error('Delete application error:', deleteError);
+      // Fallback: try to delete the profile directly if application deletion failed
+      const { error: deleteProfileError } = await supabaseAdmin
+        .from('application_profiles')
+        .delete()
+        .eq('id', id);
+
+      if (deleteProfileError) {
+        console.error('Delete profile direct error:', deleteProfileError);
+        return { error: deleteProfileError.message || 'Failed to delete client profile' };
+      }
+    }
+
+    // Log the action
+    await logAuditAction('DELETE_PROFILE', 'application_profiles', id, oldData, null);
+
+    revalidatePath('/admin/client-profiles');
+    return { success: true };
+  } catch (err: any) {
+    console.error('deleteProfile server action crashed:', err);
+    return { error: err.message || 'Internal server error' };
+  }
 }
 
 export async function getAllEmployees() {

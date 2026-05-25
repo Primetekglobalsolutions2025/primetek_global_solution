@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth';
 import { getAllProfiles, getAllEmployees } from './actions';
 import ClientProfilesClient from './ClientProfilesClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminClientProfilesPage() {
   const session = await getSession();
   

@@ -461,10 +461,36 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Department</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Role / Department</label>
                         <div className="relative group">
-                          <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
-                          <input required type="text" placeholder="Engineering" value={newEmployeeData.department} onChange={(e) => setNewEmployeeData({...newEmployeeData, department: e.target.value})} className="w-full pl-11 pr-4 py-4 rounded-2xl bg-surface-alt border-0 focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all text-sm font-medium text-navy-900" />
+                          <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-primary-500 transition-colors z-10" />
+                          <select 
+                            required 
+                            value={newEmployeeData.department} 
+                            onChange={(e) => {
+                              const dept = e.target.value;
+                              let autoRole = 'employee';
+                              if (dept === 'Talent Acquisition Specialist') {
+                                autoRole = 'hr';
+                              }
+                              setNewEmployeeData({
+                                ...newEmployeeData, 
+                                department: dept,
+                                role: autoRole
+                              });
+                            }} 
+                            className="w-full pl-11 pr-10 py-4 rounded-2xl bg-surface-alt border-0 focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all text-sm font-medium text-navy-900 appearance-none relative"
+                          >
+                            <option value="" disabled>Roles</option>
+                            <option value="Talent Acquisition Specialist">Talent Acquisition Specialist</option>
+                            <option value="Marketing Manager">Marketing Manager</option>
+                            <option value="Bench Sales Executive">Bench Sales Executive</option>
+                            <option value="Marketing Executive">Marketing Executive</option>
+                            <option value="Team Lead">Team Lead</option>
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                            ▼
+                          </div>
                         </div>
                       </div>
                     </div>

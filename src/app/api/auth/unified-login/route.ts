@@ -13,26 +13,28 @@ export async function POST(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
     console.log(`[Auth] Attempt from IP: ${ip}`);
 
-    const rateResult = await consumeRateLimit(loginRateLimiter, ip);
+    const body = await request.json().catch(() => null);
+    if (!body || !body.email || !body.password) {
+      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+    }
+
+    const { email, password } = body;
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    // Basic Security: Rate Limiting by IP + Email
+    const rateLimitKey = `${ip}_${cleanEmail}`;
+    const rateResult = await consumeRateLimit(loginRateLimiter, rateLimitKey);
     if (!rateResult.allowed) {
       const retryAfterSec = Math.ceil(rateResult.retryAfterMs / 1000);
-      console.warn(`[Auth] Rate limit exceeded for IP: ${ip}`);
+      console.warn(`[Auth] Rate limit exceeded for key: ${rateLimitKey}`);
       return NextResponse.json(
         { error: 'Too many login attempts. Please try again later.', retryAfter: retryAfterSec },
         { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
       );
     }
 
-    const { email, password } = await request.json();
-    console.log(`[Auth] Login attempt for: ${email}`);
-
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
-    }
-
-    // 2. Input Sanitization: Trim whitespace to prevent accidental spaces
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = password.trim();
+    console.log(`[Auth] Login attempt for: ${cleanEmail}`);
 
     const isEmail = cleanEmail.includes('@');
    
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
     const { data: adminRecord } = await supabaseAdmin
       .from('admin_users')
       .select('id, email')
-      .eq('email', cleanEmail)
+      .ilike('email', cleanEmail)
       .single();
 
     const ADMIN_EMAIL_ENV = (process.env.ADMIN_EMAIL || 'admin@globalprimetek.com').trim().toLowerCase();
@@ -139,8 +141,8 @@ export async function POST(request: NextRequest) {
       .select('id, email, employee_id, password_hash, status, name, role, mfa_enabled');
       
     const { data: user, error } = await (isEmail 
-      ? query.eq('email', cleanEmail).single() 
-      : query.eq('employee_id', cleanEmail).single());
+      ? query.ilike('email', cleanEmail).single() 
+      : query.ilike('employee_id', cleanEmail).single());
 
     if (error || !user) {
       if (authError && authError.message !== 'Invalid login credentials') {
