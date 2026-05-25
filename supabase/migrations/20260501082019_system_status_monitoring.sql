@@ -42,7 +42,7 @@ CREATE POLICY "Admins can manage portal_config" ON public.portal_config FOR ALL 
 -- Initial Config
 INSERT INTO public.portal_config (config_key, config_value, description) VALUES
 ('default_sick_leave', '12', 'Default annual sick leave credits for new employees'),
-('default_casual_leave', '10', 'Default annual casual leave credits for new employees'),
+('default_casual_leave', '1', 'Default monthly casual leave credits for new employees'),
 ('default_earned_leave', '15', 'Default annual earned leave credits for new employees'),
 ('operational_policy', 'Deployment to Remote (WFH) nodes requires geospatial verification and Administrative authorization to maintain synchronized attendance metrics.', 'Operational policy text shown on employee dashboard')
 ON CONFLICT (config_key) DO UPDATE SET config_value = EXCLUDED.config_value;

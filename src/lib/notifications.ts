@@ -7,7 +7,12 @@ const resend = process.env.RESEND_API_KEY
 /**
  * Sends a notification email using Resend.
  */
-export async function sendNotificationEmail(to: string, subject: string, html: string) {
+export async function sendNotificationEmail(
+  to: string,
+  subject: string,
+  html: string,
+  attachments?: Array<{ filename: string; content?: Buffer; path?: string }>
+) {
   if (!resend) {
     console.log(`[Email Mock] To: ${to}, Subject: ${subject}`);
     return { success: true, mocked: true };
@@ -19,6 +24,7 @@ export async function sendNotificationEmail(to: string, subject: string, html: s
       to,
       subject,
       html,
+      attachments,
     });
 
     if (error) {
@@ -89,3 +95,29 @@ export function getWFHStatusTemplate(employeeName: string, date: string, status:
     </div>
   `;
 }
+
+export function getInterviewRequestTemplate(data: {
+  consultantName: string;
+  consultantPhone: string;
+  consultantTechnology: string;
+  clientCompany: string;
+  interviewDateTime: string;
+  interviewPlatform: string;
+}) {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333333; line-height: 1.6;">
+      <p>I hope you are doing well.</p>
+      <p>Please find the interview details below for support:</p>
+      <p style="margin-bottom: 5px;"><strong>Consultant Name:</strong> ${data.consultantName}</p>
+      <p style="margin-bottom: 5px;"><strong>Consultant Contact Number:</strong> ${data.consultantPhone || 'N/A'}</p>
+      <p style="margin-bottom: 5px;"><strong>Consultant Technology:</strong> ${data.consultantTechnology || 'N/A'}</p>
+      <p style="margin-bottom: 5px;"><strong>Client/Company:</strong> ${data.clientCompany}</p>
+      <p style="margin-bottom: 5px;"><strong>Interview Date & Time (EST):</strong> ${data.interviewDateTime}</p>
+      <p style="margin-bottom: 5px;"><strong>Interview Platform:</strong> ${data.interviewPlatform}</p>
+      <br>
+      <p>Kindly find my resume attached for your reference.</p>
+      <p>Please let me know if any additional information is required</p>
+    </div>
+  `;
+}
+

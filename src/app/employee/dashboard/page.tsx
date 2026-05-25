@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Clock, CalendarCheck, CalendarX, AlertTriangle, ArrowRight, TrendingUp, Briefcase, LogIn, LogOut, CheckCircle2, Plane, Sparkles, User, MapPin, Compass, History } from 'lucide-react';
+import { Clock, CalendarCheck, CalendarX, AlertTriangle, ArrowRight, TrendingUp, Briefcase, LogIn, LogOut, CheckCircle2, Plane, Sparkles, User, MapPin, Compass, History, ClipboardList } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { getSession } from '@/lib/auth';
@@ -14,18 +14,24 @@ export default async function EmployeeAppDashboard() {
     redirect('/employee/login');
   }
 
-  // Fetch Employee, Attendance and Leave Balances
+  const todayStr = new Date().toLocaleDateString('en-CA');
+
+  // Fetch Employee, Attendance, Leave Balances, and Today's Daily Report Status
   const [
     { data: employee },
     { data: records },
     { data: balances },
-    { data: configData }
+    { data: configData },
+    { data: dailyReportData }
   ] = await Promise.all([
     supabaseAdmin.from('employees').select('name, employee_id, role, department').eq('id', session.id).single(),
     supabaseAdmin.from('attendance').select('*').eq('employee_id', session.id).order('date', { ascending: false }).limit(10),
     supabaseAdmin.from('leave_balances').select('*').eq('employee_id', session.id),
-    supabaseAdmin.from('portal_config').select('config_key, config_value')
+    supabaseAdmin.from('portal_config').select('config_key, config_value'),
+    supabaseAdmin.from('profile_daily_metrics').select('id').eq('employee_id', session.id).eq('report_date', todayStr).limit(1)
   ]);
+
+  const hasReportedToday = dailyReportData && dailyReportData.length > 0;
 
   const configMap = (configData || []).reduce((acc: any, curr: any) => {
     acc[curr.config_key] = curr.config_value;
@@ -178,6 +184,20 @@ export default async function EmployeeAppDashboard() {
               <ArrowRight className="w-4 h-4" />
             </button>
           </Link>
+          <Link href="/employee/daily-report" className="col-span-2">
+            <button className={cn(
+              "w-full flex items-center justify-between p-4 rounded-xl font-bold text-sm shadow-md active:scale-98 transition-all cursor-pointer text-white",
+              hasReportedToday 
+                ? "bg-gradient-to-r from-emerald-500 to-emerald-600" 
+                : "bg-gradient-to-r from-amber-500 to-amber-600"
+            )}>
+              <div className="flex items-center gap-3">
+                <ClipboardList className="w-5 h-5" />
+                <span>{hasReportedToday ? "Daily Report: Submitted ✅" : "Daily Report: Pending ⏳"}</span>
+              </div>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
           <Link href="/employee/leaves">
             <button className="w-full flex flex-col items-center justify-center p-3.5 rounded-xl bg-white border border-border/60 hover:bg-surface-alt active:scale-95 transition-all text-center gap-1.5 shadow-sm cursor-pointer">
               <CalendarX className="w-5 h-5 text-blue-500" />
@@ -272,6 +292,41 @@ export default async function EmployeeAppDashboard() {
 
         {/* Action Matrix */}
         <div className="space-y-6">
+          {/* Daily Report Status Card */}
+          <div className={cn(
+            "relative group overflow-hidden rounded-xl p-6 border shadow-md transition-all duration-200",
+            hasReportedToday 
+              ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-950" 
+              : "bg-amber-500/5 border-amber-500/20 text-amber-950"
+          )}>
+            <div className="absolute top-[-20%] right-[-10%] w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+            <div className="relative z-10">
+              <div className={cn(
+                "w-10 h-10 rounded-lg flex items-center justify-center mb-4 text-white shadow-sm",
+                hasReportedToday ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+              )}>
+                <ClipboardList className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-bold mb-1.5 tracking-tight text-navy-900">Daily Report Status</h3>
+              <p className="text-text-secondary text-xs mb-5 leading-relaxed font-medium">
+                {hasReportedToday 
+                  ? "You have already submitted your daily recruitment metrics report for today. Thank you!"
+                  : "You have not submitted today's report. Please fill your daily recruitment metrics."}
+              </p>
+              <Link href="/employee/daily-report" className="block w-full">
+                <Button className={cn(
+                  "w-full font-semibold rounded-lg py-2 border-0 shadow-sm active:scale-95 transition-all",
+                  hasReportedToday 
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                    : "bg-amber-500 hover:bg-amber-600 text-white"
+                )}>
+                  <span>{hasReportedToday ? "View / Edit Report" : "Submit Daily Report"}</span>
+                  <ArrowRight className="w-4 h-4 ml-auto" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+
           {/* Assignments */}
           <div className="relative group overflow-hidden bg-navy-900 rounded-xl p-6 text-white shadow-md shadow-navy-900/20">
             <div className="absolute top-[-20%] right-[-10%] w-24 h-24 bg-primary-500/10 rounded-full blur-2xl" />

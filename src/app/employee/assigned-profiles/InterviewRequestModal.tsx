@@ -1,0 +1,271 @@
+'use client';
+
+import { useState } from 'react';
+import { X, Loader2, Calendar, Building, HelpCircle, FileUp } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
+import { submitInterviewRequest } from './actions';
+
+interface ClientProfile {
+  id: string;
+  client_name: string;
+  client_phone: string;
+  client_role: string;
+  resume_url: string;
+}
+
+interface InterviewRequestModalProps {
+  profile: ClientProfile;
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmitSuccess?: () => void;
+}
+
+export default function InterviewRequestModal({
+  profile,
+  isOpen,
+  onClose,
+  onSubmitSuccess
+}: InterviewRequestModalProps) {
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  const [clientCompany, setClientCompany] = useState('');
+  const [interviewDatetime, setInterviewDatetime] = useState('');
+  const [interviewPlatform, setInterviewPlatform] = useState('Zoom');
+  const [resumeType, setResumeType] = useState<'original' | 'updated'>('original');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('File size must be under 2MB.');
+      return;
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['pdf', 'doc', 'docx'].includes(ext || '')) {
+      toast.error('Only PDF, DOC, or DOCX formats are supported.');
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientCompany.trim()) {
+      toast.error('Please enter the Client/Company name.');
+      return;
+    }
+    if (!interviewDatetime) {
+      toast.error('Please specify the Interview Date and Time.');
+      return;
+    }
+    if (resumeType === 'updated' && !selectedFile) {
+      toast.error('Please select an updated resume file to upload.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('profile_id', profile.id);
+      formData.append('client_company', clientCompany);
+      formData.append('interview_datetime', interviewDatetime);
+      formData.append('interview_platform', interviewPlatform);
+      formData.append('resume_type', resumeType);
+
+      if (resumeType === 'updated' && selectedFile) {
+        formData.append('resume', selectedFile);
+      }
+
+      const result = await submitInterviewRequest(formData);
+      if (result.success) {
+        toast.success('Interview request sent to Admin successfully!');
+        if (onSubmitSuccess) onSubmitSuccess();
+        onClose();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Failed to submit interview request.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inputClasses = 'w-full px-3 py-2 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400/50 text-xs font-semibold';
+  const readOnlyClasses = 'w-full px-3 py-2 rounded-lg border border-border bg-slate-50 text-text-secondary cursor-not-allowed text-xs font-semibold';
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-pointer"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 bg-white border-b border-border/60 px-4 py-3 flex justify-between items-center z-10">
+          <h2 className="text-sm font-bold text-navy-900 flex items-center gap-1.5">
+            <Building className="w-4 h-4 text-primary-500" />
+            <span>Request Support Interview</span>
+          </h2>
+          <button 
+            onClick={onClose} 
+            className="p-1 hover:bg-surface-alt rounded-lg text-text-muted cursor-pointer transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs">
+          {/* Read-Only Consultant Profile Details */}
+          <div className="bg-slate-50 p-3 rounded-lg border border-border/60 space-y-2">
+            <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Consultant Details</h4>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mb-0.5">Name</label>
+                <input type="text" readOnly value={profile.client_name || 'N/A'} className={readOnlyClasses} />
+              </div>
+              
+              <div>
+                <label className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mb-0.5">Phone Number</label>
+                <input type="text" readOnly value={profile.client_phone || 'N/A'} className={readOnlyClasses} />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mb-0.5">Technology/Role</label>
+              <input type="text" readOnly value={profile.client_role || 'N/A'} className={readOnlyClasses} />
+            </div>
+          </div>
+
+          {/* Form Fields */}
+          <div className="space-y-3.5">
+            <div className="space-y-1">
+              <label className="font-bold text-navy-900 block">Client / Company Name *</label>
+              <input 
+                type="text" 
+                placeholder="e.g. JPMorgan Chase & Co." 
+                value={clientCompany}
+                onChange={(e) => setClientCompany(e.target.value)}
+                className={inputClasses}
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-navy-900 block">Interview Date & Time (EST) *</label>
+              <input 
+                type="datetime-local" 
+                value={interviewDatetime}
+                onChange={(e) => setInterviewDatetime(e.target.value)}
+                className={inputClasses}
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-navy-900 block">Interview Platform *</label>
+              <select 
+                value={interviewPlatform}
+                onChange={(e) => setInterviewPlatform(e.target.value)}
+                className={inputClasses}
+              >
+                <option value="Zoom">Zoom</option>
+                <option value="MS Teams">Microsoft Teams</option>
+                <option value="Google Meet">Google Meet</option>
+                <option value="Webex">Cisco Webex</option>
+                <option value="Phone Interview">Phone Interview</option>
+                <option value="Skype">Skype</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            {/* Resume Option */}
+            <div className="space-y-2 pt-1.5 border-t border-border/80">
+              <label className="font-bold text-navy-900 block">Resume For Interview *</label>
+              
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-text-secondary">
+                  <input 
+                    type="radio" 
+                    name="resumeType" 
+                    checked={resumeType === 'original'}
+                    onChange={() => {
+                      setResumeType('original');
+                      setSelectedFile(null);
+                    }}
+                    className="accent-primary-500 cursor-pointer"
+                  />
+                  <span>Use Original Resume</span>
+                </label>
+
+                <label className="flex items-center gap-1.5 cursor-pointer font-medium text-text-secondary">
+                  <input 
+                    type="radio" 
+                    name="resumeType" 
+                    checked={resumeType === 'updated'}
+                    onChange={() => setResumeType('updated')}
+                    className="accent-primary-500 cursor-pointer"
+                  />
+                  <span>Upload Updated Resume</span>
+                </label>
+              </div>
+
+              {resumeType === 'updated' && (
+                <div className="mt-2 border border-dashed border-border rounded-xl p-3 bg-slate-50 flex items-center justify-center gap-3 relative min-h-[50px] transition-all">
+                  <input 
+                    type="file" 
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <FileUp className="w-4 h-4 text-text-muted shrink-0" />
+                  <div className="text-left leading-normal">
+                    <span className="font-semibold block text-[10px] text-navy-900">
+                      {selectedFile ? selectedFile.name : 'Select updated resume file'}
+                    </span>
+                    <span className="text-[9px] text-text-muted block">
+                      {selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB` : 'PDF, DOCX, or DOC (Max 2MB)'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="pt-3 border-t border-border flex justify-end gap-2">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose} 
+              disabled={submitting}
+              className="px-4 py-1.5 text-xs font-semibold rounded-lg"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={submitting}
+              className="px-5 py-1.5 text-xs font-semibold rounded-lg bg-primary-500 hover:bg-primary-600 text-white cursor-pointer active:scale-95"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Sending...</span>
+                </>
+              ) : (
+                <span>Send Request</span>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

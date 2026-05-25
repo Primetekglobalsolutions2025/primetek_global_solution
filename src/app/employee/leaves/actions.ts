@@ -13,17 +13,21 @@ export async function applyForLeave(formData: {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
 
-  // 1. Enforce Casual Leave only
-  if (formData.type !== 'Casual') {
-    throw new Error('Only Casual Leave requests are supported.');
+  // 1. Enforce allowed leave types
+  if (!['Casual', 'Unpaid'].includes(formData.type)) {
+    throw new Error('Only Casual Leave and Unpaid Leave requests are supported.');
   }
 
   const start = new Date(formData.start_date);
   const end = new Date(formData.end_date);
-
-  // 2. Limit to exactly 1 day per request
   const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  if (days !== 1) {
+
+  if (days < 1) {
+    throw new Error('Invalid leave duration.');
+  }
+
+  // 2. Limit Casual Leave to exactly 1 day per request
+  if (formData.type === 'Casual' && days !== 1) {
     throw new Error('Casual Leave can only be requested in 1-day increments.');
   }
 
@@ -37,22 +41,25 @@ export async function applyForLeave(formData: {
   const startYear = start.getFullYear();
 
   // 4. Verify employee does not exceed 1 CL/month limit
-  const startOfMonthStr = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
-  const nextMonth = startMonth === 12 ? 1 : startMonth + 1;
-  const nextMonthYear = startMonth === 12 ? startYear + 1 : startYear;
-  const endOfMonthStr = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
+  if (formData.type === 'Casual') {
+    const startOfMonthStr = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
+    const nextMonth = startMonth === 12 ? 1 : startMonth + 1;
+    const nextMonthYear = startMonth === 12 ? startYear + 1 : startYear;
+    const endOfMonthStr = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
 
-  const { data: existingRequests, error: reqError } = await supabaseAdmin
-    .from('leave_requests')
-    .select('id')
-    .eq('employee_id', session.id)
-    .in('status', ['Pending', 'Approved'])
-    .gte('start_date', startOfMonthStr)
-    .lt('start_date', endOfMonthStr);
+    const { data: existingRequests, error: reqError } = await supabaseAdmin
+      .from('leave_requests')
+      .select('id')
+      .eq('employee_id', session.id)
+      .eq('type', 'Casual')
+      .in('status', ['Pending', 'Approved'])
+      .gte('start_date', startOfMonthStr)
+      .lt('start_date', endOfMonthStr);
 
-  if (reqError) throw reqError;
-  if (existingRequests && existingRequests.length > 0) {
-    throw new Error('You have already requested or taken Casual Leave in this calendar month.');
+    if (reqError) throw reqError;
+    if (existingRequests && existingRequests.length > 0) {
+      throw new Error('You have already requested or taken Casual Leave in this calendar month.');
+    }
   }
 
   // 5. Check for overlapping requests on the exact date
@@ -73,7 +80,7 @@ export async function applyForLeave(formData: {
     .from('leave_requests')
     .insert([{
       employee_id: session.id,
-      type: 'Casual',
+      type: formData.type,
       start_date: formData.start_date,
       end_date: formData.end_date,
       reason: formData.reason,

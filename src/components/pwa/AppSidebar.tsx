@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Briefcase, Users, FileUser,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
-  MoreHorizontal, X
+  MoreHorizontal, X, ClipboardList
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     { href: '/admin/client-profiles', icon: FileUser, label: 'Client Profiles' },
     { href: '/admin/employees', icon: Users, label: 'Employees' },
     { href: '/admin/attendance', icon: Clock, label: 'Reports' },
+    { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports' },
     { href: '/admin/audit', icon: History, label: 'Audit Logs' },
     { href: '/admin/profile', icon: UserCircle, label: 'Profile' },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
@@ -41,6 +42,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Overview' },
     { href: '/employee/attendance', icon: Clock, label: 'Attendance' },
     { href: '/employee/leaves', icon: Calendar, label: 'Leaves' },
+    { href: '/employee/daily-report', icon: ClipboardList, label: 'Daily Report' },
     { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles' },
     { href: '/employee/profile', icon: UserCircle, label: 'My Profile' },
   ];
@@ -57,6 +59,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
 
   const mobileAdminMore = [
     { href: '/admin/client-profiles', icon: FileUser, label: 'Client Profiles' },
+    { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports' },
     { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
     { href: '/admin/jobs', icon: Briefcase, label: 'Jobs' },
     { href: '/admin/audit', icon: History, label: 'Audit Logs' },
@@ -67,11 +70,12 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   const mobileEmployeeBottom = [
     { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Home' },
     { href: '/employee/attendance', icon: Clock, label: 'Attendance' },
-    { href: '/employee/leaves', icon: Calendar, label: 'Leaves' },
+    { href: '/employee/daily-report', icon: ClipboardList, label: 'Daily Report' },
     { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles' },
   ];
 
   const mobileEmployeeMore = [
+    { href: '/employee/leaves', icon: Calendar, label: 'Leaves' },
     { href: '/employee/profile', icon: UserCircle, label: 'My Profile' },
   ];
 

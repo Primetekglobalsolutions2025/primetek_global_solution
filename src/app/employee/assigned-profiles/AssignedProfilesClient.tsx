@@ -11,6 +11,7 @@ import Button from '@/components/ui/Button';
 import { updateProfileStatus } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
+import InterviewRequestModal from './InterviewRequestModal';
 
 interface ClientProfile {
   id: string;
@@ -30,6 +31,7 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
   const [profiles, setProfiles] = useState<ClientProfile[]>(initialProfiles);
   const [selectedProfile, setSelectedProfile] = useState<ClientProfile | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
 
   const { toast } = useToast();
 
@@ -221,17 +223,29 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  {selectedProfile.status !== 'completed' && (
-                    <Button onClick={() => handleStatusChange(selectedProfile.id, 'completed')} disabled={updating === selectedProfile.id} className="bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm active:scale-95 transition-all">
-                      {updating === selectedProfile.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />}
-                      Mark as Completed
-                    </Button>
-                  )}
+                  <Button 
+                    onClick={() => setIsRequestModalOpen(true)}
+                    className="bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm active:scale-95 transition-all cursor-pointer font-sans"
+                  >
+                    Request Interview
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {selectedProfile && (
+        <InterviewRequestModal
+          profile={selectedProfile}
+          isOpen={isRequestModalOpen}
+          onClose={() => setIsRequestModalOpen(false)}
+          onSubmitSuccess={() => {
+            // Re-fetch profiles or update state locally if needed
+            setSelectedProfile(null);
+          }}
+        />
       )}
     </div>
   );

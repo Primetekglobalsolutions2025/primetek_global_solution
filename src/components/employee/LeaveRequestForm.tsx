@@ -6,7 +6,7 @@ import Button from '@/components/ui/Button';
 import { applyForLeave } from '@/app/employee/leaves/actions';
 import { cn } from '@/lib/utils';
 
-const leaveTypes = ['Casual'];
+const leaveTypes = ['Casual', 'Unpaid'];
 
 export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);

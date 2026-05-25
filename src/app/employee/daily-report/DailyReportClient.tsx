@@ -1,0 +1,633 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { 
+  ClipboardCheck, Loader2, Calendar, FileText, 
+  CheckCircle2, AlertCircle, Sparkles, Plus, Minus
+} from 'lucide-react';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import { useToast } from '@/components/ui/Toast';
+import { submitDailyMetrics } from './actions';
+import { cn } from '@/lib/utils';
+
+interface Profile {
+  id: string;
+  client_name: string;
+  created_at: string;
+  status: string;
+}
+
+interface Metric {
+  profile_id: string;
+  applications_count: number;
+  interviews_count: number;
+  assessments: number;
+  technical_rounds: number;
+  non_technical: number;
+  self_submissions: number;
+  support_submissions: number;
+}
+
+interface HistoryItem {
+  id: string;
+  profile_id: string;
+  report_date: string;
+  applications_count: number;
+  interviews_count: number;
+  assessments: number;
+  technical_rounds: number;
+  non_technical: number;
+  self_submissions: number;
+  support_submissions: number;
+  created_at: string;
+  application_profiles: any;
+}
+
+interface DailyReportClientProps {
+  profiles: Profile[];
+  todayMetrics: Metric[];
+  history: HistoryItem[];
+  reportDate: string;
+}
+
+export default function DailyReportClient({ profiles, todayMetrics, history, reportDate }: DailyReportClientProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
+
+  // Initialize values for all assigned profiles
+  const [formValues, setFormValues] = useState<Record<string, Record<string, number>>>(() => {
+    return profiles.reduce((acc, p) => {
+      const metric = todayMetrics.find(m => m.profile_id === p.id);
+      acc[p.id] = {
+        applications_count: metric ? metric.applications_count : 0,
+        interviews_count: metric ? metric.interviews_count : 0,
+        assessments: metric ? metric.assessments : 0,
+        technical_rounds: metric ? metric.technical_rounds : 0,
+        non_technical: metric ? metric.non_technical : 0,
+        self_submissions: metric ? metric.self_submissions : 0,
+        support_submissions: metric ? metric.support_submissions : 0,
+      };
+      return acc;
+    }, {} as Record<string, Record<string, number>>);
+  });
+
+  const handleInputChange = (profileId: string, field: string, value: number) => {
+    const safeVal = Math.max(0, isNaN(value) ? 0 : value);
+    setFormValues(prev => ({
+      ...prev,
+      [profileId]: {
+        ...prev[profileId],
+        [field]: safeVal
+      }
+    }));
+  };
+
+  const handleIncrement = (profileId: string, field: string) => {
+    const current = formValues[profileId]?.[field] || 0;
+    handleInputChange(profileId, field, current + 1);
+  };
+
+  const handleDecrement = (profileId: string, field: string) => {
+    const current = formValues[profileId]?.[field] || 0;
+    handleInputChange(profileId, field, current - 1);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      const entries = Object.entries(formValues).map(([profileId, values]) => ({
+        profile_id: profileId,
+        applications_count: values.applications_count,
+        interviews_count: values.interviews_count,
+        assessments: values.assessments,
+        technical_rounds: values.technical_rounds,
+        non_technical: values.non_technical,
+        self_submissions: values.self_submissions,
+        support_submissions: values.support_submissions,
+      }));
+
+      const res = await submitDailyMetrics(entries);
+      if (res.success) {
+        toast.success(todayMetrics.length > 0 ? 'Daily report updated successfully!' : 'Daily report submitted successfully!');
+        router.refresh();
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to submit daily report. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isAlreadySubmitted = todayMetrics.length > 0;
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'UTC'
+    });
+  };
+
+  // Group history by date
+  const groupedHistory = history.reduce((acc, item) => {
+    const date = item.report_date;
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(item);
+    return acc;
+  }, {} as Record<string, HistoryItem[]>);
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Header section with state */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-border shadow-sm">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <ClipboardCheck className="w-5 h-5 text-primary-500" />
+            <h1 className="text-xl font-bold text-navy-900 tracking-tight">Daily Recruitment Report</h1>
+          </div>
+          <p className="text-xs text-text-muted">
+            Report your daily client staffing metrics. Filled daily per consultant profile.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-navy-800 rounded-xl border border-border text-xs font-semibold">
+            <Calendar className="w-3.5 h-3.5 text-text-muted" />
+            <span>Today: {formatDate(reportDate)}</span>
+          </div>
+
+          {isAlreadySubmitted ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>✅ Submitted</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+              <AlertCircle className="w-3.5 h-3.5" />
+              <span>⏳ Pending Submission</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {profiles.length === 0 ? (
+        <Card className="text-center py-16 border border-dashed border-border/80">
+          <Sparkles className="w-10 h-10 text-text-muted mx-auto mb-3 opacity-30" />
+          <h3 className="font-semibold text-navy-900 text-sm mb-1">No Active Profiles</h3>
+          <p className="text-xs text-text-secondary max-w-md mx-auto">
+            You currently have no active or processing profiles assigned to you. Daily reporting is only required for active assignments.
+          </p>
+        </Card>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-hidden bg-white rounded-2xl border border-border shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-navy-900 text-white border-b border-navy-800">
+                    <th className="p-4 font-semibold">Assign Date</th>
+                    <th className="p-4 font-semibold">Consultant Name</th>
+                    <th className="p-4 font-semibold text-center w-28 bg-navy-800/40">Apps Count</th>
+                    <th className="p-4 font-semibold text-center w-28 bg-navy-800/40">Interviews</th>
+                    <th className="p-4 font-semibold text-center w-28">Assessments</th>
+                    <th className="p-4 font-semibold text-center w-28">Tech Rounds</th>
+                    <th className="p-4 font-semibold text-center w-28">Non-Tech</th>
+                    <th className="p-4 font-semibold text-center w-28 bg-amber-950/20 text-amber-300">Self (Own)</th>
+                    <th className="p-4 font-semibold text-center w-28 bg-amber-950/20 text-amber-300">Support</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {profiles.map(profile => {
+                    const values = formValues[profile.id] || {
+                      applications_count: 0,
+                      interviews_count: 0,
+                      assessments: 0,
+                      technical_rounds: 0,
+                      non_technical: 0,
+                      self_submissions: 0,
+                      support_submissions: 0
+                    };
+
+                    return (
+                      <tr key={profile.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4 text-text-secondary whitespace-nowrap">
+                          {formatDate(profile.created_at)}
+                        </td>
+                        <td className="p-4 font-semibold text-navy-900">
+                          {profile.client_name}
+                        </td>
+                        {/* Applications */}
+                        <td className="p-3 bg-slate-50/30">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'applications_count')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.applications_count}
+                              onChange={(e) => handleInputChange(profile.id, 'applications_count', parseInt(e.target.value))}
+                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'applications_count')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                        {/* Interviews */}
+                        <td className="p-3 bg-slate-50/30">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'interviews_count')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.interviews_count}
+                              onChange={(e) => handleInputChange(profile.id, 'interviews_count', parseInt(e.target.value))}
+                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'interviews_count')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                        {/* Assessments */}
+                        <td className="p-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'assessments')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.assessments}
+                              onChange={(e) => handleInputChange(profile.id, 'assessments', parseInt(e.target.value))}
+                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'assessments')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                        {/* Tech Rounds */}
+                        <td className="p-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'technical_rounds')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.technical_rounds}
+                              onChange={(e) => handleInputChange(profile.id, 'technical_rounds', parseInt(e.target.value))}
+                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'technical_rounds')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                        {/* Non-Tech */}
+                        <td className="p-3">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'non_technical')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.non_technical}
+                              onChange={(e) => handleInputChange(profile.id, 'non_technical', parseInt(e.target.value))}
+                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'non_technical')}
+                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                        {/* Self */}
+                        <td className="p-3 bg-amber-50/20">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'self_submissions')}
+                              className="p-1 hover:bg-amber-100/50 rounded text-amber-800"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.self_submissions}
+                              onChange={(e) => handleInputChange(profile.id, 'self_submissions', parseInt(e.target.value))}
+                              className="w-12 text-center py-1 px-1 border border-amber-200 bg-amber-50/50 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-semibold text-amber-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'self_submissions')}
+                              className="p-1 hover:bg-amber-100/50 rounded text-amber-800"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                        {/* Support */}
+                        <td className="p-3 bg-amber-50/20">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'support_submissions')}
+                              className="p-1 hover:bg-amber-100/50 rounded text-amber-800"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.support_submissions}
+                              onChange={(e) => handleInputChange(profile.id, 'support_submissions', parseInt(e.target.value))}
+                              className="w-12 text-center py-1 px-1 border border-amber-200 bg-amber-50/50 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-semibold text-amber-900"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'support_submissions')}
+                              className="p-1 hover:bg-amber-100/50 rounded text-amber-800"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile / Tablet Responsive Cards */}
+          <div className="lg:hidden space-y-4">
+            {profiles.map(profile => {
+              const values = formValues[profile.id] || {
+                applications_count: 0,
+                interviews_count: 0,
+                assessments: 0,
+                technical_rounds: 0,
+                non_technical: 0,
+                self_submissions: 0,
+                support_submissions: 0
+              };
+
+              return (
+                <div key={profile.id} className="bg-white rounded-2xl border border-border shadow-sm p-5 space-y-4">
+                  <div className="flex justify-between items-start border-b border-border pb-3">
+                    <div>
+                      <h4 className="font-bold text-navy-900 text-sm">{profile.client_name}</h4>
+                      <p className="text-[10px] text-text-muted mt-0.5">Assigned: {formatDate(profile.created_at)}</p>
+                    </div>
+                    <span className="text-[9px] bg-slate-100 text-navy-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      {profile.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Input columns */}
+                    {[
+                      { field: 'applications_count', label: 'Apps Count' },
+                      { field: 'interviews_count', label: 'Interviews' },
+                      { field: 'assessments', label: 'Assessments' },
+                      { field: 'technical_rounds', label: 'Tech Rounds' },
+                      { field: 'non_technical', label: 'Non-Tech' }
+                    ].map(item => (
+                      <div key={item.field} className="space-y-1">
+                        <label className="text-[10px] font-semibold text-text-secondary">{item.label}</label>
+                        <div className="flex items-center gap-1 border border-border rounded-lg py-1 px-2">
+                          <button
+                            type="button"
+                            onClick={() => handleDecrement(profile.id, item.field)}
+                            className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            value={(values as any)[item.field]}
+                            onChange={(e) => handleInputChange(profile.id, item.field, parseInt(e.target.value))}
+                            className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-navy-900 font-medium text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleIncrement(profile.id, item.field)}
+                            className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Self & Support */}
+                  <div className="grid grid-cols-2 gap-4 bg-amber-50/30 p-3 rounded-xl border border-amber-100/50">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-amber-800">Self Submissions</label>
+                      <div className="flex items-center gap-1 border border-amber-200 bg-white rounded-lg py-1 px-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDecrement(profile.id, 'self_submissions')}
+                          className="p-1 hover:bg-slate-100 rounded text-amber-800"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={values.self_submissions}
+                          onChange={(e) => handleInputChange(profile.id, 'self_submissions', parseInt(e.target.value))}
+                          className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-amber-900 font-bold text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleIncrement(profile.id, 'self_submissions')}
+                          className="p-1 hover:bg-slate-100 rounded text-amber-800"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-amber-800">Support Submissions</label>
+                      <div className="flex items-center gap-1 border border-amber-200 bg-white rounded-lg py-1 px-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDecrement(profile.id, 'support_submissions')}
+                          className="p-1 hover:bg-slate-100 rounded text-amber-800"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min="0"
+                          value={values.support_submissions}
+                          onChange={(e) => handleInputChange(profile.id, 'support_submissions', parseInt(e.target.value))}
+                          className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-amber-900 font-bold text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleIncrement(profile.id, 'support_submissions')}
+                          className="p-1 hover:bg-slate-100 rounded text-amber-800"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-2 bg-primary-500 hover:bg-primary-600 font-bold text-white rounded-xl shadow cursor-pointer transition-all active:scale-[0.98] min-h-[40px] w-full sm:w-auto"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <span>{isAlreadySubmitted ? 'Update Daily Report' : 'Submit Daily Report'}</span>
+              )}
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {/* History log collapsible section */}
+      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
+          className="flex justify-between items-center w-full p-5 font-bold text-navy-900 text-sm hover:bg-slate-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-primary-500" />
+            <span>Recent Submission History (Past 7 Days)</span>
+          </div>
+          <span className="text-xs text-primary-500 font-semibold">
+            {isHistoryExpanded ? 'Collapse' : 'Expand'}
+          </span>
+        </button>
+
+        {isHistoryExpanded && (
+          <div className="border-t border-border p-5 space-y-4">
+            {Object.keys(groupedHistory).length === 0 ? (
+              <p className="text-xs text-text-muted text-center py-4">No recent submission history found.</p>
+            ) : (
+              <div className="space-y-6">
+                {Object.entries(groupedHistory).map(([date, items]) => (
+                  <div key={date} className="space-y-2">
+                    <h4 className="font-bold text-xs text-navy-900 flex items-center gap-1.5 bg-slate-50 p-2 rounded-lg border border-border">
+                      <Calendar className="w-3.5 h-3.5 text-text-muted" />
+                      <span>{formatDate(date)}</span>
+                    </h4>
+
+                    <div className="overflow-x-auto rounded-xl border border-border bg-white">
+                      <table className="w-full border-collapse text-left text-[11px]">
+                        <thead>
+                          <tr className="bg-slate-50 text-text-secondary border-b border-border font-medium">
+                            <th className="p-3">Consultant</th>
+                            <th className="p-3 text-center">Apps</th>
+                            <th className="p-3 text-center">Interviews</th>
+                            <th className="p-3 text-center">Assessments</th>
+                            <th className="p-3 text-center">Tech</th>
+                            <th className="p-3 text-center">Non-Tech</th>
+                            <th className="p-3 text-center bg-amber-50/30 text-amber-800 font-semibold">Self</th>
+                            <th className="p-3 text-center bg-amber-50/30 text-amber-800 font-semibold">Support</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border text-navy-900">
+                          {items.map(item => (
+                            <tr key={item.id} className="hover:bg-slate-50/30">
+                              <td className="p-3 font-semibold">
+                                {(Array.isArray(item.application_profiles) 
+                                  ? item.application_profiles[0]?.client_name 
+                                  : item.application_profiles?.client_name) || 'Deleted Consultant'}
+                              </td>
+                              <td className="p-3 text-center">{item.applications_count}</td>
+                              <td className="p-3 text-center">{item.interviews_count}</td>
+                              <td className="p-3 text-center">{item.assessments}</td>
+                              <td className="p-3 text-center">{item.technical_rounds}</td>
+                              <td className="p-3 text-center">{item.non_technical}</td>
+                              <td className="p-3 text-center bg-amber-50/10 font-bold text-amber-800">{item.self_submissions}</td>
+                              <td className="p-3 text-center bg-amber-50/10 font-bold text-amber-800">{item.support_submissions}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
