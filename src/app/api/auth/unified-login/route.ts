@@ -238,8 +238,7 @@ export async function POST(request: NextRequest) {
     await logAuditAction('LOGIN_SUCCESS', 'employees', user.id, null, null, { id: user.id, role: user.role });
     return response;
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error('Unified Login error:', errorMsg);
-    return NextResponse.json({ error: `Internal server error: ${errorMsg}` }, { status: 500 });
+    console.error('Unified Login error:', err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
