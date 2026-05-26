@@ -110,10 +110,17 @@ export default function AddApplicationForm({ onSuccess, onCancel }: AddApplicati
           <h3 className="text-xs font-bold uppercase tracking-wider">Client Profile Details</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
           <div>
             <label className={labelClasses}>Current Role</label>
             <input {...register('client_role')} placeholder="e.g. Senior Developer" className={inputClasses} />
+          </div>
+          <div>
+            <label className={labelClasses}>Role Category</label>
+            <select {...register('role_category')} className={inputClasses}>
+              <option value="IT">IT Role</option>
+              <option value="Non-IT">Non-IT Role</option>
+            </select>
           </div>
           <div>
             <label className={labelClasses}>LinkedIn Link</label>

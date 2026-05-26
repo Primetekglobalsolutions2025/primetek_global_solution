@@ -140,6 +140,7 @@ export async function createFullApplication(formData: any) {
       client_address: validated.client_address || null,
       client_role: validated.client_role || null,
       client_linkedin: validated.client_linkedin || null,
+      role_category: validated.role_category,
       education_details: {
         bachelors: validated.education_bachelors || '',
         masters: validated.education_masters || '',

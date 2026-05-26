@@ -59,6 +59,7 @@ export const fullApplicationSchema = z.object({
   client_address: z.string().optional(),
   client_role: z.string().optional(),
   client_linkedin: z.string().optional(),
+  role_category: z.enum(['IT', 'Non-IT']).optional().default('IT'),
   education_bachelors: z.string().optional(),
   education_masters: z.string().optional(),
   
@@ -66,12 +67,13 @@ export const fullApplicationSchema = z.object({
   assigned_to: z.string().optional(),
 });
 
+
 export type InquiryFormData = z.infer<typeof inquirySchema>;
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type JobFormData = z.input<typeof jobSchema>;
 export type ApplicationFormData = z.input<typeof applicationSchema>;
 export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
-export type FullApplicationFormData = z.infer<typeof fullApplicationSchema>;
+export type FullApplicationFormData = z.input<typeof fullApplicationSchema>;
 
 /**
  * Client profile schema for create/update operations.
