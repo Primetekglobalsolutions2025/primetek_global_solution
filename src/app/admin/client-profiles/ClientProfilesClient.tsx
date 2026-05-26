@@ -56,7 +56,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
     education_details: { bachelors: '', masters: '' },
     assigned_to: '',
     resume_url: '',
-    status: 'Pending'
+    status: 'assigned'
   });
 
   const filtered = useMemo(() => {
@@ -79,7 +79,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         education_details: profile.education_details || { bachelors: '', masters: '' },
         assigned_to: profile.assigned_to || '',
         resume_url: profile.resume_url || '',
-        status: profile.status || 'Pending'
+        status: (profile.status || 'assigned').toLowerCase()
       });
     } else {
       setEditingProfile(null);
@@ -93,7 +93,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         education_details: { bachelors: '', masters: '' },
         assigned_to: '',
         resume_url: '',
-        status: 'Pending'
+        status: 'assigned'
       });
     }
     setResumeFile(null);
@@ -335,12 +335,11 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-navy-900">Status</label>
-                  <select value={formData.status || 'Pending'} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
-                    <option value="Pending">Pending</option>
-                    <option value="Assigned">Assigned</option>
-                    <option value="Processing">Processing</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Rejected">Rejected</option>
+                  <select value={(formData.status || 'assigned').toLowerCase()} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
+                    <option value="assigned">Assigned</option>
+                    <option value="processing">Processing</option>
+                    <option value="completed">Completed</option>
+                    <option value="rejected">Rejected</option>
                   </select>
                 </div>
               </div>

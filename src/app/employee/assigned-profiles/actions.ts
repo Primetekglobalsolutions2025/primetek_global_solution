@@ -23,9 +23,9 @@ export async function updateProfileStatus(id: string, status: string) {
   if (!session || !session.id) throw new Error('Unauthorized');
 
   // MED-05: Restrict to employee-allowed statuses
-  const ALLOWED_STATUSES = ['assigned', 'processing'];
+  const ALLOWED_STATUSES = ['assigned', 'processing', 'completed', 'rejected'];
   if (!ALLOWED_STATUSES.includes(status)) {
-    throw new Error('Invalid status. Employees can only set status to assigned or processing.');
+    throw new Error('Invalid status. Employees can only set status to assigned, processing, completed, or rejected.');
   }
 
   const { error } = await supabaseAdmin

@@ -89,7 +89,7 @@ export const clientProfileSchema = z.object({
   education_bachelors: z.string().max(300).optional().nullable(),
   education_masters: z.string().max(300).optional().nullable(),
   resume_url: z.string().url().optional().nullable(),
-  status: z.enum(['pending', 'in-progress', 'submitted', 'completed', 'rejected']).optional(),
+  status: z.enum(['assigned', 'processing', 'completed', 'rejected', 'pending']).optional(),
   assigned_to: z.string().uuid().optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
 });

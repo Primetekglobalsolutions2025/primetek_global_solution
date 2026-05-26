@@ -95,22 +95,19 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
               <div className="flex items-center justify-between pt-3 border-t border-border/60">
                 <div className="flex items-center gap-2">
                   <select 
-                    value={profile.status}
+                    value={(profile.status || 'assigned').toLowerCase()}
                     onChange={(e) => handleStatusChange(profile.id, e.target.value)}
                     disabled={updating === profile.id}
                     className={cn(
                       "text-[10px] font-bold uppercase tracking-wider py-1.5 px-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary-400/50 cursor-pointer transition-all duration-200",
-                      profile.status === 'assigned' && "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100/75",
-                      profile.status === 'processing' && "bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100/75",
-                      profile.status === 'completed' && "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100/75",
-                      profile.status === 'rejected' && "bg-red-50 text-red-600 border-red-200 hover:bg-red-100/75"
+                      (profile.status || 'assigned').toLowerCase() === 'assigned' && "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100/75",
+                      (profile.status || 'assigned').toLowerCase() === 'processing' && "bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100/75",
+                      (profile.status || 'assigned').toLowerCase() === 'completed' && "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100/75",
+                      (profile.status || 'assigned').toLowerCase() === 'rejected' && "bg-red-50 text-red-600 border-red-200 hover:bg-red-100/75"
                     )}
                   >
-                    {(profile.status === 'assigned' || profile.status === 'processing') && (
-                      <option value={profile.status} disabled className="bg-white text-navy-900/50 font-sans">
-                        {profile.status === 'assigned' ? 'Assigned' : 'Processing'}
-                      </option>
-                    )}
+                    <option value="assigned" className="bg-white text-navy-900 font-sans">Assigned</option>
+                    <option value="processing" className="bg-white text-navy-900 font-sans">Processing</option>
                     <option value="completed" className="bg-white text-navy-900 font-sans">Completed</option>
                     <option value="rejected" className="bg-white text-navy-900 font-sans">Rejected</option>
                   </select>

@@ -13,10 +13,16 @@ export async function getAssignedProfilesWithMetrics() {
     .from('application_profiles')
     .select('id, client_name, created_at, status')
     .eq('assigned_to', session.id)
-    .in('status', ['assigned', 'processing'])
+    .in('status', ['assigned', 'processing', 'Assigned', 'Processing', 'pending', 'Pending'])
     .order('created_at', { ascending: false });
 
   if (pError) throw pError;
+
+  // Normalize statuses to lowercase for frontend mapping consistency
+  const normalizedProfiles = (profiles || []).map(p => ({
+    ...p,
+    status: p.status ? p.status.toLowerCase() : 'assigned'
+  }));
 
   // Use local-like YYYY-MM-DD string
   const todayStr = new Date().toLocaleDateString('en-CA');
@@ -30,7 +36,7 @@ export async function getAssignedProfilesWithMetrics() {
   if (mError) throw mError;
 
   return { 
-    profiles: profiles || [], 
+    profiles: normalizedProfiles, 
     todayMetrics: todayMetrics || [], 
     reportDate: todayStr 
   };
