@@ -208,26 +208,27 @@ export default function AttendanceClient({
 
   return (
     <div className="space-y-6">
-      {/* Tabs */}
-      <div className="flex border-b border-border/50 gap-2">
+      {/* Tabs Selection */}
+      <div className="flex p-1 bg-white/70 backdrop-blur-md rounded-2xl md:rounded-[2rem] w-full md:w-fit border border-border/60 shadow-sm overflow-x-auto scrollbar-none flex-nowrap">
         {[
           { id: 'logs', label: 'Attendance Logs', icon: Calendar },
           { id: 'live', label: 'Live Monitor', icon: Clock },
           { id: 'lates', label: 'Late Login Reports', icon: AlertTriangle },
         ].map((tab) => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "flex items-center gap-2 px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all cursor-pointer",
-                activeTab === tab.id
-                  ? "border-primary-500 text-primary-600 font-extrabold"
-                  : "border-transparent text-text-muted hover:text-navy-900"
+                "relative flex items-center justify-center gap-2 md:gap-3 px-4 md:px-8 py-2.5 md:py-3.5 rounded-xl md:rounded-[1.5rem] text-[10px] md:text-[11px] font-black uppercase tracking-wider md:tracking-[0.2em] transition-all duration-300 whitespace-nowrap shrink-0 flex-1 md:flex-initial",
+                isActive
+                  ? "bg-navy-900 text-white shadow-md scale-[1.02]"
+                  : "text-text-muted hover:text-navy-900 hover:bg-surface-alt/50"
               )}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isActive ? "text-primary-400" : "text-text-muted")} />
               {tab.label}
             </button>
           );
@@ -283,22 +284,22 @@ export default function AttendanceClient({
                   <option value="medium">Trust: MEDIUM RISK</option>
                   <option value="high">Trust: HIGH RISK</option>
                 </select>
-                <div className="flex items-center gap-1.5 col-span-2 sm:col-span-1">
+                <div className="grid grid-cols-9 items-center gap-1 col-span-2 sm:flex sm:col-span-1 sm:gap-1.5 w-full sm:w-auto">
                   <input
                     type="date"
                     value={startDate}
                     max={todayISTStr}
                     onChange={(e) => handleDateChange(e.target.value, endDate)}
-                    className="px-2 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm w-full sm:w-[110px]"
+                    className="col-span-4 px-2 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm w-full sm:w-[110px]"
                     placeholder="Start Date"
                   />
-                  <span className="text-[10px] text-gray-400 font-bold">TO</span>
+                  <span className="col-span-1 text-[10px] text-gray-400 font-bold text-center">TO</span>
                   <input
                     type="date"
                     value={endDate}
                     max={todayISTStr}
                     onChange={(e) => handleDateChange(startDate, e.target.value)}
-                    className="px-2 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm w-full sm:w-[110px]"
+                    className="col-span-4 px-2 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm w-full sm:w-[110px]"
                     placeholder="End Date"
                   />
                 </div>
