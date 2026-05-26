@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
-import { getAllDailyReports, getActiveEmployees, getSubmissionStatus } from './actions';
-import DailyReportsAdminClient from './DailyReportsAdminClient';
+import { Suspense } from 'react';
+import DailyReportsClientWrapper from './DailyReportsClientWrapper';
+import { DailyReportsSkeleton } from './skeletons';
 
 export const metadata = {
   title: 'Daily Reports Dashboard - PrimeTek Admin',
@@ -14,33 +15,11 @@ export default async function AdminDailyReportsPage() {
     redirect('/admin/login');
   }
 
-  const todayStr = new Date().toLocaleDateString('en-CA');
-  
-  let initialReports: any[] = [];
-  let initialEmployees: any[] = [];
-  let initialSubmissionStatus: any[] = [];
-
-  try {
-    const [reports, employees, status] = await Promise.all([
-      getAllDailyReports(todayStr),
-      getActiveEmployees(),
-      getSubmissionStatus(todayStr)
-    ]);
-    initialReports = reports || [];
-    initialEmployees = employees || [];
-    initialSubmissionStatus = status || [];
-  } catch (err) {
-    console.error('Failed to load daily reports data from database:', err);
-  }
-
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
-      <DailyReportsAdminClient
-        initialDate={todayStr}
-        initialReports={initialReports as any}
-        initialEmployees={initialEmployees}
-        initialSubmissionStatus={initialSubmissionStatus}
-      />
+      <Suspense fallback={<DailyReportsSkeleton />}>
+        <DailyReportsClientWrapper />
+      </Suspense>
     </div>
   );
 }
