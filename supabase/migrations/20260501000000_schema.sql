@@ -351,5 +351,3 @@ CREATE TABLE public.system_status (
 ALTER TABLE public.system_status ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Admins have full access to system_status" 
   ON public.system_status FOR ALL USING (public.is_admin());
-
-

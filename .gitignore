@@ -38,6 +38,7 @@ yarn-error.log*
 
 # Code intelligence
 /.code-review-graph/
+/.planning/
 /graphify-out/
 # typescript
 *.tsbuildinfo
