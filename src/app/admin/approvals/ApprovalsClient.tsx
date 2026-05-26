@@ -205,7 +205,7 @@ export default function ApprovalsClient({
                           </div>
                           <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-navy-900 text-white/90 text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em] border border-white/5 w-fit">
                             <MapPin className="w-3 h-3 md:w-3.5 md:h-3.5 text-red-500" />
-                            Geolocation Sync: {request.lat.toFixed(6)}, {request.lng.toFixed(6)}
+                            Geolocation Sync: {typeof request.lat === 'number' ? request.lat.toFixed(6) : (request.lat ? Number(request.lat).toFixed(6) : '0.000000')}, {typeof request.lng === 'number' ? request.lng.toFixed(6) : (request.lng ? Number(request.lng).toFixed(6) : '0.000000')}
                           </div>
                         </div>
                       </div>

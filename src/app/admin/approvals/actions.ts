@@ -58,7 +58,9 @@ export async function getPendingApprovals() {
       wfh: (wfh || []).map((w: any) => ({ 
         ...w, 
         employee_name: empMap[w.employee_id]?.name || 'Unknown Employee',
-        employee_email: empMap[w.employee_id]?.email
+        employee_email: empMap[w.employee_id]?.email,
+        lat: w.lat !== null && w.lat !== undefined ? Number(w.lat) : 0,
+        lng: w.lng !== null && w.lng !== undefined ? Number(w.lng) : 0,
       }))
     };
   } catch (error) {
@@ -302,6 +304,8 @@ export async function getApprovalHistory() {
       created_at: w.created_at || w.check_in || w.date,
       employee_name: empMap[w.employee_id]?.name || 'Unknown',
       employee_email: empMap[w.employee_id]?.email || '',
+      lat: w.lat !== null && w.lat !== undefined ? Number(w.lat) : 0,
+      lng: w.lng !== null && w.lng !== undefined ? Number(w.lng) : 0,
     }));
 
     return [...leaveHistory, ...wfhHistory].sort((a, b) => {
