@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { checkIn } from '@/app/employee/attendance/actions';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { latitude, longitude, ipAddress, userAgent, deviceFingerprint } = body;
+    const { latitude, longitude, deviceFingerprint } = body;
+    
+    // Extract IP and User-Agent from server-side headers (not client body) to prevent spoofing
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
     
     if (latitude === undefined || longitude === undefined) {
       return NextResponse.json({ error: 'Latitude and longitude are required' }, { status: 400 });

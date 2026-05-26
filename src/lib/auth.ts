@@ -38,7 +38,7 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
 
 export async function getSession(): Promise<TokenPayload | null> {
   const cookieStore = await cookies();
-  let tokenCookieName = 'auth-token';
+  let tokenCookieName: string | null = null;
 
   try {
     const headerStore = await headers();
@@ -52,17 +52,20 @@ export async function getSession(): Promise<TokenPayload | null> {
       }
     }
   } catch {
-    // headers() might fail in some contexts, fall back to safe check
+    // headers() might fail in some contexts
   }
 
-  let token = cookieStore.get(tokenCookieName)?.value;
-  if (!token) {
-    // Robust fallback: try all supported token cookies in order of priority
-    token = cookieStore.get('employee-auth-token')?.value ||
-            cookieStore.get('admin-auth-token')?.value ||
-            cookieStore.get('auth-token')?.value;
+  // If we couldn't determine from referer, try both but validate role matches
+  if (!tokenCookieName) {
+    // Try admin first, then employee — but verify role after
+    const adminToken = cookieStore.get('admin-auth-token')?.value;
+    if (adminToken) return verifyToken(adminToken);
+    const empToken = cookieStore.get('employee-auth-token')?.value;
+    if (empToken) return verifyToken(empToken);
+    return null;
   }
 
+  const token = cookieStore.get(tokenCookieName)?.value;
   if (!token) return null;
   return verifyToken(token);
 }
@@ -72,10 +75,11 @@ export function getTokenFromRequest(request: NextRequest): string | null {
   const referer = request.headers.get('referer');
   const roleParam = searchParams.get('role');
   
-  let tokenCookieName = 'auth-token';
-  if (pathname.startsWith('/api/admin')) {
+  // Strict cookie selection based on route path — no fallback across roles
+  let tokenCookieName: string | null = null;
+  if (pathname.startsWith('/api/admin') || pathname.startsWith('/admin')) {
     tokenCookieName = 'admin-auth-token';
-  } else if (pathname.startsWith('/api/attendance')) {
+  } else if (pathname.startsWith('/api/attendance') || pathname.startsWith('/api/mfa') || pathname.startsWith('/employee')) {
     tokenCookieName = 'employee-auth-token';
   } else if (roleParam === 'admin') {
     tokenCookieName = 'admin-auth-token';
@@ -92,19 +96,13 @@ export function getTokenFromRequest(request: NextRequest): string | null {
     } catch {}
   }
 
-  let token = request.cookies.get(tokenCookieName)?.value;
-  if (!token) {
-    // Robust fallback: try all supported token cookies in order of priority
-    token = request.cookies.get('employee-auth-token')?.value ||
-            request.cookies.get('admin-auth-token')?.value ||
-            request.cookies.get('auth-token')?.value;
+  // If no route-based match, try both cookies (middleware will still enforce role)
+  if (!tokenCookieName) {
+    return request.cookies.get('admin-auth-token')?.value ||
+           request.cookies.get('employee-auth-token')?.value ||
+           null;
   }
-  if (!token) {
-    const authHeader = request.headers.get('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    }
-  }
-  return token || null;
+
+  return request.cookies.get(tokenCookieName)?.value || null;
 }
 

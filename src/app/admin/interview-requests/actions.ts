@@ -30,6 +30,11 @@ export async function updateInterviewStatus(requestId: string, status: string) {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
 
+    // Validate status is a known enum value
+    const allowedStatuses = ['pending', 'acknowledged', 'completed', 'cancelled'];
+    if (!allowedStatuses.includes(status)) {
+      return { error: `Invalid status. Must be one of: ${allowedStatuses.join(', ')}` };
+    }
     // Fetch old status for audit
     const { data: oldData, error: fetchError } = await supabaseAdmin
       .from('interview_requests')

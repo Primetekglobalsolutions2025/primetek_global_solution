@@ -31,6 +31,10 @@ export async function middleware(request: NextRequest) {
         } catch {
           return NextResponse.json({ error: 'Forbidden: Malformed Referer' }, { status: 403 });
         }
+      } else {
+        // Neither Origin nor Referer is present — reject to prevent CSRF bypass
+        console.warn(`[CSRF] Blocked request: both Origin and Referer headers are missing (host: ${host})`);
+        return NextResponse.json({ error: 'Forbidden: Origin or Referer header required' }, { status: 403 });
       }
     }
   }

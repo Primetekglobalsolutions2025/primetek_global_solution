@@ -3,6 +3,7 @@ import { verifyToken, createToken } from '@/lib/auth';
 import { verifyMFAToken, decryptSecret } from '@/lib/mfa';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logAuditAction } from '@/lib/audit';
+import { loginRateLimiter, consumeRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,17 @@ export async function POST(request: NextRequest) {
     const session = await verifyToken(tempToken);
     if (!session || !session.mfa_pending) {
       return NextResponse.json({ error: 'Invalid MFA session' }, { status: 401 });
+    }
+
+    // Rate limit MFA verification attempts to prevent brute-forcing 6-digit codes
+    const rateLimitKey = `mfa:${session.id}`;
+    const rateLimitResult = await consumeRateLimit(loginRateLimiter, rateLimitKey);
+    if (!rateLimitResult.allowed) {
+      const retryAfterSec = Math.ceil(rateLimitResult.retryAfterMs / 1000);
+      return NextResponse.json(
+        { error: `Too many MFA attempts. Try again in ${retryAfterSec} seconds.` },
+        { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
+      );
     }
 
     const { code } = await request.json();

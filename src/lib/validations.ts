@@ -67,3 +67,26 @@ export type ApplicationFormData = z.input<typeof applicationSchema>;
 export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 export type FullApplicationFormData = z.infer<typeof fullApplicationSchema>;
 
+/**
+ * Client profile schema for create/update operations.
+ * Prevents mass-assignment by only allowing known fields.
+ */
+export const clientProfileSchema = z.object({
+  application_id: z.string().uuid().optional(),
+  client_name: z.string().min(1, 'Client name is required').max(200),
+  client_company: z.string().max(200).optional().nullable(),
+  client_email: z.string().email('Invalid email').optional().nullable(),
+  client_phone: z.string().max(30).optional().nullable(),
+  client_address: z.string().max(500).optional().nullable(),
+  client_role: z.string().max(100).optional().nullable(),
+  client_linkedin: z.string().url().optional().nullable().or(z.literal('')),
+  education_bachelors: z.string().max(300).optional().nullable(),
+  education_masters: z.string().max(300).optional().nullable(),
+  resume_url: z.string().url().optional().nullable(),
+  status: z.enum(['pending', 'in-progress', 'submitted', 'completed', 'rejected']).optional(),
+  assigned_to: z.string().uuid().optional().nullable(),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+export type ClientProfileFormData = z.infer<typeof clientProfileSchema>;
+

@@ -11,9 +11,13 @@ export async function changePassword(data: { currentPassword?: string; newPasswo
   if (!session) throw new Error('Unauthorized');
 
   if (session.role === 'admin') {
-    // Admin password change logic (Supabase Auth)
-    // In a real scenario, you'd use supabaseAdmin.auth.admin.updateUserById(session.id, { password: data.newPassword });
-    // For now, we'll return success to avoid blocking the UI
+    // Admin password change via Supabase Auth
+    if (!data.newPassword) throw new Error('New password is required');
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(session.id, {
+      password: data.newPassword,
+    });
+    if (authError) throw new Error(authError.message);
+    revalidatePath('/admin/profile');
     return { success: true };
   }
 

@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { checkOut } from '@/app/employee/attendance/actions';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { recordId, latitude, longitude, ipAddress, userAgent, deviceFingerprint } = body;
+    const { recordId, latitude, longitude, deviceFingerprint } = body;
+    
+    // Extract IP and User-Agent from server-side headers (not client body) to prevent spoofing
+    const ipAddress = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || 'unknown';
+    const userAgent = req.headers.get('user-agent') || 'unknown';
     
     if (!recordId) {
       return NextResponse.json({ error: 'recordId is required' }, { status: 400 });

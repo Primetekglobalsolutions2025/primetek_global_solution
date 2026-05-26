@@ -337,6 +337,10 @@ export async function toggleExemption(recordId: string, fieldName: string, value
     throw new Error('Invalid exemption field');
   }
 
+  if (typeof value !== 'boolean') {
+    throw new Error('Value must be a boolean');
+  }
+
   const { data: oldRecord, error: fetchError } = await supabaseAdmin
     .from('attendance')
     .select('*')
@@ -392,7 +396,7 @@ export async function recalculateEmployeeLates(employeeId: string, year: number,
     .lt('date', endOfMonth)
     .order('date', { ascending: true });
 
-  if (error || !records) return;
+  if (error || !records || records.length === 0) return;
 
   const unexempted = records.filter(r => 
     !r.late_approved && 
@@ -411,17 +415,26 @@ export async function recalculateEmployeeLates(employeeId: string, year: number,
     deductionTotal = 0.5;
   }
 
-  for (const r of records) {
-    if (r.deduction_applied !== 0.0) {
-      await supabaseAdmin.from('attendance').update({ deduction_applied: 0.0 }).eq('id', r.id);
-    }
+  // Bulk reset: clear all deductions in one query instead of N individual updates
+  const allIds = records.map(r => r.id);
+  const recordsWithDeduction = records.filter(r => r.deduction_applied !== 0.0);
+  if (recordsWithDeduction.length > 0) {
+    const idsToReset = recordsWithDeduction.map(r => r.id);
+    await supabaseAdmin
+      .from('attendance')
+      .update({ deduction_applied: 0.0 })
+      .in('id', idsToReset);
   }
 
+  // Apply targeted deductions
   if (deductionTotal === 0.5 && unexempted.length >= 3) {
     await supabaseAdmin.from('attendance').update({ deduction_applied: 0.5 }).eq('id', unexempted[2].id);
   } else if (deductionTotal === 1.0 && unexempted.length >= 6) {
-    await supabaseAdmin.from('attendance').update({ deduction_applied: 0.5 }).eq('id', unexempted[2].id);
-    await supabaseAdmin.from('attendance').update({ deduction_applied: 0.5 }).eq('id', unexempted[5].id);
+    // Both the 3rd and 6th late records get 0.5 deduction each
+    await supabaseAdmin
+      .from('attendance')
+      .update({ deduction_applied: 0.5 })
+      .in('id', [unexempted[2].id, unexempted[5].id]);
   }
 }
 

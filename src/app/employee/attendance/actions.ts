@@ -287,11 +287,12 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
       return { success: false, error: 'High risk check‑out attempt detected', riskLevel: risk.level };
     }
 
-    // Fetch the check-in time to compute duration
+    // Fetch the check-in time to compute duration — enforce ownership to prevent IDOR
     const { data: record, error: fetchError } = await supabaseAdmin
       .from('attendance')
       .select('*')
       .eq('id', recordId)
+      .eq('employee_id', session.id)
       .single();
 
     if (fetchError || !record || !record.check_in) {

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ qrCode, secret });
+    return NextResponse.json({ qrCode });
   } catch (err) {
     console.error('MFA Setup error:', err);
     return NextResponse.json({ error: 'Failed to initiate MFA setup' }, { status: 500 });

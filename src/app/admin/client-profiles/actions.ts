@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
 import { sendNotificationEmail, getAssignmentTemplate } from '@/lib/notifications';
+import { clientProfileSchema } from '@/lib/validations';
 
 export async function getAllProfiles() {
   const session = await getSession();
@@ -27,9 +28,17 @@ export async function createProfile(formData: any) {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
 
+    // Validate and strip unknown fields to prevent mass-assignment
+    const parsed = clientProfileSchema.safeParse(formData);
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+      return { error: `Validation failed: ${issues}` };
+    }
+    const validatedData = parsed.data;
+
     const { error, data } = await supabaseAdmin
       .from('application_profiles')
-      .insert([formData])
+      .insert([validatedData])
       .select()
       .single();
 
@@ -39,16 +48,16 @@ export async function createProfile(formData: any) {
     }
 
     // Log the action
-    await logAuditAction('CREATE_PROFILE', 'application_profiles', data.id, null, formData);
+    await logAuditAction('CREATE_PROFILE', 'application_profiles', data.id, null, validatedData);
 
     // If assigned to an employee, send a notification
-    if (formData.assigned_to) {
-      const { data: employee } = await supabaseAdmin.from('employees').select('name, email').eq('id', formData.assigned_to).single();
+    if (validatedData.assigned_to) {
+      const { data: employee } = await supabaseAdmin.from('employees').select('name, email').eq('id', validatedData.assigned_to).single();
       if (employee) {
         await sendNotificationEmail(
           employee.email, 
-          'New Assignment: ' + formData.client_name, 
-          getAssignmentTemplate(employee.name, formData.client_name)
+          'New Assignment: ' + validatedData.client_name, 
+          getAssignmentTemplate(employee.name, validatedData.client_name || '')
         );
       }
     }
@@ -65,12 +74,20 @@ export async function updateProfile(id: string, formData: any) {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
 
+    // Validate and strip unknown fields to prevent mass-assignment
+    const parsed = clientProfileSchema.partial().safeParse(formData);
+    if (!parsed.success) {
+      const issues = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+      return { error: `Validation failed: ${issues}` };
+    }
+    const validatedData = parsed.data;
+
     // Fetch old data for audit
     const { data: oldData } = await supabaseAdmin.from('application_profiles').select('*').eq('id', id).single();
 
     const { error } = await supabaseAdmin
       .from('application_profiles')
-      .update(formData)
+      .update(validatedData)
       .eq('id', id);
 
     if (error) {
@@ -79,16 +96,16 @@ export async function updateProfile(id: string, formData: any) {
     }
 
     // Log the action
-    await logAuditAction('UPDATE_PROFILE', 'application_profiles', id, oldData, formData);
+    await logAuditAction('UPDATE_PROFILE', 'application_profiles', id, oldData, validatedData);
 
     // If assignment changed, notify new employee
-    if (formData.assigned_to && formData.assigned_to !== oldData?.assigned_to) {
-      const { data: employee } = await supabaseAdmin.from('employees').select('name, email').eq('id', formData.assigned_to).single();
+    if (validatedData.assigned_to && validatedData.assigned_to !== oldData?.assigned_to) {
+      const { data: employee } = await supabaseAdmin.from('employees').select('name, email').eq('id', validatedData.assigned_to).single();
       if (employee) {
         await sendNotificationEmail(
           employee.email, 
-          'New Assignment: ' + (formData.client_name || oldData.client_name), 
-          getAssignmentTemplate(employee.name, formData.client_name || oldData.client_name)
+          'New Assignment: ' + (validatedData.client_name || oldData?.client_name || ''), 
+          getAssignmentTemplate(employee.name, validatedData.client_name || oldData?.client_name || '')
         );
       }
     }
@@ -119,24 +136,15 @@ export async function deleteProfile(id: string) {
       return { error: 'Profile not found' };
     }
 
-    // Try deleting parent application first to cascade delete profile cleanly
+    // Delete the profile directly — don't cascade-delete the parent application
     const { error: deleteError } = await supabaseAdmin
-      .from('applications')
+      .from('application_profiles')
       .delete()
-      .eq('id', oldData.application_id);
+      .eq('id', id);
 
     if (deleteError) {
-      console.error('Delete application error:', deleteError);
-      // Fallback: try to delete the profile directly if application deletion failed
-      const { error: deleteProfileError } = await supabaseAdmin
-        .from('application_profiles')
-        .delete()
-        .eq('id', id);
-
-      if (deleteProfileError) {
-        console.error('Delete profile direct error:', deleteProfileError);
-        return { error: deleteProfileError.message || 'Failed to delete client profile' };
-      }
+      console.error('Delete profile error:', deleteError);
+      return { error: deleteError.message || 'Failed to delete client profile' };
     }
 
     // Log the action
