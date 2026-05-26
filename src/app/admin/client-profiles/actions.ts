@@ -211,7 +211,7 @@ export async function uploadClientResume(formData: FormData) {
     const { data: signedData, error: signedError } = await supabaseAdmin
       .storage
       .from('resumes')
-      .createSignedUrl(uploadData.path, 86400); // 24 hours (1 day)
+      .createSignedUrl(uploadData.path, 315360000); // 10 years expiration
 
     if (signedError) return { error: 'Failed to generate secure link' };
 

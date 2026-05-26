@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { createClient } from '@/lib/supabase/server';
-import { createToken } from '@/lib/auth';
+import { createToken, createCaptchaToken, verifyCaptchaToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
-import { loginRateLimiter, consumeRateLimit, CAPTCHA_THRESHOLD } from '@/lib/rate-limit';
+import { loginRateLimiter, CAPTCHA_THRESHOLD } from '@/lib/rate-limit';
 import { logAuditAction } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
@@ -32,6 +31,31 @@ export async function POST(request: NextRequest) {
         error: 'Too many failed attempts. Please try again in 15 minutes.',
         lockout: true 
       }, { status: 429 });
+    }
+
+    const failedAttempts = rateLimitRes ? (5 - rateLimitRes.remainingPoints) : 0;
+    const isCaptchaRequired = failedAttempts >= CAPTCHA_THRESHOLD;
+
+    if (isCaptchaRequired) {
+      const { captchaToken, captchaAnswer } = body || {};
+      if (!captchaToken || captchaAnswer === undefined || captchaAnswer === null) {
+        const captcha = await generateCaptchaChallenge();
+        return NextResponse.json({
+          error: 'Security verification required. Please solve the CAPTCHA.',
+          showCaptcha: true,
+          captcha
+        }, { status: 401 });
+      }
+
+      const isValid = await verifyCaptchaToken(captchaToken, Number(captchaAnswer));
+      if (!isValid) {
+        const captcha = await generateCaptchaChallenge();
+        return NextResponse.json({
+          error: 'Incorrect CAPTCHA answer. Please try again.',
+          showCaptcha: true,
+          captcha
+        }, { status: 401 });
+      }
     }
 
     if (process.env.NODE_ENV !== 'production') {
@@ -70,9 +94,10 @@ export async function POST(request: NextRequest) {
         
         const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
         const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-        const responseData: any = { error: 'Invalid credentials' };
+        const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string } } = { error: 'Invalid credentials' };
         if (failedAttempts >= CAPTCHA_THRESHOLD) {
           responseData.showCaptcha = true;
+          responseData.captcha = await generateCaptchaChallenge();
         }
         
         // Pass through specific errors that aren't just "wrong password"
@@ -161,9 +186,10 @@ export async function POST(request: NextRequest) {
     if (error || !user) {
       const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
       const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-      const responseData: any = { error: 'Invalid credentials' };
+      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string } } = { error: 'Invalid credentials' };
       if (failedAttempts >= CAPTCHA_THRESHOLD) {
         responseData.showCaptcha = true;
+        responseData.captcha = await generateCaptchaChallenge();
       }
       return NextResponse.json(responseData, { status: 401 });
     }
@@ -178,9 +204,10 @@ export async function POST(request: NextRequest) {
       
       const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
       const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-      const responseData: any = { error: 'Invalid credentials' };
+      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string } } = { error: 'Invalid credentials' };
       if (failedAttempts >= CAPTCHA_THRESHOLD) {
         responseData.showCaptcha = true;
+        responseData.captcha = await generateCaptchaChallenge();
       }
       return NextResponse.json(responseData, { status: 401 });
     }
@@ -241,4 +268,12 @@ export async function POST(request: NextRequest) {
     console.error('Unified Login error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+async function generateCaptchaChallenge() {
+  const num1 = Math.floor(Math.random() * 8) + 2; // 2 to 9
+  const num2 = Math.floor(Math.random() * 8) + 2; // 2 to 9
+  const equation = `${num1} + ${num2}`;
+  const token = await createCaptchaToken(num1 + num2);
+  return { equation, token };
 }

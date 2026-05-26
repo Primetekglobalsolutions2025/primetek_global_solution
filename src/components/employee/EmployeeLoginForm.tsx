@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, LogIn, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { cn } from '@/lib/utils';
 
 export default function EmployeeLoginForm() {
   const router = useRouter();
@@ -18,6 +17,9 @@ export default function EmployeeLoginForm() {
   const [mfaCode, setMfaCode] = useState('');
   const [lockout, setLockout] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaEquation, setCaptchaEquation] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +30,7 @@ export default function EmployeeLoginForm() {
       const res = await fetch('/api/auth/unified-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, captchaToken, captchaAnswer }),
       });
 
       const data = await res.json();
@@ -36,7 +38,14 @@ export default function EmployeeLoginForm() {
       if (!res.ok) {
         setError(data.error || 'Invalid credentials');
         if (data.lockout) setLockout(true);
-        if (data.showCaptcha) setShowCaptcha(true);
+        if (data.showCaptcha) {
+          setShowCaptcha(true);
+          if (data.captcha) {
+            setCaptchaEquation(data.captcha.equation);
+            setCaptchaToken(data.captcha.token);
+            setCaptchaAnswer('');
+          }
+        }
         setLoading(false);
         return;
       }
@@ -190,8 +199,19 @@ export default function EmployeeLoginForm() {
       </div>
 
       {showCaptcha && !lockout && (
-        <div className="p-3 bg-primary-500/5 border border-primary-500/20 rounded-xl text-primary-200 text-[10px] font-bold uppercase tracking-widest text-center">
-          Security Verification Required
+        <div className="space-y-2 animate-in fade-in zoom-in duration-200">
+          <label htmlFor="captcha-answer" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+            Solve Security CAPTCHA: {captchaEquation}
+          </label>
+          <input
+            id="captcha-answer"
+            type="text"
+            value={captchaAnswer}
+            onChange={(e) => setCaptchaAnswer(e.target.value.replace(/\D/g, ''))}
+            placeholder="Enter answer"
+            required
+            className="w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all text-sm font-medium"
+          />
         </div>
       )}
 

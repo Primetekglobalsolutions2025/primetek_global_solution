@@ -4,18 +4,33 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import ExcelJS from 'exceljs';
 
-export async function getAdminAttendance() {
+export async function getAdminAttendance(startDate?: string, endDate?: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
-  const { data, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from('attendance')
     .select(`
       *,
       employees (
         name
       )
-    `)
+    `);
+
+  if (startDate) {
+    query = query.gte('date', startDate);
+  } else {
+    // Default to last 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    query = query.gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+  }
+
+  if (endDate) {
+    query = query.lte('date', endDate);
+  }
+
+  const { data, error } = await query
     .order('check_in', { ascending: false })
     .limit(500);
 

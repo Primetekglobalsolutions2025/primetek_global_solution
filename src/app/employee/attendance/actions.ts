@@ -7,12 +7,6 @@ import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { calculateDistance } from '@/lib/utils';
 
-// Helper to get current IST time
-function getISTDate(now: Date = new Date()) {
-  const offset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
-  return new Date(now.getTime() + offset);
-}
-
 // Helper to get current shift info based on 6:30 PM (18:30 IST) to 3:30 AM (03:30 IST) night shift
 function getShiftInfo(now: Date = new Date()) {
   const offset = 5.5 * 60 * 60 * 1000;
@@ -185,8 +179,9 @@ export async function checkIn(lat: number, lng: number, ipAddress?: string, user
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Internal server error' };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal server error';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -259,13 +254,22 @@ export async function requestWFH(lat: number, lng: number, ipAddress?: string, u
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true };
-  } catch (err: any) {
+  } catch {
     return { success: false, error: 'Failed to request WFH' };
   }
 }
 
-export async function checkOut(recordId: string, lat?: number, lng?: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
+export async function checkOut(recordId: string, lat: number, lng: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
   try {
+    if (lat === undefined || lat === null || lng === undefined || lng === null) {
+      return { success: false, error: 'Location access is required to check out.' };
+    }
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+    if (isNaN(numLat) || isNaN(numLng)) {
+      return { success: false, error: 'Invalid location coordinates.' };
+    }
+
     const reqHeaders = await headers();
     const ip = ipAddress || reqHeaders.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
@@ -278,8 +282,8 @@ export async function checkOut(recordId: string, lat?: number, lng?: number, ipA
       ipAddress: ip,
       userAgent: ua,
       deviceFingerprint,
-      latitude: lat,
-      longitude: lng,
+      latitude: numLat,
+      longitude: numLng,
       action: 'check_out',
     });
     
@@ -332,8 +336,8 @@ export async function checkOut(recordId: string, lat?: number, lng?: number, ipA
         current_break_start: null,
         total_break_seconds: totalBreak,
         productive_hours: productiveHours,
-        lat: lat !== undefined && lat !== null ? Number(lat) : null,
-        lng: lng !== undefined && lng !== null ? Number(lng) : null,
+        lat: numLat,
+        lng: numLng,
       })
       .eq('id', recordId)
       .eq('employee_id', session.id)
@@ -352,8 +356,9 @@ export async function checkOut(recordId: string, lat?: number, lng?: number, ipA
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Internal server error' };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal server error';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -388,9 +393,7 @@ export async function resumeSession(recordId: string) {
       .from('attendance')
       .update({ 
         check_out: null,
-        status: 'Working',
-        duration_hours: null,
-        productive_hours: null
+        status: 'Working'
       })
       .eq('id', recordId)
       .eq('employee_id', session.id)
@@ -401,8 +404,9 @@ export async function resumeSession(recordId: string) {
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Failed to resume session' };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to resume session';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -444,8 +448,9 @@ export async function startBreak() {
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Internal server error' };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal server error';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -491,8 +496,9 @@ export async function endBreak() {
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Internal server error' };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal server error';
+    return { success: false, error: errorMsg };
   }
 }
 

@@ -46,16 +46,16 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
     }
 
     const checkAuth = async () => {
-      // Try to load session from localStorage
+      // Try to load session from sessionStorage
       let currentSession = null;
       try {
-        const savedSession = localStorage.getItem('primetek-admin-session');
+        const savedSession = sessionStorage.getItem('primetek-admin-session');
         if (savedSession) {
           currentSession = JSON.parse(savedSession);
           setSession(currentSession);
         }
       } catch (err) {
-        console.warn('Error reading session from localStorage:', err);
+        console.warn('Error reading session from sessionStorage:', err);
       }
 
       if (isLoginPage) {
@@ -91,14 +91,14 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
           if (data.user?.role === 'admin') {
             setSession(data.user);
             try {
-              localStorage.setItem('primetek-admin-session', JSON.stringify(data.user));
+              sessionStorage.setItem('primetek-admin-session', JSON.stringify(data.user));
             } catch {}
           } else if (data.user?.role === 'employee' || data.user?.role === 'hr') {
             router.replace('/employee/dashboard');
             return;
           } else {
             try {
-              localStorage.removeItem('primetek-admin-session');
+              sessionStorage.removeItem('primetek-admin-session');
               localStorage.removeItem('primetek-admin-token');
             } catch {}
             setSession(null);
@@ -108,7 +108,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
         } else if (res.status === 401 || res.status === 403 || res.status === 404) {
           // Genuine unauthenticated response
           try {
-            localStorage.removeItem('primetek-admin-session');
+            sessionStorage.removeItem('primetek-admin-session');
             localStorage.removeItem('primetek-admin-token');
           } catch {}
           setSession(null);

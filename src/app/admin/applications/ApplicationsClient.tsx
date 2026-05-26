@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Search, Download, Eye, X, UserPlus, Loader2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDate } from '@/lib/utils';
@@ -37,7 +38,13 @@ const statusColors: Record<string, string> = {
 const statusOptions = ['all', 'pending', 'reviewed', 'shortlisted', 'rejected'] as const;
 
 export default function ApplicationsClient({ initialApps }: { initialApps: ApplicationRecord[] }) {
+  const router = useRouter();
   const [apps, setApps] = useState<ApplicationRecord[]>(initialApps);
+  const [prevInitialApps, setPrevInitialApps] = useState(initialApps);
+  if (initialApps !== prevInitialApps) {
+    setPrevInitialApps(initialApps);
+    setApps(initialApps);
+  }
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [jobFilter, setJobFilter] = useState('all');
@@ -139,7 +146,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
                 <AddApplicationForm 
                   onSuccess={() => {
                     setIsAdding(false);
-                    window.location.reload(); 
+                    router.refresh(); 
                   }} 
                   onCancel={() => setIsAdding(false)} 
                 />

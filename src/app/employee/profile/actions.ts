@@ -4,13 +4,22 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
+import { employeeProfileUpdateSchema } from '@/lib/validations';
+
 export async function updateProfile(name: string, phone: string) {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
 
+  const parsed = employeeProfileUpdateSchema.safeParse({ name, phone });
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map(i => i.message).join(', ');
+    throw new Error(`Validation failed: ${issues}`);
+  }
+  const { name: validatedName, phone: validatedPhone } = parsed.data;
+
   const { data, error } = await supabaseAdmin
     .from('employees')
-    .update({ name, phone })
+    .update({ name: validatedName, phone: validatedPhone })
     .eq('id', session.id)
     .select()
     .single();

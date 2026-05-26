@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Download, FileSpreadsheet, Loader2, User, Clock, Calendar, MapPin, Sparkles, AlertTriangle, ShieldCheck } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -60,6 +61,8 @@ export default function AttendanceClient({
   initialAttendance: AttendanceRecord[],
   employees: { id: string, name: string }[]
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'logs' | 'live' | 'lates'>('logs');
   const [search, setSearch] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('all');
@@ -69,6 +72,18 @@ export default function AttendanceClient({
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
   const [ticks, setTicks] = useState(0);
   const { toast } = useToast();
+
+  const startDate = searchParams.get('startDate') || '';
+  const endDate = searchParams.get('endDate') || '';
+
+  const handleDateChange = (start: string, end: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (start) params.set('startDate', start);
+    else params.delete('startDate');
+    if (end) params.set('endDate', end);
+    else params.delete('endDate');
+    router.push(`/admin/attendance?${params.toString()}`);
+  };
 
   // Tick timer to update live monitors
   useEffect(() => {
@@ -234,7 +249,7 @@ export default function AttendanceClient({
                   className="w-full pl-9 pr-3 py-2 rounded-lg border border-border/60 bg-white text-xs text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm" 
                 />
               </div>
-              <div className="grid grid-cols-2 sm:flex gap-2">
+              <div className="grid grid-cols-2 sm:flex gap-2 items-center">
                 <select 
                   value={employeeFilter} 
                   onChange={(e) => setEmployeeFilter(e.target.value)} 
@@ -268,6 +283,23 @@ export default function AttendanceClient({
                   <option value="medium">Trust: MEDIUM RISK</option>
                   <option value="high">Trust: HIGH RISK</option>
                 </select>
+                <div className="flex items-center gap-1.5 col-span-2 sm:col-span-1">
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => handleDateChange(e.target.value, endDate)}
+                    className="px-2 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm w-full sm:w-[110px]"
+                    placeholder="Start Date"
+                  />
+                  <span className="text-[10px] text-gray-400 font-bold">TO</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => handleDateChange(startDate, e.target.value)}
+                    className="px-2 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm w-full sm:w-[110px]"
+                    placeholder="End Date"
+                  />
+                </div>
               </div>
             </div>
             

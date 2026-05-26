@@ -2,18 +2,77 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Card from '@/components/ui/Card';
-import { History, User, Activity, Clock, ShieldCheck, Search } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
+import { History, User, Clock, ShieldCheck, Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export default async function AuditLogsPage() {
+interface PageProps {
+  searchParams: Promise<{ q?: string; page?: string }>;
+}
+
+export default async function AuditLogsPage(props: PageProps) {
   const session = await getSession();
   if (!session || session.role !== 'admin') redirect('/admin/login');
 
-  const { data: logs, error } = await supabaseAdmin
+  const resolvedParams = await props.searchParams;
+  const q = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
+  const pageStr = typeof resolvedParams.page === 'string' ? resolvedParams.page : '1';
+  const page = parseInt(pageStr, 10) || 1;
+  const limit = 20;
+  const offset = (page - 1) * limit;
+
+  // Search by user name or email if search query is provided
+  const searchUserIds: string[] = [];
+  if (q) {
+    const [{ data: matchingAdmins }, { data: matchingEmployees }] = await Promise.all([
+      supabaseAdmin.from('admin_users').select('id').ilike('email', `%${q}%`),
+      supabaseAdmin.from('employees').select('id').or(`name.ilike.%${q}%,email.ilike.%${q}%`)
+    ]);
+
+    if (matchingAdmins) {
+      searchUserIds.push(...matchingAdmins.map(a => a.id));
+    }
+    if (matchingEmployees) {
+      searchUserIds.push(...matchingEmployees.map(e => e.id));
+    }
+  }
+
+  let queryBuilder = supabaseAdmin
     .from('audit_logs')
-    .select('*')
+    .select('*', { count: 'exact' });
+
+  if (q) {
+    let orFilter = `action.ilike.%${q}%,user_role.ilike.%${q}%,entity_type.ilike.%${q}%`;
+    if (searchUserIds.length > 0) {
+      orFilter += `,user_id.in.(${searchUserIds.join(',')})`;
+    }
+    queryBuilder = queryBuilder.or(orFilter);
+  }
+
+  const { data: logs, count, error } = await queryBuilder
     .order('created_at', { ascending: false })
-    .limit(50);
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('Error fetching audit logs:', error);
+  }
+
+  const totalCount = count || 0;
+  const totalPages = Math.ceil(totalCount / limit) || 1;
+
+  // Batch query to resolve user emails and names
+  const userIds = Array.from(new Set(logs?.map(log => log.user_id) || [])).filter(Boolean);
+  const [{ data: admins }, { data: emps }] = await Promise.all([
+    supabaseAdmin.from('admin_users').select('id, email').in('id', userIds),
+    supabaseAdmin.from('employees').select('id, name, email').in('id', userIds)
+  ]);
+
+  const actorMap: Record<string, { name: string; email: string }> = {};
+  admins?.forEach(admin => {
+    actorMap[admin.id] = { name: 'Admin', email: admin.email };
+  });
+  emps?.forEach(emp => {
+    actorMap[emp.id] = { name: emp.name, email: emp.email };
+  });
 
   return (
     <div className="space-y-4 pb-8">
@@ -29,14 +88,16 @@ export default async function AuditLogsPage() {
             <h1 className="text-2xl font-semibold tracking-tight text-white">System Audit Logs</h1>
             <p className="text-gray-400 text-xs mt-1 font-medium">Immutable record of all critical administrative actions.</p>
           </div>
-          <div className="relative group">
+          <form method="GET" action="/admin/audit" className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary-400 transition-colors" />
             <input 
               type="text" 
+              name="q"
+              defaultValue={q}
               placeholder="Search logs..." 
-              className="pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/50 w-full md:w-64"
+              className="pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/50 w-full md:w-64 text-white placeholder:text-gray-500"
             />
-          </div>
+          </form>
         </div>
       </div>
 
@@ -47,7 +108,7 @@ export default async function AuditLogsPage() {
             <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-2">
               <History className="w-5 h-5 text-gray-300" />
             </div>
-            <p className="text-xs text-text-muted font-semibold">The ledger is currently empty.</p>
+            <p className="text-xs text-text-muted font-semibold">No audit logs matching query.</p>
           </div>
         ) : (
           logs.map((log) => (
@@ -72,7 +133,14 @@ export default async function AuditLogsPage() {
               <div className="grid grid-cols-2 gap-2 bg-surface-alt/40 p-2.5 rounded-lg text-[10px]">
                 <div>
                   <span className="text-gray-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Actor</span>
-                  <span className="font-bold text-navy-900">{log.user_role.toUpperCase()}</span>
+                  <span className="font-bold text-navy-900">
+                    {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
+                  </span>
+                  {actorMap[log.user_id]?.email && (
+                    <span className="text-gray-500 block text-[9px] lowercase truncate">
+                      {actorMap[log.user_id].email}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span className="text-gray-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Module / Entity</span>
@@ -113,7 +181,16 @@ export default async function AuditLogsPage() {
                       <div className="w-6 h-6 rounded bg-surface-alt flex items-center justify-center text-navy-900 group-hover:bg-primary-500 group-hover:text-white transition-colors">
                         <User className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-xs font-semibold text-navy-900 tracking-tight">{log.user_role.toUpperCase()}</span>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-semibold text-navy-900 tracking-tight">
+                          {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
+                        </span>
+                        {actorMap[log.user_id]?.email && (
+                          <span className="text-[9px] text-text-muted">
+                            {actorMap[log.user_id].email}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-4 py-2.5 whitespace-nowrap">
@@ -139,7 +216,7 @@ export default async function AuditLogsPage() {
                     <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
                       <History className="w-5 h-5 text-gray-300" />
                     </div>
-                    <p className="text-xs text-text-muted font-bold">The ledger is currently empty.</p>
+                    <p className="text-xs text-text-muted font-bold">No audit logs matching query.</p>
                   </td>
                 </tr>
               )}
@@ -147,6 +224,47 @@ export default async function AuditLogsPage() {
           </table>
         </div>
       </Card>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-white border border-border/60 rounded-xl shadow-sm">
+          <div className="text-xs text-text-secondary">
+            Showing <span className="font-semibold">{offset + 1}</span> to{' '}
+            <span className="font-semibold">
+              {Math.min(offset + limit, totalCount)}
+            </span>{' '}
+            of <span className="font-semibold">{totalCount}</span> entries
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={page > 1 ? `/admin/audit?page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
+              className={cn(
+                "px-3 py-1.5 rounded-lg border border-border/60 text-xs font-semibold transition-all",
+                page <= 1
+                  ? "pointer-events-none opacity-50 bg-slate-50 text-gray-400"
+                  : "bg-white text-navy-900 hover:bg-slate-50 active:scale-95"
+              )}
+            >
+              Previous
+            </a>
+            <span className="text-xs font-semibold text-navy-900 px-2">
+              Page {page} of {totalPages}
+            </span>
+            <a
+              href={page < totalPages ? `/admin/audit?page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
+              className={cn(
+                "px-3 py-1.5 rounded-lg border border-border/60 text-xs font-semibold transition-all",
+                page >= totalPages
+                  ? "pointer-events-none opacity-50 bg-slate-50 text-gray-400"
+                  : "bg-white text-navy-900 hover:bg-slate-50 active:scale-95"
+              )}
+            >
+              Next
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

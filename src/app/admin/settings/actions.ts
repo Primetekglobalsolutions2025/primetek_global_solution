@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { logAuditAction } from '@/lib/audit';
 
 export async function getOfficeLocation() {
   const session = await getSession();
@@ -31,11 +32,12 @@ export async function saveOfficeLocation(data: {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
-  console.log('Attempting to save office location:', data);
-
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY === 'placeholder' || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.warn('WARNING: Using placeholder or missing SUPABASE_SERVICE_ROLE_KEY. Database operations may fail due to RLS.');
-  }
+  // Fetch the active office location before updates for audit trail comparison
+  const { data: oldLocations } = await supabaseAdmin
+    .from('office_locations')
+    .select('*')
+    .eq('is_active', true);
+  const oldLocation = oldLocations && oldLocations.length > 0 ? oldLocations[0] : null;
 
   // Deactivate existing locations
   const { error: updateError } = await supabaseAdmin
@@ -64,7 +66,15 @@ export async function saveOfficeLocation(data: {
     throw new Error(`Database Error: ${insertError.message} (${insertError.code})`);
   }
 
-  console.log('Successfully saved office location:', insertedData);
+  if (insertedData && insertedData.length > 0) {
+    await logAuditAction(
+      'UPDATE_OFFICE_LOCATION',
+      'office_locations',
+      insertedData[0].id,
+      oldLocation,
+      insertedData[0]
+    );
+  }
 
   revalidatePath('/admin/settings');
   revalidatePath('/employee/attendance');
@@ -86,6 +96,3 @@ export async function getSystemStatus() {
   }
   return data;
 }
-
-
-

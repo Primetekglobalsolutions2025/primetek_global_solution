@@ -27,6 +27,7 @@ export default function Sidebar({ userName = 'Admin' }: SidebarProps) {
 
   const handleLogout = async () => {
     try {
+      sessionStorage.removeItem('primetek-admin-session');
       localStorage.removeItem('primetek-admin-session');
       localStorage.removeItem('primetek-admin-token');
       localStorage.removeItem('primetek-session');

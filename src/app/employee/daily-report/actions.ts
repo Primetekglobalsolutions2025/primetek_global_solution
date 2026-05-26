@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { getISTShiftDate } from '@/lib/utils';
 
 export async function getAssignedProfilesWithMetrics() {
   const session = await getSession();
@@ -24,8 +25,8 @@ export async function getAssignedProfilesWithMetrics() {
     status: p.status ? p.status.toLowerCase() : 'assigned'
   }));
 
-  // Use local-like YYYY-MM-DD string
-  const todayStr = new Date().toLocaleDateString('en-CA');
+  // Use shared shift date calculation
+  const todayStr = getISTShiftDate();
   
   const { data: todayMetrics, error: mError } = await supabaseAdmin
     .from('profile_daily_metrics')
@@ -91,7 +92,7 @@ export async function submitDailyMetrics(entries: Array<{
     }
   }
 
-  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayStr = getISTShiftDate();
 
   const records = entries.map(entry => ({
     employee_id: session.id,

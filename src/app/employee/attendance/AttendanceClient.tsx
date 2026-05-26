@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, Navigation, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance } from '@/lib/utils';
 import Card from '@/components/ui/Card';
@@ -59,12 +59,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     }
   }, [notification]);
 
-  const getLocalDateString = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+
 
   const getShiftDateStr = (date: Date) => {
     // Get time in IST (Asia/Kolkata)
@@ -98,17 +93,16 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     return () => clearInterval(timer);
   }, []);
 
-  const fetchLateStats = async () => {
-    try {
-      const stats = await getLateLoginsStats();
-      setLateStats(stats);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   useEffect(() => {
-    fetchLateStats();
+    let active = true;
+    getLateLoginsStats().then((stats) => {
+      if (active) {
+        setLateStats(stats);
+      }
+    }).catch(console.error);
+    return () => {
+      active = false;
+    };
   }, [initialRecords]);
 
   const handleCheckIn = async () => {
@@ -132,9 +126,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           refreshPendingCount();
           setGpsStatus('success');
           showNotification('Offline mode — check-in saved locally. It will sync when you reconnect.', 'info');
-        } catch (queueErr: any) {
+        } catch (queueErr) {
+          const errorMsg = queueErr instanceof Error ? queueErr.message : 'Failed to queue offline check-in';
           setGpsStatus('error');
-          showNotification(queueErr.message || 'Failed to queue offline check-in', 'error');
+          showNotification(errorMsg, 'error');
         }
         return;
       }
@@ -155,7 +150,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       setGpsStatus('success');
       showNotification('Clocked in successfully.', 'success');
       window.location.reload();
-    } catch (err: any) {
+    } catch (err) {
       if (!navigator.onLine && coords) {
         try {
           const fingerprint = getOrCreateFingerprint();
@@ -166,8 +161,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           return;
         } catch { /* fall through to error */ }
       }
+      const errorMsg = err instanceof Error ? err.message : 'Could not retrieve your GPS location. Please check browser permissions.';
       setGpsStatus('error');
-      showNotification(err.message || 'Could not retrieve your GPS location. Please check browser permissions.', 'error');
+      showNotification(errorMsg, 'error');
     }
   };
 
@@ -198,20 +194,23 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       message: 'Are you sure you want to clock out for today? Any running breaks will be ended automatically.',
       onConfirm: async () => {
         setGpsStatus('loading');
-        let lat: number | undefined;
-        let lng: number | undefined;
+        let lat: number;
+        let lng: number;
 
         try {
           const position = await new Promise<GeolocationPosition>((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, { 
               enableHighAccuracy: true, 
-              timeout: 5000 
+              timeout: 10000 
             });
           });
           lat = position.coords.latitude;
           lng = position.coords.longitude;
-        } catch (gpsErr) {
-          console.warn('GPS failed for checkout, proceeding without location:', gpsErr);
+          setCoords({ lat, lng });
+        } catch {
+          setGpsStatus('error');
+          showNotification('Could not retrieve your GPS location. Location access is required to clock out.', 'error');
+          return;
         }
 
         try {
@@ -225,9 +224,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             showNotification(result.error || 'Check-out failed', 'error');
             setGpsStatus('error');
           }
-        } catch (err: any) {
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Check-out failed';
           setGpsStatus('error');
-          showNotification(err.message || 'Check-out failed', 'error');
+          showNotification(errorMsg, 'error');
         }
       }
     });
@@ -267,8 +267,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       } else {
         showNotification(res.error || 'Failed to start break', 'error');
       }
-    } catch (e: any) {
-      showNotification(e.message || 'Failed to start break', 'error');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to start break';
+      showNotification(errorMsg, 'error');
     } finally {
       setIsBreakActionLoading(false);
     }
@@ -284,8 +285,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       } else {
         showNotification(res.error || 'Failed to end break', 'error');
       }
-    } catch (e: any) {
-      showNotification(e.message || 'Failed to end break', 'error');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Failed to end break';
+      showNotification(errorMsg, 'error');
     } finally {
       setIsBreakActionLoading(false);
     }

@@ -99,3 +99,10 @@ export const clientProfileSchema = z.object({
 
 export type ClientProfileFormData = z.infer<typeof clientProfileSchema>;
 
+export const employeeProfileUpdateSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be under 100 characters'),
+  phone: z.string().max(30, 'Phone number must be under 30 characters').regex(/^[+0-9\s-]*$/, 'Invalid phone number format').optional().or(z.literal('')),
+});
+
+export type EmployeeProfileUpdateData = z.infer<typeof employeeProfileUpdateSchema>;
+

@@ -10,7 +10,7 @@ export async function getAssignedProfiles() {
 
   const { data, error } = await supabaseAdmin
     .from('application_profiles')
-    .select('*')
+    .select('id, client_name, client_email, client_phone, client_role, client_address, client_linkedin, education_details, assigned_to, resume_url, status')
     .eq('assigned_to', session.id)
     .order('created_at', { ascending: false });
 
@@ -102,11 +102,11 @@ export async function submitInterviewRequest(formData: FormData) {
       throw new Error('Failed to upload updated resume to storage.');
     }
 
-    // MED-10: Generate signed URL with 1-hour expiry (3600 seconds)
+    // Secure signed URL with long-term expiration (10 years / 315360000 seconds) to prevent premature links failure
     const { data: signedData, error: signedError } = await supabaseAdmin
       .storage
       .from('resumes')
-      .createSignedUrl(uploadData.path, 3600);
+      .createSignedUrl(uploadData.path, 315360000);
 
     if (signedError) {
       throw new Error('Failed to generate URL for updated resume.');
@@ -153,10 +153,11 @@ export async function submitInterviewRequest(formData: FormData) {
     throw new Error('Failed to upload JD document to storage.');
   }
 
+  // Secure signed URL with long-term expiration (10 years / 315360000 seconds) to prevent premature links failure
   const { data: jdSignedData, error: jdSignedError } = await supabaseAdmin
     .storage
     .from('resumes')
-    .createSignedUrl(jdUploadData.path, 3600);
+    .createSignedUrl(jdUploadData.path, 315360000);
 
   if (jdSignedError) {
     throw new Error('Failed to generate URL for JD document.');
@@ -165,7 +166,7 @@ export async function submitInterviewRequest(formData: FormData) {
   const jdUrl = jdSignedData.signedUrl;
 
   // Save the interview request
-  const { data: requestRecord, error: insertError } = await supabaseAdmin
+  const { error: insertError } = await supabaseAdmin
     .from('interview_requests')
     .insert({
       profile_id: profileId,

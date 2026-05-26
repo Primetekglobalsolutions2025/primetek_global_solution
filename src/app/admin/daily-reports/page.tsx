@@ -11,7 +11,7 @@ export const metadata = {
 export default async function AdminDailyReportsPage() {
   const session = await getSession();
   if (!session || session.role !== 'admin') {
-    redirect('/login');
+    redirect('/admin/login');
   }
 
   const todayStr = new Date().toLocaleDateString('en-CA');

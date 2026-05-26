@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Search, Plus, UserPlus, Edit, 
   Trash2, Download, X, Mail, 
@@ -62,7 +63,13 @@ interface ClientProfile {
 }
 
 export default function ClientProfilesClient({ initialProfiles, employees }: { initialProfiles: ClientProfile[], employees: any[] }) {
+  const router = useRouter();
   const [profiles, setProfiles] = useState<ClientProfile[]>(initialProfiles);
+  const [prevInitialProfiles, setPrevInitialProfiles] = useState(initialProfiles);
+  if (initialProfiles !== prevInitialProfiles) {
+    setPrevInitialProfiles(initialProfiles);
+    setProfiles(initialProfiles);
+  }
   const [search, setSearch] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [roleCategory, setRoleCategory] = useState<'all' | 'IT' | 'Non-IT'>('all');
@@ -203,7 +210,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
           return;
         }
         toast.success('Profile created successfully.');
-        window.location.reload(); 
+        router.refresh(); 
       }
    
       setIsModalOpen(false);

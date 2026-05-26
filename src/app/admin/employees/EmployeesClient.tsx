@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Search, ToggleLeft, ToggleRight, X, Loader2, Trash2, Users, ShieldCheck, Mail, Briefcase, Sparkles, Wallet } from 'lucide-react';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
@@ -23,7 +24,13 @@ export interface EmployeeRecord {
 }
 
 export default function EmployeesClient({ initialEmployees }: { initialEmployees: EmployeeRecord[] }) {
+  const router = useRouter();
   const [employees, setEmployees] = useState<EmployeeRecord[]>(initialEmployees);
+  const [prevInitialEmployees, setPrevInitialEmployees] = useState(initialEmployees);
+  if (initialEmployees !== prevInitialEmployees) {
+    setPrevInitialEmployees(initialEmployees);
+    setEmployees(initialEmployees);
+  }
   const [search, setSearch] = useState('');
   const { toast } = useToast();
   
@@ -76,9 +83,6 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       const res = await createEmployee(newEmployeeData);
       setSuccessMessage({ id: res.employee_id, pass: res.password });
       toast.success('Employee created successfully.');
-      setTimeout(() => {
-        window.location.reload();
-      }, 8000); 
     } catch (err: unknown) {
       if (err instanceof Error) {
         toast.error(err.message || 'Failed to create employee.');
@@ -395,7 +399,13 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                   <h3 className="font-heading font-black text-2xl text-navy-900 tracking-tight">Add New Employee</h3>
                 </div>
                 <button 
-                  onClick={() => { setIsModalOpen(false); setSuccessMessage(null); }} 
+                  onClick={() => { 
+                    setIsModalOpen(false); 
+                    if (successMessage) {
+                      setSuccessMessage(null);
+                      router.refresh();
+                    }
+                  }} 
                   className="w-10 h-10 rounded-2xl bg-surface-alt flex items-center justify-center text-text-muted hover:text-navy-900 transition-colors"
                 >
                   <X className="w-5 h-5" />

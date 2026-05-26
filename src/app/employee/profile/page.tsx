@@ -14,7 +14,7 @@ export default async function EmployeeAppProfilePage() {
 
   const { data: employee, error } = await supabaseAdmin
     .from('employees')
-    .select('*')
+    .select('id, employee_id, name, email, phone, department, designation, status, join_date, avatar_url, created_at, mfa_enabled')
     .eq('id', session.id)
     .single();
 

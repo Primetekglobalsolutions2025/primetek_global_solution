@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Clock, UserCircle, LogOut, 
-  MessageSquare, Briefcase, Users, FileUser, FileText,
+  MessageSquare, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
   MoreHorizontal, X, ClipboardList, BarChart2
 } from 'lucide-react';
@@ -18,13 +18,20 @@ interface AppSidebarProps {
   userName?: string;
 }
 
+interface NavItem {
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  section: string;
+}
+
 export default function AppSidebar({ role, userName }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
-  const desktopAdminItems = [
+  const desktopAdminItems: NavItem[] = [
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'MAIN' },
     
     { href: '/admin/employees', icon: Users, label: 'Employees', section: 'WORKFORCE' },
@@ -47,7 +54,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     { href: '/admin/profile', icon: UserCircle, label: 'My Profile', section: 'SYSTEM' },
   ];
 
-  const desktopEmployeeItems = [
+  const desktopEmployeeItems: NavItem[] = [
     { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'MAIN' },
     { href: '/employee/attendance', icon: Clock, label: 'Attendance', section: 'WORKFORCE' },
     { href: '/employee/leaves', icon: Calendar, label: 'Leaves', section: 'WORKFORCE' },
@@ -102,8 +109,10 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     if (!window.confirm('Are you sure you want to sign out?')) return;
     
     try {
+      sessionStorage.removeItem('primetek-admin-session');
       localStorage.removeItem('primetek-admin-session');
       localStorage.removeItem('primetek-admin-token');
+      sessionStorage.removeItem('primetek-employee-session');
       localStorage.removeItem('primetek-employee-session');
       localStorage.removeItem('primetek-employee-token');
       localStorage.removeItem('primetek-session');
@@ -153,7 +162,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
         <nav className="flex-1 py-4 px-2.5 space-y-1.5 overflow-y-auto">
           {(() => {
             let lastSection = '';
-            return navItems.map((item: any) => {
+            return navItems.map((item: NavItem) => {
               const isActive = pathname === item.href;
               const showSectionHeader = item.section && item.section !== lastSection;
               if (showSectionHeader) {

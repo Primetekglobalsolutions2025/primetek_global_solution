@@ -22,8 +22,8 @@ export default function PWAStandaloneGuard() {
       if (!isPortalRoute) {
         let role = 'admin';
         try {
-          const savedEmployee = localStorage.getItem('primetek-employee-session');
-          const savedAdmin = localStorage.getItem('primetek-admin-session');
+          const savedEmployee = sessionStorage.getItem('primetek-employee-session') || localStorage.getItem('primetek-employee-session');
+          const savedAdmin = sessionStorage.getItem('primetek-admin-session') || localStorage.getItem('primetek-admin-session');
           const savedLegacy = localStorage.getItem('primetek-session');
           
           if (savedEmployee) {

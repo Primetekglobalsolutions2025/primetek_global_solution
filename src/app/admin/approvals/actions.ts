@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { logAuditAction } from '@/lib/audit';
 import { sendNotificationEmail, getLeaveStatusTemplate, getWFHStatusTemplate } from '@/lib/notifications';
 
 export async function getPendingApprovals() {
@@ -103,31 +104,21 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
     throw new Error('Database update failed');
   }
 
-function calculateWorkingDays(startDate: Date, endDate: Date): number {
-  let count = 0;
-  const curDate = new Date(startDate.getTime());
-  while (curDate <= endDate) {
-    const dayOfWeek = curDate.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      count++;
-    }
-    curDate.setDate(curDate.getDate() + 1);
-  }
-  return count;
-}
-
   // 3. Deduct Balance if Approved
   if (status === 'Approved') {
     const start = new Date(request.start_date);
     const end = new Date(request.end_date);
     const days = calculateWorkingDays(start, end);
-
+    const requestYear = start.getFullYear();
+    const requestMonth = start.getMonth() + 1;
 
     // Atomic update to used_days via stored procedure to prevent race conditions
     const { error: rpcError } = await supabaseAdmin.rpc('increment_used_days', {
       p_employee_id: request.employee_id,
       p_leave_type: request.type,
-      p_days: days
+      p_days: days,
+      p_year: requestYear,
+      p_month: requestMonth
     });
 
     if (rpcError) {
@@ -138,6 +129,8 @@ function calculateWorkingDays(startDate: Date, endDate: Date): number {
         .select('used_days')
         .eq('employee_id', request.employee_id)
         .eq('leave_type', request.type)
+        .eq('year', requestYear)
+        .eq('month', requestMonth)
         .single();
 
       if (balance) {
@@ -148,10 +141,21 @@ function calculateWorkingDays(startDate: Date, endDate: Date): number {
             used_days: newUsed
           })
           .eq('employee_id', request.employee_id)
-          .eq('leave_type', request.type);
+          .eq('leave_type', request.type)
+          .eq('year', requestYear)
+          .eq('month', requestMonth);
       }
     }
   }
+
+  // Log action to audit ledger
+  await logAuditAction(
+    status === 'Approved' ? 'APPROVE_LEAVE' : 'REJECT_LEAVE',
+    'leave_requests',
+    id,
+    { status: request.status, employee_name: employee?.name || 'Unknown' },
+    { status }
+  );
 
   // 4. Send Email
   if (employee?.email) {
@@ -206,6 +210,15 @@ export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Reje
 
   if (error) throw error;
 
+  // Log action to audit ledger
+  await logAuditAction(
+    status === 'Approved WFH' ? 'APPROVE_WFH' : 'REJECT_WFH',
+    'attendance',
+    id,
+    { status: request.status, employee_name: employee?.name || 'Unknown' },
+    { status }
+  );
+
   // 3. Send Email
   if (employee?.email) {
     const html = getWFHStatusTemplate(
@@ -220,4 +233,18 @@ export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Reje
   revalidatePath('/admin/attendance');
   revalidatePath('/employee/attendance');
   return { success: true };
+}
+
+// Module-level helper function to calculate working days (excludes weekends)
+function calculateWorkingDays(startDate: Date, endDate: Date): number {
+  let count = 0;
+  const curDate = new Date(startDate.getTime());
+  while (curDate <= endDate) {
+    const dayOfWeek = curDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+    curDate.setDate(curDate.getDate() + 1);
+  }
+  return count;
 }

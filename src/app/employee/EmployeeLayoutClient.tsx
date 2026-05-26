@@ -46,16 +46,16 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
     }
 
     const checkAuth = async () => {
-      // Try to load session from localStorage
+      // Try to load session from sessionStorage first, then fallback to localStorage
       let currentSession = null;
       try {
-        const savedSession = localStorage.getItem('primetek-employee-session');
+        const savedSession = sessionStorage.getItem('primetek-employee-session') || localStorage.getItem('primetek-employee-session');
         if (savedSession) {
           currentSession = JSON.parse(savedSession);
           setSession(currentSession);
         }
       } catch (err) {
-        console.warn('Error reading session from localStorage:', err);
+        console.warn('Error reading session from storage:', err);
       }
 
       if (isLoginPage) {
@@ -91,13 +91,15 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
           if (data.user?.role === 'employee' || data.user?.role === 'hr') {
             setSession(data.user);
             try {
-              localStorage.setItem('primetek-employee-session', JSON.stringify(data.user));
+              sessionStorage.setItem('primetek-employee-session', JSON.stringify(data.user));
+              localStorage.removeItem('primetek-employee-session'); // Remove legacy insecure localStorage copy
             } catch {}
           } else if (data.user?.role === 'admin') {
             router.replace('/admin/dashboard');
             return;
           } else {
             try {
+              sessionStorage.removeItem('primetek-employee-session');
               localStorage.removeItem('primetek-employee-session');
               localStorage.removeItem('primetek-employee-token');
             } catch {}
@@ -108,6 +110,7 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
         } else if (res.status === 401 || res.status === 403 || res.status === 404) {
           // Genuine unauthenticated response
           try {
+            sessionStorage.removeItem('primetek-employee-session');
             localStorage.removeItem('primetek-employee-session');
             localStorage.removeItem('primetek-employee-token');
           } catch {}

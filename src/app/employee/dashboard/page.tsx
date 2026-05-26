@@ -1,11 +1,10 @@
 import { redirect } from 'next/navigation';
-import { Clock, CalendarCheck, CalendarX, AlertTriangle, ArrowRight, TrendingUp, Briefcase, LogIn, LogOut, CheckCircle2, Plane, Sparkles, User, MapPin, Compass, History, ClipboardList } from 'lucide-react';
-import Card from '@/components/ui/Card';
+import { Clock, CalendarCheck, CalendarX, AlertTriangle, ArrowRight, Briefcase, LogIn, LogOut, CheckCircle2, Plane, Sparkles, User, MapPin, Compass, History, ClipboardList } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { cn, getISTShiftDate } from '@/lib/utils';
 
 export default async function EmployeeAppDashboard() {
   const session = await getSession();
@@ -14,7 +13,7 @@ export default async function EmployeeAppDashboard() {
     redirect('/employee/login');
   }
 
-  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayStr = getISTShiftDate();
 
   // Fetch Employee, Attendance, Leave Balances, and Today's Daily Report Status
   const [
@@ -25,7 +24,17 @@ export default async function EmployeeAppDashboard() {
     { data: dailyReportData }
   ] = await Promise.all([
     supabaseAdmin.from('employees').select('name, employee_id, role, department').eq('id', session.id).single(),
-    supabaseAdmin.from('attendance').select('*').eq('employee_id', session.id).order('date', { ascending: false }).limit(10),
+    (() => {
+      const now = new Date();
+      const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const startOfQueryStr = startOfPrevMonth.toISOString().split('T')[0];
+      return supabaseAdmin
+        .from('attendance')
+        .select('*')
+        .eq('employee_id', session.id)
+        .gte('date', startOfQueryStr)
+        .order('date', { ascending: false });
+    })(),
     supabaseAdmin.from('leave_balances').select('*').eq('employee_id', session.id),
     supabaseAdmin.from('portal_config').select('config_key, config_value'),
     supabaseAdmin.from('profile_daily_metrics').select('id').eq('employee_id', session.id).eq('report_date', todayStr).limit(1)
@@ -33,14 +42,14 @@ export default async function EmployeeAppDashboard() {
 
   const hasReportedToday = dailyReportData && dailyReportData.length > 0;
 
-  const configMap = (configData || []).reduce((acc: any, curr: any) => {
+  const configMap = (configData || []).reduce((acc: Record<string, string>, curr: { config_key: string; config_value: string }) => {
     acc[curr.config_key] = curr.config_value;
     return acc;
   }, {});
 
   const operationalPolicy = configMap['operational_policy'] || "Working from home (WFH) requires checking in with your location. Please ensure you enable location access when submitting a WFH request.";
 
-  const empRecords = (records || []).map(r => {
+  const empRecords = (records || []).slice(0, 10).map(r => {
     const checkIn = r.check_in ? new Date(r.check_in) : null;
     const checkOut = r.check_out ? new Date(r.check_out) : null;
     let durationHours = 0;
@@ -62,10 +71,10 @@ export default async function EmployeeAppDashboard() {
     };
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getISTShiftDate();
   const todayRecord = empRecords.find((r) => r.date === today);
 
-  const monthRecords = empRecords.filter(r => {
+  const monthRecords = (records || []).filter(r => {
     const d = new Date(r.date);
     const now = new Date();
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -215,7 +224,7 @@ export default async function EmployeeAppDashboard() {
 
       {/* Modern Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, idx) => (
+        {stats.map((stat) => (
           <div key={stat.label} className="group bg-white rounded-xl p-4 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200">
             <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-4 group-hover:scale-105 transition-transform`}>
               <stat.icon className="w-5 h-5" />
@@ -358,7 +367,7 @@ export default async function EmployeeAppDashboard() {
               <p className="text-xs font-bold text-emerald-900 uppercase tracking-wider">Operational Policy</p>
             </div>
             <p className="text-xs text-emerald-800/70 leading-relaxed font-medium italic">
-              "{operationalPolicy}"
+              &ldquo;{operationalPolicy}&rdquo;
             </p>
           </div>
         </div>

@@ -52,7 +52,7 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
   return R * c;
 }
 
-export function formatDistance(meters: any): string {
+export function formatDistance(meters: unknown): string {
   let val = 0;
   if (typeof meters === 'number') {
     val = meters;
@@ -68,4 +68,25 @@ export function formatDistance(meters: any): string {
     return `${km.toFixed(1)} km`;
   }
   return `${Math.round(val)}m`;
+}
+
+/**
+ * Computes the IST shift date for a given timestamp.
+ * IST is UTC + 5:30.
+ * For the night shift (e.g. 6:30 PM to 3:30 AM IST), any time before noon IST
+ * is counted as part of the previous day's shift.
+ */
+export function getISTShiftDate(now: Date = new Date()): string {
+  const offset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + offset);
+  const hours = istNow.getUTCHours(); // Hours in IST
+  
+  if (hours < 12) {
+    // Before noon IST, belongs to yesterday
+    const yesterday = new Date(istNow.getTime() - 24 * 60 * 60 * 1000);
+    return yesterday.toISOString().split('T')[0];
+  } else {
+    // Noon or later IST, belongs to today
+    return istNow.toISOString().split('T')[0];
+  }
 }

@@ -36,6 +36,23 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
   }
 }
 
+export async function createCaptchaToken(answer: number): Promise<string> {
+  return new SignJWT({ answer })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('5m')
+    .sign(getJwtSecret());
+}
+
+export async function verifyCaptchaToken(token: string, submittedAnswer: number): Promise<boolean> {
+  try {
+    const { payload } = await jwtVerify(token, getJwtSecret());
+    return !!payload && (payload as any).answer === submittedAnswer;
+  } catch {
+    return false;
+  }
+}
+
 export async function getSession(): Promise<TokenPayload | null> {
   const cookieStore = await cookies();
   let tokenCookieName: string | null = null;

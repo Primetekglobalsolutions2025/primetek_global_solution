@@ -29,9 +29,13 @@ export default function ApprovalsClient({
   const handleLeaveAction = async (id: string, status: 'Approved' | 'Rejected') => {
     setProcessing(id);
     try {
-      await updateLeaveStatus(id, status);
-      setLeaves(prev => prev.filter(l => l.id !== id));
-      toast.success(`Leave request ${status.toLowerCase()} successfully.`);
+      const res = await updateLeaveStatus(id, status);
+      if (res && !res.success) {
+        toast.error(res.error || 'Failed to update leave request status.');
+      } else {
+        setLeaves(prev => prev.filter(l => l.id !== id));
+        toast.success(`Leave request ${status.toLowerCase()} successfully.`);
+      }
     } catch (err) {
       toast.error('Failed to update leave request status.');
     } finally {
@@ -42,9 +46,13 @@ export default function ApprovalsClient({
   const handleWFHAction = async (id: string, status: 'Approved WFH' | 'Rejected WFH') => {
     setProcessing(id);
     try {
-      await updateWFHStatus(id, status);
-      setWfh(prev => prev.filter(w => w.id !== id));
-      toast.success(`Remote work request ${status === 'Approved WFH' ? 'approved' : 'rejected'} successfully.`);
+      const res = await updateWFHStatus(id, status);
+      if (res && !res.success) {
+        toast.error(res.error || 'Failed to update remote work request status.');
+      } else {
+        setWfh(prev => prev.filter(w => w.id !== id));
+        toast.success(`Remote work request ${status === 'Approved WFH' ? 'approved' : 'rejected'} successfully.`);
+      }
     } catch (err) {
       toast.error('Failed to update remote work request status.');
     } finally {

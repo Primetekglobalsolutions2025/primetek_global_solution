@@ -3,15 +3,17 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
+import { logAuditAction } from '@/lib/audit';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+
 export async function getAdminEmployees() {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
   const { data, error } = await supabaseAdmin
     .from('employees')
-    .select('*')
+    .select('id, employee_id, name, email, role, department, status, join_date, avatar_url')
     .order('created_at', { ascending: false })
     .limit(500);
 
@@ -26,6 +28,13 @@ export async function toggleEmployeeStatus(id: string, currentStatus: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
+  // Fetch current employee data for audit logs
+  const { data: employee } = await supabaseAdmin
+    .from('employees')
+    .select('name, email')
+    .eq('id', id)
+    .single();
+
   const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
   const { error } = await supabaseAdmin
     .from('employees')
@@ -35,6 +44,10 @@ export async function toggleEmployeeStatus(id: string, currentStatus: string) {
   if (error) {
     console.error('Error toggling employee status:', error);
     throw new Error('Failed to update status');
+  }
+
+  if (employee) {
+    await logAuditAction('TOGGLE_EMPLOYEE_STATUS', 'employees', id, { status: currentStatus, name: employee.name, email: employee.email }, { status: newStatus });
   }
 
   revalidatePath('/admin/employees');
@@ -94,6 +107,15 @@ export async function createEmployee(data: {
     },
   ]);
 
+  await logAuditAction('CREATE_EMPLOYEE', 'employees', newEmp.id, null, {
+    employee_id,
+    name: data.name,
+    email: data.email.trim().toLowerCase(),
+    role: data.role,
+    department: data.department,
+    status: 'Active'
+  });
+
   revalidatePath('/admin/employees');
   revalidatePath('/admin/dashboard');
   return { success: true, employee_id, password };
@@ -103,6 +125,18 @@ export async function deleteEmployee(id: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
+  // Fetch employee details before deleting for audit log
+  const { data: employee } = await supabaseAdmin
+    .from('employees')
+    .select('employee_id, name, email, role, department')
+    .eq('id', id)
+    .single();
+
+  // Cascade cleanup for unconstrained tables
+  await supabaseAdmin.from('active_sessions').delete().eq('user_id', id);
+  await supabaseAdmin.from('trusted_devices').delete().eq('user_id', id);
+  await supabaseAdmin.from('attendance_risk_events').delete().eq('employee_id', id);
+
   const { error } = await supabaseAdmin
     .from('employees')
     .delete()
@@ -111,6 +145,10 @@ export async function deleteEmployee(id: string) {
   if (error) {
     console.error('Error deleting employee:', error);
     throw new Error('Failed to delete employee');
+  }
+
+  if (employee) {
+    await logAuditAction('DELETE_EMPLOYEE', 'employees', id, employee, null);
   }
 
   revalidatePath('/admin/employees');
