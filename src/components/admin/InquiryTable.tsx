@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Download, Filter, ChevronLeft, ChevronRight, Eye, X, Trash2, MessageSquare, Building2, Phone, Mail, Clock, ShieldCheck } from 'lucide-react';
+import { Search, Download, Filter, ChevronLeft, ChevronRight, Eye, X, Trash2, MessageSquare, Building2, Phone, Mail, Clock, ShieldCheck, AlertCircle } from 'lucide-react';
 import { formatDate, cn } from '@/lib/utils';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -42,6 +42,11 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
   const [page, setPage] = useState(1);
   const [localInquiries, setLocalInquiries] = useState(inquiries);
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ 
+    message: string; 
+    onConfirm: () => void;
+    variant?: 'danger' | 'primary';
+  } | null>(null);
   const { toast } = useToast();
 
   // Focus trap, Escape closing, and focus restoration for accessibility
@@ -134,15 +139,20 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
   };
   
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete inquiry from ${name}?`)) return;
-    try {
-      await deleteInquiry(id);
-      setLocalInquiries(prev => prev.filter(inq => inq.id !== id));
-      toast.success('Inquiry deleted successfully.');
-      if (selectedInquiry?.id === id) setSelectedInquiry(null);
-    } catch (error) {
-      toast.error('Failed to delete inquiry.');
-    }
+    setConfirmAction({
+      message: `Are you sure you want to delete the inquiry from ${name}? This action cannot be undone.`,
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteInquiry(id);
+          setLocalInquiries(prev => prev.filter(inq => inq.id !== id));
+          toast.success('Inquiry deleted successfully.');
+          if (selectedInquiry?.id === id) setSelectedInquiry(null);
+        } catch (error) {
+          toast.error('Failed to delete inquiry.');
+        }
+      }
+    });
   };
 
   const handleExportCSV = () => {
@@ -519,6 +529,63 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Confirmation Modal */}
+      <AnimatePresence>
+        {confirmAction && (
+          <div 
+            onClick={() => setConfirmAction(null)}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer text-navy-900"
+          >
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="w-full max-w-sm cursor-default"
+            >
+              <Card hover={false} className="p-5 rounded-xl border border-border shadow-2xl bg-white relative overflow-hidden">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-lg flex items-center justify-center",
+                    confirmAction.variant === 'danger' ? "bg-red-500/10 text-red-500" : "bg-primary-500/10 text-primary-500"
+                  )}>
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-navy-900 tracking-tight">Confirm Action</h3>
+                    <p className="text-xs text-text-muted mt-1.5 font-medium leading-relaxed">{confirmAction.message}</p>
+                  </div>
+                  <div className="flex w-full gap-2 pt-2">
+                    <button
+                      onClick={() => setConfirmAction(null)}
+                      className="flex-1 py-2 px-3 rounded-lg bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-semibold transition-all cursor-pointer border border-border"
+                    >
+                      Cancel
+                    </button>
+                    <Button
+                      onClick={() => {
+                        confirmAction.onConfirm();
+                        setConfirmAction(null);
+                      }}
+                      size="sm"
+                      className={cn(
+                        "flex-1 border",
+                        confirmAction.variant === 'danger' 
+                          ? "bg-red-500 hover:bg-red-600 border-red-500" 
+                          : "bg-navy-900 hover:bg-navy-800 border-navy-950 text-white"
+                      )}
+                    >
+                      Confirm
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

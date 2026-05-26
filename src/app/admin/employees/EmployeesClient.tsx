@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Search, ToggleLeft, ToggleRight, X, Loader2, Trash2, Users, ShieldCheck, Mail, Briefcase, Sparkles, Wallet } from 'lucide-react';
+import { Plus, Search, ToggleLeft, ToggleRight, X, Loader2, Trash2, Users, ShieldCheck, Mail, Briefcase, Sparkles, Wallet, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -43,6 +43,11 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRecord | null>(null);
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [balances, setBalances] = useState({ sick: 0, casual: 0, earned: 0 });
+  const [confirmAction, setConfirmAction] = useState<{ 
+    message: string; 
+    onConfirm: () => void;
+    variant?: 'danger' | 'primary';
+  } | null>(null);
 
   const stats = useMemo(() => {
     const total = employees.length;
@@ -94,15 +99,19 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete ${name}? This action cannot be undone.`)) return;
-
-    try {
-      await deleteEmployee(id);
-      setEmployees((prev) => prev.filter((e) => e.id !== id));
-      toast.success('Employee deleted successfully.');
-    } catch (err) {
-      toast.error('Failed to delete employee.');
-    }
+    setConfirmAction({
+      message: `Are you sure you want to delete ${name}? This action cannot be undone.`,
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteEmployee(id);
+          setEmployees((prev) => prev.filter((e) => e.id !== id));
+          toast.success('Employee deleted successfully.');
+        } catch (err) {
+          toast.error('Failed to delete employee.');
+        }
+      }
+    });
   };
 
   const handleOpenBalanceModal = async (emp: EmployeeRecord) => {
@@ -578,6 +587,63 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                   {isUpdatingBalance ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Update Balance'}
                 </Button>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Confirmation Modal */}
+      <AnimatePresence>
+        {confirmAction && (
+          <div 
+            onClick={() => setConfirmAction(null)}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer text-navy-900"
+          >
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="w-full max-w-sm cursor-default"
+            >
+              <Card hover={false} className="p-5 rounded-xl border border-border shadow-2xl bg-white relative overflow-hidden">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-lg flex items-center justify-center",
+                    confirmAction.variant === 'danger' ? "bg-red-500/10 text-red-500" : "bg-primary-500/10 text-primary-500"
+                  )}>
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-navy-900 tracking-tight">Confirm Action</h3>
+                    <p className="text-xs text-text-muted mt-1.5 font-medium leading-relaxed">{confirmAction.message}</p>
+                  </div>
+                  <div className="flex w-full gap-2 pt-2">
+                    <button
+                      onClick={() => setConfirmAction(null)}
+                      className="flex-1 py-2 px-3 rounded-lg bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-semibold transition-all cursor-pointer border border-border"
+                    >
+                      Cancel
+                    </button>
+                    <Button
+                      onClick={() => {
+                        confirmAction.onConfirm();
+                        setConfirmAction(null);
+                      }}
+                      size="sm"
+                      className={cn(
+                        "flex-1 border",
+                        confirmAction.variant === 'danger' 
+                          ? "bg-red-500 hover:bg-red-600 border-red-500 text-white" 
+                          : "bg-navy-900 hover:bg-navy-800 border-navy-950 text-white"
+                      )}
+                    >
+                      Confirm
+                    </Button>
+                  </div>
+                </div>
+              </Card>
             </motion.div>
           </div>
         )}

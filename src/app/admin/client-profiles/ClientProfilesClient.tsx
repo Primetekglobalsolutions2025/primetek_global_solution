@@ -6,13 +6,14 @@ import {
   Search, Plus, UserPlus, Edit, 
   Trash2, Download, X, Mail, 
   Globe, Phone, MapPin, Briefcase, 
-  GraduationCap, FileText, Loader2, FileUser 
+  GraduationCap, FileText, Loader2, FileUser, AlertCircle 
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { createProfile, updateProfile, deleteProfile, uploadClientResume } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const statusColors: Record<string, string> = {
   assigned: 'bg-blue-100 text-blue-700',
@@ -79,6 +80,11 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
   const { toast } = useToast();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [resumeError, setResumeError] = useState('');
+  const [confirmAction, setConfirmAction] = useState<{ 
+    message: string; 
+    onConfirm: () => void;
+    variant?: 'danger' | 'primary';
+  } | null>(null);
 
   const [formData, setFormData] = useState<ClientProfile>({
     client_name: '',
@@ -226,19 +232,24 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
       toast.error('Cannot delete profile: Profile ID is missing.');
       return;
     }
-    if (!confirm('Are you sure you want to delete this profile?')) return;
-    try {
-      const res = await deleteProfile(id);
-      if (res && res.error) {
-        toast.error(res.error);
-        return;
+    setConfirmAction({
+      message: 'Are you sure you want to delete this profile? This action cannot be undone.',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const res = await deleteProfile(id);
+          if (res && res.error) {
+            toast.error(res.error);
+            return;
+          }
+          setProfiles(prev => prev.filter(p => p.id !== id));
+          toast.success('Profile deleted successfully.');
+        } catch (err) {
+          console.error('Delete handler failed:', err);
+          toast.error('Failed to delete profile.');
+        }
       }
-      setProfiles(prev => prev.filter(p => p.id !== id));
-      toast.success('Profile deleted successfully.');
-    } catch (err) {
-      console.error('Delete handler failed:', err);
-      toast.error('Failed to delete profile.');
-    }
+    });
   };
 
   return (
@@ -476,6 +487,63 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <AnimatePresence>
+        {confirmAction && (
+          <div 
+            onClick={() => setConfirmAction(null)}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer text-navy-900"
+          >
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="w-full max-w-sm cursor-default"
+            >
+              <Card hover={false} className="p-5 rounded-xl border border-border shadow-2xl bg-white relative overflow-hidden">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <div className={cn(
+                    "w-12 h-12 rounded-lg flex items-center justify-center",
+                    confirmAction.variant === 'danger' ? "bg-red-500/10 text-red-500" : "bg-primary-500/10 text-primary-500"
+                  )}>
+                    <AlertCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-navy-900 tracking-tight">Confirm Action</h3>
+                    <p className="text-xs text-text-muted mt-1.5 font-medium leading-relaxed">{confirmAction.message}</p>
+                  </div>
+                  <div className="flex w-full gap-2 pt-2">
+                    <button
+                      onClick={() => setConfirmAction(null)}
+                      className="flex-1 py-2 px-3 rounded-lg bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-semibold transition-all cursor-pointer border border-border"
+                    >
+                      Cancel
+                    </button>
+                    <Button
+                      onClick={() => {
+                        confirmAction.onConfirm();
+                        setConfirmAction(null);
+                      }}
+                      size="sm"
+                      className={cn(
+                        "flex-1 border",
+                        confirmAction.variant === 'danger' 
+                          ? "bg-red-500 hover:bg-red-600 border-red-500 text-white" 
+                          : "bg-navy-900 hover:bg-navy-800 border-navy-950 text-white"
+                      )}
+                    >
+                      Confirm
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
