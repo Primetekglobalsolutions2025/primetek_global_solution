@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Download, Eye, X, UserPlus, Loader2, Plus } from 'lucide-react';
+import { Search, Download, Eye, X, UserPlus, Loader2, Plus, Users, CheckCircle2, Clock, XCircle, FileUser } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDate } from '@/lib/utils';
 import Card from '@/components/ui/Card';
@@ -104,8 +104,35 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
 
   const uniqueJobs = [...new Map(apps.map((j) => [j.job_id, { id: j.job_id, title: j.job_title }])).values()];
 
+  // Pipeline stats
+  const stats = useMemo(() => ({
+    total: apps.length,
+    pending: apps.filter(a => a.status === 'pending').length,
+    shortlisted: apps.filter(a => a.status === 'shortlisted').length,
+    rejected: apps.filter(a => a.status === 'rejected').length,
+  }), [apps]);
+
   return (
     <div className="space-y-4">
+      {/* Pipeline Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Total', value: stats.total, icon: Users, color: 'text-navy-900', bg: 'bg-white border-border/60' },
+          { label: 'Pending Review', value: stats.pending, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-500/5 border-amber-500/15' },
+          { label: 'Shortlisted', value: stats.shortlisted, icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-500/5 border-emerald-500/15' },
+          { label: 'Rejected', value: stats.rejected, icon: XCircle, color: 'text-red-600', bg: 'bg-red-500/5 border-red-500/15' },
+        ].map(s => (
+          <div key={s.label} className={`rounded-xl p-4 border shadow-sm flex items-center gap-3 ${s.bg}`}>
+            <div className={`w-9 h-9 rounded-lg bg-white/60 flex items-center justify-center ${s.color}`}>
+              <s.icon className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <p className="text-2xl font-black text-navy-900 leading-none">{s.value}</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted mt-0.5">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
         <div className="flex flex-1 flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <div className="relative flex-1 max-w-xs">

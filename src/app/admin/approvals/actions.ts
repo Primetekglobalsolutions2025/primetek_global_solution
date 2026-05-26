@@ -248,3 +248,61 @@ function calculateWorkingDays(startDate: Date, endDate: Date): number {
   }
   return count;
 }
+
+export async function getApprovalHistory() {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') return [];
+
+  try {
+    const [{ data: leaves }, { data: wfh }] = await Promise.all([
+      supabaseAdmin
+        .from('leave_requests')
+        .select('*')
+        .in('status', ['Approved', 'Rejected'])
+        .order('created_at', { ascending: false })
+        .limit(100),
+      supabaseAdmin
+        .from('attendance')
+        .select('*')
+        .in('status', ['Approved WFH', 'Rejected WFH'])
+        .order('date', { ascending: false })
+        .limit(100),
+    ]);
+
+    const allEmpIds = Array.from(new Set([
+      ...(leaves || []).map(l => l.employee_id),
+      ...(wfh || []).map(w => w.employee_id),
+    ])).filter(Boolean);
+
+    const { data: employees } = await supabaseAdmin
+      .from('employees')
+      .select('id, name, email')
+      .in('id', allEmpIds);
+
+    const empMap = (employees || []).reduce((acc: any, emp: any) => {
+      acc[emp.id] = emp;
+      return acc;
+    }, {});
+
+    const leaveHistory = (leaves || []).map((l: any) => ({
+      ...l,
+      kind: 'leave',
+      employee_name: empMap[l.employee_id]?.name || 'Unknown',
+      employee_email: empMap[l.employee_id]?.email || '',
+    }));
+
+    const wfhHistory = (wfh || []).map((w: any) => ({
+      ...w,
+      kind: 'wfh',
+      employee_name: empMap[w.employee_id]?.name || 'Unknown',
+      employee_email: empMap[w.employee_id]?.email || '',
+    }));
+
+    return [...leaveHistory, ...wfhHistory].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  } catch (err) {
+    console.error('Error fetching approval history:', err);
+    return [];
+  }
+}

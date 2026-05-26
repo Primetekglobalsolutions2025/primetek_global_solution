@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Card from '@/components/ui/Card';
-import { History, User, Clock, ShieldCheck, Search } from 'lucide-react';
+import { History, User, Clock, ShieldCheck, Search, Activity, LogIn, LogOut, Home, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PageProps {
@@ -59,11 +59,24 @@ export default async function AuditLogsPage(props: PageProps) {
   const totalCount = count || 0;
   const totalPages = Math.ceil(totalCount / limit) || 1;
 
+  // Fetch recent activity (last 24h attendance events)
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentActivity } = await supabaseAdmin
+    .from('attendance')
+    .select('id, employee_id, date, check_in, check_out, status')
+    .gte('created_at', twentyFourHoursAgo)
+    .order('created_at', { ascending: false })
+    .limit(15);
+
   // Batch query to resolve user emails and names
-  const userIds = Array.from(new Set(logs?.map(log => log.user_id) || [])).filter(Boolean);
+  const activityEmpIds = Array.from(new Set(recentActivity?.map(a => a.employee_id) || [])).filter(Boolean);
+  const userIds = Array.from(new Set([
+    ...(logs?.map(log => log.user_id) || []),
+    ...activityEmpIds,
+  ])).filter(Boolean);
   const [{ data: admins }, { data: emps }] = await Promise.all([
-    supabaseAdmin.from('admin_users').select('id, email').in('id', userIds),
-    supabaseAdmin.from('employees').select('id, name, email').in('id', userIds)
+    supabaseAdmin.from('admin_users').select('id, email').in('id', userIds.length ? userIds : ['_']),
+    supabaseAdmin.from('employees').select('id, name, email').in('id', userIds.length ? userIds : ['_'])
   ]);
 
   const actorMap: Record<string, { name: string; email: string }> = {};
@@ -99,6 +112,71 @@ export default async function AuditLogsPage(props: PageProps) {
             />
           </form>
         </div>
+      </div>
+
+      {/* Activity Monitoring Section */}
+      <div id="activity" className="scroll-mt-20">
+        <Card hover={false} className="overflow-hidden border-border/60 shadow-sm rounded-xl p-0">
+          <div className="flex items-center justify-between px-5 py-3.5 bg-surface-alt/30 border-b border-border/60">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center">
+                <Activity className="w-4 h-4 text-primary-500" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-navy-900 tracking-tight">Activity Monitoring</h2>
+                <p className="text-[10px] text-text-muted font-medium">Last 24 hours — employee check-ins, check-outs &amp; remote work</p>
+              </div>
+            </div>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted bg-surface-alt px-2.5 py-1 rounded-full border border-border/60">
+              {recentActivity?.length || 0} events
+            </span>
+          </div>
+          {(!recentActivity || recentActivity.length === 0) ? (
+            <div className="p-10 text-center">
+              <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-2">
+                <Activity className="w-5 h-5 text-gray-300" />
+              </div>
+              <p className="text-xs text-text-muted font-semibold">No activity in the last 24 hours.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border/40 max-h-[320px] overflow-y-auto">
+              {recentActivity.map((act) => {
+                const name = actorMap[act.employee_id]?.name || 'Unknown';
+                const isWFH = act.status?.includes('WFH');
+                const hasCheckOut = !!act.check_out;
+                const isPending = act.status === 'Pending WFH';
+                const Icon = isWFH ? Home : hasCheckOut ? LogOut : LogIn;
+                const iconColor = isWFH ? 'text-violet-500' : hasCheckOut ? 'text-amber-500' : 'text-emerald-500';
+                const iconBg = isWFH ? 'bg-violet-500/10' : hasCheckOut ? 'bg-amber-500/10' : 'bg-emerald-500/10';
+                const label = isWFH
+                  ? (isPending ? 'WFH Request (Pending)' : `WFH ${act.status?.replace(' WFH', '')}`)
+                  : hasCheckOut ? 'Checked Out' : 'Checked In';
+                const time = act.check_in
+                  ? new Date(act.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+                  : '';
+                return (
+                  <div key={act.id} className="flex items-center gap-3.5 px-5 py-3 hover:bg-surface-alt/20 transition-colors">
+                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', iconBg)}>
+                      <Icon className={cn('w-4 h-4', iconColor)} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-navy-900 truncate">{name}</p>
+                      <p className="text-[10px] text-text-muted font-medium">
+                        {label}{time ? ` · ${time}` : ''} · {act.date}
+                      </p>
+                    </div>
+                    {isPending && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                        <AlertTriangle className="w-3 h-3" />
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Mobile view */}
