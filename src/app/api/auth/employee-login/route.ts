@@ -27,13 +27,17 @@ export async function POST(request: NextRequest) {
     }
 
     const isEmail = cleanEmail.includes('@');
-    const query = supabaseAdmin
-      .from('employees')
-      .select('id, email, password_hash, status, name, role');
-      
     const { data: employee } = await (isEmail 
-      ? query.ilike('email', cleanEmail).single() 
-      : query.ilike('employee_id', cleanEmail).single());
+      ? supabaseAdmin
+          .from('employees')
+          .select('id, email, password_hash, status, name, role')
+          .ilike('email', cleanEmail)
+          .single()
+      : supabaseAdmin
+          .from('employees')
+          .select('id, email, password_hash, status, name, role')
+          .ilike('employee_id', cleanEmail)
+          .single());
 
     const dummyHash = '$2a$10$abcdefghijklmnopqrstuv'; // For constant time
     const hashToCompare = employee ? employee.password_hash : dummyHash;

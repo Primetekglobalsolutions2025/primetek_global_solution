@@ -57,11 +57,10 @@ export async function getSession(): Promise<TokenPayload | null> {
 
   let token = cookieStore.get(tokenCookieName)?.value;
   if (!token) {
-    const alternativeCookie = tokenCookieName === 'admin-auth-token' ? 'employee-auth-token' : 'admin-auth-token';
-    token = cookieStore.get(alternativeCookie)?.value;
-  }
-  if (!token) {
-    token = cookieStore.get('auth-token')?.value;
+    // Robust fallback: try all supported token cookies in order of priority
+    token = cookieStore.get('employee-auth-token')?.value ||
+            cookieStore.get('admin-auth-token')?.value ||
+            cookieStore.get('auth-token')?.value;
   }
 
   if (!token) return null;
@@ -95,11 +94,10 @@ export function getTokenFromRequest(request: NextRequest): string | null {
 
   let token = request.cookies.get(tokenCookieName)?.value;
   if (!token) {
-    const alternativeCookie = tokenCookieName === 'admin-auth-token' ? 'employee-auth-token' : 'admin-auth-token';
-    token = request.cookies.get(alternativeCookie)?.value;
-  }
-  if (!token) {
-    token = request.cookies.get('auth-token')?.value;
+    // Robust fallback: try all supported token cookies in order of priority
+    token = request.cookies.get('employee-auth-token')?.value ||
+            request.cookies.get('admin-auth-token')?.value ||
+            request.cookies.get('auth-token')?.value;
   }
   if (!token) {
     const authHeader = request.headers.get('authorization');
