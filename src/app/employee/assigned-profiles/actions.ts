@@ -115,6 +115,55 @@ export async function submitInterviewRequest(formData: FormData) {
     updatedResumeUrl = signedData.signedUrl;
   }
 
+  // Handle JD File (.docx only)
+  const jdFile = formData.get('jd') as File | null;
+  if (!jdFile || jdFile.size === 0) {
+    throw new Error('Job Description (JD) document is required.');
+  }
+
+  if (jdFile.size > 2 * 1024 * 1024) {
+    throw new Error('JD file size must be less than 2MB');
+  }
+
+  const jdExt = jdFile.name.split('.').pop()?.toLowerCase();
+  if (jdExt !== 'docx') {
+    throw new Error('Invalid JD file type. Only DOCX files are allowed.');
+  }
+
+  const jdArrayBuffer = await jdFile.arrayBuffer();
+  const jdFileBuffer = Buffer.from(jdArrayBuffer);
+
+  // Magic bytes check for DOCX/ZIP (PK.. -> 504B0304)
+  const jdHex = jdFileBuffer.toString('hex', 0, 4).toUpperCase();
+  if (jdHex !== '504B0304') {
+    throw new Error('Invalid JD file content. Only real DOCX documents are accepted.');
+  }
+
+  const jdFileName = `jd-${Date.now()}.docx`;
+  const { data: jdUploadData, error: jdUploadError } = await supabaseAdmin
+    .storage
+    .from('resumes')
+    .upload(jdFileName, jdFileBuffer, {
+      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      upsert: true
+    });
+
+  if (jdUploadError) {
+    console.error('JD Storage Upload Error:', jdUploadError);
+    throw new Error('Failed to upload JD document to storage.');
+  }
+
+  const { data: jdSignedData, error: jdSignedError } = await supabaseAdmin
+    .storage
+    .from('resumes')
+    .createSignedUrl(jdUploadData.path, 3600);
+
+  if (jdSignedError) {
+    throw new Error('Failed to generate URL for JD document.');
+  }
+
+  const jdUrl = jdSignedData.signedUrl;
+
   // Save the interview request
   const { data: requestRecord, error: insertError } = await supabaseAdmin
     .from('interview_requests')
@@ -129,6 +178,7 @@ export async function submitInterviewRequest(formData: FormData) {
       interview_platform: interviewPlatform,
       resume_type: resumeType,
       updated_resume_url: updatedResumeUrl,
+      jd_url: jdUrl,
       status: 'pending'
     })
     .select()
@@ -168,15 +218,25 @@ export async function submitInterviewRequest(formData: FormData) {
     interviewPlatform
   });
 
-  // Prepare email attachments
-  let attachments = undefined;
+  // Prepare email attachments (JD first, then Resume)
+  const attachments: Array<{ filename: string; content?: Buffer; path?: string }> = [];
+
+  // Attach JD Document
+  if (jdFile && jdFileBuffer) {
+    attachments.push({
+      filename: jdFile.name,
+      content: jdFileBuffer
+    });
+  }
+
+  // Attach Resume Document
   if (resumeType === 'updated') {
     const file = formData.get('resume') as File | null;
     if (file && fileBuffer) {
-      attachments = [{
+      attachments.push({
         filename: file.name,
         content: fileBuffer
-      }];
+      });
     }
   } else if (profile.resume_url) {
     try {
@@ -193,10 +253,10 @@ export async function submitInterviewRequest(formData: FormData) {
         const arrayBuffer = await fileBlob.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         const fileExt = path.split('.').pop() || 'docx';
-        attachments = [{
+        attachments.push({
           filename: `Resume_${(profile.client_name || 'consultant').replace(/\s+/g, '_')}.${fileExt}`,
           content: buffer
-        }];
+        });
       }
     } catch (e) {
       console.warn('Could not attach original resume to email:', e);
@@ -208,7 +268,7 @@ export async function submitInterviewRequest(formData: FormData) {
     adminEmail,
     `Support Interview Request: ${profile.client_name} for ${clientCompany}`,
     html,
-    attachments
+    attachments.length > 0 ? attachments : undefined
   );
 
   if (!emailRes.success) {

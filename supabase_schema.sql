@@ -304,6 +304,7 @@ CREATE TABLE public.interview_requests (
     -- Resume
     resume_type TEXT NOT NULL DEFAULT 'original' CHECK (resume_type IN ('original', 'updated')),
     updated_resume_url TEXT,
+    jd_url TEXT,
     
     -- Status tracking
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'acknowledged', 'completed', 'cancelled')),

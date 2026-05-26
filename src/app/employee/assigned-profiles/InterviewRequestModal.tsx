@@ -34,6 +34,7 @@ export default function InterviewRequestModal({
   const [interviewPlatform, setInterviewPlatform] = useState('Zoom');
   const [resumeType, setResumeType] = useState<'original' | 'updated'>('original');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [jdFile, setJdFile] = useState<File | null>(null);
 
   if (!isOpen) return null;
 
@@ -53,6 +54,22 @@ export default function InterviewRequestModal({
     setSelectedFile(file);
   };
 
+  const handleJdFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('JD document size must be under 2MB.');
+      return;
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'docx') {
+      toast.error('Only DOCX format is supported for Job Description (JD) document.');
+      return;
+    }
+    setJdFile(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientCompany.trim()) {
@@ -67,6 +84,10 @@ export default function InterviewRequestModal({
       toast.error('Please select an updated resume file to upload.');
       return;
     }
+    if (!jdFile) {
+      toast.error('Please select a Job Description (JD) document (.docx only).');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -79,6 +100,9 @@ export default function InterviewRequestModal({
 
       if (resumeType === 'updated' && selectedFile) {
         formData.append('resume', selectedFile);
+      }
+      if (jdFile) {
+        formData.append('jd', jdFile);
       }
 
       const result = await submitInterviewRequest(formData);
@@ -183,6 +207,29 @@ export default function InterviewRequestModal({
                 <option value="Skype">Skype</option>
                 <option value="Other">Other</option>
               </select>
+            </div>
+
+            {/* Job Description (JD) Option */}
+            <div className="space-y-2 pt-1.5 border-t border-border/80">
+              <label className="font-bold text-navy-900 block">Job Description (JD) * (.docx only)</label>
+              <div className="border border-dashed border-border rounded-xl p-3 bg-slate-50 flex items-center justify-center gap-3 relative min-h-[50px] transition-all">
+                <input 
+                  type="file" 
+                  accept=".docx"
+                  onChange={handleJdFileChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  required
+                />
+                <FileUp className="w-4 h-4 text-text-muted shrink-0" />
+                <div className="text-left leading-normal">
+                  <span className="font-semibold block text-[10px] text-navy-900">
+                    {jdFile ? jdFile.name : 'Select JD file'}
+                  </span>
+                  <span className="text-[9px] text-text-muted block">
+                    {jdFile ? `${(jdFile.size / 1024).toFixed(1)} KB` : 'DOCX only (Max 2MB)'}
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Resume Option */}

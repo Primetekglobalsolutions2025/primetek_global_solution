@@ -24,6 +24,7 @@ interface InterviewRequest {
   interview_platform: string;
   resume_type: 'original' | 'updated';
   updated_resume_url: string | null;
+  jd_url: string | null;
   status: 'pending' | 'acknowledged' | 'completed' | 'cancelled';
   created_at: string;
   employee?: { name: string };
@@ -194,6 +195,25 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
                     <span className="text-xs text-text-muted italic flex items-center gap-1.5 mt-0.5">
                       <AlertCircle className="w-3.5 h-3.5" />
                       <span>No resume available</span>
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">JD Document (.docx)</p>
+                  {req.jd_url ? (
+                    <a 
+                      href={req.jd_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 mt-0.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download JD</span>
+                    </a>
+                  ) : (
+                    <span className="text-xs text-text-muted italic flex items-center gap-1.5 mt-0.5">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>No JD attached</span>
                     </span>
                   )}
                 </div>
