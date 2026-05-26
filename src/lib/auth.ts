@@ -36,19 +36,75 @@ export async function verifyToken(token: string): Promise<TokenPayload | null> {
   }
 }
 
+function bufToHex(buf: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function hexToBuf(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
+
+let _captchaKey: CryptoKey | null = null;
+async function getCaptchaKey(): Promise<CryptoKey> {
+  if (!_captchaKey) {
+    const secretBuffer = new TextEncoder().encode(env.JWT_SECRET);
+    const keyBuffer = await crypto.subtle.digest('SHA-256', secretBuffer);
+    _captchaKey = await crypto.subtle.importKey(
+      'raw',
+      keyBuffer,
+      { name: 'AES-GCM' },
+      false,
+      ['encrypt', 'decrypt']
+    );
+  }
+  return _captchaKey;
+}
+
 export async function createCaptchaToken(answer: number): Promise<string> {
-  return new SignJWT({ answer })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('5m')
-    .sign(getJwtSecret());
+  const payload = JSON.stringify({ answer, expiry: Date.now() + 5 * 60 * 1000 });
+  const aesKey = await getCaptchaKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const payloadBuffer = new TextEncoder().encode(payload);
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    aesKey,
+    payloadBuffer
+  );
+
+  return `${bufToHex(iv.buffer)}:${bufToHex(encrypted)}`;
 }
 
 export async function verifyCaptchaToken(token: string, submittedAnswer: number): Promise<boolean> {
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret());
-    return !!payload && (payload as any).answer === submittedAnswer;
-  } catch {
+    const parts = token.split(':');
+    if (parts.length !== 2) return false;
+    const [ivHex, cipherHex] = parts;
+    if (!ivHex || !cipherHex) return false;
+
+    const iv = hexToBuf(ivHex) as any;
+    const cipher = hexToBuf(cipherHex) as any;
+    const aesKey = await getCaptchaKey();
+
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      aesKey,
+      cipher
+    );
+
+    const payloadStr = new TextDecoder().decode(decrypted);
+    const payload = JSON.parse(payloadStr);
+
+    if (typeof payload.answer !== 'number' || typeof payload.expiry !== 'number') return false;
+    if (Date.now() > payload.expiry) return false;
+    return payload.answer === submittedAnswer;
+  } catch (err) {
+    console.error('[Captcha Verify] Cryptographic error:', err);
     return false;
   }
 }

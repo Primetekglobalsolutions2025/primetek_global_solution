@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { inquirySchema, type InquiryFormData } from '@/lib/validations';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import Textarea from '@/components/ui/Textarea';
 
 export default function InquiryForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -42,77 +44,67 @@ export default function InquiryForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Name */}
-      <div>
-        <label htmlFor="inquiry-name" className="block text-sm font-medium text-navy-900 mb-1.5">
-          Full Name <span className="text-error">*</span>
-        </label>
-        <input
-          id="inquiry-name"
-          type="text"
-          placeholder="John Doe"
-          {...register('name')}
-          className="w-full px-4 py-3 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all text-sm"
-        />
-        {errors.name && <p className="text-error text-xs mt-1">{errors.name.message}</p>}
-      </div>
+      <Input
+        id="inquiry-name"
+        type="text"
+        label={
+          <>
+            Full Name <span className="text-error">*</span>
+          </>
+        }
+        placeholder="John Doe"
+        error={errors.name?.message}
+        {...register('name')}
+      />
 
       {/* Email */}
-      <div>
-        <label htmlFor="inquiry-email" className="block text-sm font-medium text-navy-900 mb-1.5">
-          Email Address <span className="text-error">*</span>
-        </label>
-        <input
-          id="inquiry-email"
-          type="email"
-          placeholder="john@company.com"
-          {...register('email')}
-          className="w-full px-4 py-3 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all text-sm"
-        />
-        {errors.email && <p className="text-error text-xs mt-1">{errors.email.message}</p>}
-      </div>
+      <Input
+        id="inquiry-email"
+        type="email"
+        label={
+          <>
+            Email Address <span className="text-error">*</span>
+          </>
+        }
+        placeholder="john@company.com"
+        error={errors.email?.message}
+        {...register('email')}
+      />
 
       {/* Company + Phone Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <div>
-          <label htmlFor="inquiry-company" className="block text-sm font-medium text-navy-900 mb-1.5">
-            Company
-          </label>
-          <input
-            id="inquiry-company"
-            type="text"
-            placeholder="Acme Inc."
-            {...register('company')}
-            className="w-full px-4 py-3 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all text-sm"
-          />
-        </div>
-        <div>
-          <label htmlFor="inquiry-phone" className="block text-sm font-medium text-navy-900 mb-1.5">
-            Phone
-          </label>
-          <input
-            id="inquiry-phone"
-            type="tel"
-            placeholder="+91 98765 43210"
-            {...register('phone')}
-            className="w-full px-4 py-3 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all text-sm"
-          />
-        </div>
+        <Input
+          id="inquiry-company"
+          type="text"
+          label="Company"
+          placeholder="Acme Inc."
+          error={errors.company?.message}
+          {...register('company')}
+        />
+        <Input
+          id="inquiry-phone"
+          type="tel"
+          label="Phone"
+          placeholder="+91 98765 43210"
+          error={errors.phone?.message}
+          {...register('phone')}
+        />
       </div>
 
       {/* Requirement */}
-      <div>
-        <label htmlFor="inquiry-requirement" className="block text-sm font-medium text-navy-900 mb-1.5">
-          How Can We Help? <span className="text-error">*</span>
-        </label>
-        <textarea
-          id="inquiry-requirement"
-          rows={4}
-          placeholder="Tell us about your staffing needs, timeline, and any specific requirements..."
-          {...register('requirement')}
-          className="w-full px-4 py-3 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent transition-all text-sm resize-none"
-        />
-        {errors.requirement && <p className="text-error text-xs mt-1">{errors.requirement.message}</p>}
-      </div>
+      <Textarea
+        id="inquiry-requirement"
+        rows={4}
+        label={
+          <>
+            How Can We Help? <span className="text-error">*</span>
+          </>
+        }
+        placeholder="Tell us about your staffing needs, timeline, and any specific requirements..."
+        error={errors.requirement?.message}
+        className="resize-none"
+        {...register('requirement')}
+      />
 
       {/* Submit */}
       <Button

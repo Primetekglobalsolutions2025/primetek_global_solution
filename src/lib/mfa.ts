@@ -9,9 +9,12 @@ const ALGORITHM = 'aes-256-gcm';
 let _encryptionKey: Buffer | null = null;
 function getEncryptionKey(): Buffer {
   if (!_encryptionKey) {
-    const secret = env.JWT_SECRET;
+    const secret = env.MFA_ENCRYPTION_SECRET || env.JWT_SECRET;
     if (!secret) {
-      throw new Error('JWT_SECRET is required for MFA encryption');
+      throw new Error('MFA_ENCRYPTION_SECRET or JWT_SECRET is required for MFA encryption');
+    }
+    if (!env.MFA_ENCRYPTION_SECRET) {
+      console.warn('⚠️ Warning: MFA_ENCRYPTION_SECRET is not set. Falling back to JWT_SECRET for MFA encryption. It is highly recommended to isolate these keys in production.');
     }
     _encryptionKey = crypto.scryptSync(secret, 'primetek-mfa-salt', 32);
   }

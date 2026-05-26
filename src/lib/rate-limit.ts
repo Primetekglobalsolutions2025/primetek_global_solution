@@ -1,9 +1,14 @@
-import { supabaseAdmin } from '@/lib/supabase-admin';
+// In-Memory store to prevent excessive PostgreSQL database queries.
+// Note: If you are running multiple serverless instances in production,
+// it is highly recommended to configure Upstash Redis or a standard Redis client
+// to distribute and sync rate-limiting states across containers.
+interface RateLimitRecord {
+  points: number;
+  expireAt: number;
+}
 
-/**
- * Custom database-backed Rate Limiter compatible with RateLimiterMemory interface.
- * Stores rate limits in Supabase PostgreSQL table to support serverless deployments.
- */
+const rateLimitStore = new Map<string, RateLimitRecord>();
+
 export class DbRateLimiter {
   private keyPrefix: string;
   private points: number;
@@ -17,116 +22,73 @@ export class DbRateLimiter {
     this.blockDuration = opts.blockDuration;
   }
 
-  async get(key: string) {
-    const fullKey = `${this.keyPrefix}:${key}`;
-    const now = new Date();
-
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('rate_limits')
-        .select('points, expire_at')
-        .eq('key', fullKey)
-        .maybeSingle();
-
-      if (error || !data) {
-        return { remainingPoints: this.points, msBeforeNext: 0 };
+  private prune() {
+    const now = Date.now();
+    for (const [key, record] of rateLimitStore.entries()) {
+      if (record.expireAt <= now) {
+        rateLimitStore.delete(key);
       }
-
-      const expireAt = new Date(data.expire_at);
-      if (expireAt <= now) {
-        return { remainingPoints: this.points, msBeforeNext: 0 };
-      }
-
-      return {
-        remainingPoints: data.points,
-        msBeforeNext: expireAt.getTime() - now.getTime(),
-      };
-    } catch (err) {
-      console.error('[RateLimiter] Error getting rate limit:', err);
-      return { remainingPoints: this.points, msBeforeNext: 0 };
     }
   }
 
-  async consume(key: string) {
+  async get(key: string) {
+    this.prune();
     const fullKey = `${this.keyPrefix}:${key}`;
-    const now = new Date();
+    const now = Date.now();
+    const record = rateLimitStore.get(fullKey);
 
-    try {
-      const { data, error } = await supabaseAdmin
-        .from('rate_limits')
-        .select('points, expire_at')
-        .eq('key', fullKey)
-        .maybeSingle();
-
-      if (error || !data) {
-        const expireAt = new Date(now.getTime() + this.duration * 1000);
-        await supabaseAdmin
-          .from('rate_limits')
-          .insert({
-            key: fullKey,
-            points: this.points - 1,
-            expire_at: expireAt.toISOString(),
-          });
-        return { remainingPoints: this.points - 1, msBeforeNext: this.duration * 1000 };
-      }
-
-      const expireAt = new Date(data.expire_at);
-      if (expireAt <= now) {
-        const newExpireAt = new Date(now.getTime() + this.duration * 1000);
-        await supabaseAdmin
-          .from('rate_limits')
-          .update({
-            points: this.points - 1,
-            expire_at: newExpireAt.toISOString(),
-          })
-          .eq('key', fullKey);
-        return { remainingPoints: this.points - 1, msBeforeNext: this.duration * 1000 };
-      }
-
-      const msBeforeNext = expireAt.getTime() - now.getTime();
-
-      if (data.points <= 0) {
-        if (this.blockDuration) {
-          const newBlockExpire = new Date(now.getTime() + this.blockDuration * 1000);
-          await supabaseAdmin
-            .from('rate_limits')
-            .update({
-              expire_at: newBlockExpire.toISOString(),
-            })
-            .eq('key', fullKey);
-          throw { remainingPoints: 0, msBeforeNext: this.blockDuration * 1000 };
-        }
-        throw { remainingPoints: 0, msBeforeNext };
-      }
-
-      const nextPoints = data.points - 1;
-      await supabaseAdmin
-        .from('rate_limits')
-        .update({
-          points: nextPoints,
-        })
-        .eq('key', fullKey);
-
-      return { remainingPoints: nextPoints, msBeforeNext };
-    } catch (err: any) {
-      if (err && typeof err.remainingPoints === 'number') {
-        throw err;
-      }
-      console.error('[RateLimiter] Error consuming rate limit:', err);
-      return { remainingPoints: this.points - 1, msBeforeNext: this.duration * 1000 };
+    if (!record || record.expireAt <= now) {
+      return { remainingPoints: this.points, msBeforeNext: 0 };
     }
+
+    return {
+      remainingPoints: record.points,
+      msBeforeNext: Math.max(0, record.expireAt - now),
+    };
+  }
+
+  async consume(key: string) {
+    this.prune();
+    const fullKey = `${this.keyPrefix}:${key}`;
+    const now = Date.now();
+    const record = rateLimitStore.get(fullKey);
+
+    if (!record || record.expireAt <= now) {
+      const expireAt = now + this.duration * 1000;
+      const nextPoints = this.points - 1;
+      rateLimitStore.set(fullKey, {
+        points: nextPoints,
+        expireAt,
+      });
+      return { remainingPoints: nextPoints, msBeforeNext: this.duration * 1000 };
+    }
+
+    const msBeforeNext = Math.max(0, record.expireAt - now);
+
+    if (record.points <= 0) {
+      if (this.blockDuration) {
+        const newBlockExpire = now + this.blockDuration * 1000;
+        rateLimitStore.set(fullKey, {
+          points: 0,
+          expireAt: newBlockExpire,
+        });
+        throw { remainingPoints: 0, msBeforeNext: this.blockDuration * 1000 };
+      }
+      throw { remainingPoints: 0, msBeforeNext };
+    }
+
+    const nextPoints = record.points - 1;
+    rateLimitStore.set(fullKey, {
+      points: nextPoints,
+      expireAt: record.expireAt,
+    });
+
+    return { remainingPoints: nextPoints, msBeforeNext };
   }
 
   async delete(key: string) {
     const fullKey = `${this.keyPrefix}:${key}`;
-    try {
-      await supabaseAdmin
-        .from('rate_limits')
-        .delete()
-        .eq('key', fullKey);
-    } catch (err) {
-      console.error('[RateLimiter] Error deleting rate limit:', err);
-    }
+    rateLimitStore.delete(fullKey);
   }
 }
 

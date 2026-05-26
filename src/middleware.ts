@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, getTokenFromRequest } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+interface CacheEntry {
+  status: string | null;
+  timestamp: number;
+}
+
+const statusCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+async function getCachedEmployeeStatus(employeeId: string): Promise<string | null> {
+  const now = Date.now();
+  const cached = statusCache.get(employeeId);
+  if (cached && (now - cached.timestamp) < CACHE_TTL_MS) {
+    return cached.status;
+  }
+
+  try {
+    const { data: empData } = await supabaseAdmin
+      .from('employees')
+      .select('status')
+      .eq('id', employeeId)
+      .single();
+
+    const status = empData?.status || null;
+    statusCache.set(employeeId, { status, timestamp: now });
+    return status;
+  } catch (err) {
+    console.error('[Middleware Cache] Failed to fetch employee status:', err);
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -90,14 +121,10 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/employee/login', request.url));
     }
 
-    // AUTH-02: Check if employee account is active
-    const { data: empData } = await supabaseAdmin
-      .from('employees')
-      .select('status')
-      .eq('id', session.id)
-      .single();
+    // AUTH-02: Check if employee account is active (Cached)
+    const empStatus = await getCachedEmployeeStatus(session.id);
 
-    if (!empData || empData.status !== 'Active') {
+    if (empStatus !== 'Active') {
       const response = NextResponse.redirect(new URL('/employee/login', request.url));
       response.cookies.delete('employee-auth-token');
       return response;
@@ -123,15 +150,11 @@ export async function middleware(request: NextRequest) {
     }
     // Add more role checks as needed
 
-    // AUTH-02: Check if employee account is active for non-admin API requests
+    // AUTH-02: Check if employee account is active for non-admin API requests (Cached)
     if (session.role !== 'admin') {
-      const { data: empData } = await supabaseAdmin
-        .from('employees')
-        .select('status')
-        .eq('id', session.id)
-        .single();
+      const empStatus = await getCachedEmployeeStatus(session.id);
 
-      if (!empData || empData.status !== 'Active') {
+      if (empStatus !== 'Active') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
     }

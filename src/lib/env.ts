@@ -10,6 +10,7 @@ const serverSchema = publicSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   RESEND_API_KEY: z.string().min(1).optional().or(z.literal("").transform(() => undefined)),
   JWT_SECRET: z.string().min(1, 'JWT_SECRET environment variable is required'),
+  MFA_ENCRYPTION_SECRET: z.string().min(1).optional(),
   CRON_SECRET: z.string().min(1).optional().or(z.literal("").transform(() => undefined)),
 }).superRefine((data, ctx) => {
   if (process.env.NODE_ENV === 'production') {
@@ -58,6 +59,7 @@ function createLazyEnv() {
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
           RESEND_API_KEY: process.env.RESEND_API_KEY,
           JWT_SECRET: process.env.JWT_SECRET,
+          MFA_ENCRYPTION_SECRET: process.env.MFA_ENCRYPTION_SECRET,
           CRON_SECRET: process.env.CRON_SECRET,
         };
 
