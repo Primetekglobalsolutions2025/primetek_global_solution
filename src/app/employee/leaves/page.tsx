@@ -83,7 +83,7 @@ export default function LeavesPage() {
                 <Icon className="w-4.5 h-4.5" />
               </div>
               <p className="text-2xl font-black text-navy-900 tracking-tight leading-none mb-1 group-hover:text-primary-600 transition-colors">
-                {loading ? '...' : stat.type === 'Pending' ? leaves.filter(l => l.status.toLowerCase() === 'pending').length : getBalance(stat.type)}
+                {loading ? '...' : stat.type === 'Pending' ? leaves.filter(l => (l.status || 'Pending').toLowerCase() === 'pending').length : getBalance(stat.type)}
               </p>
               <p className="text-[9px] text-text-muted font-bold uppercase tracking-wider">{stat.label}</p>
             </div>
@@ -115,13 +115,14 @@ export default function LeavesPage() {
               </div>
             ) : (
               leaves.map((leave) => {
-                const Icon = statusIcons[leave.status.toLowerCase()] || AlertCircle;
+                const leaveStatus = (leave.status || 'Pending').toLowerCase();
+                const Icon = statusIcons[leaveStatus] || AlertCircle;
                 return (
                   <div key={leave.id} className="p-4 hover:bg-surface-alt/30 transition-all group flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-start gap-4">
                       <div className={cn(
                         "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-all",
-                        statusColors[leave.status.toLowerCase()]
+                        statusColors[leaveStatus]
                       )}>
                         <Icon className="w-4.5 h-4.5" />
                       </div>
@@ -130,9 +131,9 @@ export default function LeavesPage() {
                           <p className="text-sm font-semibold text-navy-900 tracking-tight">{leave.type} Leave</p>
                           <span className={cn(
                             "px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border",
-                            statusColors[leave.status.toLowerCase()]
+                            statusColors[leaveStatus]
                           )}>
-                            {leave.status}
+                            {leave.status || 'Pending'}
                           </span>
                         </div>
                         <p className="text-[10px] text-text-muted font-medium uppercase tracking-wider">
