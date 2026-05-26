@@ -27,13 +27,25 @@ export async function GET(request: NextRequest) {
       const cleanEmail = testEmail.trim().toLowerCase();
       const isEmail = cleanEmail.includes('@');
 
-      const query = client
-        .from('employees')
-        .select('id, email, employee_id, password_hash, status, role, name');
-
-      const { data: employee, error } = await (isEmail
-        ? query.ilike('email', cleanEmail).single()
-        : query.ilike('employee_id', cleanEmail).single());
+      // Use a fresh query for each branch to avoid any mutation issues
+      let employee, error;
+      if (isEmail) {
+        const result = await client
+          .from('employees')
+          .select('id, email, employee_id, password_hash, status, role, name')
+          .ilike('email', cleanEmail)
+          .single();
+        employee = result.data;
+        error = result.error;
+      } else {
+        const result = await client
+          .from('employees')
+          .select('id, email, employee_id, password_hash, status, role, name')
+          .ilike('employee_id', cleanEmail)
+          .single();
+        employee = result.data;
+        error = result.error;
+      }
 
       if (error) {
         return NextResponse.json({ 
