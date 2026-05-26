@@ -44,7 +44,7 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://maps.geoapify.com; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.geoapify.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co https://maps.geoapify.com https://grainy-gradients.vercel.app; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.geoapify.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
           },
         ],
       },
