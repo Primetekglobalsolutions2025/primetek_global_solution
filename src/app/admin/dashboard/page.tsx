@@ -1,4 +1,4 @@
-import { MessageSquare, Users, Clock, Briefcase, Settings, ArrowRight, CheckSquare, TrendingUp, Zap } from 'lucide-react';
+import { MessageSquare, Users, Clock, Briefcase, Settings, ArrowRight, CheckSquare, TrendingUp, Zap, FileUser } from 'lucide-react';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
@@ -11,7 +11,7 @@ export default async function AdminAppDashboard() {
   const userName = session?.name || 'Administrator';
 
   let inquiriesCount = 0;
-  let activeJobsCount = 0;
+  let clientProfilesCount = 0;
   let employeesCount = 0;
   let pendingLeavesCount = 0;
   let pendingWFHCount = 0;
@@ -37,7 +37,7 @@ export default async function AdminAppDashboard() {
   try {
     const [
       inquiriesRes,
-      activeJobsRes,
+      profilesRes,
       employeesRes,
       pendingLeavesRes,
       pendingWFHRes,
@@ -47,7 +47,7 @@ export default async function AdminAppDashboard() {
       systemNodesRes
     ] = await Promise.all([
       supabaseAdmin.from('inquiries').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabaseAdmin.from('application_profiles').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('employees').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('leave_requests').select('*', { count: 'exact', head: true }).ilike('status', 'Pending'),
       supabaseAdmin.from('attendance').select('*', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
@@ -58,7 +58,7 @@ export default async function AdminAppDashboard() {
     ]);
 
     inquiriesCount = inquiriesRes.count || 0;
-    activeJobsCount = activeJobsRes.count || 0;
+    clientProfilesCount = profilesRes.count || 0;
     employeesCount = employeesRes.count || 0;
     pendingLeavesCount = pendingLeavesRes.count || 0;
     pendingWFHCount = pendingWFHRes.count || 0;
@@ -74,7 +74,7 @@ export default async function AdminAppDashboard() {
 
   const stats = [
     { label: 'Inquiries', value: inquiriesCount.toString(), icon: MessageSquare, color: 'text-primary-500', bg: 'bg-primary-50/50', border: 'border-primary-100' },
-    { label: 'Active Jobs', value: activeJobsCount.toString(), icon: Briefcase, color: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100' },
+    { label: 'Client Profiles', value: clientProfilesCount.toString(), icon: FileUser, color: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100' },
     { label: 'Employees', value: employeesCount.toString(), icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-50/50', border: 'border-emerald-100' },
     { label: 'Approvals', value: totalPending.toString(), icon: Clock, color: 'text-violet-500', bg: 'bg-violet-50/50', border: 'border-violet-100' },
   ];

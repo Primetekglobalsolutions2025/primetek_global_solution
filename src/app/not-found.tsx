@@ -37,10 +37,10 @@ export default function NotFound() {
           </Link>
 
           <Link
-            href="/careers"
+            href="/contact"
             className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl border border-white/15 text-white/80 font-semibold text-sm hover:bg-white/5 hover:-translate-y-0.5 transition-all duration-200"
           >
-            View Careers
+            Contact Us
           </Link>
         </div>
       </div>

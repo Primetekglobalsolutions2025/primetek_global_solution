@@ -152,22 +152,6 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Join Our Team */}
-      <section className="section-padding bg-surface-alt">
-        <div className="container-wide">
-          <div className="max-w-4xl mx-auto text-center">
-            <SectionHeading label="Careers" title="Join Our Team" />
-            <p className="text-text-secondary leading-relaxed mb-8 text-lg">
-              Primetek Global Solutions is growing rapidly and looking for US IT recruiters, bench‑sales professionals, and marketing/talent‑acquisition specialists to help us scale our US‑IT‑placement pipeline. If you are passionate about connecting talent with opportunity, we’d love to hear from you.
-            </p>
-            <Link href="/careers" className="inline-flex items-center justify-center px-8 py-4 text-base font-semibold text-white transition-all rounded-lg bg-primary-600 hover:bg-primary-700">
-              <Briefcase className="w-5 h-5 mr-2" />
-              View Internal Opportunities
-            </Link>
-          </div>
-        </div>
-      </section>
-
       <CTASection />
     </>
   );

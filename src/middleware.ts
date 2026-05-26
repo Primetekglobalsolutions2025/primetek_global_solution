@@ -45,9 +45,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/api/auth/mfa-login' ||
     pathname === '/api/auth/unified-login' ||
     (pathname === '/api/inquiries' && request.method === 'POST') ||
-    (pathname === '/api/applications' && request.method === 'POST') ||
-    pathname === '/api/jobs' ||
-    pathname.startsWith('/api/jobs/');
+    (pathname === '/api/applications' && request.method === 'POST');
 
   // 1. Admin route protection
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {

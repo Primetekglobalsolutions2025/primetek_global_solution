@@ -9,7 +9,6 @@ import { useState } from 'react';
 const navItems = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
-  { href: '/admin/jobs', icon: Briefcase, label: 'Jobs' },
   { href: '/admin/applications', icon: FileText, label: 'Applications' },
   { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests' },
   { href: '/admin/employees', icon: Users, label: 'Employees' },
