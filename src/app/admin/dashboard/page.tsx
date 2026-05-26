@@ -1,25 +1,106 @@
-import { MessageSquare, Users, Clock, Briefcase, Settings, ArrowRight, CheckSquare, TrendingUp, Zap, FileUser } from 'lucide-react';
+import { MessageSquare, Users, Clock, Settings, ArrowRight, CheckSquare, TrendingUp, Zap, FileUser } from 'lucide-react';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import DashboardGreeting from '@/components/admin/DashboardGreeting';
 import { getSession } from '@/lib/auth';
+import { Suspense } from 'react';
+import { StatsCardsSkeleton, ChartsSkeleton, RecentInquiriesSkeleton, SystemStatusSkeleton } from './skeletons';
 
-export default async function AdminAppDashboard() {
-  const session = await getSession();
-  const userName = session?.name || 'Administrator';
-
+// ─── 1. ASYNC STATS SECTION ───
+async function StatsGrid() {
   let inquiriesCount = 0;
   let clientProfilesCount = 0;
   let employeesCount = 0;
   let pendingLeavesCount = 0;
   let pendingWFHCount = 0;
-  let recentInquiries: any[] = [];
-  let attendanceTrends: any[] = [];
-  let inquiryTrends: any[] = [];
-  let systemNodes: any[] = [];
 
+  try {
+    const [
+      inquiriesRes,
+      profilesRes,
+      employeesRes,
+      pendingLeavesRes,
+      pendingWFHRes
+    ] = await Promise.all([
+      supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('application_profiles').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('employees').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
+    ]);
+
+    inquiriesCount = inquiriesRes.count || 0;
+    clientProfilesCount = profilesRes.count || 0;
+    employeesCount = employeesRes.count || 0;
+    pendingLeavesCount = pendingLeavesRes.count || 0;
+    pendingWFHCount = pendingWFHRes.count || 0;
+  } catch (err) {
+    console.error('Failed to load dashboard metrics from database:', err);
+  }
+
+  const totalPending = pendingLeavesCount + pendingWFHCount;
+
+  const stats = [
+    { label: 'Inquiries', value: inquiriesCount.toString(), icon: MessageSquare, color: 'text-primary-500', bg: 'bg-primary-50/50', border: 'border-primary-100', href: '/admin/inquiries' },
+    { label: 'Client Profiles', value: clientProfilesCount.toString(), icon: FileUser, color: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100', href: '/admin/client-profiles' },
+    { label: 'Employees', value: employeesCount.toString(), icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-50/50', border: 'border-emerald-100', href: '/admin/employees' },
+    { label: 'Approvals', value: totalPending.toString(), icon: Clock, color: 'text-violet-500', bg: 'bg-violet-50/50', border: 'border-violet-100', href: '/admin/approvals' },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {stats.map((stat) => (
+        <Link 
+          key={stat.label} 
+          href={stat.href}
+          className="bg-white rounded-xl p-4 md:p-5 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer hover:border-primary-500/30"
+        >
+          <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-3.5 group-hover:scale-105 transition-transform`}>
+            <stat.icon className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-navy-900 tracking-tight leading-none">{stat.value}</p>
+            <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wider mt-1.5">{stat.label}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+// ─── 2. ASYNC MOBILE APPROVALS BUTTON ───
+async function MobilePendingApprovalsButton() {
+  let pendingLeavesCount = 0;
+  let pendingWFHCount = 0;
+
+  try {
+    const [pendingLeavesRes, pendingWFHRes] = await Promise.all([
+      supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
+    ]);
+    pendingLeavesCount = pendingLeavesRes.count || 0;
+    pendingWFHCount = pendingWFHRes.count || 0;
+  } catch (err) {}
+
+  const totalPending = pendingLeavesCount + pendingWFHCount;
+
+  return (
+    <Link href="/admin/approvals" className="col-span-2">
+      <button className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md active:scale-98 transition-all cursor-pointer">
+        <div className="flex items-center gap-3">
+          <CheckSquare className="w-5 h-5" />
+          <span>Pending Approvals ({totalPending})</span>
+        </div>
+        <ArrowRight className="w-4 h-4" />
+      </button>
+    </Link>
+  );
+}
+
+// ─── 3. ASYNC PERFORMANCE CHARTS SECTION ───
+async function PerformanceChartsSection() {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
@@ -34,64 +115,22 @@ export default async function AdminAppDashboard() {
     return { start, end, label: `W${4-i}` };
   }).reverse();
 
+  let employeesCount = 0;
+  let attendanceTrends: any[] = [];
+  let inquiryTrends: any[] = [];
+
   try {
-    const [
-      inquiriesRes,
-      profilesRes,
-      employeesRes,
-      pendingLeavesRes,
-      pendingWFHRes,
-      recentInquiriesRes,
-      attendanceTrendsRes,
-      inquiryTrendsRes,
-      systemNodesRes
-    ] = await Promise.all([
-      supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('application_profiles').select('id', { count: 'exact', head: true }),
+    const [employeesRes, attendanceTrendsRes, inquiryTrendsRes] = await Promise.all([
       supabaseAdmin.from('employees').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
-      supabaseAdmin.from('inquiries').select('*').order('created_at', { ascending: false }).limit(5),
       supabaseAdmin.from('attendance').select('date, status').in('date', last7Days),
       supabaseAdmin.from('inquiries').select('created_at').gte('created_at', last4Weeks[0].start.toISOString()),
-      supabaseAdmin.from('system_status').select('node_name, status, color').order('node_name')
     ]);
-
-    inquiriesCount = inquiriesRes.count || 0;
-    clientProfilesCount = profilesRes.count || 0;
     employeesCount = employeesRes.count || 0;
-    pendingLeavesCount = pendingLeavesRes.count || 0;
-    pendingWFHCount = pendingWFHRes.count || 0;
-    recentInquiries = recentInquiriesRes.data || [];
     attendanceTrends = attendanceTrendsRes.data || [];
     inquiryTrends = inquiryTrendsRes.data || [];
-    systemNodes = systemNodesRes.data || [];
   } catch (err) {
-    console.error('Failed to load dashboard metrics from database:', err);
+    console.error('Failed to load performance metrics from database:', err);
   }
-
-  const totalPending = (pendingLeavesCount || 0) + (pendingWFHCount || 0);
-
-  const stats = [
-    { label: 'Inquiries', value: inquiriesCount.toString(), icon: MessageSquare, color: 'text-primary-500', bg: 'bg-primary-50/50', border: 'border-primary-100', href: '/admin/inquiries' },
-    { label: 'Client Profiles', value: clientProfilesCount.toString(), icon: FileUser, color: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100', href: '/admin/client-profiles' },
-    { label: 'Employees', value: employeesCount.toString(), icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-50/50', border: 'border-emerald-100', href: '/admin/employees' },
-    { label: 'Approvals', value: totalPending.toString(), icon: Clock, color: 'text-violet-500', bg: 'bg-violet-50/50', border: 'border-violet-100', href: '/admin/approvals' },
-  ];
-
-  const quickActions = [
-    { href: '/admin/approvals', label: 'Review Requests', icon: CheckSquare, desc: 'Leaves & WFH', color: 'bg-violet-500' },
-    { href: '/admin/employees', label: 'Staff Directory', icon: Users, desc: 'Manage profiles', color: 'bg-primary-500' },
-    { href: '/admin/attendance', label: 'Live Reports', icon: TrendingUp, desc: 'View analytics', color: 'bg-emerald-500' },
-    { href: '/admin/settings', label: 'Settings', icon: Settings, desc: 'System settings', color: 'bg-navy-900' },
-  ];
-
-  const statusColors: Record<string, string> = {
-    new: 'bg-blue-50 text-blue-600 border-blue-200',
-    contacted: 'bg-amber-50 text-amber-600 border-amber-200',
-    qualified: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-    closed: 'bg-gray-100 text-gray-500 border-gray-200',
-  };
 
   const attendanceData = last7Days.map(date => {
     const dayRecords = (attendanceTrends || []).filter(r => r.date === date);
@@ -111,6 +150,87 @@ export default async function AdminAppDashboard() {
     return { label: week.label, value: count };
   });
 
+  return (
+    <AnalyticsCharts 
+      attendanceData={attendanceData}
+      applicationData={applicationData}
+    />
+  );
+}
+
+// ─── 4. ASYNC RECENT INQUIRIES SECTION ───
+async function RecentInquiriesSection() {
+  let recentInquiries: any[] = [];
+  
+  try {
+    const { data } = await supabaseAdmin
+      .from('inquiries')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    recentInquiries = data || [];
+  } catch (err) {
+    console.error('Failed to load recent inquiries:', err);
+  }
+
+  const statusColors: Record<string, string> = {
+    new: 'bg-blue-50 text-blue-600 border-blue-200',
+    contacted: 'bg-amber-50 text-amber-600 border-amber-200',
+    qualified: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+    closed: 'bg-gray-100 text-gray-500 border-gray-200',
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
+      <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between bg-surface-alt/30">
+        <h2 className="font-semibold text-navy-900 text-xs uppercase tracking-wider">Inquiries Received</h2>
+        <Link href="/admin/inquiries" className="group flex items-center gap-1.5 text-[10px] font-semibold text-primary-500 uppercase tracking-wider hover:text-primary-600 transition-colors">
+          View All <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      </div>
+      <div className="divide-y divide-border/50">
+        {recentInquiries?.map((inq) => (
+          <div key={inq.id} className="px-5 py-3.5 hover:bg-surface-alt/30 transition-all group">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-sm font-semibold text-navy-900 group-hover:text-primary-600 transition-colors">{inq.name}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider border shrink-0 ${statusColors[inq.status] || statusColors.new}`}>
+                {inq.status?.toUpperCase()}
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary line-clamp-1 mb-1.5 font-medium">{inq.message}</p>
+            <div className="flex items-center gap-3 text-[10px] text-text-muted font-semibold uppercase tracking-tighter">
+              {inq.company && <span className="text-navy-900/40">{inq.company}</span>}
+              {inq.company && <span>•</span>}
+              <span>{formatDate(inq.created_at)}</span>
+            </div>
+          </div>
+        ))}
+        {(!recentInquiries || recentInquiries.length === 0) && (
+          <div className="px-5 py-12 text-center">
+            <div className="w-12 h-12 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
+              <MessageSquare className="w-6 h-6 text-gray-300" />
+            </div>
+            <p className="text-xs text-text-muted font-semibold">No active inquiries in the queue.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── 5. ASYNC SYSTEM STATUS SECTION ───
+async function SystemStatusSection() {
+  let systemNodes: any[] = [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('system_status')
+      .select('node_name, status, color')
+      .order('node_name');
+    systemNodes = data || [];
+  } catch (err) {
+    console.error('Failed to load system status:', err);
+  }
+
   const nodes = systemNodes && systemNodes.length ? systemNodes : [
     { node_name: 'Authentication', status: 'Active', color: 'bg-emerald-500' },
     { node_name: 'DB Cluster', status: 'Syncing', color: 'bg-emerald-500' },
@@ -119,22 +239,56 @@ export default async function AdminAppDashboard() {
   ];
 
   return (
+    <div className="bg-navy-900 rounded-xl p-6 text-white relative overflow-hidden group">
+      <div className="absolute top-0 right-0 p-6 opacity-5">
+        <Zap className="w-20 h-20" />
+      </div>
+      <h3 className="text-base font-semibold tracking-tight mb-1 relative z-10 text-white">System Status</h3>
+      <p className="text-xs text-gray-400 font-medium mb-4 relative z-10">Real-time status check across all services.</p>
+      
+      <div className="space-y-3 relative z-10">
+        {nodes.map(node => (
+          <div key={node.node_name} className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">{node.node_name}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold uppercase text-gray-500">{node.status}</span>
+              <div className={`w-1.5 h-1.5 rounded-full ${node.color} shadow-[0_0_8px_rgba(16,185,129,0.3)]`} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── 6. MAIN DASHBOARD PAGE (Non-blocking Layout shell) ───
+export default async function AdminAppDashboard() {
+  const session = await getSession();
+  const userName = session?.name || 'Administrator';
+
+  const quickActions = [
+    { href: '/admin/approvals', label: 'Review Requests', icon: CheckSquare, desc: 'Leaves & WFH', color: 'bg-violet-500' },
+    { href: '/admin/employees', label: 'Staff Directory', icon: Users, desc: 'Manage profiles', color: 'bg-primary-500' },
+    { href: '/admin/attendance', label: 'Live Reports', icon: TrendingUp, desc: 'View analytics', color: 'bg-emerald-500' },
+    { href: '/admin/settings', label: 'Settings', icon: Settings, desc: 'System settings', color: 'bg-navy-900' },
+  ];
+
+  return (
     <div className="space-y-6 pb-10">
       <DashboardGreeting userName={userName} />
 
-      {/* Mobile Quick Actions Block */}
+      {/* Mobile Quick Actions Block (Streaming button inside fallback) */}
       <div className="block md:hidden bg-white/70 backdrop-blur-md rounded-2xl p-4 border border-border/50 shadow-sm space-y-3">
         <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Quick Actions</h3>
         <div className="grid grid-cols-2 gap-3">
-          <Link href="/admin/approvals" className="col-span-2">
-            <button className="w-full flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md active:scale-98 transition-all cursor-pointer">
-              <div className="flex items-center gap-3">
-                <CheckSquare className="w-5 h-5" />
-                <span>Pending Approvals ({totalPending})</span>
-              </div>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </Link>
+          <Suspense fallback={
+            <div className="col-span-2 h-14 bg-gradient-to-r from-violet-500/10 to-indigo-600/10 border border-violet-500/20 rounded-xl animate-pulse flex items-center justify-between px-4">
+              <div className="h-4 w-32 bg-violet-200/50 rounded" />
+              <div className="h-4 w-4 bg-violet-200/50 rounded" />
+            </div>
+          }>
+            <MobilePendingApprovalsButton />
+          </Suspense>
           <Link href="/admin/employees">
             <button className="w-full flex flex-col items-center justify-center p-3.5 rounded-xl bg-white border border-border/60 hover:bg-surface-alt active:scale-95 transition-all text-center gap-1.5 shadow-sm cursor-pointer">
               <Users className="w-5 h-5 text-primary-500" />
@@ -150,23 +304,10 @@ export default async function AdminAppDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Link 
-            key={stat.label} 
-            href={stat.href}
-            className="bg-white rounded-xl p-4 md:p-5 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer hover:border-primary-500/30"
-          >
-            <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-3.5 group-hover:scale-105 transition-transform`}>
-              <stat.icon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-navy-900 tracking-tight leading-none">{stat.value}</p>
-              <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wider mt-1.5">{stat.label}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
+      {/* ─── Stats Cards Section (Streaming) ─── */}
+      <Suspense fallback={<StatsCardsSkeleton />}>
+        <StatsGrid />
+      </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-5">
@@ -177,45 +318,15 @@ export default async function AdminAppDashboard() {
             </div>
           </div>
           
-          <AnalyticsCharts 
-            attendanceData={attendanceData}
-            applicationData={applicationData}
-          />
+          {/* ─── Performance Charts Section (Streaming) ─── */}
+          <Suspense fallback={<ChartsSkeleton />}>
+            <PerformanceChartsSection />
+          </Suspense>
 
-          <div className="bg-white rounded-xl border border-border/60 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between bg-surface-alt/30">
-              <h2 className="font-semibold text-navy-900 text-xs uppercase tracking-wider">Inquiries Received</h2>
-              <Link href="/admin/inquiries" className="group flex items-center gap-1.5 text-[10px] font-semibold text-primary-500 uppercase tracking-wider hover:text-primary-600 transition-colors">
-                View All <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-            </div>
-            <div className="divide-y divide-border/50">
-              {recentInquiries?.map((inq) => (
-                <div key={inq.id} className="px-5 py-3.5 hover:bg-surface-alt/30 transition-all group">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-sm font-semibold text-navy-900 group-hover:text-primary-600 transition-colors">{inq.name}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider border shrink-0 ${statusColors[inq.status] || statusColors.new}`}>
-                      {inq.status?.toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="text-xs text-text-secondary line-clamp-1 mb-1.5 font-medium">{inq.message}</p>
-                  <div className="flex items-center gap-3 text-[10px] text-text-muted font-semibold uppercase tracking-tighter">
-                    {inq.company && <span className="text-navy-900/40">{inq.company}</span>}
-                    {inq.company && <span>•</span>}
-                    <span>{formatDate(inq.created_at)}</span>
-                  </div>
-                </div>
-              ))}
-              {(!recentInquiries || recentInquiries.length === 0) && (
-                <div className="px-5 py-12 text-center">
-                  <div className="w-12 h-12 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
-                    <MessageSquare className="w-6 h-6 text-gray-300" />
-                  </div>
-                  <p className="text-xs text-text-muted font-semibold">No active inquiries in the queue.</p>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* ─── Recent Inquiries Section (Streaming) ─── */}
+          <Suspense fallback={<RecentInquiriesSkeleton />}>
+            <RecentInquiriesSection />
+          </Suspense>
         </div>
 
         <div className="space-y-6">
@@ -241,25 +352,10 @@ export default async function AdminAppDashboard() {
             </div>
           </div>
 
-          <div className="bg-navy-900 rounded-xl p-6 text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-6 opacity-5">
-              <Zap className="w-20 h-20" />
-            </div>
-            <h3 className="text-base font-semibold tracking-tight mb-1 relative z-10 text-white">System Status</h3>
-            <p className="text-xs text-gray-400 font-medium mb-4 relative z-10">Real-time status check across all services.</p>
-            
-            <div className="space-y-3 relative z-10">
-              {nodes.map(node => (
-                <div key={node.node_name} className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">{node.node_name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-semibold uppercase text-gray-500">{node.status}</span>
-                    <div className={`w-1.5 h-1.5 rounded-full ${node.color} shadow-[0_0_8px_rgba(16,185,129,0.3)]`} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* ─── System Status Section (Streaming) ─── */}
+          <Suspense fallback={<SystemStatusSkeleton />}>
+            <SystemStatusSection />
+          </Suspense>
         </div>
       </div>
     </div>
