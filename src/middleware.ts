@@ -38,6 +38,8 @@ export async function middleware(request: NextRequest) {
   // Define public routes that don't need auth
   const isPublicApiRoute = 
     pathname === '/api/test-env' ||
+    pathname === '/api/debug-employees' ||
+    pathname === '/api/debug-login' ||
     pathname === '/api/auth/login' || 
     pathname === '/api/auth/employee-login' ||
     pathname === '/api/auth/mfa-login' ||
