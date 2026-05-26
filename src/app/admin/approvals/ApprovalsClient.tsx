@@ -15,6 +15,20 @@ import { formatDate, cn } from '@/lib/utils';
 
 type Tab = 'leaves' | 'wfh' | 'history';
 
+const formatSafeTime = (timeStr: any) => {
+  if (!timeStr) return '--:--';
+  const d = new Date(timeStr);
+  if (isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+};
+
+const formatSafeDate = (dateStr: any) => {
+  if (!dateStr) return '-- --- ----';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
 export default function ApprovalsClient({ 
   initialLeaves, 
   initialWFH,
@@ -185,7 +199,7 @@ export default function ApprovalsClient({
                               </div>
                               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-50 border border-violet-100 text-[11px] font-black text-violet-700 uppercase tracking-widest">
                                 <Clock className="w-3.5 h-3.5" />
-                                {new Date(request.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                {formatSafeTime(request.check_in)}
                               </div>
                             </div>
                           </div>
@@ -258,7 +272,7 @@ export default function ApprovalsClient({
                               </span>
                             </td>
                             <td className="px-4 py-2.5 text-[10px] text-text-muted font-medium whitespace-nowrap">
-                              {new Date(item.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {formatSafeDate(item.created_at)}
                             </td>
                           </tr>
                         ))}

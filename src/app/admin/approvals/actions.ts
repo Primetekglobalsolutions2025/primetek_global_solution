@@ -291,6 +291,7 @@ export async function getApprovalHistory() {
     const leaveHistory = (leaves || []).map((l: any) => ({
       ...l,
       kind: 'leave',
+      created_at: l.created_at || l.start_date,
       employee_name: empMap[l.employee_id]?.name || 'Unknown',
       employee_email: empMap[l.employee_id]?.email || '',
     }));
@@ -298,13 +299,16 @@ export async function getApprovalHistory() {
     const wfhHistory = (wfh || []).map((w: any) => ({
       ...w,
       kind: 'wfh',
+      created_at: w.created_at || w.check_in || w.date,
       employee_name: empMap[w.employee_id]?.name || 'Unknown',
       employee_email: empMap[w.employee_id]?.email || '',
     }));
 
-    return [...leaveHistory, ...wfhHistory].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    return [...leaveHistory, ...wfhHistory].sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    });
   } catch (err) {
     console.error('Error fetching approval history:', err);
     return [];

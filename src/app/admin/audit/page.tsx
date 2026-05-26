@@ -5,6 +5,22 @@ import Card from '@/components/ui/Card';
 import { History, User, Clock, ShieldCheck, Search, Activity, LogIn, LogOut, Home, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const formatSafeDateTime = (dateStr: any) => {
+  if (!dateStr) return 'N/A';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return String(dateStr);
+  return d.toLocaleString('en-IN', { 
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+  });
+};
+
+const formatSafeTimeOnly = (dateStr: any) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+};
+
 interface PageProps {
   searchParams: Promise<{ q?: string; page?: string }>;
 }
@@ -157,9 +173,7 @@ export default async function AuditLogsPage(props: PageProps) {
                 const label = isWFH
                   ? (isPending ? 'WFH Request (Pending)' : `WFH ${act.status?.replace(' WFH', '')}`)
                   : hasCheckOut ? 'Checked Out' : 'Checked In';
-                const time = act.check_in
-                  ? new Date(act.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-                  : '';
+                const time = formatSafeTimeOnly(act.check_in);
                 return (
                   <div key={act.id} className="flex items-center gap-3.5 px-5 py-3 hover:bg-surface-alt/20 transition-colors">
                     <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', iconBg)}>
@@ -200,11 +214,7 @@ export default async function AuditLogsPage(props: PageProps) {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-1.5 text-[10px] font-semibold text-text-secondary">
                   <Clock className="w-3.5 h-3.5 text-primary-500/50" />
-                  <span>
-                    {new Date(log.created_at).toLocaleString('en-IN', { 
-                      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
-                    })}
-                  </span>
+                  <span>{formatSafeDateTime(log.created_at)}</span>
                 </div>
                 <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border ${
                    log.action.includes('DELETE') ? 'bg-red-50 text-red-600 border-red-100' :
@@ -255,9 +265,7 @@ export default async function AuditLogsPage(props: PageProps) {
                   <td className="px-4 py-2.5 whitespace-nowrap">
                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-text-secondary">
                       <Clock className="w-3.5 h-3.5 text-primary-500/50" />
-                      {new Date(log.created_at).toLocaleString('en-IN', { 
-                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
-                      })}
+                      {formatSafeDateTime(log.created_at)}
                     </div>
                   </td>
                   <td className="px-4 py-2.5 whitespace-nowrap">
