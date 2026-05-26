@@ -42,7 +42,11 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [wfhRequest, setWfhRequest] = useState<{ active: boolean; distance?: number; officeName?: string } | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [confirmAction, setConfirmAction] = useState<{ message: string; onConfirm: () => void } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ 
+    message: string; 
+    onConfirm: () => void; 
+    variant?: 'danger' | 'primary';
+  } | null>(null);
   const [isBreakActionLoading, setIsBreakActionLoading] = useState(false);
   const [lateStats, setLateStats] = useState({ lateCount: 0, deduction: 0.0, warningMessage: '', remainingSafeCount: 3 });
   
@@ -173,6 +177,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     if (!todayRecord) return;
     setConfirmAction({
       message: 'Are you sure you want to clock out for today? Any running breaks will be ended automatically.',
+      variant: 'danger',
       onConfirm: async () => {
         setGpsStatus('loading');
         let lat: number;
@@ -218,6 +223,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     if (!todayRecord) return;
     setConfirmAction({
       message: 'Are you sure you want to undo your clock out and resume the current session?',
+      variant: 'primary',
       onConfirm: async () => {
         setGpsStatus('loading');
         try {
@@ -796,17 +802,24 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       {/* Custom Confirmation Modal */}
       <AnimatePresence>
         {confirmAction && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200">
+          <div 
+            onClick={() => setConfirmAction(null)}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer"
+          >
             <motion.div
+              onClick={(e) => e.stopPropagation()}
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
               transition={{ type: "spring", duration: 0.4 }}
-              className="w-full max-w-sm"
+              className="w-full max-w-sm cursor-default"
             >
               <Card hover={false} className="p-5 rounded-xl border border-border shadow-md bg-white relative overflow-hidden">
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-12 h-12 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                  <div className={cn(
+                    "w-12 h-12 rounded-lg flex items-center justify-center",
+                    confirmAction.variant === 'danger' ? "bg-red-500/10 text-red-500" : "bg-primary-500/10 text-primary-500"
+                  )}>
                     <AlertCircle className="w-6 h-6" />
                   </div>
                   <div>
@@ -815,7 +828,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   </div>
                   <div className="flex w-full gap-2 pt-2">
                     <button
-                       onClick={() => setConfirmAction(null)}
+                      onClick={() => setConfirmAction(null)}
                       className="flex-1 py-2 px-3 rounded-lg bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-semibold transition-all cursor-pointer border border-border"
                     >
                       Cancel
@@ -826,7 +839,12 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                         setConfirmAction(null);
                       }}
                       size="sm"
-                      className="flex-1 bg-red-500 hover:bg-red-600 border-red-500"
+                      className={cn(
+                        "flex-1 border",
+                        confirmAction.variant === 'danger' 
+                          ? "bg-red-500 hover:bg-red-600 border-red-500" 
+                          : "bg-navy-900 hover:bg-navy-800 border-navy-950 text-white"
+                      )}
                     >
                       Confirm
                     </Button>
