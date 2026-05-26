@@ -133,21 +133,21 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
           </div>
         ))}
       </div>
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex flex-1 flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto md:flex md:flex-row flex-1">
+          <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
             <input type="text" placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400" />
           </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer">
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full md:w-auto px-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer">
             {statusOptions.map((s) => <option key={s} value={s}>{s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
           </select>
-          <select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} className="px-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer">
+          <select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)} className="w-full md:w-auto px-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer">
             <option value="all">All Jobs</option>
             {uniqueJobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
           </select>
         </div>
-        <Button onClick={() => setIsAdding(true)} className="w-full sm:w-auto bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-4 py-2 text-xs font-semibold shadow-sm active:scale-95 transition-all">
+        <Button onClick={() => setIsAdding(true)} className="w-full md:w-auto bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-4 py-2.5 text-xs font-semibold shadow-sm active:scale-95 transition-all shrink-0">
           <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Application
         </Button>
       </div>

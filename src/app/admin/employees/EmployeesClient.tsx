@@ -167,8 +167,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       </div>
 
       {/* 2. Search & Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="relative w-full max-w-sm group">
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+        <div className="relative w-full sm:max-w-sm group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
           <input 
             type="text" 
@@ -180,7 +180,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
         </div>
         <Button 
           onClick={() => setIsModalOpen(true)} 
-          className="w-full sm:w-auto bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-4 py-2 text-xs font-semibold shadow-sm active:scale-95 transition-all"
+          className="w-full sm:w-auto bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-4 py-2.5 text-xs font-semibold shadow-sm active:scale-95 transition-all"
         >
           <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Employee
         </Button>
@@ -461,7 +461,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">User Role</label>
                         <select value={newEmployeeData.role} onChange={(e) => setNewEmployeeData({...newEmployeeData, role: e.target.value})} className="w-full px-4 py-4 rounded-2xl bg-surface-alt border-0 focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all text-sm font-black text-navy-900 uppercase">
