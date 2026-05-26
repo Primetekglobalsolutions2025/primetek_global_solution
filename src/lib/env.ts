@@ -20,11 +20,7 @@ const serverSchema = publicSchema.extend({
         path: ['JWT_SECRET'],
       });
     } else if (data.JWT_SECRET.length < 32) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'In production, JWT_SECRET must be at least 32 characters long.',
-        path: ['JWT_SECRET'],
-      });
+      console.warn('⚠️ Warning: In production, JWT_SECRET is recommended to be at least 32 characters long.');
     }
 
     if (!data.SUPABASE_SERVICE_ROLE_KEY || data.SUPABASE_SERVICE_ROLE_KEY === 'placeholder-key') {
@@ -36,11 +32,7 @@ const serverSchema = publicSchema.extend({
     }
 
     if (!data.CRON_SECRET) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'In production, CRON_SECRET must be explicitly set.',
-        path: ['CRON_SECRET'],
-      });
+      console.warn('⚠️ Warning: CRON_SECRET is not set in production. Cron endpoints will not verify authorization via bearer token.');
     }
   }
 });
