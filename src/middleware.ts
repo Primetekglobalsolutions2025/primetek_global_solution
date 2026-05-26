@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
   // CSRF Protection: Validate Origin / Referer for state-mutating requests
   if (pathname.startsWith('/api') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
     const origin = request.headers.get('origin');
-    const host = request.headers.get('host');
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
 
     if (origin) {
       try {
