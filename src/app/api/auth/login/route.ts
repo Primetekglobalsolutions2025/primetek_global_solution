@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 
   } catch (err) {
     if (err instanceof z.ZodError) return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
-    console.error('Login error:', err);
+    console.error('Login error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: 'Invalid credentials. Please try again.' }, { status: 401 });
   }
 }

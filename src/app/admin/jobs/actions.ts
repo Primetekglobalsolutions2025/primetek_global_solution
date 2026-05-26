@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
+import { jobSchema } from '@/lib/validations';
 
 export async function getAdminJobs() {
   const session = await getSession();
@@ -11,7 +12,8 @@ export async function getAdminJobs() {
   const { data, error } = await supabaseAdmin
     .from('jobs')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(500);
 
   if (error) {
     console.error('Error fetching admin jobs:', error);
@@ -41,12 +43,21 @@ export async function saveJob(data: Record<string, unknown>, id?: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
+  // API-05: Zod Validation on saveJob
+  const parsed = jobSchema.safeParse(data);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+    throw new Error(`Validation failed: ${issues}`);
+  }
+  const validated = parsed.data;
+
   if (id) {
-    const { error } = await supabaseAdmin.from('jobs').update(data).eq('id', id);
+    const { error } = await supabaseAdmin.from('jobs').update(validated).eq('id', id);
     if (error) throw new Error(error.message);
   } else {
-    const { error } = await supabaseAdmin.from('jobs').insert([data]);
+    const { error } = await supabaseAdmin.from('jobs').insert([validated]);
     if (error) throw new Error(error.message);
   }
   revalidatePath('/admin/jobs');
 }
+

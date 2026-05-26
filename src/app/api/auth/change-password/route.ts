@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
     }
 
-    const newHash = await bcrypt.hash(newPassword, 10);
+    const newHash = await bcrypt.hash(newPassword, 12);
     const { error: updateError } = await supabaseAdmin
       .from('employees')
       .update({ password_hash: newHash })
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
-    console.error('Password change error:', err);
+    console.error('Password change error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

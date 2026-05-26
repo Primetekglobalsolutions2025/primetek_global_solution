@@ -27,9 +27,13 @@ export async function GET(request: NextRequest) {
       query = query.eq('type', type);
     }
 
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,department.ilike.%${search}%`);
+    if (search && search.trim().length > 0 && search.length <= 100) {
+      const cleanSearch = search.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+      if (cleanSearch) {
+        query = query.or(`title.ilike.%${cleanSearch}%,description.ilike.%${cleanSearch}%,department.ilike.%${cleanSearch}%`);
+      }
     }
+
 
     const { data, error } = await query;
 

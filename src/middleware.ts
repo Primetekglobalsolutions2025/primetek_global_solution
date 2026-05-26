@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, getTokenFromRequest } from '@/lib/auth';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -92,6 +93,19 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.redirect(new URL('/employee/login', request.url));
     }
+
+    // AUTH-02: Check if employee account is active
+    const { data: empData } = await supabaseAdmin
+      .from('employees')
+      .select('status')
+      .eq('id', session.id)
+      .single();
+
+    if (!empData || empData.status !== 'Active') {
+      const response = NextResponse.redirect(new URL('/employee/login', request.url));
+      response.cookies.delete('employee-auth-token');
+      return response;
+    }
   }
 
   // 3. API route protection
@@ -112,6 +126,19 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     // Add more role checks as needed
+
+    // AUTH-02: Check if employee account is active for non-admin API requests
+    if (session.role !== 'admin') {
+      const { data: empData } = await supabaseAdmin
+        .from('employees')
+        .select('status')
+        .eq('id', session.id)
+        .single();
+
+      if (!empData || empData.status !== 'Active') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    }
   }
 
   return NextResponse.next();

@@ -22,6 +22,12 @@ export async function updateProfileStatus(id: string, status: string) {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
 
+  // MED-05: Restrict to employee-allowed statuses
+  const ALLOWED_STATUSES = ['assigned', 'processing'];
+  if (!ALLOWED_STATUSES.includes(status)) {
+    throw new Error('Invalid status. Employees can only set status to assigned or processing.');
+  }
+
   const { error } = await supabaseAdmin
     .from('application_profiles')
     .update({ status })
@@ -60,6 +66,7 @@ export async function submitInterviewRequest(formData: FormData) {
   }
 
   let updatedResumeUrl = null;
+  let fileBuffer: Buffer | null = null;
 
   if (resumeType === 'updated') {
     const file = formData.get('resume') as File | null;
@@ -71,7 +78,9 @@ export async function submitInterviewRequest(formData: FormData) {
       throw new Error('Resume file size must be less than 2MB');
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
+    // MED-20: Read file buffer once
+    const arrayBuffer = await file.arrayBuffer();
+    fileBuffer = Buffer.from(arrayBuffer);
     
     // Ext check
     const fileExt = file.name.split('.').pop()?.toLowerCase();
@@ -83,7 +92,7 @@ export async function submitInterviewRequest(formData: FormData) {
     const { data: uploadData, error: uploadError } = await supabaseAdmin
       .storage
       .from('resumes')
-      .upload(fileName, buffer, {
+      .upload(fileName, fileBuffer, {
         contentType: file.type,
         upsert: true
       });
@@ -93,11 +102,11 @@ export async function submitInterviewRequest(formData: FormData) {
       throw new Error('Failed to upload updated resume to storage.');
     }
 
-    // Generate signed URL
+    // MED-10: Generate signed URL with 1-hour expiry (3600 seconds)
     const { data: signedData, error: signedError } = await supabaseAdmin
       .storage
       .from('resumes')
-      .createSignedUrl(uploadData.path, 60 * 60 * 24 * 365); // 1 year
+      .createSignedUrl(uploadData.path, 3600);
 
     if (signedError) {
       throw new Error('Failed to generate URL for updated resume.');
@@ -163,11 +172,10 @@ export async function submitInterviewRequest(formData: FormData) {
   let attachments = undefined;
   if (resumeType === 'updated') {
     const file = formData.get('resume') as File | null;
-    if (file) {
-      const buffer = Buffer.from(await file.arrayBuffer());
+    if (file && fileBuffer) {
       attachments = [{
         filename: file.name,
-        content: buffer
+        content: fileBuffer
       }];
     }
   } else if (profile.resume_url) {

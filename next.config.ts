@@ -1,4 +1,26 @@
 import type { NextConfig } from "next";
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+
+function generateServiceWorker(buildId: string) {
+  try {
+    const templatePath = path.join(process.cwd(), 'public', 'sw.template.js');
+    const outputPath = path.join(process.cwd(), 'public', 'sw.js');
+    if (fs.existsSync(templatePath)) {
+      let content = fs.readFileSync(templatePath, 'utf8');
+      content = content.replace(/%BUILD_ID%/g, buildId);
+      fs.writeFileSync(outputPath, content, 'utf8');
+      console.log(`[SW] Service worker generated with build ID: ${buildId}`);
+    }
+  } catch (error) {
+    console.error('Failed to generate service worker:', error);
+  }
+}
+
+// Generate initial service worker at config load time (e.g. dev server startup)
+const initialBuildId = process.env.NEXT_PUBLIC_BUILD_ID || crypto.randomUUID();
+generateServiceWorker(initialBuildId);
 
 const nextConfig: NextConfig = {
   images: {
@@ -16,6 +38,11 @@ const nextConfig: NextConfig = {
         pathname: '/v1/staticmap/**',
       },
     ],
+  },
+  generateBuildId: async () => {
+    const buildId = process.env.NEXT_PUBLIC_BUILD_ID || crypto.randomUUID();
+    generateServiceWorker(buildId);
+    return buildId;
   },
   async headers() {
     return [
@@ -53,3 +80,4 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+

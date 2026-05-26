@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/auth';
 import type { ApplicationRecord } from './ApplicationsClient';
+import { fullApplicationSchema } from '@/lib/validations';
 
 export async function getAdminApplications() {
   const session = await getSession();
@@ -17,7 +18,8 @@ export async function getAdminApplications() {
         title
       )
     `)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(500);
 
   if (error) {
     console.error('Error fetching admin applications:', error);
@@ -37,6 +39,12 @@ export async function updateApplicationStatus(id: string, status: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
+  // API-02: Validate status parameter
+  const VALID_STATUSES = ['pending', 'reviewed', 'shortlisted', 'rejected'];
+  if (!VALID_STATUSES.includes(status)) {
+    throw new Error('Invalid application status value');
+  }
+
   const { error } = await supabaseAdmin
     .from('applications')
     .update({ status })
@@ -48,18 +56,9 @@ export async function updateApplicationStatus(id: string, status: string) {
   }
 
   revalidatePath('/admin/applications');
-  revalidatePath('/admin/applications');
 }
 
-export async function updateApplicationNotes(id: string, notes: string) {
-  const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
-
-  // In a full implementation, we'd add a 'notes' column to the DB
-  // For now we'll just pretend to save it if the schema doesn't have it.
-  // Assuming schema might not have it yet, we just revalidate or log.
-  console.log(`Update notes for ${id}: ${notes}`);
-}
+// CODE-01/API-03: updateApplicationNotes stub deleted as it is unused dead code.
 
 export async function getAllEmployees() {
   const session = await getSession();
@@ -101,17 +100,25 @@ export async function createFullApplication(formData: any) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
+  // API-04: Parse and validate input data using Zod
+  const parsed = fullApplicationSchema.safeParse(formData);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
+    throw new Error(`Validation failed: ${issues}`);
+  }
+  const validated = parsed.data;
+
   // 1. Create Application
   const { data: app, error: appError } = await supabaseAdmin
     .from('applications')
     .insert({
-      job_id: formData.job_id,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      experience_years: formData.experience_years,
+      job_id: validated.job_id,
+      name: validated.name,
+      email: validated.email,
+      phone: validated.phone || null,
+      experience_years: validated.experience_years ? Number(validated.experience_years) : null,
       status: 'pending',
-      assigned_to: formData.assigned_to || null,
+      assigned_to: validated.assigned_to || null,
     })
     .select()
     .single();
@@ -126,29 +133,32 @@ export async function createFullApplication(formData: any) {
     .from('application_profiles')
     .insert({
       application_id: app.id,
-      assigned_to: formData.assigned_to || null,
-      client_name: formData.name,
-      client_email: formData.email,
-      client_phone: formData.phone,
-      client_address: formData.client_address,
-      client_role: formData.client_role,
-      client_linkedin: formData.client_linkedin,
+      assigned_to: validated.assigned_to || null,
+      client_name: validated.name,
+      client_email: validated.email,
+      client_phone: validated.phone || null,
+      client_address: validated.client_address || null,
+      client_role: validated.client_role || null,
+      client_linkedin: validated.client_linkedin || null,
       education_details: {
-        bachelors: formData.education_bachelors || '',
-        masters: formData.education_masters || '',
+        bachelors: validated.education_bachelors || '',
+        masters: validated.education_masters || '',
       },
-      status: formData.assigned_to ? 'assigned' : 'processing',
+      status: validated.assigned_to ? 'assigned' : 'processing',
     });
 
   if (profileError) {
     console.error('Error creating application profile:', profileError);
-    // Don't throw, just log. The app is created.
+    // CODE-02: Rollback the created application to avoid orphaned record / inconsistent state
+    await supabaseAdmin.from('applications').delete().eq('id', app.id);
+    throw new Error('Failed to create application profile. Action rolled back.');
   }
 
   revalidatePath('/admin/applications');
   revalidatePath('/admin/client-profiles');
   return { success: true };
 }
+
 
 export async function assignApplication(applicationId: string, employeeId: string | null) {
   const session = await getSession();

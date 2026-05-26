@@ -11,7 +11,9 @@ export async function POST(request: NextRequest) {
     // 1. Basic Security: Rate Limiting by IP
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
-    console.log(`[Auth] Attempt from IP: ${ip}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Auth] Attempt from IP: ${ip}`);
+    }
 
     const body = await request.json().catch(() => null);
     if (!body || !body.email || !body.password) {
@@ -34,12 +36,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`[Auth] Login attempt for: ${cleanEmail}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[Auth] Login attempt for: ${cleanEmail}`);
+    }
 
     const isEmail = cleanEmail.includes('@');
    
 
-    const authError: any = null;
 
     // 3. Admin Check (Database-first for reliability)
     // First, check if this email exists in the admin_users table
@@ -53,7 +56,11 @@ export async function POST(request: NextRequest) {
     const isAdmin = adminRecord || cleanEmail === ADMIN_EMAIL_ENV;
 
     if (isAdmin) {
-      console.log(`[Auth] Admin detected (${cleanEmail}). Authenticating via Supabase Auth...`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Auth] Admin detected (${cleanEmail}). Authenticating via Supabase Auth...`);
+      } else {
+        console.log('[Auth] Admin login attempt. Authenticating via Supabase Auth...');
+      }
       
       const { data: authData, error: apiAuthError } = await supabaseAdmin.auth.signInWithPassword({
         email: cleanEmail,
@@ -145,9 +152,6 @@ export async function POST(request: NextRequest) {
       : query.ilike('employee_id', cleanEmail).single());
 
     if (error || !user) {
-      if (authError && authError.message !== 'Invalid login credentials') {
-        return NextResponse.json({ error: `Supabase Auth Error: ${authError.message}` }, { status: 401 });
-      }
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
@@ -211,7 +215,7 @@ export async function POST(request: NextRequest) {
     await logAuditAction('LOGIN_SUCCESS', 'employees', user.id, null, null, { id: user.id, role: user.role });
     return response;
   } catch (err) {
-    console.error('Unified Login error:', err);
+    console.error('Unified Login error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

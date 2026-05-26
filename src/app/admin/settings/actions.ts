@@ -132,37 +132,47 @@ export async function saveAndApplyCasualLeavePolicy(value: number) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
-  // 3. Upsert balances for all active employees for current month
-  for (const emp of employees) {
-    const { data: existing } = await supabaseAdmin
-      .from('leave_balances')
-      .select('id, used_days')
-      .eq('employee_id', emp.id)
-      .eq('leave_type', 'Casual')
-      .eq('year', currentYear)
-      .eq('month', currentMonth)
-      .maybeSingle();
+  // 3. Bulk upsert balances for all active employees for current month to avoid N+1 query issue (PERF-02)
+  const empIds = employees.map(e => e.id);
+  const { data: existingBalances, error: balError } = await supabaseAdmin
+    .from('leave_balances')
+    .select('id, employee_id, used_days')
+    .in('employee_id', empIds)
+    .eq('leave_type', 'Casual')
+    .eq('year', currentYear)
+    .eq('month', currentMonth);
 
-    if (existing) {
-      const { error: updateError } = await supabaseAdmin
-        .from('leave_balances')
-        .update({ total_days: value })
-        .eq('id', existing.id);
-      if (updateError) console.error(`Failed to update balance for ${emp.id}:`, updateError);
-    } else {
-      const { error: insertError } = await supabaseAdmin
-        .from('leave_balances')
-        .insert({
-          employee_id: emp.id,
-          leave_type: 'Casual',
-          total_days: value,
-          used_days: 0,
-          year: currentYear,
-          month: currentMonth
-        });
-      if (insertError) console.error(`Failed to insert balance for ${emp.id}:`, insertError);
+  if (balError) {
+    console.error('Error fetching existing balances for bulk update:', balError);
+    throw new Error('Failed to fetch existing balances');
+  }
+
+  const existingMap = new Map(existingBalances?.map(b => [b.employee_id, b]) || []);
+
+  const upsertData = employees.map(emp => {
+    const existing = existingMap.get(emp.id);
+    return {
+      ...(existing?.id ? { id: existing.id } : {}),
+      employee_id: emp.id,
+      leave_type: 'Casual',
+      total_days: value,
+      used_days: existing?.used_days || 0,
+      year: currentYear,
+      month: currentMonth
+    };
+  });
+
+  if (upsertData.length > 0) {
+    const { error: upsertError } = await supabaseAdmin
+      .from('leave_balances')
+      .upsert(upsertData, { onConflict: 'employee_id,leave_type,year,month' });
+
+    if (upsertError) {
+      console.error('Error in bulk upserting leave balances:', upsertError);
+      throw new Error('Failed to bulk apply leave policy');
     }
   }
+
 
   revalidatePath('/admin/settings');
   revalidatePath('/admin/employees');

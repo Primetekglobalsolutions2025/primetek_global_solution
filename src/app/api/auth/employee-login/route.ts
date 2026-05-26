@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     if (elapsed < 500) await new Promise(resolve => setTimeout(resolve, 500 - elapsed));
     return NextResponse.json(responseData, { status: 401 });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('Login error:', err instanceof Error ? err.message : String(err));
     const elapsed = Date.now() - startTime;
     if (elapsed < 500) await new Promise(resolve => setTimeout(resolve, 500 - elapsed));
     return NextResponse.json({ error: 'Invalid credentials. Please try again.' }, { status: 401 });

@@ -299,6 +299,13 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
       return { success: false, error: 'Attendance check-in record not found' };
     }
 
+    // BIZ-04: Validate that record date matches today's shift date
+    const { shiftDateStr } = getShiftInfo();
+    if (record.date !== shiftDateStr) {
+      return { success: false, error: 'Cannot check out of past attendance records.' };
+    }
+
+
     const now = new Date();
     
     // Automatically close break if checked out while on break
@@ -355,6 +362,8 @@ export async function resumeSession(recordId: string) {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
 
+    const { shiftDateStr } = getShiftInfo();
+
     const { error } = await supabaseAdmin
       .from('attendance')
       .update({ 
@@ -362,7 +371,8 @@ export async function resumeSession(recordId: string) {
         status: 'Working'
       })
       .eq('id', recordId)
-      .eq('employee_id', session.id);
+      .eq('employee_id', session.id)
+      .eq('date', shiftDateStr); // Only allow resuming today's record
 
     if (error) throw error;
 
@@ -373,6 +383,7 @@ export async function resumeSession(recordId: string) {
     return { success: false, error: 'Failed to resume session' };
   }
 }
+
 
 export async function startBreak() {
   try {

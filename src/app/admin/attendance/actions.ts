@@ -16,18 +16,26 @@ export async function getAdminAttendance() {
         name
       )
     `)
-    .order('check_in', { ascending: false });
+    .order('check_in', { ascending: false })
+    .limit(500);
 
   if (error) {
     console.error('Error fetching admin attendance:', error);
     return [];
   }
 
-  // Fetch risk events to associate with attendance records
-  const { data: riskEvents } = await supabaseAdmin
-    .from('attendance_risk_events')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const recordIds = (data || []).map(record => record.id);
+  let riskEvents: any[] = [];
+  if (recordIds.length > 0) {
+    const { data: fetchedEvents } = await supabaseAdmin
+      .from('attendance_risk_events')
+      .select('*')
+      .in('attendance_id', recordIds)
+      .order('created_at', { ascending: false });
+    if (fetchedEvents) {
+      riskEvents = fetchedEvents;
+    }
+  }
 
   const riskMap: Record<string, any[]> = {};
   if (riskEvents) {
@@ -41,6 +49,7 @@ export async function getAdminAttendance() {
     });
   }
   if (!data) return [];
+
   
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return data.map((record: Record<string, any>) => {

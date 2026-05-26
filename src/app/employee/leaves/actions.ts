@@ -140,7 +140,8 @@ export async function getLeaveBalances() {
       .eq('config_key', 'default_casual_leave')
       .maybeSingle();
 
-    const defaultCL = config ? parseInt(config.config_value) : 1;
+    const parsed = config ? parseInt(config.config_value, 10) : 1;
+    const defaultCL = isNaN(parsed) || parsed < 0 ? 1 : parsed;
 
     const defaults = [
       { 

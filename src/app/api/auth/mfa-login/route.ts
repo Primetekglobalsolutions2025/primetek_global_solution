@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     await logAuditAction('LOGIN_MFA_FAILED', table, session.id, null, { reason: 'Invalid code' }, { id: session.id, role: session.role });
     return NextResponse.json({ error: 'Invalid verification code' }, { status: 401 });
   } catch (err) {
-    console.error('MFA login error:', err);
+    console.error('MFA login error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: 'MFA verification failed' }, { status: 500 });
   }
 }

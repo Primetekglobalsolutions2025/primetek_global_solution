@@ -36,6 +36,19 @@ export async function getAssignedProfilesWithMetrics() {
   };
 }
 
+import { z } from 'zod';
+
+const metricEntrySchema = z.object({
+  profile_id: z.string().uuid(),
+  applications_count: z.number().int().min(0).max(100),
+  interviews_count: z.number().int().min(0).max(100),
+  assessments: z.number().int().min(0).max(100),
+  technical_rounds: z.number().int().min(0).max(100),
+  non_technical: z.number().int().min(0).max(100),
+  self_submissions: z.number().int().min(0).max(100),
+  support_submissions: z.number().int().min(0).max(100),
+});
+
 export async function submitDailyMetrics(entries: Array<{
   profile_id: string;
   applications_count: number;
@@ -48,6 +61,29 @@ export async function submitDailyMetrics(entries: Array<{
 }>) {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
+
+  // Verify that all profiles belong to the logged-in employee
+  const { data: userProfiles, error: pError } = await supabaseAdmin
+    .from('application_profiles')
+    .select('id')
+    .eq('assigned_to', session.id);
+
+  if (pError || !userProfiles) {
+    throw new Error('Failed to verify profile ownership');
+  }
+
+  const userProfileIds = new Set(userProfiles.map(p => p.id));
+
+  // Validate each entry
+  for (const entry of entries) {
+    const parsed = metricEntrySchema.safeParse(entry);
+    if (!parsed.success) {
+      throw new Error(`Validation failed for profile metrics: ${parsed.error.message}`);
+    }
+    if (!userProfileIds.has(entry.profile_id)) {
+      throw new Error(`Access denied: Profile is not assigned to you.`);
+    }
+  }
 
   const todayStr = new Date().toLocaleDateString('en-CA');
 
@@ -79,6 +115,7 @@ export async function submitDailyMetrics(entries: Array<{
   revalidatePath('/employee/dashboard');
   return { success: true };
 }
+
 
 export async function getMetricsHistory(days: number = 7) {
   const session = await getSession();

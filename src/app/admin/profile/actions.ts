@@ -42,7 +42,7 @@ export async function changePassword(data: { currentPassword?: string; newPasswo
 
   // 2. Hash new password
   if (!data.newPassword) throw new Error('New password is required');
-  const newHash = await bcrypt.hash(data.newPassword, 10);
+  const newHash = await bcrypt.hash(data.newPassword, 12);
 
   // 3. Update in DB
   const { error: updateError } = await supabaseAdmin
@@ -51,7 +51,7 @@ export async function changePassword(data: { currentPassword?: string; newPasswo
     .eq('id', session.id);
 
   if (updateError) {
-    console.error('Error updating employee password:', updateError);
+    console.error('Error updating employee password:', updateError instanceof Error ? updateError.message : String(updateError));
     throw new Error('Failed to update password in database');
   }
 

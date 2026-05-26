@@ -19,29 +19,6 @@ export function useOfflineSync() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<'success' | 'partial' | 'failed' | null>(null);
 
-  // Track online/offline status
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    setIsOnline(navigator.onLine);
-    setPendingCount(getPendingCount());
-
-    const handleOnline = () => {
-      setIsOnline(true);
-      // Auto-sync when coming back online
-      syncQueue();
-    };
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
   // Sync all pending entries with the server
   const syncQueue = useCallback(async () => {
     if (!navigator.onLine) return;
@@ -125,6 +102,30 @@ export function useOfflineSync() {
     // Clear the result indicator after a delay
     setTimeout(() => setLastSyncResult(null), 5000);
   }, []);
+
+  // Track online/offline status
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    setIsOnline(navigator.onLine);
+    setPendingCount(getPendingCount());
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      // Auto-sync when coming back online
+      syncQueue();
+    };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [syncQueue]);
+
 
   const dismissEntry = useCallback((entryId: string) => {
     removeFromQueue(entryId);

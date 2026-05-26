@@ -77,6 +77,14 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
 
   if (fetchError || !request) throw new Error('Request not found');
 
+  // MED-11: Idempotency Check
+  if (request.status !== 'Pending') {
+    if (request.status === status) {
+      return { success: true, message: `Leave request was already ${status.toLowerCase()}` };
+    }
+    return { success: false, error: `Leave request has already been ${request.status.toLowerCase()}` };
+  }
+
   // Fetch employee details separately for email notifications
   const { data: employee } = await supabaseAdmin
     .from('employees')
@@ -95,11 +103,25 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
     throw new Error('Database update failed');
   }
 
+function calculateWorkingDays(startDate: Date, endDate: Date): number {
+  let count = 0;
+  const curDate = new Date(startDate.getTime());
+  while (curDate <= endDate) {
+    const dayOfWeek = curDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+    curDate.setDate(curDate.getDate() + 1);
+  }
+  return count;
+}
+
   // 3. Deduct Balance if Approved
   if (status === 'Approved') {
     const start = new Date(request.start_date);
     const end = new Date(request.end_date);
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const days = calculateWorkingDays(start, end);
+
 
     // Atomic update to used_days via stored procedure to prevent race conditions
     const { error: rpcError } = await supabaseAdmin.rpc('increment_used_days', {
@@ -160,6 +182,14 @@ export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Reje
     .single();
 
   if (fetchError || !request) throw new Error('Request not found');
+
+  // MED-11: Idempotency Check
+  if (request.status !== 'Pending WFH') {
+    if (request.status === status) {
+      return { success: true, message: `WFH request was already ${status.toLowerCase()}` };
+    }
+    return { success: false, error: `WFH request has already been processed with status: ${request.status}` };
+  }
 
   // Fetch employee details separately
   const { data: employee } = await supabaseAdmin
