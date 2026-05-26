@@ -10,28 +10,72 @@ export default async function AdminAppDashboard() {
   const session = await getSession();
   const userName = session?.name || 'Administrator';
 
-  const [
-    { count: inquiriesCount },
-    { count: activeJobsCount },
-    { count: employeesCount },
-    { count: pendingLeavesCount },
-    { count: pendingWFHCount },
-    { data: recentInquiries }
-  ] = await Promise.all([
-    supabaseAdmin.from('inquiries').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_active', true),
-    supabaseAdmin.from('employees').select('*', { count: 'exact', head: true }),
-    supabaseAdmin.from('leave_requests').select('*', { count: 'exact', head: true }).ilike('status', 'Pending'),
-    supabaseAdmin.from('attendance').select('*', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
-    supabaseAdmin.from('inquiries').select('*').order('created_at', { ascending: false }).limit(5)
-  ]);
+  let inquiriesCount = 0;
+  let activeJobsCount = 0;
+  let employeesCount = 0;
+  let pendingLeavesCount = 0;
+  let pendingWFHCount = 0;
+  let recentInquiries: any[] = [];
+  let attendanceTrends: any[] = [];
+  let inquiryTrends: any[] = [];
+  let systemNodes: any[] = [];
+
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return d.toISOString().split('T')[0];
+  }).reverse();
+
+  const last4Weeks = Array.from({ length: 4 }, (_, i) => {
+    const start = new Date();
+    start.setDate(start.getDate() - (i + 1) * 7);
+    const end = new Date();
+    end.setDate(end.getDate() - i * 7);
+    return { start, end, label: `W${4-i}` };
+  }).reverse();
+
+  try {
+    const [
+      inquiriesRes,
+      activeJobsRes,
+      employeesRes,
+      pendingLeavesRes,
+      pendingWFHRes,
+      recentInquiriesRes,
+      attendanceTrendsRes,
+      inquiryTrendsRes,
+      systemNodesRes
+    ] = await Promise.all([
+      supabaseAdmin.from('inquiries').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('jobs').select('*', { count: 'exact', head: true }).eq('is_active', true),
+      supabaseAdmin.from('employees').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('leave_requests').select('*', { count: 'exact', head: true }).ilike('status', 'Pending'),
+      supabaseAdmin.from('attendance').select('*', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
+      supabaseAdmin.from('inquiries').select('*').order('created_at', { ascending: false }).limit(5),
+      supabaseAdmin.from('attendance').select('date, status').in('date', last7Days),
+      supabaseAdmin.from('inquiries').select('created_at').gte('created_at', last4Weeks[0].start.toISOString()),
+      supabaseAdmin.from('system_status').select('node_name, status, color').order('node_name')
+    ]);
+
+    inquiriesCount = inquiriesRes.count || 0;
+    activeJobsCount = activeJobsRes.count || 0;
+    employeesCount = employeesRes.count || 0;
+    pendingLeavesCount = pendingLeavesRes.count || 0;
+    pendingWFHCount = pendingWFHRes.count || 0;
+    recentInquiries = recentInquiriesRes.data || [];
+    attendanceTrends = attendanceTrendsRes.data || [];
+    inquiryTrends = inquiryTrendsRes.data || [];
+    systemNodes = systemNodesRes.data || [];
+  } catch (err) {
+    console.error('Failed to load dashboard metrics from database:', err);
+  }
 
   const totalPending = (pendingLeavesCount || 0) + (pendingWFHCount || 0);
 
   const stats = [
-    { label: 'Inquiries', value: inquiriesCount || '0', icon: MessageSquare, color: 'text-primary-500', bg: 'bg-primary-50/50', border: 'border-primary-100' },
-    { label: 'Active Jobs', value: activeJobsCount || '0', icon: Briefcase, color: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100' },
-    { label: 'Employees', value: employeesCount || '0', icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-50/50', border: 'border-emerald-100' },
+    { label: 'Inquiries', value: inquiriesCount.toString(), icon: MessageSquare, color: 'text-primary-500', bg: 'bg-primary-50/50', border: 'border-primary-100' },
+    { label: 'Active Jobs', value: activeJobsCount.toString(), icon: Briefcase, color: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100' },
+    { label: 'Employees', value: employeesCount.toString(), icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-50/50', border: 'border-emerald-100' },
     { label: 'Approvals', value: totalPending.toString(), icon: Clock, color: 'text-violet-500', bg: 'bg-violet-50/50', border: 'border-violet-100' },
   ];
 
@@ -49,41 +93,15 @@ export default async function AdminAppDashboard() {
     closed: 'bg-gray-100 text-gray-500 border-gray-200',
   };
 
-  // Calculate Real Attendance Trends (Last 7 Days)
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  }).reverse();
-
-  const { data: attendanceTrends } = await supabaseAdmin
-    .from('attendance')
-    .select('date, status')
-    .in('date', last7Days);
-
   const attendanceData = last7Days.map(date => {
     const dayRecords = (attendanceTrends || []).filter(r => r.date === date);
-    const present = dayRecords.filter(r => !r.status.toLowerCase().includes('absent') && !r.status.toLowerCase().includes('rejected')).length;
+    const present = dayRecords.filter(r => r.status && !r.status.toLowerCase().includes('absent') && !r.status.toLowerCase().includes('rejected')).length;
     const percentage = employeesCount ? Math.round((present / employeesCount) * 100) : 0;
     return { 
       label: new Date(date).toLocaleDateString('en-US', { weekday: 'short' })[0], 
       value: percentage 
     };
   });
-
-  // Calculate Real Inquiry Velocity (Last 4 Weeks)
-  const last4Weeks = Array.from({ length: 4 }, (_, i) => {
-    const start = new Date();
-    start.setDate(start.getDate() - (i + 1) * 7);
-    const end = new Date();
-    end.setDate(end.getDate() - i * 7);
-    return { start, end, label: `W${4-i}` };
-  }).reverse();
-
-  const { data: inquiryTrends } = await supabaseAdmin
-    .from('inquiries')
-    .select('created_at')
-    .gte('created_at', last4Weeks[0].start.toISOString());
 
   const applicationData = last4Weeks.map(week => {
     const count = (inquiryTrends || []).filter(inq => {
@@ -93,13 +111,7 @@ export default async function AdminAppDashboard() {
     return { label: week.label, value: count };
   });
 
-  // Fetch System Node Status
-  const { data: systemNodes } = await supabaseAdmin
-    .from('system_status')
-    .select('node_name, status, color')
-    .order('node_name');
-
-  const nodes = systemNodes?.length ? systemNodes : [
+  const nodes = systemNodes && systemNodes.length ? systemNodes : [
     { node_name: 'Authentication', status: 'Active', color: 'bg-emerald-500' },
     { node_name: 'DB Cluster', status: 'Syncing', color: 'bg-emerald-500' },
     { node_name: 'Mail Server', status: 'Active', color: 'bg-emerald-500' },

@@ -71,9 +71,9 @@ export default async function EmployeeAppDashboard() {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  const present = monthRecords.filter(r => r.status.includes('Present') || r.status.includes('Approved WFH') || r.status.includes('Working') || r.status.includes('On Break') || r.status.includes('Logged Out')).length;
-  const late = monthRecords.filter(r => r.is_late && r.status !== 'Approved WFH' && !r.late_approved && !r.permission_approved && !r.shift_override && !r.manager_exemption).length;
-  const absent = monthRecords.filter(r => r.status.toLowerCase() === 'absent').length;
+  const present = monthRecords.filter(r => r.status && (r.status.includes('Present') || r.status.includes('Approved WFH') || r.status.includes('Working') || r.status.includes('On Break') || r.status.includes('Logged Out'))).length;
+  const late = monthRecords.filter(r => r.is_late && (!r.status || r.status !== 'Approved WFH') && !r.late_approved && !r.permission_approved && !r.shift_override && !r.manager_exemption).length;
+  const absent = monthRecords.filter(r => r.status && r.status.toLowerCase() === 'absent').length;
   const totalRemainingLeaves = (balances || []).reduce((acc, curr) => acc + curr.remaining_days, 0);
 
   const stats = [

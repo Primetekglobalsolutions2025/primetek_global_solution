@@ -12,8 +12,15 @@ export default async function AdminClientProfilesPage() {
     redirect('/admin/login');
   }
 
-  const profiles = await getAllProfiles();
-  const employees = await getAllEmployees();
+  let profiles: any[] = [];
+  let employees: any[] = [];
+
+  try {
+    profiles = await getAllProfiles() || [];
+    employees = await getAllEmployees() || [];
+  } catch (err) {
+    console.error('Failed to load client profiles from database:', err);
+  }
 
   return (
     <div className="max-w-7xl mx-auto">

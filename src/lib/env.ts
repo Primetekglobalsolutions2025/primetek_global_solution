@@ -8,9 +8,9 @@ const publicSchema = z.object({
 
 const serverSchema = publicSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  RESEND_API_KEY: z.string().min(1).optional(),
+  RESEND_API_KEY: z.string().min(1).optional().or(z.literal("").transform(() => undefined)),
   JWT_SECRET: z.string().min(10).default('primetek-fallback-secret-key-2026'),
-  CRON_SECRET: z.string().min(1).optional(),
+  CRON_SECRET: z.string().min(1).optional().or(z.literal("").transform(() => undefined)),
 }).superRefine((data, ctx) => {
   if (process.env.NODE_ENV === 'production') {
     if (!data.JWT_SECRET || data.JWT_SECRET === 'primetek-fallback-secret-key-2026') {

@@ -16,11 +16,22 @@ export default async function AdminDailyReportsPage() {
 
   const todayStr = new Date().toLocaleDateString('en-CA');
   
-  const [initialReports, initialEmployees, initialSubmissionStatus] = await Promise.all([
-    getAllDailyReports(todayStr),
-    getActiveEmployees(),
-    getSubmissionStatus(todayStr)
-  ]);
+  let initialReports: any[] = [];
+  let initialEmployees: any[] = [];
+  let initialSubmissionStatus: any[] = [];
+
+  try {
+    const [reports, employees, status] = await Promise.all([
+      getAllDailyReports(todayStr),
+      getActiveEmployees(),
+      getSubmissionStatus(todayStr)
+    ]);
+    initialReports = reports || [];
+    initialEmployees = employees || [];
+    initialSubmissionStatus = status || [];
+  } catch (err) {
+    console.error('Failed to load daily reports data from database:', err);
+  }
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
