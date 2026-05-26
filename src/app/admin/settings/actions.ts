@@ -96,3 +96,74 @@ export async function getSystemStatus() {
   }
   return data;
 }
+
+export async function getNotificationPreferences() {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data, error } = await supabaseAdmin
+    .from('portal_config')
+    .select('config_key, config_value')
+    .in('config_key', ['notif_leave', 'notif_wfh', 'notif_inquiry', 'notif_digest', 'notif_audio']);
+
+  const prefs = {
+    notifLeave: true,
+    notifWFH: true,
+    notifInquiry: true,
+    notifDigest: false,
+    audioAlerts: true
+  };
+
+  if (error || !data) {
+    console.error('Error fetching notification preferences:', error);
+    return prefs;
+  }
+
+  data.forEach((row) => {
+    if (row.config_key === 'notif_leave') prefs.notifLeave = row.config_value !== 'false';
+    if (row.config_key === 'notif_wfh') prefs.notifWFH = row.config_value !== 'false';
+    if (row.config_key === 'notif_inquiry') prefs.notifInquiry = row.config_value !== 'false';
+    if (row.config_key === 'notif_digest') prefs.notifDigest = row.config_value === 'true';
+    if (row.config_key === 'notif_audio') prefs.audioAlerts = row.config_value !== 'false';
+  });
+
+  return prefs;
+}
+
+export async function saveNotificationPreferences(prefs: {
+  notifLeave: boolean;
+  notifWFH: boolean;
+  notifInquiry: boolean;
+  notifDigest: boolean;
+  audioAlerts: boolean;
+}) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { error } = await supabaseAdmin
+    .from('portal_config')
+    .upsert([
+      { config_key: 'notif_leave', config_value: String(prefs.notifLeave), description: 'Email alerts for leave requests' },
+      { config_key: 'notif_wfh', config_value: String(prefs.notifWFH), description: 'Email alerts for WFH check-ins' },
+      { config_key: 'notif_inquiry', config_value: String(prefs.notifInquiry), description: 'Email alerts for contact inquiries' },
+      { config_key: 'notif_digest', config_value: String(prefs.notifDigest), description: 'Weekly reports digest summary' },
+      { config_key: 'notif_audio', config_value: String(prefs.audioAlerts), description: 'Auditory dashboard alert chimes' }
+    ]);
+
+  if (error) {
+    console.error('Error saving notification preferences:', error);
+    throw new Error('Failed to save preferences to database');
+  }
+
+  // Log action to audit ledger
+  await logAuditAction(
+    'UPDATE_NOTIFICATION_PREFERENCES',
+    'portal_config',
+    'notification_preferences',
+    null,
+    prefs
+  );
+
+  revalidatePath('/admin/settings');
+  return { success: true };
+}

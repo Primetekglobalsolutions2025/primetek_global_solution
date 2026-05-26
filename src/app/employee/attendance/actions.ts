@@ -257,6 +257,22 @@ export async function requestWFH(lat: number, lng: number, ipAddress?: string, u
 
     if (error) throw error;
 
+    // Trigger notification to admin
+    try {
+      const { data: employee } = await supabaseAdmin
+        .from('employees')
+        .select('name')
+        .eq('id', session.id)
+        .single();
+      const employeeName = employee?.name || 'An employee';
+
+      const { getAdminWFHRequestTemplate, notifyAdminsIfEnabled } = await import('@/lib/notifications');
+      const html = getAdminWFHRequestTemplate(employeeName, shiftDateStr);
+      await notifyAdminsIfEnabled('notif_wfh', `New WFH Request - ${employeeName}`, html);
+    } catch (notifErr) {
+      console.error('Failed to send WFH notification:', notifErr);
+    }
+
     if (risk && risk.riskEventId && attRecord) {
       await supabaseAdmin
         .from('attendance_risk_events')

@@ -36,6 +36,21 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
+    // Trigger notification to admin
+    try {
+      const { getAdminInquiryTemplate, notifyAdminsIfEnabled } = await import('@/lib/notifications');
+      const html = getAdminInquiryTemplate(
+        validated.name,
+        validated.email,
+        validated.phone || null,
+        validated.company || null,
+        validated.requirement
+      );
+      await notifyAdminsIfEnabled('notif_inquiry', `New Contact Inquiry - ${validated.name}`, html);
+    } catch (notifErr) {
+      console.error('Failed to send contact inquiry notification:', notifErr);
+    }
+
     return NextResponse.json(
       { success: true, message: 'Inquiry received successfully' },
       { status: 201 }

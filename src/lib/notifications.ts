@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import { supabaseAdmin } from './supabase-admin';
 
 const resend = process.env.RESEND_API_KEY 
   ? new Resend(process.env.RESEND_API_KEY) 
@@ -132,5 +133,113 @@ export function getInterviewRequestTemplate(data: {
       <p>Please let me know if any additional information is required</p>
     </div>
   `;
+}
+
+/**
+ * Template for leave request notification sent to admins.
+ */
+export function getAdminLeaveRequestTemplate(employeeName: string, type: string, startDate: string, endDate: string, reason: string) {
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #0f172a;">New Leave Request Submitted</h2>
+      <p><strong>Employee:</strong> ${employeeName}</p>
+      <p><strong>Leave Type:</strong> ${type} Leave</p>
+      <p><strong>Duration:</strong> ${startDate} to ${endDate}</p>
+      <p><strong>Reason:</strong> ${reason}</p>
+      <div style="margin: 30px 0;">
+        <a href="${getAppUrl()}/admin/approvals" 
+           style="background-color: #0f172a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+          Go to Approval Queue
+        </a>
+      </div>
+      <p style="color: #64748b; font-size: 14px;">Regards,<br>Primetek Portal</p>
+    </div>
+  `;
+}
+
+/**
+ * Template for WFH request notification sent to admins.
+ */
+export function getAdminWFHRequestTemplate(employeeName: string, date: string) {
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #0f172a;">New WFH Request Submitted</h2>
+      <p><strong>Employee:</strong> ${employeeName}</p>
+      <p><strong>Requested Date:</strong> ${date}</p>
+      <div style="margin: 30px 0;">
+        <a href="${getAppUrl()}/admin/approvals" 
+           style="background-color: #0f172a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+          Go to Approval Queue
+        </a>
+      </div>
+      <p style="color: #64748b; font-size: 14px;">Regards,<br>Primetek Portal</p>
+    </div>
+  `;
+}
+
+/**
+ * Template for contact inquiry notification sent to admins.
+ */
+export function getAdminInquiryTemplate(name: string, email: string, phone: string | null, company: string | null, message: string) {
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+      <h2 style="color: #0f172a;">New Contact Inquiry Received</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Phone:</strong> ${phone || 'N/A'}</p>
+      <p><strong>Company:</strong> ${company || 'N/A'}</p>
+      <p><strong>Message:</strong></p>
+      <p style="background-color: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-style: italic;">${message}</p>
+      <div style="margin: 30px 0;">
+        <a href="${getAppUrl()}/admin/inquiries" 
+           style="background-color: #0f172a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+          View Inquiries
+        </a>
+      </div>
+      <p style="color: #64748b; font-size: 14px;">Regards,<br>Primetek Portal</p>
+    </div>
+  `;
+}
+
+/**
+ * Dispatches an email notification to all registered admins if the corresponding preference key is enabled.
+ */
+export async function notifyAdminsIfEnabled(
+  prefKey: string,
+  subject: string,
+  html: string
+) {
+  try {
+    // Check if notifications are enabled for this key
+    const { data: config } = await supabaseAdmin
+      .from('portal_config')
+      .select('config_value')
+      .eq('config_key', prefKey)
+      .maybeSingle();
+
+    // Default to true if config key doesn't exist
+    const isEnabled = config ? config.config_value !== 'false' : true;
+    if (!isEnabled) return { success: true, reason: 'Disabled by configuration' };
+
+    // Fetch admin emails
+    const { data: admins, error: adminError } = await supabaseAdmin
+      .from('admin_users')
+      .select('email');
+
+    if (adminError || !admins || admins.length === 0) {
+      console.log('No admin users found to notify.');
+      return { success: false, reason: 'No admin users found' };
+    }
+
+    // Send emails in parallel
+    const results = await Promise.all(
+      admins.map((admin) => sendNotificationEmail(admin.email, subject, html))
+    );
+
+    return { success: true, results };
+  } catch (err) {
+    console.error('Failed to notify admins:', err);
+    return { success: false, error: err };
+  }
 }
 

@@ -89,6 +89,28 @@ export async function applyForLeave(formData: {
 
   if (error) throw error;
 
+  // Trigger notification to admin
+  try {
+    const { data: employee } = await supabaseAdmin
+      .from('employees')
+      .select('name')
+      .eq('id', session.id)
+      .single();
+    const employeeName = employee?.name || 'An employee';
+
+    const { getAdminLeaveRequestTemplate, notifyAdminsIfEnabled } = await import('@/lib/notifications');
+    const html = getAdminLeaveRequestTemplate(
+      employeeName,
+      formData.type,
+      formData.start_date,
+      formData.end_date,
+      formData.reason
+    );
+    await notifyAdminsIfEnabled('notif_leave', `New Leave Request - ${employeeName}`, html);
+  } catch (notifErr) {
+    console.error('Failed to send leave notification:', notifErr);
+  }
+
   revalidatePath('/employee/leaves');
   return { success: true };
 }

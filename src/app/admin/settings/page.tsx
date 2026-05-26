@@ -6,7 +6,7 @@ import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { OFFICE_LOCATION } from '@/lib/location';
-import { getOfficeLocation, saveOfficeLocation, getSystemStatus } from './actions';
+import { getOfficeLocation, saveOfficeLocation, getSystemStatus, getNotificationPreferences, saveNotificationPreferences } from './actions';
 import { env } from '@/lib/env';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -34,11 +34,20 @@ export default function AdminSettingsPage() {
   const handleSaveNotifs = async () => {
     setSavingNotifs(true);
     try {
-      localStorage.setItem('primetek-notif-leave', String(notifLeave));
-      localStorage.setItem('primetek-notif-wfh', String(notifWFH));
-      localStorage.setItem('primetek-notif-inquiry', String(notifInquiry));
-      localStorage.setItem('primetek-notif-digest', String(notifDigest));
-      localStorage.setItem('primetek-notif-audio', String(audioAlerts));
+      await saveNotificationPreferences({
+        notifLeave,
+        notifWFH,
+        notifInquiry,
+        notifDigest,
+        audioAlerts
+      });
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('primetek-notif-leave', String(notifLeave));
+        localStorage.setItem('primetek-notif-wfh', String(notifWFH));
+        localStorage.setItem('primetek-notif-inquiry', String(notifInquiry));
+        localStorage.setItem('primetek-notif-digest', String(notifDigest));
+        localStorage.setItem('primetek-notif-audio', String(audioAlerts));
+      }
       showNotification('Notification preferences saved successfully.', 'success');
     } catch (err) {
       showNotification('Failed to save notification preferences.', 'error');
@@ -61,9 +70,10 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     async function loadLocation() {
       try {
-        const [office, nodes] = await Promise.all([
+        const [office, nodes, prefs] = await Promise.all([
           getOfficeLocation(),
-          getSystemStatus()
+          getSystemStatus(),
+          getNotificationPreferences()
         ]);
         if (office) {
           setLat(String(office.lat || OFFICE_LOCATION.lat));
@@ -73,12 +83,12 @@ export default function AdminSettingsPage() {
         }
         setSystemNodes(nodes);
         
-        if (typeof window !== 'undefined') {
-          setNotifLeave(localStorage.getItem('primetek-notif-leave') !== 'false');
-          setNotifWFH(localStorage.getItem('primetek-notif-wfh') !== 'false');
-          setNotifInquiry(localStorage.getItem('primetek-notif-inquiry') !== 'false');
-          setNotifDigest(localStorage.getItem('primetek-notif-digest') === 'true');
-          setAudioAlerts(localStorage.getItem('primetek-notif-audio') !== 'false');
+        if (prefs) {
+          setNotifLeave(prefs.notifLeave);
+          setNotifWFH(prefs.notifWFH);
+          setNotifInquiry(prefs.notifInquiry);
+          setNotifDigest(prefs.notifDigest);
+          setAudioAlerts(prefs.audioAlerts);
         }
       } catch (err) {
         console.error('Failed to load settings:', err);
