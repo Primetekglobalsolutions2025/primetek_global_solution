@@ -24,6 +24,29 @@ export default function AdminSettingsPage() {
   const [systemNodes, setSystemNodes] = useState<any[]>([]);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
+  const [notifLeave, setNotifLeave] = useState(true);
+  const [notifWFH, setNotifWFH] = useState(true);
+  const [notifInquiry, setNotifInquiry] = useState(true);
+  const [notifDigest, setNotifDigest] = useState(false);
+  const [audioAlerts, setAudioAlerts] = useState(true);
+  const [savingNotifs, setSavingNotifs] = useState(false);
+
+  const handleSaveNotifs = async () => {
+    setSavingNotifs(true);
+    try {
+      localStorage.setItem('primetek-notif-leave', String(notifLeave));
+      localStorage.setItem('primetek-notif-wfh', String(notifWFH));
+      localStorage.setItem('primetek-notif-inquiry', String(notifInquiry));
+      localStorage.setItem('primetek-notif-digest', String(notifDigest));
+      localStorage.setItem('primetek-notif-audio', String(audioAlerts));
+      showNotification('Notification preferences saved successfully.', 'success');
+    } catch (err) {
+      showNotification('Failed to save notification preferences.', 'error');
+    } finally {
+      setSavingNotifs(false);
+    }
+  };
+
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
   };
@@ -49,6 +72,14 @@ export default function AdminSettingsPage() {
           setRadius(String(office.radius_meters || OFFICE_LOCATION.radiusMeters));
         }
         setSystemNodes(nodes);
+        
+        if (typeof window !== 'undefined') {
+          setNotifLeave(localStorage.getItem('primetek-notif-leave') !== 'false');
+          setNotifWFH(localStorage.getItem('primetek-notif-wfh') !== 'false');
+          setNotifInquiry(localStorage.getItem('primetek-notif-inquiry') !== 'false');
+          setNotifDigest(localStorage.getItem('primetek-notif-digest') === 'true');
+          setAudioAlerts(localStorage.getItem('primetek-notif-audio') !== 'false');
+        }
       } catch (err) {
         console.error('Failed to load settings:', err);
       } finally {
@@ -384,6 +415,133 @@ export default function AdminSettingsPage() {
             </div>
           </Card>
         </div>
+      </div>
+
+      {/* 3. Notification Settings */}
+      <div id="notifications" className="scroll-mt-20">
+        <Card hover={false} className="p-10 rounded-[2.5rem] border border-border/60 shadow-sm bg-white overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none">
+            <Save className="w-48 h-48 text-navy-900" />
+          </div>
+
+          <div className="flex items-center gap-4 mb-10">
+            <div className="w-12 h-12 rounded-2xl bg-violet-500 text-white flex items-center justify-center shadow-lg shadow-violet-500/20">
+              <Save className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="font-heading font-black text-xl text-navy-900 tracking-tight">Notification Settings</h2>
+              <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-0.5">Alerts & Preferences</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Settings: Email Preferences */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-[0.1em] text-navy-900 mb-2 font-display">Email Notifications</h3>
+                
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 border border-border/55">
+                  <div className="space-y-0.5 max-w-[80%]">
+                    <h4 className="text-xs font-bold text-navy-900">Leave Requests</h4>
+                    <p className="text-[10px] text-text-secondary leading-relaxed">Receive alert emails when employees submit casual or unpaid leave requests.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={notifLeave} 
+                      onChange={(e) => setNotifLeave(e.target.checked)} 
+                      className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 border border-border/55">
+                  <div className="space-y-0.5 max-w-[80%]">
+                    <h4 className="text-xs font-bold text-navy-900">WFH Requests</h4>
+                    <p className="text-[10px] text-text-secondary leading-relaxed">Receive alert emails when employees submit geofenced WFH check-in authorizations.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={notifWFH} 
+                      onChange={(e) => setNotifWFH(e.target.checked)} 
+                      className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 border border-border/55">
+                  <div className="space-y-0.5 max-w-[80%]">
+                    <h4 className="text-xs font-bold text-navy-900">Contact Inquiries</h4>
+                    <p className="text-[10px] text-text-secondary leading-relaxed">Receive alert emails for new sales or general portal support inquiries.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={notifInquiry} 
+                      onChange={(e) => setNotifInquiry(e.target.checked)} 
+                      className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Right Settings: General Preferences */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black uppercase tracking-[0.1em] text-navy-900 mb-2 font-display">Digest & System Preferences</h3>
+
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 border border-border/55">
+                  <div className="space-y-0.5 max-w-[80%]">
+                    <h4 className="text-xs font-bold text-navy-900">Weekly Reports Digest</h4>
+                    <p className="text-[10px] text-text-secondary leading-relaxed">Compile a weekly summary digest of all submitted recruitment metrics every Friday evening.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={notifDigest} 
+                      onChange={(e) => setNotifDigest(e.target.checked)} 
+                      className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50/50 border border-border/55">
+                  <div className="space-y-0.5 max-w-[80%]">
+                    <h4 className="text-xs font-bold text-navy-900">Auditory Dashboard Alerts</h4>
+                    <p className="text-[10px] text-text-secondary leading-relaxed">Play a low system chime sound immediately when new entries appear in the Activity Feed.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={audioAlerts} 
+                      onChange={(e) => setAudioAlerts(e.target.checked)} 
+                      className="sr-only peer" 
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 pt-4 border-t border-border/60">
+              <Button 
+                onClick={handleSaveNotifs} 
+                disabled={savingNotifs}
+                className="bg-violet-600 hover:bg-violet-700 text-white rounded-2xl px-8 py-4 font-black shadow-xl shadow-violet-600/10 active:scale-95 transition-all text-sm"
+              >
+                {savingNotifs ? (
+                  <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Saving...</>
+                ) : (
+                  <><Save className="w-5 h-5 mr-2" /> Save Preferences</>
+                )}
+              </Button>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Floating Toast Notification */}
