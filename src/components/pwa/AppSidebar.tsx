@@ -37,8 +37,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     { href: '/admin/employees', icon: Users, label: 'Employees', section: 'WORKFORCE' },
     { href: '/admin/attendance', icon: Clock, label: 'Attendance', section: 'WORKFORCE' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'WORKFORCE' },
-    { href: '/admin/approvals', icon: Calendar, label: 'Leave Management', section: 'WORKFORCE' },
-    { href: '/admin/approvals#all', icon: CheckSquare, label: 'Approvals', section: 'WORKFORCE' },
+    { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals', section: 'WORKFORCE' },
     
     { href: '/admin/client-profiles', icon: FileUser, label: 'Client Management', section: 'RECRUITMENT & CLIENTS' },
     { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests', section: 'RECRUITMENT & CLIENTS' },

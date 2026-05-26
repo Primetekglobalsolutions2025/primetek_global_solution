@@ -73,10 +73,10 @@ export default async function AdminAppDashboard() {
   const totalPending = (pendingLeavesCount || 0) + (pendingWFHCount || 0);
 
   const stats = [
-    { label: 'Inquiries', value: inquiriesCount.toString(), icon: MessageSquare, color: 'text-primary-500', bg: 'bg-primary-50/50', border: 'border-primary-100' },
-    { label: 'Client Profiles', value: clientProfilesCount.toString(), icon: FileUser, color: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100' },
-    { label: 'Employees', value: employeesCount.toString(), icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-50/50', border: 'border-emerald-100' },
-    { label: 'Approvals', value: totalPending.toString(), icon: Clock, color: 'text-violet-500', bg: 'bg-violet-50/50', border: 'border-violet-100' },
+    { label: 'Inquiries', value: inquiriesCount.toString(), icon: MessageSquare, color: 'text-primary-500', bg: 'bg-primary-50/50', border: 'border-primary-100', href: '/admin/inquiries' },
+    { label: 'Client Profiles', value: clientProfilesCount.toString(), icon: FileUser, color: 'text-amber-500', bg: 'bg-amber-50/50', border: 'border-amber-100', href: '/admin/client-profiles' },
+    { label: 'Employees', value: employeesCount.toString(), icon: Users, color: 'text-emerald-500', bg: 'bg-emerald-50/50', border: 'border-emerald-100', href: '/admin/employees' },
+    { label: 'Approvals', value: totalPending.toString(), icon: Clock, color: 'text-violet-500', bg: 'bg-violet-50/50', border: 'border-violet-100', href: '/admin/approvals' },
   ];
 
   const quickActions = [
@@ -152,7 +152,11 @@ export default async function AdminAppDashboard() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white rounded-xl p-4 md:p-5 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 group">
+          <Link 
+            key={stat.label} 
+            href={stat.href}
+            className="bg-white rounded-xl p-4 md:p-5 border border-border/60 shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer hover:border-primary-500/30"
+          >
             <div className={`w-10 h-10 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center mb-3.5 group-hover:scale-105 transition-transform`}>
               <stat.icon className="w-5 h-5" />
             </div>
@@ -160,7 +164,7 @@ export default async function AdminAppDashboard() {
               <p className="text-2xl font-bold text-navy-900 tracking-tight leading-none">{stat.value}</p>
               <p className="text-[10px] text-text-muted font-semibold uppercase tracking-wider mt-1.5">{stat.label}</p>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
