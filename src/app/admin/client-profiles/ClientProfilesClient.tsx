@@ -21,6 +21,25 @@ const statusColors: Record<string, string> = {
   pending: 'bg-violet-100 text-violet-700',
 };
 
+const IT_KEYWORDS = [
+  'developer', 'engineer', 'architect', 'programmer', 'coder', 'analyst',
+  'java', 'python', 'dot net', '.net', 'c#', 'c++', 'javascript', 'typescript',
+  'react', 'angular', 'node', 'vue', 'frontend', 'backend', 'full stack', 'fullstack',
+  'qa', 'tester', 'testing', 'devops', 'cloud', 'aws', 'azure', 'gcp', 'sap',
+  'salesforce', 'oracle', 'database', 'db', 'sql', 'cyber', 'security', 'network',
+  'sysadmin', 'administrator', 'scrum', 'tech', 'technology', 'ui', 'ux', 'design',
+  'data scientist', 'machine learning', 'ai', 'support engineer'
+];
+
+export function getRoleCategory(roleStr?: string): 'IT' | 'Non-IT' {
+  if (!roleStr) return 'Non-IT';
+  const role = roleStr.toLowerCase();
+  
+  // Check if it matches any IT keywords
+  const isIT = IT_KEYWORDS.some(keyword => role.includes(keyword));
+  return isIT ? 'IT' : 'Non-IT';
+}
+
 interface ClientProfile {
   id?: string;
   client_name: string;
@@ -39,6 +58,8 @@ interface ClientProfile {
 export default function ClientProfilesClient({ initialProfiles, employees }: { initialProfiles: ClientProfile[], employees: any[] }) {
   const [profiles, setProfiles] = useState<ClientProfile[]>(initialProfiles);
   const [search, setSearch] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [roleCategory, setRoleCategory] = useState<'all' | 'IT' | 'Non-IT'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProfile, setEditingProfile] = useState<ClientProfile | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,11 +81,29 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
   });
 
   const filtered = useMemo(() => {
-    return profiles.filter(p => 
-      p.client_name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.client_email?.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [profiles, search]);
+    return profiles.filter(p => {
+      // 1. Text Search matching Client Name, Client Email, Client Role, or Assigned Employee Name
+      const searchLower = search.toLowerCase();
+      const matchesSearch = 
+        !searchLower ||
+        p.client_name?.toLowerCase().includes(searchLower) ||
+        p.client_email?.toLowerCase().includes(searchLower) ||
+        p.client_role?.toLowerCase().includes(searchLower) ||
+        p.assigned_employee?.name?.toLowerCase().includes(searchLower);
+
+      // 2. Employee Filter
+      const matchesEmployee = !selectedEmployee || p.assigned_to === selectedEmployee;
+
+      // 3. Role Category Filter
+      let matchesCategory = true;
+      if (roleCategory !== 'all') {
+        const cat = getRoleCategory(p.client_role);
+        matchesCategory = cat === roleCategory;
+      }
+
+      return matchesSearch && matchesEmployee && matchesCategory;
+    });
+  }, [profiles, search, selectedEmployee, roleCategory]);
 
   const handleOpenModal = (profile: ClientProfile | null = null) => {
     if (profile) {
@@ -198,15 +237,47 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         </Button>
       </div>
 
-      <div className="relative max-w-md group">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
-        <input 
-          type="text" 
-          placeholder="Search profiles..." 
-          value={search} 
-          onChange={(e) => setSearch(e.target.value)} 
-          className="w-full pl-9 pr-4 py-2 rounded-lg border border-border/60 bg-white text-sm text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm"
-        />
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-xl border border-border/60 shadow-sm">
+        {/* Search Text */}
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
+          <input 
+            type="text" 
+            placeholder="Search name, email, role, or employee..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+            className="w-full pl-9 pr-4 py-2 rounded-lg border border-border/60 bg-slate-50 text-sm text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all"
+          />
+        </div>
+
+        {/* Employee Select */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-bold text-navy-900 shrink-0">Employee:</label>
+          <select 
+            value={selectedEmployee} 
+            onChange={(e) => setSelectedEmployee(e.target.value)} 
+            className="px-3 py-2 rounded-lg border border-border/60 bg-slate-50 text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all cursor-pointer min-w-[140px]"
+          >
+            <option value="">All Employees</option>
+            {employees.map(emp => (
+              <option key={emp.id} value={emp.id}>{emp.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Role Category Select */}
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-bold text-navy-900 shrink-0">Category:</label>
+          <select 
+            value={roleCategory} 
+            onChange={(e) => setRoleCategory(e.target.value as any)} 
+            className="px-3 py-2 rounded-lg border border-border/60 bg-slate-50 text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all cursor-pointer min-w-[120px]"
+          >
+            <option value="all">All Roles</option>
+            <option value="IT">IT Roles</option>
+            <option value="Non-IT">Non-IT Roles</option>
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -224,7 +295,17 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
             <div className="flex justify-between items-start mb-4">
               <div>
                 <h3 className="font-heading font-bold text-navy-900">{profile.client_name}</h3>
-                <p className="text-xs text-primary-600 font-bold uppercase tracking-wider">{profile.client_role}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs text-primary-600 font-bold uppercase tracking-wider">{profile.client_role}</span>
+                  <span className={cn(
+                    "text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider uppercase border",
+                    getRoleCategory(profile.client_role) === 'IT' 
+                      ? "bg-blue-50 text-blue-700 border-blue-200" 
+                      : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                  )}>
+                    {getRoleCategory(profile.client_role)}
+                  </span>
+                </div>
               </div>
               <div className="flex gap-1">
                 <button onClick={() => handleOpenModal(profile)} className="p-1.5 hover:bg-surface-alt rounded-lg text-text-muted transition-colors" title="Edit Profile">
