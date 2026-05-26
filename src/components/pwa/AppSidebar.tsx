@@ -12,6 +12,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/ui/Logo';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 interface AppSidebarProps {
   role: 'admin' | 'employee' | 'hr';
@@ -370,50 +371,15 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* Custom Confirmation Modal */}
-      <AnimatePresence>
-        {confirmLogout && (
-          <div 
-            onClick={() => setConfirmLogout(false)}
-            className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer text-navy-900"
-          >
-            <motion.div
-              onClick={(e) => e.stopPropagation()}
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: "spring", duration: 0.4 }}
-              className="w-full max-w-sm cursor-default"
-            >
-              <div className="p-5 rounded-2xl border border-border shadow-2xl bg-white relative overflow-hidden">
-                <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-12 h-12 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center">
-                    <LogOut className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-navy-900 tracking-tight">Sign Out</h3>
-                    <p className="text-xs text-text-muted mt-1.5 font-medium leading-relaxed">Are you sure you want to sign out of your account?</p>
-                  </div>
-                  <div className="flex w-full gap-2 pt-2">
-                    <button
-                      onClick={() => setConfirmLogout(false)}
-                      className="flex-1 py-2 px-3 rounded-lg bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-semibold transition-all cursor-pointer border border-border"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={executeLogout}
-                      className="flex-1 py-2 px-3 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold transition-all cursor-pointer border border-red-500 shadow-sm shadow-red-500/10 active:scale-95"
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <ConfirmationModal
+        isOpen={confirmLogout}
+        onClose={() => setConfirmLogout(false)}
+        onConfirm={executeLogout}
+        title="Sign Out"
+        message="Are you sure you want to sign out of your account?"
+        confirmLabel="Sign Out"
+        variant="danger"
+      />
     </>
   );
 }
