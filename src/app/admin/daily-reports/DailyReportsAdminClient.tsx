@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Calendar, Users, FileSpreadsheet, CheckCircle2, 
   XCircle, Search, RefreshCw, ChevronRight, ClipboardList, Loader2
@@ -67,6 +67,13 @@ export default function DailyReportsAdminClient({
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus[]>(initialSubmissionStatus);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  const todayISTStr = useMemo(() => {
+    const d = new Date();
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5));
+    return ist.toISOString().split('T')[0];
+  }, []);
 
   // Fetch updated data when filters change
   useEffect(() => {
@@ -218,6 +225,7 @@ export default function DailyReportsAdminClient({
                   <input
                     type="date"
                     value={date}
+                    max={todayISTStr}
                     onChange={(e) => setDate(e.target.value)}
                     className="w-full pl-9 pr-3 py-2 border border-border rounded-xl focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 text-xs font-medium text-navy-900 cursor-pointer bg-white"
                   />

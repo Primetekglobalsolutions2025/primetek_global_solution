@@ -287,6 +287,7 @@ export default function AttendanceClient({
                   <input
                     type="date"
                     value={startDate}
+                    max={todayISTStr}
                     onChange={(e) => handleDateChange(e.target.value, endDate)}
                     className="px-2 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm w-full sm:w-[110px]"
                     placeholder="Start Date"
@@ -295,6 +296,7 @@ export default function AttendanceClient({
                   <input
                     type="date"
                     value={endDate}
+                    max={todayISTStr}
                     onChange={(e) => handleDateChange(startDate, e.target.value)}
                     className="px-2 py-2 rounded-lg border border-border/60 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer shadow-sm w-full sm:w-[110px]"
                     placeholder="End Date"
