@@ -80,6 +80,7 @@ CREATE TABLE public.application_profiles (
     resume_url TEXT, -- Path to docx in storage
     
     status TEXT DEFAULT 'assigned' CHECK (status IN ('assigned', 'processing', 'completed', 'rejected')),
+    role_category TEXT DEFAULT 'IT' CHECK (role_category IN ('IT', 'Non-IT')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

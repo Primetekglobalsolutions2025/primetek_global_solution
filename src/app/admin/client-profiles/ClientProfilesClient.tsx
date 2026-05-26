@@ -40,6 +40,11 @@ export function getRoleCategory(roleStr?: string): 'IT' | 'Non-IT' {
   return isIT ? 'IT' : 'Non-IT';
 }
 
+export function getProfileCategory(profile: ClientProfile): 'IT' | 'Non-IT' {
+  if (profile.role_category) return profile.role_category;
+  return getRoleCategory(profile.client_role);
+}
+
 interface ClientProfile {
   id?: string;
   client_name: string;
@@ -52,6 +57,7 @@ interface ClientProfile {
   assigned_to: string;
   resume_url: string;
   status?: string;
+  role_category?: 'IT' | 'Non-IT';
   assigned_employee?: { id: string; name: string };
 }
 
@@ -77,7 +83,8 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
     education_details: { bachelors: '', masters: '' },
     assigned_to: '',
     resume_url: '',
-    status: 'assigned'
+    status: 'assigned',
+    role_category: 'IT'
   });
 
   const filtered = useMemo(() => {
@@ -97,7 +104,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
       // 3. Role Category Filter
       let matchesCategory = true;
       if (roleCategory !== 'all') {
-        const cat = getRoleCategory(p.client_role);
+        const cat = getProfileCategory(p);
         matchesCategory = cat === roleCategory;
       }
 
@@ -118,7 +125,8 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         education_details: profile.education_details || { bachelors: '', masters: '' },
         assigned_to: profile.assigned_to || '',
         resume_url: profile.resume_url || '',
-        status: (profile.status || 'assigned').toLowerCase()
+        status: (profile.status || 'assigned').toLowerCase(),
+        role_category: profile.role_category || 'IT'
       });
     } else {
       setEditingProfile(null);
@@ -132,7 +140,8 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         education_details: { bachelors: '', masters: '' },
         assigned_to: '',
         resume_url: '',
-        status: 'assigned'
+        status: 'assigned',
+        role_category: 'IT'
       });
     }
     setResumeFile(null);
@@ -299,11 +308,11 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                   <span className="text-xs text-primary-600 font-bold uppercase tracking-wider">{profile.client_role}</span>
                   <span className={cn(
                     "text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider uppercase border",
-                    getRoleCategory(profile.client_role) === 'IT' 
+                    getProfileCategory(profile) === 'IT' 
                       ? "bg-blue-50 text-blue-700 border-blue-200" 
                       : "bg-indigo-50 text-indigo-700 border-indigo-200"
                   )}>
-                    {getRoleCategory(profile.client_role)}
+                    {getProfileCategory(profile)}
                   </span>
                 </div>
               </div>
@@ -404,7 +413,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-sm font-semibold text-navy-900">Assign to Employee</label>
                   <select value={formData.assigned_to} onChange={e => setFormData({...formData, assigned_to: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
@@ -421,6 +430,13 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                     <option value="processing">Processing</option>
                     <option value="completed">Completed</option>
                     <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-semibold text-navy-900">Role Category</label>
+                  <select value={formData.role_category || 'IT'} onChange={e => setFormData({...formData, role_category: e.target.value as any})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
+                    <option value="IT">IT Role</option>
+                    <option value="Non-IT">Non-IT Role</option>
                   </select>
                 </div>
               </div>

@@ -90,6 +90,7 @@ export const clientProfileSchema = z.object({
   education_masters: z.string().max(300).optional().nullable(),
   resume_url: z.string().url().optional().nullable(),
   status: z.enum(['assigned', 'processing', 'completed', 'rejected', 'pending']).optional(),
+  role_category: z.enum(['IT', 'Non-IT']).optional().default('IT'),
   assigned_to: z.string().uuid().optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
 });
