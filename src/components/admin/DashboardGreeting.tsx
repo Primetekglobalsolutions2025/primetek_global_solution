@@ -20,7 +20,7 @@ export default function DashboardGreeting({ userName }: DashboardGreetingProps) 
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-[-20%] right-[-10%] w-[50%] h-[100%] bg-primary-500/20 rounded-full blur-[100px] group-hover:bg-primary-500/30 transition-colors duration-1000" />
         <div className="absolute bottom-[-20%] left-[-5%] w-[40%] h-[80%] bg-teal-500/10 rounded-full blur-[80px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.05] mix-blend-overlay" />
+        <div className="absolute inset-0 bg-noise opacity-[0.05] mix-blend-overlay" />
       </div>
 
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
