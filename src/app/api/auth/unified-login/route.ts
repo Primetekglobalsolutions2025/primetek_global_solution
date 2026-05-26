@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createClient } from '@/lib/supabase/server';
 import { createToken } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
-import { loginRateLimiter, consumeRateLimit } from '@/lib/rate-limit';
+import { loginRateLimiter, consumeRateLimit, CAPTCHA_THRESHOLD } from '@/lib/rate-limit';
 import { logAuditAction } from '@/lib/audit';
 
 export async function POST(request: NextRequest) {
@@ -24,16 +24,14 @@ export async function POST(request: NextRequest) {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    // Basic Security: Rate Limiting by IP + Email
+    // Basic Security: Check if blocked by Rate Limiter
     const rateLimitKey = `${ip}_${cleanEmail}`;
-    const rateResult = await consumeRateLimit(loginRateLimiter, rateLimitKey);
-    if (!rateResult.allowed) {
-      const retryAfterSec = Math.ceil(rateResult.retryAfterMs / 1000);
-      console.warn(`[Auth] Rate limit exceeded for key: ${rateLimitKey}`);
-      return NextResponse.json(
-        { error: 'Too many login attempts. Please try again later.', retryAfter: retryAfterSec },
-        { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
-      );
+    const rateLimitRes = await loginRateLimiter.get(rateLimitKey);
+    if (rateLimitRes && rateLimitRes.remainingPoints <= 0) {
+      return NextResponse.json({ 
+        error: 'Too many failed attempts. Please try again in 15 minutes.',
+        lockout: true 
+      }, { status: 429 });
     }
 
     if (process.env.NODE_ENV !== 'production') {
@@ -70,15 +68,24 @@ export async function POST(request: NextRequest) {
       if (apiAuthError) {
         console.error('[Auth] Admin Auth failed:', apiAuthError.message);
         
-        // Pass through specific errors that aren't just "wrong password"
-        if (apiAuthError.message !== 'Invalid login credentials') {
-          return NextResponse.json({ error: apiAuthError.message }, { status: 401 });
+        const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
+        const failedAttempts = 5 - (currentRes.remainingPoints || 0);
+        const responseData: any = { error: 'Invalid credentials' };
+        if (failedAttempts >= CAPTCHA_THRESHOLD) {
+          responseData.showCaptcha = true;
         }
         
-        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+        // Pass through specific errors that aren't just "wrong password"
+        if (apiAuthError.message !== 'Invalid login credentials') {
+          responseData.error = apiAuthError.message;
+        }
+        
+        return NextResponse.json(responseData, { status: 401 });
       }
 
       if (authData?.user) {
+        // Clear rate limit key on success
+        await loginRateLimiter.delete(rateLimitKey);
         // Double check they have admin rights in DB if they weren't found earlier
         if (!adminRecord) {
           await supabaseAdmin.from('admin_users').upsert({ id: authData.user.id, email: cleanEmail });
@@ -100,7 +107,7 @@ export async function POST(request: NextRequest) {
           });
 
           const response = NextResponse.json({ 
-            mfaRequired: true,
+            requiresMFA: true,
             role: 'admin'
           });
 
@@ -152,7 +159,13 @@ export async function POST(request: NextRequest) {
       : query.ilike('employee_id', cleanEmail).single());
 
     if (error || !user) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
+      const failedAttempts = 5 - (currentRes.remainingPoints || 0);
+      const responseData: any = { error: 'Invalid credentials' };
+      if (failedAttempts >= CAPTCHA_THRESHOLD) {
+        responseData.showCaptcha = true;
+      }
+      return NextResponse.json(responseData, { status: 401 });
     }
 
     if (user.status !== 'Active') {
@@ -162,8 +175,18 @@ export async function POST(request: NextRequest) {
     const isValidPassword = await bcrypt.compare(cleanPassword, user.password_hash);
     if (!isValidPassword) {
       await logAuditAction('LOGIN_FAILED', 'employees', user.id, null, { reason: 'Incorrect password', email: cleanEmail }, { id: user.id, role: user.role });
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      
+      const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
+      const failedAttempts = 5 - (currentRes.remainingPoints || 0);
+      const responseData: any = { error: 'Invalid credentials' };
+      if (failedAttempts >= CAPTCHA_THRESHOLD) {
+        responseData.showCaptcha = true;
+      }
+      return NextResponse.json(responseData, { status: 401 });
     }
+
+    // Clear rate limit key on success
+    await loginRateLimiter.delete(rateLimitKey);
 
     if (user.mfa_enabled) {
       const tempToken = await createToken({
@@ -175,7 +198,7 @@ export async function POST(request: NextRequest) {
       });
 
       const response = NextResponse.json({ 
-        mfaRequired: true,
+        requiresMFA: true,
         role: user.role
       });
 

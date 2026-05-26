@@ -31,7 +31,7 @@ export default function LoginForm() {
   const onSubmit = async (data: LoginFormData) => {
     setError('');
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/unified-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
