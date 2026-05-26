@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Save, Loader2, CheckCircle2, ExternalLink, Navigation, Building, AlertCircle, Sparkles, Crosshair, HelpCircle, ArrowRight, X, Info, Calendar } from 'lucide-react';
+import { MapPin, Save, Loader2, CheckCircle2, ExternalLink, Navigation, Building, AlertCircle, Sparkles, Crosshair, HelpCircle, ArrowRight, X, Info } from 'lucide-react';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { OFFICE_LOCATION } from '@/lib/location';
-import { getOfficeLocation, saveOfficeLocation, getSystemStatus, getCasualLeaveConfig, saveAndApplyCasualLeavePolicy } from './actions';
+import { getOfficeLocation, saveOfficeLocation, getSystemStatus } from './actions';
 import { env } from '@/lib/env';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,9 +23,6 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [systemNodes, setSystemNodes] = useState<any[]>([]);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [defaultCasualLeave, setDefaultCasualLeave] = useState('1');
-  const [savingLeave, setSavingLeave] = useState(false);
-  const [appliedLeave, setAppliedLeave] = useState(false);
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
@@ -41,10 +38,9 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     async function loadLocation() {
       try {
-        const [office, nodes, leaveConfig] = await Promise.all([
+        const [office, nodes] = await Promise.all([
           getOfficeLocation(),
-          getSystemStatus(),
-          getCasualLeaveConfig()
+          getSystemStatus()
         ]);
         if (office) {
           setLat(String(office.lat || OFFICE_LOCATION.lat));
@@ -53,7 +49,6 @@ export default function AdminSettingsPage() {
           setRadius(String(office.radius_meters || OFFICE_LOCATION.radiusMeters));
         }
         setSystemNodes(nodes);
-        setDefaultCasualLeave(String(leaveConfig));
       } catch (err) {
         console.error('Failed to load settings:', err);
       } finally {
@@ -62,25 +57,6 @@ export default function AdminSettingsPage() {
     }
     loadLocation();
   }, []);
-
-  const handleSaveLeavePolicy = async () => {
-    const val = parseInt(defaultCasualLeave);
-    if (isNaN(val) || val < 0 || val > 10) {
-      showNotification('Please enter a valid monthly leave allocation between 0 and 10 days.', 'error');
-      return;
-    }
-    setSavingLeave(true);
-    try {
-      await saveAndApplyCasualLeavePolicy(val);
-      setAppliedLeave(true);
-      showNotification('Casual Leave Policy saved and applied to all active employees.', 'success');
-      setTimeout(() => setAppliedLeave(false), 4000);
-    } catch (err: any) {
-      showNotification(err.message || 'Failed to update leave policy.', 'error');
-    } finally {
-      setSavingLeave(false);
-    }
-  };
 
   const handleSave = async () => {
     const parsedLat = parseFloat(lat);
@@ -285,67 +261,6 @@ export default function AdminSettingsPage() {
           </div>
         </Card>
 
-        {/* 1b. Leave Policy Configuration */}
-        <Card hover={false} className="p-10 rounded-[2.5rem] border-border/60 shadow-sm bg-white overflow-hidden relative mt-8">
-          <div className="absolute top-0 right-0 p-10 opacity-[0.03] pointer-events-none">
-            <Calendar className="w-48 h-48 text-navy-900" />
-          </div>
-
-          <div className="flex items-center gap-4 mb-10">
-            <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-lg shadow-teal-600/20">
-              <Calendar className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="font-heading font-black text-xl text-navy-900 tracking-tight">Leave Policy</h2>
-              <p className="text-[11px] font-bold text-text-muted uppercase tracking-widest mt-0.5">Policy Configuration</p>
-            </div>
-          </div>
-
-          <div className="space-y-8">
-            <div className="space-y-2">
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-1">
-                Default Monthly Casual Leave
-              </label>
-              <div className="relative group">
-                <input
-                  type="number"
-                  min={0}
-                  max={10}
-                  value={defaultCasualLeave}
-                  onChange={(e) => setDefaultCasualLeave(e.target.value)}
-                  className={inputClasses}
-                />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-text-muted">DAYS / MONTH</div>
-              </div>
-              <p className="text-[10px] text-text-muted mt-2 font-bold italic">
-                The number of casual leave days allotted to each employee per calendar month. CL does not carry forward.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4">
-              <Button 
-                onClick={handleSaveLeavePolicy} 
-                disabled={savingLeave}
-                className="bg-teal-600 hover:bg-teal-700 text-white rounded-2xl px-8 py-4 font-black shadow-xl shadow-teal-600/10 active:scale-95 transition-all text-sm animate-pulse-subtle"
-              >
-                {savingLeave ? (
-                  <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Applying...</>
-                ) : (
-                  <>Apply & Update All Employees</>
-                )}
-              </Button>
-              {appliedLeave && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }} 
-                  animate={{ opacity: 1, x: 0 }} 
-                  className="flex items-center gap-1.5 text-xs font-black text-emerald-600 uppercase tracking-widest"
-                >
-                  <CheckCircle2 className="w-4 h-4" /> Policy Applied
-                </motion.div>
-              )}
-            </div>
-          </div>
-        </Card>
 
         {/* 2. Visual Preview & Documentation */}
         <div className="space-y-8">

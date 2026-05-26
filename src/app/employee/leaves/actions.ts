@@ -132,16 +132,9 @@ export async function getLeaveBalances() {
     return [];
   }
 
-  // Initialize balance for current month if missing
+  // Initialize balance for current month if missing (default is 1 day, does not carry forward)
   if (data.length === 0) {
-    const { data: config } = await supabaseAdmin
-      .from('portal_config')
-      .select('config_value')
-      .eq('config_key', 'default_casual_leave')
-      .maybeSingle();
-
-    const parsed = config ? parseInt(config.config_value, 10) : 1;
-    const defaultCL = isNaN(parsed) || parsed < 0 ? 1 : parsed;
+    const defaultCL = 1;
 
     const defaults = [
       { 

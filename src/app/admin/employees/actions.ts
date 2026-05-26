@@ -78,15 +78,8 @@ export async function createEmployee(data: {
     throw new Error(error?.message || 'Failed to create employee');
   }
 
-  // Initialize Balances from Portal Config (Casual Leave only for current month)
-  const { data: config } = await supabaseAdmin
-    .from('portal_config')
-    .select('config_value')
-    .eq('config_key', 'default_casual_leave')
-    .maybeSingle();
-
-  const parsedCasual = config ? parseInt(config.config_value, 10) : 1;
-  const casual = isNaN(parsedCasual) || parsedCasual < 0 ? 1 : parsedCasual;
+  // Initialize Balances (Casual Leave only for current month, default is 1 day, does not carry forward)
+  const casual = 1;
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
 
