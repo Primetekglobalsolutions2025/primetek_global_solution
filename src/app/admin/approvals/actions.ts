@@ -37,10 +37,12 @@ export async function getPendingApprovals() {
       ...(wfh || []).map(w => w.employee_id)
     ])).filter(Boolean);
 
-    const { data: employees } = await supabaseAdmin
-      .from('employees')
-      .select('id, name, email')
-      .in('id', allEmpIds);
+    const { data: employees } = allEmpIds.length > 0
+      ? await supabaseAdmin
+          .from('employees')
+          .select('id, name, email')
+          .in('id', allEmpIds)
+      : { data: [] };
 
     const empMap = (employees || []).reduce((acc: any, emp: any) => {
       acc[emp.id] = emp;
@@ -274,10 +276,12 @@ export async function getApprovalHistory() {
       ...(wfh || []).map(w => w.employee_id),
     ])).filter(Boolean);
 
-    const { data: employees } = await supabaseAdmin
-      .from('employees')
-      .select('id, name, email')
-      .in('id', allEmpIds);
+    const { data: employees } = allEmpIds.length > 0
+      ? await supabaseAdmin
+          .from('employees')
+          .select('id, name, email')
+          .in('id', allEmpIds)
+      : { data: [] };
 
     const empMap = (employees || []).reduce((acc: any, emp: any) => {
       acc[emp.id] = emp;
