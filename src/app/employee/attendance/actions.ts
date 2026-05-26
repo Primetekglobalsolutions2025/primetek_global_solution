@@ -34,6 +34,51 @@ function getShiftInfo(now: Date = new Date()) {
   };
 }
 
+export async function closeStaleSessionsForEmployee(employeeId: string, currentShiftDateStr: string) {
+  try {
+    const { data: stale } = await supabaseAdmin
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .is('check_out', null)
+      .neq('date', currentShiftDateStr);
+
+    if (stale && stale.length > 0) {
+      for (const record of stale) {
+        const checkInTime = new Date(record.check_in);
+        const autoOut = new Date(checkInTime.getTime() + 9 * 60 * 60 * 1000);
+        
+        let totalBreak = record.total_break_seconds || 0;
+        if (record.current_break_start) {
+          const breakStart = new Date(record.current_break_start);
+          const breakEnd = breakStart.getTime() < autoOut.getTime() ? autoOut : breakStart;
+          const breakSeconds = Math.max(0, Math.floor((breakEnd.getTime() - breakStart.getTime()) / 1000));
+          totalBreak += breakSeconds;
+        }
+        
+        const totalSeconds = Math.max(0, Math.floor((autoOut.getTime() - checkInTime.getTime()) / 1000));
+        const productiveSeconds = Math.max(0, totalSeconds - totalBreak);
+        const productiveHours = Number((productiveSeconds / 3600).toFixed(2));
+        const durationHours = Number((totalSeconds / 3600).toFixed(2));
+        
+        await supabaseAdmin
+          .from('attendance')
+          .update({ 
+            check_out: autoOut.toISOString(),
+            status: 'Logged Out',
+            current_break_start: null,
+            total_break_seconds: totalBreak,
+            productive_hours: productiveHours,
+            duration_hours: durationHours,
+          })
+          .eq('id', record.id);
+      }
+    }
+  } catch (err) {
+    console.error('Error closing stale sessions:', err);
+  }
+}
+
 export async function checkIn(lat: number, lng: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
   try {
     const session = await getSession();
@@ -59,42 +104,7 @@ export async function checkIn(lat: number, lng: number, ipAddress?: string, user
     const { shiftDateStr, shiftStart } = getShiftInfo();
 
     // Close stale sessions (auto logout yesterday's sessions)
-    const { data: stale } = await supabaseAdmin
-      .from('attendance')
-      .select('*')
-      .eq('employee_id', session.id)
-      .is('check_out', null)
-      .neq('date', shiftDateStr);
-
-    if (stale && stale.length > 0) {
-      for (const record of stale) {
-        const checkInTime = new Date(record.check_in);
-        const autoOut = new Date(checkInTime.getTime() + 9 * 60 * 60 * 1000);
-        
-        let totalBreak = record.total_break_seconds || 0;
-        if (record.current_break_start) {
-          const breakStart = new Date(record.current_break_start);
-          const breakEnd = breakStart.getTime() < autoOut.getTime() ? autoOut : breakStart;
-          const breakSeconds = Math.max(0, Math.floor((breakEnd.getTime() - breakStart.getTime()) / 1000));
-          totalBreak += breakSeconds;
-        }
-        
-        const totalSeconds = Math.max(0, Math.floor((autoOut.getTime() - checkInTime.getTime()) / 1000));
-        const productiveSeconds = Math.max(0, totalSeconds - totalBreak);
-        const productiveHours = Number((productiveSeconds / 3600).toFixed(2));
-        
-        await supabaseAdmin
-          .from('attendance')
-          .update({ 
-            check_out: autoOut.toISOString(),
-            status: 'Logged Out',
-            current_break_start: null,
-            total_break_seconds: totalBreak,
-            productive_hours: productiveHours
-          })
-          .eq('id', record.id);
-      }
-    }
+    await closeStaleSessionsForEmployee(session.id, shiftDateStr);
 
     if (risk && risk.level === 'high') {
       return { success: false, error: 'High risk attendance attempt detected', riskLevel: risk.level };
@@ -209,6 +219,9 @@ export async function requestWFH(lat: number, lng: number, ipAddress?: string, u
     }
     
     const { shiftDateStr, shiftStart } = getShiftInfo();
+
+    // Close stale sessions (auto logout yesterday's sessions)
+    await closeStaleSessionsForEmployee(session.id, shiftDateStr);
 
     const { data: existing } = await supabaseAdmin
       .from('attendance')

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { cn, formatDistance } from '@/lib/utils';
+import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats } from './actions';
@@ -61,26 +61,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
 
 
-  const getShiftDateStr = (date: Date) => {
-    // Get time in IST (Asia/Kolkata)
-    const istTime = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-    const istHours = istTime.getHours();
-    
-    if (istHours < 12) {
-      const yesterday = new Date(istTime.getTime() - 24 * 60 * 60 * 1000);
-      const y = yesterday.getFullYear();
-      const m = String(yesterday.getMonth() + 1).padStart(2, '0');
-      const d = String(yesterday.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    } else {
-      const y = istTime.getFullYear();
-      const m = String(istTime.getMonth() + 1).padStart(2, '0');
-      const d = String(istTime.getDate()).padStart(2, '0');
-      return `${y}-${m}-${d}`;
-    }
-  };
-  
-  const currentShiftDate = getShiftDateStr(currentTime);
+  const currentShiftDate = getISTShiftDate(currentTime);
   const todayRecord = initialRecords.find(r => r.date === currentShiftDate);
 
   const checkedIn = !!todayRecord;

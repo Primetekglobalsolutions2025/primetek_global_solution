@@ -2,10 +2,15 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import AttendanceClient from './AttendanceClient';
+import { closeStaleSessionsForEmployee } from './actions';
+import { getISTShiftDate } from '@/lib/utils';
 
 export default async function EmployeeAttendanceServerWrapper() {
   const session = await getSession();
   if (!session || !session.id) redirect('/employee/login');
+
+  const currentShiftDate = getISTShiftDate();
+  await closeStaleSessionsForEmployee(session.id, currentShiftDate);
 
   const { data: records } = await supabaseAdmin
     .from('attendance')
