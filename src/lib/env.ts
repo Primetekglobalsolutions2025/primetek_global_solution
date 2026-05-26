@@ -10,6 +10,7 @@ const serverSchema = publicSchema.extend({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   RESEND_API_KEY: z.string().min(1).optional(),
   JWT_SECRET: z.string().min(10).default('primetek-fallback-secret-key-2026'),
+  CRON_SECRET: z.string().min(1).optional(),
 }).superRefine((data, ctx) => {
   if (process.env.NODE_ENV === 'production') {
     if (!data.JWT_SECRET || data.JWT_SECRET === 'primetek-fallback-secret-key-2026') {
@@ -31,6 +32,14 @@ const serverSchema = publicSchema.extend({
         code: z.ZodIssueCode.custom,
         message: 'In production, SUPABASE_SERVICE_ROLE_KEY must be explicitly set.',
         path: ['SUPABASE_SERVICE_ROLE_KEY'],
+      });
+    }
+
+    if (!data.CRON_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'In production, CRON_SECRET must be explicitly set.',
+        path: ['CRON_SECRET'],
       });
     }
   }
@@ -57,6 +66,7 @@ function createLazyEnv() {
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
           RESEND_API_KEY: process.env.RESEND_API_KEY,
           JWT_SECRET: process.env.JWT_SECRET,
+          CRON_SECRET: process.env.CRON_SECRET,
         };
 
         // During `next build` page-data collection, env vars may not be

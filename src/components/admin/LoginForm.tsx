@@ -51,12 +51,6 @@ export default function LoginForm() {
         return;
       }
 
-      if (result.token) {
-        try {
-          localStorage.setItem('primetek-admin-token', result.token);
-        } catch {}
-      }
-
       router.push('/admin');
       router.refresh();
     } catch {
@@ -81,12 +75,6 @@ export default function LoginForm() {
         setError(data.error || 'Invalid verification code');
         setVerifying(false);
         return;
-      }
-
-      if (data.token) {
-        try {
-          localStorage.setItem('primetek-admin-token', data.token);
-        } catch {}
       }
 
       router.push('/admin');

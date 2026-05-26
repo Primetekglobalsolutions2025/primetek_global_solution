@@ -40,6 +40,19 @@ export async function sendNotificationEmail(
 }
 
 /**
+ * Resolves the application base URL dynamically.
+ */
+function getAppUrl(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  }
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  return 'https://primetek-portal.vercel.app';
+}
+
+/**
  * Template for new assignment notification.
  */
 export function getAssignmentTemplate(employeeName: string, clientName: string) {
@@ -49,7 +62,7 @@ export function getAssignmentTemplate(employeeName: string, clientName: string) 
       <p>Hi ${employeeName},</p>
       <p>A new client profile for <strong>${clientName}</strong> has been assigned to you for processing.</p>
       <div style="margin: 30px 0;">
-        <a href="https://primetek-portal.vercel.app/employee/assigned-profiles" 
+        <a href="${getAppUrl()}/employee/assigned-profiles" 
            style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
           View Assignment
         </a>
@@ -67,7 +80,7 @@ export function getLeaveStatusTemplate(employeeName: string, type: string, statu
       <p>Hi ${employeeName},</p>
       <p>Your <strong>${type} Leave</strong> request from ${startDate} to ${endDate} has been <strong style="color: ${color};">${status.toUpperCase()}</strong>.</p>
       <div style="margin: 30px 0;">
-        <a href="https://primetek-portal.vercel.app/employee/leaves" 
+        <a href="${getAppUrl()}/employee/leaves" 
            style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
           View Leave Status
         </a>
@@ -86,7 +99,7 @@ export function getWFHStatusTemplate(employeeName: string, date: string, status:
       <p>Hi ${employeeName},</p>
       <p>Your <strong>Work From Home</strong> request for ${date} has been <strong style="color: ${color};">${label.toUpperCase()}</strong>.</p>
       <div style="margin: 30px 0;">
-        <a href="https://primetek-portal.vercel.app/employee/attendance" 
+        <a href="${getAppUrl()}/employee/attendance" 
            style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
           Check Attendance
         </a>

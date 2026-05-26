@@ -319,3 +319,35 @@ CREATE TRIGGER update_interview_requests_modtime
     BEFORE UPDATE ON public.interview_requests
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
 
+
+-- ==========================================
+-- 10. Portal Config Table
+-- ==========================================
+CREATE TABLE public.portal_config (
+    config_key TEXT PRIMARY KEY,
+    config_value TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.portal_config ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins have full access to portal_config" 
+  ON public.portal_config FOR ALL USING (public.is_admin());
+
+
+-- ==========================================
+-- 11. System Status Table
+-- ==========================================
+CREATE TABLE public.system_status (
+    node_name TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    color TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.system_status ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admins have full access to system_status" 
+  ON public.system_status FOR ALL USING (public.is_admin());
+
+

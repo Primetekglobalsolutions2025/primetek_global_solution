@@ -34,12 +34,10 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
     }
 
     const checkAuth = async () => {
-      // Try to load session and token from localStorage
+      // Try to load session from localStorage
       let currentSession = null;
-      let token = null;
       try {
         const savedSession = localStorage.getItem('primetek-admin-session');
-        token = localStorage.getItem('primetek-admin-token');
         if (savedSession) {
           currentSession = JSON.parse(savedSession);
           setSession(currentSession);
@@ -49,23 +47,19 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
       }
 
       if (isLoginPage) {
-        if (token && currentSession) {
-          try {
-            const res = await fetch('/api/auth/me?role=admin', {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.user?.role === 'admin') {
-                router.replace('/admin/dashboard');
-                return;
-              } else if (data.user?.role === 'employee' || data.user?.role === 'hr') {
-                router.replace('/employee/dashboard');
-                return;
-              }
+        try {
+          const res = await fetch('/api/auth/me?role=admin');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.user?.role === 'admin') {
+              router.replace('/admin/dashboard');
+              return;
+            } else if (data.user?.role === 'employee' || data.user?.role === 'hr') {
+              router.replace('/employee/dashboard');
+              return;
             }
-          } catch {}
-        }
+          }
+        } catch {}
         setIsLoading(false);
         return;
       }
@@ -79,11 +73,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
       }
 
       try {
-        const headers: Record<string, string> = {};
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        const res = await fetch('/api/auth/me?role=admin', { headers });
+        const res = await fetch('/api/auth/me?role=admin');
         if (res.ok) {
           const data = await res.json();
           if (data.user?.role === 'admin') {

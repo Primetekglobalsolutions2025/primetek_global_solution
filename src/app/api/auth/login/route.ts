@@ -117,7 +117,6 @@ export async function POST(request: NextRequest) {
       const token = await createToken(authUser);
       const response = NextResponse.json({
         success: true,
-        token,
         user: { id: authUser.id, name: authUser.name, role: authUser.role },
       });
 

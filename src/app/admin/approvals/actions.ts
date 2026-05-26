@@ -101,30 +101,34 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
     const end = new Date(request.end_date);
     const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-    // Use RPC or direct update to used_days
-    // Fetch current balance
-    const { data: balance } = await supabaseAdmin
-      .from('leave_balances')
-      .select('total_days, used_days')
-      .eq('employee_id', request.employee_id)
-      .eq('leave_type', request.type)
-      .single();
+    // Atomic update to used_days via stored procedure to prevent race conditions
+    const { error: rpcError } = await supabaseAdmin.rpc('increment_used_days', {
+      p_employee_id: request.employee_id,
+      p_leave_type: request.type,
+      p_days: days
+    });
 
-    if (balance) {
-      const newUsed = (balance.used_days || 0) + days;
-      const newRemaining = (balance.total_days || 0) - newUsed;
-      
-      await supabaseAdmin
+    if (rpcError) {
+      console.warn('RPC increment_used_days failed, falling back to manual update:', rpcError);
+      // Fallback to manual update if RPC is not yet deployed in this environment
+      const { data: balance } = await supabaseAdmin
         .from('leave_balances')
-        .update({ 
-          used_days: newUsed
-        })
+        .select('used_days')
         .eq('employee_id', request.employee_id)
-        .eq('leave_type', request.type);
+        .eq('leave_type', request.type)
+        .single();
+
+      if (balance) {
+        const newUsed = (balance.used_days || 0) + days;
+        await supabaseAdmin
+          .from('leave_balances')
+          .update({ 
+            used_days: newUsed
+          })
+          .eq('employee_id', request.employee_id)
+          .eq('leave_type', request.type);
+      }
     }
-    
-    // Note: In Supabase, we should ideally use a stored procedure to increment safely
-    // For now, we'll fetch current used_days if we want to be safer, but let's assume single admin for now.
   }
 
   // 4. Send Email
