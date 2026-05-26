@@ -162,7 +162,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
           {(() => {
             let lastSection = '';
             return navItems.map((item: NavItem) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href.split('#')[0];
               const showSectionHeader = item.section && item.section !== lastSection;
               if (showSectionHeader) {
                 lastSection = item.section;

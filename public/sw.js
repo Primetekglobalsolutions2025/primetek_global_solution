@@ -1,4 +1,4 @@
-const CACHE_NAME = 'primetek-app-9c804774-97fd-4c8b-98a5-9364ba97ff6d';
+const CACHE_NAME = 'primetek-app-6a65b0a0-b9bb-4ee4-9075-40f3b37ef084';
 const SCOPES = ['/employee/', '/admin/'];
 
 // Install event - pre-cache critical login and shell assets

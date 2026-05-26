@@ -46,11 +46,11 @@ export default async function AdminAppDashboard() {
       inquiryTrendsRes,
       systemNodesRes
     ] = await Promise.all([
-      supabaseAdmin.from('inquiries').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('application_profiles').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('employees').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('leave_requests').select('*', { count: 'exact', head: true }).ilike('status', 'Pending'),
-      supabaseAdmin.from('attendance').select('*', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
+      supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('application_profiles').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('employees').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
       supabaseAdmin.from('inquiries').select('*').order('created_at', { ascending: false }).limit(5),
       supabaseAdmin.from('attendance').select('date, status').in('date', last7Days),
       supabaseAdmin.from('inquiries').select('created_at').gte('created_at', last4Weeks[0].start.toISOString()),

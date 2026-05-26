@@ -129,6 +129,50 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
     checkAuth();
   }, [router, isLoginPage]);
 
+  // Handle hash scrolling on client-side navigation (e.g. settings#notifications, audit#activity)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    let attempts = 0;
+    const maxAttempts = 10;
+    const intervalTime = 150;
+
+    const tryScroll = () => {
+      const id = window.location.hash.replace('#', '');
+      if (!id) return false;
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return true;
+      }
+      return false;
+    };
+
+    // Try immediately
+    if (tryScroll()) return;
+
+    // Retry if element is not in DOM yet (e.g. during client-side dynamic load)
+    const interval = setInterval(() => {
+      attempts++;
+      if (tryScroll() || attempts >= maxAttempts) {
+        clearInterval(interval);
+      }
+    }, intervalTime);
+
+    const handleHashChange = () => {
+      tryScroll();
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [pathname]);
+
+
   if (isLoading) {
     return (
       <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-navy-900 gap-3">
