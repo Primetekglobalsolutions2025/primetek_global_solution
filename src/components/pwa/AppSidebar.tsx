@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Clock, UserCircle, LogOut, 
-  MessageSquare, Briefcase, Users, FileUser,
+  MessageSquare, Briefcase, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
   MoreHorizontal, X, ClipboardList
 } from 'lucide-react';
@@ -25,26 +25,35 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
 
   const desktopAdminItems = [
-    { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview' },
-    { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals' },
-    { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
-    { href: '/admin/client-profiles', icon: FileUser, label: 'Client Profiles' },
-    { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews' },
-    { href: '/admin/employees', icon: Users, label: 'Employees' },
-    { href: '/admin/attendance', icon: Clock, label: 'Reports' },
-    { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports' },
-    { href: '/admin/audit', icon: History, label: 'Audit Logs' },
-    { href: '/admin/profile', icon: UserCircle, label: 'Profile' },
-    { href: '/admin/settings', icon: Settings, label: 'Settings' },
+    { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'MAIN' },
+    
+    { href: '/admin/employees', icon: Users, label: 'Employees', section: 'WORKFORCE' },
+    { href: '/admin/attendance', icon: Clock, label: 'Attendance', section: 'WORKFORCE' },
+    { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'WORKFORCE' },
+    { href: '/admin/approvals', icon: Calendar, label: 'Leave Management', section: 'WORKFORCE' },
+    { href: '/admin/approvals#all', icon: CheckSquare, label: 'Approvals', section: 'WORKFORCE' },
+    
+    { href: '/admin/client-profiles', icon: FileUser, label: 'Client Management', section: 'RECRUITMENT & CLIENTS' },
+    { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests', section: 'RECRUITMENT & CLIENTS' },
+    { href: '/admin/applications', icon: FileText, label: 'Candidate Pipeline', section: 'RECRUITMENT & CLIENTS' },
+    
+    { href: '/admin/inquiries', icon: MessageSquare, label: 'Contact Inquiries', section: 'COMMUNICATION' },
+    
+    { href: '/admin/audit', icon: History, label: 'Audit Logs', section: 'SECURITY & COMPLIANCE' },
+    { href: '/admin/audit#activity', icon: History, label: 'Activity Monitoring', section: 'SECURITY & COMPLIANCE' },
+    
+    { href: '/admin/settings#notifications', icon: Settings, label: 'Notifications', section: 'SYSTEM' },
+    { href: '/admin/settings', icon: Settings, label: 'Settings', section: 'SYSTEM' },
+    { href: '/admin/profile', icon: UserCircle, label: 'My Profile', section: 'SYSTEM' },
   ];
 
   const desktopEmployeeItems = [
-    { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Overview' },
-    { href: '/employee/attendance', icon: Clock, label: 'Attendance' },
-    { href: '/employee/leaves', icon: Calendar, label: 'Leaves' },
-    { href: '/employee/daily-report', icon: ClipboardList, label: 'Daily Report' },
-    { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles' },
-    { href: '/employee/profile', icon: UserCircle, label: 'My Profile' },
+    { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'MAIN' },
+    { href: '/employee/attendance', icon: Clock, label: 'Attendance', section: 'WORKFORCE' },
+    { href: '/employee/leaves', icon: Calendar, label: 'Leaves', section: 'WORKFORCE' },
+    { href: '/employee/daily-report', icon: ClipboardList, label: 'Daily Report', section: 'WORKFORCE' },
+    { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles', section: 'WORKFORCE' },
+    { href: '/employee/profile', icon: UserCircle, label: 'My Profile', section: 'SYSTEM' },
   ];
 
   const navItems = role === 'admin' ? desktopAdminItems : desktopEmployeeItems;
@@ -139,26 +148,39 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-4 px-2.5 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link 
-                key={item.href} 
-                href={item.href} 
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
-                  isActive 
-                    ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' 
-                    : 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
-                )}
-                title={collapsed ? item.label : undefined}
-              >
-                <item.icon className="w-[18px] h-[18px] shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 py-4 px-2.5 space-y-1.5 overflow-y-auto">
+          {(() => {
+            let lastSection = '';
+            return navItems.map((item: any) => {
+              const isActive = pathname === item.href;
+              const showSectionHeader = item.section && item.section !== lastSection;
+              if (showSectionHeader) {
+                lastSection = item.section;
+              }
+              return (
+                <div key={item.href} className="space-y-1">
+                  {showSectionHeader && !collapsed && (
+                    <div className="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] px-3 pt-4 pb-1.5">
+                      {item.section}
+                    </div>
+                  )}
+                  <Link 
+                    href={item.href} 
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
+                      isActive 
+                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' 
+                        : 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                    )}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <item.icon className="w-[18px] h-[18px] shrink-0" />
+                    {!collapsed && <span>{item.label}</span>}
+                  </Link>
+                </div>
+              );
+            });
+          })()}
         </nav>
 
         {/* Footer */}
