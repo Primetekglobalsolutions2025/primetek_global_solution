@@ -60,13 +60,19 @@ export default async function AuditLogsPage(props: PageProps) {
   const totalPages = Math.ceil(totalCount / limit) || 1;
 
   // Fetch recent activity (last 24h attendance events)
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { data: recentActivity } = await supabaseAdmin
-    .from('attendance')
-    .select('id, employee_id, date, check_in, check_out, status')
-    .gte('created_at', twentyFourHoursAgo)
-    .order('created_at', { ascending: false })
-    .limit(15);
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  let recentActivity: any[] | null = null;
+  try {
+    const { data } = await supabaseAdmin
+      .from('attendance')
+      .select('id, employee_id, date, check_in, check_out, status')
+      .gte('date', yesterday)
+      .order('date', { ascending: false })
+      .limit(15);
+    recentActivity = data;
+  } catch (e) {
+    console.error('Error fetching recent activity:', e);
+  }
 
   // Batch query to resolve user emails and names
   const activityEmpIds = Array.from(new Set(recentActivity?.map(a => a.employee_id) || [])).filter(Boolean);
