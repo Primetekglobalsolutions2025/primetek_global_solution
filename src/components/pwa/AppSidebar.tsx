@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Briefcase, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
-  MoreHorizontal, X, ClipboardList
+  MoreHorizontal, X, ClipboardList, BarChart2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -53,6 +53,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     { href: '/employee/leaves', icon: Calendar, label: 'Leaves', section: 'WORKFORCE' },
     { href: '/employee/daily-report', icon: ClipboardList, label: 'Daily Report', section: 'WORKFORCE' },
     { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles', section: 'WORKFORCE' },
+    { href: '/employee/reports', icon: BarChart2, label: 'My Reports', section: 'REPORTS' },
     { href: '/employee/profile', icon: UserCircle, label: 'My Profile', section: 'SYSTEM' },
   ];
 
@@ -85,6 +86,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
 
   const mobileEmployeeMore = [
     { href: '/employee/leaves', icon: Calendar, label: 'Leaves' },
+    { href: '/employee/reports', icon: BarChart2, label: 'My Reports' },
     { href: '/employee/profile', icon: UserCircle, label: 'My Profile' },
   ];
 

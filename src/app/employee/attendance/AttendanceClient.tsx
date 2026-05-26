@@ -216,7 +216,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
         try {
           const fingerprint = getOrCreateFingerprint();
-          const result = await checkOut(todayRecord.id, lat || 0, lng || 0, undefined, undefined, fingerprint);
+          const result = await checkOut(todayRecord.id, lat, lng, undefined, undefined, fingerprint);
           if (result.success) {
             setGpsStatus('success');
             showNotification('Clocked out successfully.', 'success');

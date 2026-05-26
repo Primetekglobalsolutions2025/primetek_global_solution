@@ -264,7 +264,7 @@ export async function requestWFH(lat: number, lng: number, ipAddress?: string, u
   }
 }
 
-export async function checkOut(recordId: string, lat: number, lng: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
+export async function checkOut(recordId: string, lat?: number, lng?: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
   try {
     const reqHeaders = await headers();
     const ip = ipAddress || reqHeaders.get('x-forwarded-for')?.split(',')[0] || 'unknown';
@@ -332,8 +332,8 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
         current_break_start: null,
         total_break_seconds: totalBreak,
         productive_hours: productiveHours,
-        lat: Number(lat),
-        lng: Number(lng),
+        lat: lat !== undefined && lat !== null ? Number(lat) : null,
+        lng: lng !== undefined && lng !== null ? Number(lng) : null,
       })
       .eq('id', recordId)
       .eq('employee_id', session.id)
@@ -364,11 +364,33 @@ export async function resumeSession(recordId: string) {
 
     const { shiftDateStr } = getShiftInfo();
 
+    // Fetch the checkout record first to check the time guard
+    const { data: record, error: fetchError } = await supabaseAdmin
+      .from('attendance')
+      .select('check_out')
+      .eq('id', recordId)
+      .eq('employee_id', session.id)
+      .single();
+
+    if (fetchError || !record || !record.check_out) {
+      return { success: false, error: 'Checkout record not found' };
+    }
+
+    const checkoutTime = new Date(record.check_out);
+    const now = new Date();
+    const minutesSinceCheckout = (now.getTime() - checkoutTime.getTime()) / (1000 * 60);
+
+    if (minutesSinceCheckout > 15) {
+      return { success: false, error: 'Resume window (15 minutes) has expired' };
+    }
+
     const { error } = await supabaseAdmin
       .from('attendance')
       .update({ 
         check_out: null,
-        status: 'Working'
+        status: 'Working',
+        duration_hours: null,
+        productive_hours: null
       })
       .eq('id', recordId)
       .eq('employee_id', session.id)
@@ -380,7 +402,7 @@ export async function resumeSession(recordId: string) {
     revalidatePath('/employee/dashboard');
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: 'Failed to resume session' };
+    return { success: false, error: err.message || 'Failed to resume session' };
   }
 }
 

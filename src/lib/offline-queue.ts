@@ -46,6 +46,28 @@ function generateId(): string {
   return `offline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/** Calculate shift date (IST timezone, night shift) for client side deduplication */
+function getClientShiftDate(dateStrOrObj: string | Date = new Date()): string {
+  const date = typeof dateStrOrObj === 'string' ? new Date(dateStrOrObj) : dateStrOrObj;
+  // Convert UTC to IST (+5:30)
+  const offset = 5.5 * 60 * 60 * 1000;
+  const istDate = new Date(date.getTime() + offset);
+  
+  // Read hours in IST
+  const hours = istDate.getUTCHours();
+  
+  let shiftDateStr: string;
+  if (hours < 12) {
+    // Before noon IST, it belongs to yesterday's shift
+    const yesterday = new Date(istDate.getTime() - 24 * 60 * 60 * 1000);
+    shiftDateStr = yesterday.toISOString().split('T')[0];
+  } else {
+    // Noon or later IST, it belongs to today's shift
+    shiftDateStr = istDate.toISOString().split('T')[0];
+  }
+  return shiftDateStr;
+}
+
 /** Add an entry to the offline queue */
 export function enqueueOfflineAction(
   action: OfflineAttendanceEntry['action'],
@@ -68,13 +90,13 @@ export function enqueueOfflineAction(
 
   const queue = getOfflineQueue();
 
-  // Duplicate prevention: block multiple check-ins for the same date
-  const today = new Date().toISOString().split('T')[0];
+  // Duplicate prevention: block multiple check-ins for the same shift date
+  const shiftDate = getClientShiftDate(new Date());
   if (action === 'check_in' || action === 'wfh_request') {
     const hasDuplicate = queue.some(
       (e) =>
         (e.action === 'check_in' || e.action === 'wfh_request') &&
-        e.timestamp.startsWith(today) &&
+        getClientShiftDate(e.timestamp) === shiftDate &&
         e.status !== 'failed',
     );
     if (hasDuplicate) {

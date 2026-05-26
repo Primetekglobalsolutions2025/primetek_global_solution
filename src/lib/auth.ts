@@ -43,11 +43,21 @@ export async function getSession(): Promise<TokenPayload | null> {
   try {
     const headerStore = await headers();
     const referer = headerStore.get('referer');
-    if (referer) {
-      const refererUrl = new URL(referer);
-      if (refererUrl.pathname.startsWith('/admin')) {
+    const nextUrl = headerStore.get('next-url');
+
+    let pathname = '';
+    if (nextUrl) {
+      pathname = nextUrl;
+    } else if (referer) {
+      try {
+        pathname = new URL(referer).pathname;
+      } catch {}
+    }
+
+    if (pathname) {
+      if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
         tokenCookieName = 'admin-auth-token';
-      } else if (refererUrl.pathname.startsWith('/employee')) {
+      } else if (pathname.startsWith('/employee') || pathname.startsWith('/api/attendance') || pathname.startsWith('/api/mfa') || pathname.startsWith('/api/auth')) {
         tokenCookieName = 'employee-auth-token';
       }
     }
@@ -55,13 +65,18 @@ export async function getSession(): Promise<TokenPayload | null> {
     // headers() might fail in some contexts
   }
 
-  // If we couldn't determine from referer, try both but validate role matches
+  // If we couldn't determine from headers, try both but validate role matches
   if (!tokenCookieName) {
-    // Try admin first, then employee — but verify role after
     const adminToken = cookieStore.get('admin-auth-token')?.value;
-    if (adminToken) return verifyToken(adminToken);
+    if (adminToken) {
+      const payload = await verifyToken(adminToken);
+      if (payload && payload.role === 'admin') return payload;
+    }
     const empToken = cookieStore.get('employee-auth-token')?.value;
-    if (empToken) return verifyToken(empToken);
+    if (empToken) {
+      const payload = await verifyToken(empToken);
+      if (payload && (payload.role === 'employee' || payload.role === 'hr')) return payload;
+    }
     return null;
   }
 

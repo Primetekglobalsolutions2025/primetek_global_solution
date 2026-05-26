@@ -34,6 +34,8 @@ export default async function EmployeeAppAttendancePage() {
       check_out: isValidCheckOut ? checkOut.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
       duration_hours: durationHours,
       status: r.status,
+      total_break_seconds: r.total_break_seconds,
+      current_break_start: r.current_break_start,
     };
   });
 

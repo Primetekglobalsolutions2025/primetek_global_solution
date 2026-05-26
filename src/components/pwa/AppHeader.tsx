@@ -14,6 +14,7 @@ export default function AppHeader({ userName }: AppHeaderProps) {
   const getTitle = () => {
     if (pathname.includes('/dashboard')) return 'Overview';
     if (pathname.includes('/attendance')) return 'Attendance';
+    if (pathname.includes('/reports')) return 'My Reports';
     if (pathname.includes('/profile')) return 'My Profile';
     if (pathname.includes('/inquiries')) return 'Inquiries';
     if (pathname.includes('/jobs')) return 'Job Listings';

@@ -14,8 +14,8 @@
 
 import { isOfficeNetwork } from './network-trust';
 import { checkAndRegisterDevice } from './device-trust';
-import { getActiveSession, createActiveSession } from './session-tracker';
-import { isWithinOffice } from '@/lib/location';
+import { getActiveSession, createActiveSession, touchSession } from './session-tracker';
+import { haversineDistance } from '@/lib/location';
 import type { AttendanceRequestContext, RiskAssessment, RiskSignal, RiskLevel } from './types';
 import { logAuditAction } from '@/lib/audit';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -61,9 +61,17 @@ export async function assessAttendanceRisk(ctx: AttendanceRequestContext): Promi
   // -------------------------------------------------------------------
   const existingSession = await getActiveSession(ctx.userId);
   if (existingSession && existingSession.is_valid) {
-    // There is already a valid session – treat as concurrent usage
-    signals.push({ signal: 'concurrent_session', weight: 20, detail: 'Another active session exists' });
-    score += 20;
+    // Flag as concurrent session ONLY if it's from a different device fingerprint or IP
+    const sameDevice = ctx.deviceFingerprint && existingSession.device_fingerprint === ctx.deviceFingerprint;
+    const sameIp = existingSession.ip_address === ctx.ipAddress;
+    
+    if (!sameDevice || !sameIp) {
+      signals.push({ signal: 'concurrent_session', weight: 20, detail: 'Another active session exists on a different device/IP' });
+      score += 20;
+    } else {
+      signals.push({ signal: 'active_session_continuation', weight: 0, detail: 'Continuing existing trusted session' });
+      await touchSession(existingSession.id);
+    }
   } else {
     // No active session – create one for this request
     await createActiveSession({
@@ -75,26 +83,64 @@ export async function assessAttendanceRisk(ctx: AttendanceRequestContext): Promi
     });
   }
 
-  // -------------------------------------------------------------------
   // 4️⃣ GPS / Location Signal (if coordinates supplied)
   // -------------------------------------------------------------------
   if (typeof ctx.latitude === 'number' && typeof ctx.longitude === 'number') {
-    const withinOffice = isWithinOffice(ctx.latitude, ctx.longitude);
+    // Fetch active office location from DB dynamically to sync with checkIn decision
+    let officeLat = 17.3850;
+    let officeLng = 78.4867;
+    let radius = 500;
+    
+    try {
+      const { data: officeList } = await supabaseAdmin
+        .from('office_locations')
+        .select('lat, lng, radius_meters')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (officeList && officeList.length > 0) {
+        officeLat = Number(officeList[0].lat);
+        officeLng = Number(officeList[0].lng);
+        radius = Number(officeList[0].radius_meters);
+      }
+    } catch (e) {
+      console.warn('[RiskEngine] Error fetching office locations from DB, falling back to defaults:', e);
+    }
+
+    const distance = haversineDistance(ctx.latitude, ctx.longitude, officeLat, officeLng);
+    const withinOffice = distance <= radius;
+
     if (withinOffice) {
       signals.push({ signal: 'location_within_office', weight: 0, detail: 'GPS inside office radius' });
     } else {
       // Not in office – could be remote work or spoofing
-      signals.push({ signal: 'location_outside_office', weight: 10, detail: 'GPS outside office radius' });
+      signals.push({ signal: 'location_outside_office', weight: 10, detail: `GPS outside office radius (${Math.round(distance)}m)` });
       score += 10;
     }
   }
 
+  // 5️⃣ Rapid Action Heuristic – detection of impossibly fast actions
   // -------------------------------------------------------------------
-  // 5️⃣ Rapid Action Heuristic – simple detection of impossibly fast check‑in/out
-  // -------------------------------------------------------------------
-  // For demonstration we just flag if an action is performed within 30 seconds of the previous one.
-  // In production you would query the last attendance record for the employee.
-  // (Implementation left to the calling API; we only expose a helper constant.)
+  try {
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_risk_events')
+      .select('created_at')
+      .eq('employee_id', ctx.userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lastEvent) {
+      const lastTime = new Date(lastEvent.created_at).getTime();
+      const diffSec = (Date.now() - lastTime) / 1000;
+      if (diffSec < 30) {
+        signals.push({ signal: 'rapid_action', weight: 15, detail: `Action within ${Math.round(diffSec)}s of last attempt` });
+        score += 15;
+      }
+    }
+  } catch (e) {
+    console.warn('[RiskEngine] Error checking last action time', e);
+  }
 
   // -------------------------------------------------------------------
   // Compute final level (0‑100 scale)
@@ -126,6 +172,15 @@ export async function assessAttendanceRisk(ctx: AttendanceRequestContext): Promi
       console.warn('[RiskEngine] DB Error logging risk event:', insertError);
     } else if (riskEvent) {
       riskEventId = riskEvent.id;
+      // Log risk assessment in audit logs
+      await logAuditAction(
+        'RISK_ASSESSMENT',
+        'attendance_risk_events',
+        riskEventId,
+        null,
+        { risk_level: level, risk_score: finalScore, reasons: signals },
+        { id: ctx.userId, role: ctx.userRole }
+      );
     }
   } catch (e) {
     console.warn('[RiskEngine] Unable to log risk event', e);
