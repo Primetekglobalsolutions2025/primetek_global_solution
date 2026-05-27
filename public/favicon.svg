@@ -1,46 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Solid background circle to provide high contrast on both dark and light browser tabs -->
+  <circle cx="50" cy="50" r="48" fill="#070a13" stroke="#1e293b" stroke-width="2.5"/>
+  
   <defs>
+    <!-- Brightened gradient for the globe lines -->
     <linearGradient id="globeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.9" />
-      <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.7" />
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#3b82f6" />
     </linearGradient>
+    <!-- Vibrant gold gradient for the node points -->
     <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#D4AF37" />
-      <stop offset="100%" stop-color="#FDE047" />
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#fef08a" />
     </linearGradient>
+    <!-- Strong, high-contrast blue gradient for the P network mesh -->
     <linearGradient id="meshGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2563EB" />
-      <stop offset="100%" stop-color="#1d4ed8" />
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#60a5fa" />
     </linearGradient>
   </defs>
 
   <g transform="translate(10, 10)">
-    {/* Globe / Orbit lines */}
-    <ellipse cx="40" cy="40" rx="35" ry="35" fill="none" stroke="url(#globeGrad)" stroke-width="2" opacity="0.6"/>
-    <ellipse cx="40" cy="40" rx="15" ry="35" fill="none" stroke="url(#globeGrad)" stroke-width="1.5" opacity="0.7"/>
-    <ellipse cx="40" cy="40" rx="35" ry="15" fill="none" stroke="url(#globeGrad)" stroke-width="1.5" opacity="0.7"/>
-    <path d="M 15 15 L 65 65 M 15 65 L 65 15" stroke="url(#globeGrad)" stroke-width="0.8" opacity="0.4"/>
+    <!-- Globe / Orbit lines (Thickened for 16x16 favicon rendering) -->
+    <ellipse cx="40" cy="40" rx="33" ry="33" fill="none" stroke="url(#globeGrad)" stroke-width="3" opacity="0.5"/>
+    <ellipse cx="40" cy="40" rx="14" ry="33" fill="none" stroke="url(#globeGrad)" stroke-width="2.5" opacity="0.6"/>
+    <ellipse cx="40" cy="40" rx="33" ry="14" fill="none" stroke="url(#globeGrad)" stroke-width="2.5" opacity="0.6"/>
+    <path d="M 17 17 L 63 63 M 17 63 L 63 17" stroke="url(#globeGrad)" stroke-width="1.5" opacity="0.4"/>
     
-    {/* P Network Mesh */}
+    <!-- P Network Mesh (Significantly thickened) -->
     <path 
-      d="M 25,65 L 25,20 L 45,20 C 55,20 60,25 60,35 C 60,45 55,50 45,50 L 25,50" 
+      d="M 25,62 L 25,20 L 45,20 C 55,20 60,25 60,35 C 60,45 55,50 45,50 L 25,50" 
       fill="none" 
       stroke="url(#meshGrad)" 
-      stroke-width="5" 
+      stroke-width="7.5" 
       stroke-linecap="round" 
       stroke-linejoin="round"
     />
     
-    {/* Connection Nodes */}
-    <circle cx="25" cy="20" r="5" fill="url(#goldGrad)" />
-    <circle cx="45" cy="20" r="4.5" fill="url(#goldGrad)" />
-    <circle cx="58" cy="35" r="5" fill="url(#goldGrad)" />
-    <circle cx="45" cy="50" r="4.5" fill="url(#goldGrad)" />
-    <circle cx="25" cy="50" r="5" fill="url(#goldGrad)" />
-    <circle cx="25" cy="65" r="4.5" fill="url(#goldGrad)" />
+    <!-- Connection Nodes (Enlarged) -->
+    <circle cx="25" cy="20" r="7" fill="url(#goldGrad)" />
+    <circle cx="45" cy="20" r="6" fill="url(#goldGrad)" />
+    <circle cx="58" cy="35" r="7" fill="url(#goldGrad)" />
+    <circle cx="45" cy="50" r="6" fill="url(#goldGrad)" />
+    <circle cx="25" cy="50" r="7" fill="url(#goldGrad)" />
+    <circle cx="25" cy="62" r="6" fill="url(#goldGrad)" />
     
-    {/* Outer orbital node */}
-    <circle cx="70" cy="20" r="3" fill="url(#goldGrad)" opacity="0.9" />
-    <path d="M 60 25 L 70 20" stroke="url(#globeGrad)" stroke-width="1.5" opacity="0.7" />
+    <!-- Outer orbital node -->
+    <circle cx="68" cy="20" r="4.5" fill="url(#goldGrad)" />
+    <path d="M 58 25 L 68 20" stroke="url(#globeGrad)" stroke-width="2" opacity="0.6" />
   </g>
 </svg>
