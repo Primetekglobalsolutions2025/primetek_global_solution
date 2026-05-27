@@ -46,7 +46,7 @@ export default function AppHeader({ userName }: AppHeaderProps) {
         <div className="flex md:hidden items-center gap-3 py-1">
           <Logo className="w-32 h-auto shrink-0" />
           <div className="h-5 w-px bg-border/60" />
-          <h2 className="text-[15px] font-heading font-bold text-navy-900 truncate">
+          <h2 className="text-[15px] font-sans font-bold text-navy-900 truncate">
             {getTitle()}
           </h2>
         </div>
@@ -55,7 +55,7 @@ export default function AppHeader({ userName }: AppHeaderProps) {
           <p className="text-[11px] text-text-muted uppercase tracking-widest font-bold leading-none mb-0.5">
             {getGreeting()}{userName ? `, ${userName.split(' ')[0]}` : ''}
           </p>
-          <h2 className="text-base font-heading font-bold text-navy-900 tracking-tight leading-tight">
+          <h2 className="text-base font-sans font-bold text-navy-900 tracking-tight leading-tight">
             {getTitle()}
           </h2>
         </div>

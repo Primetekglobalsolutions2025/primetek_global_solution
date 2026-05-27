@@ -17,8 +17,8 @@ export default async function EmployeeReportsPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl md:text-2xl font-heading font-bold text-navy-900 tracking-tight">My Reports</h1>
-        <p className="text-text-secondary text-sm">Full breakdown of your attendance, leaves, daily work, and security activity.</p>
+        <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">My Reports</h1>
+        <p className="text-zinc-500 text-sm">Full breakdown of your attendance, leaves, daily work, and security activity.</p>
       </div>
       <ReportsClient
         attendance={attendance}

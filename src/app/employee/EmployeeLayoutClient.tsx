@@ -149,7 +149,7 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
   }
 
   return (
-    <div className="flex h-[100dvh] bg-zinc-50 overflow-hidden">
+    <div className="employee-portal flex h-[100dvh] bg-zinc-50 overflow-hidden">
       {session && <AppSidebar role={session.role} userName={session.name} />}
       <div className="flex-1 flex flex-col min-w-0">
         <AppHeader userName={session?.name} />

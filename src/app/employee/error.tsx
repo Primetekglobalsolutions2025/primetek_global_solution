@@ -28,8 +28,8 @@ export default function EmployeeError({
             <AlertTriangle className="w-8 h-8" />
           </div>
           
-          <h2 className="text-xl font-heading font-black text-navy-900 mb-2">Portal Error</h2>
-          <p className="text-text-secondary text-xs mb-8 leading-relaxed px-4">
+          <h2 className="text-xl font-sans font-black text-navy-900 mb-2">Portal Error</h2>
+          <p className="text-zinc-500 text-xs mb-8 leading-relaxed px-4">
             We had trouble loading this section. Your data is safe, but we need to restart the session.
           </p>
 

@@ -77,6 +77,17 @@
     line-height: 1.2;
     color: var(--color-navy-900);
   }
+
+  /* Dashboard Portal Heading Font Override (Employee/Admin pages) */
+  .employee-portal h1, .employee-portal h2, .employee-portal h3, .employee-portal h4, .employee-portal h5, .employee-portal h6,
+  .admin-portal h1, .admin-portal h2, .admin-portal h3, .admin-portal h4, .admin-portal h5, .admin-portal h6 {
+    font-family: var(--font-sans);
+  }
+
+  .employee-portal .font-mono,
+  .admin-portal .font-mono {
+    font-family: var(--font-mono) !important;
+  }
 }
 
 /* Selection */
