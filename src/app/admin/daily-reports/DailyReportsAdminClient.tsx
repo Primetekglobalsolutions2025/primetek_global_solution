@@ -278,100 +278,108 @@ export default function DailyReportsAdminClient({
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-xs">
+                <table className="w-full border-collapse text-left text-xs overflow-hidden rounded-2xl shadow-sm border border-border/80">
                   <thead>
-                    <tr className="bg-navy-900 text-white border-b border-navy-800">
-                      <th className="p-4 font-semibold">Assign Date</th>
-                      <th className="p-4 font-semibold">Consultant Name</th>
-                      <th className="p-4 font-semibold text-center bg-navy-800/40">Apps Count</th>
-                      <th className="p-4 font-semibold text-center bg-navy-800/40">Interviews</th>
-                      <th className="p-4 font-semibold text-center">Assessments</th>
-                      <th className="p-4 font-semibold text-center">Tech Rounds</th>
-                      <th className="p-4 font-semibold text-center">Non-Tech</th>
-                      <th className="p-4 font-semibold text-center bg-amber-950/20 text-amber-300 font-bold">Self</th>
-                      <th className="p-4 font-semibold text-center bg-amber-950/20 text-amber-300 font-bold">Support</th>
+                    <tr className="bg-gradient-to-r from-navy-950 to-navy-900 text-white border-b border-navy-800">
+                      <th className="p-4 font-semibold rounded-tl-xl select-none">Assign Date</th>
+                      <th className="p-4 font-semibold select-none">Consultant Name</th>
+                      <th className="p-4 font-semibold text-center bg-navy-850/30 select-none">Apps Count</th>
+                      <th className="p-4 font-semibold text-center bg-navy-850/30 select-none">Interviews</th>
+                      <th className="p-4 font-semibold text-center select-none">Assessments</th>
+                      <th className="p-4 font-semibold text-center select-none">Tech Rounds</th>
+                      <th className="p-4 font-semibold text-center select-none">Non-Tech</th>
+                      <th className="p-4 font-semibold text-center bg-amber-500/10 text-amber-300 font-bold select-none">Self</th>
+                      <th className="p-4 font-semibold text-center bg-amber-500/10 text-amber-300 font-bold rounded-tr-xl select-none">Support</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border">
-                    {Object.entries(groupedReports).map(([empId, group]) => {
-                      let empApps = 0;
-                      let empInts = 0;
-                      let empAssess = 0;
-                      let empTech = 0;
-                      let empNonTech = 0;
-                      let empSelf = 0;
-                      let empSupp = 0;
 
-                      group.items.forEach(r => {
-                        empApps += r.applications_count;
-                        empInts += r.interviews_count;
-                        empAssess += r.assessments;
-                        empTech += r.technical_rounds;
-                        empNonTech += r.non_technical;
-                        empSelf += r.self_submissions;
-                        empSupp += r.support_submissions;
-                      });
+                  {Object.entries(groupedReports).map(([empId, group]) => {
+                    let empApps = 0;
+                    let empInts = 0;
+                    let empAssess = 0;
+                    let empTech = 0;
+                    let empNonTech = 0;
+                    let empSelf = 0;
+                    let empSupp = 0;
 
-                      return (
-                        <tr key={empId} className="contents">
-                          {/* Employee Section Header Row */}
-                          <tr className="bg-slate-50 border-b border-border/80">
-                            <td colSpan={9} className="p-3 font-bold text-primary-600 uppercase tracking-wider text-[10px]">
-                              👤 {group.employeeName}
-                            </td>
-                          </tr>
-                          
-                          {/* Profile Metric Rows */}
-                          {group.items.map(item => {
-                            const pDate = item.profile?.created_at 
-                              ? formatDate(item.profile.created_at) 
-                              : '—';
-                            const cName = item.profile?.client_name || 'Deleted Consultant';
+                    group.items.forEach(r => {
+                      empApps += r.applications_count;
+                      empInts += r.interviews_count;
+                      empAssess += r.assessments;
+                      empTech += r.technical_rounds;
+                      empNonTech += r.non_technical;
+                      empSelf += r.self_submissions;
+                      empSupp += r.support_submissions;
+                    });
 
-                            return (
-                              <tr key={item.id} className="hover:bg-slate-50/20 transition-colors">
-                                <td className="p-4 text-text-secondary whitespace-nowrap">{pDate}</td>
-                                <td className="p-4 font-semibold text-navy-900">{cName}</td>
-                                <td className="p-4 text-center bg-slate-50/20 font-medium text-navy-900">{item.applications_count}</td>
-                                <td className="p-4 text-center bg-slate-50/20 font-medium text-navy-900">{item.interviews_count}</td>
-                                <td className="p-4 text-center font-medium text-navy-900">{item.assessments}</td>
-                                <td className="p-4 text-center font-medium text-navy-900">{item.technical_rounds}</td>
-                                <td className="p-4 text-center font-medium text-navy-900">{item.non_technical}</td>
-                                <td className="p-4 text-center bg-amber-50/10 font-bold text-amber-800">{item.self_submissions}</td>
-                                <td className="p-4 text-center bg-amber-50/10 font-bold text-amber-800">{item.support_submissions}</td>
-                              </tr>
-                            );
-                          })}
-
-                          {/* Employee Group Summary Row */}
-                          <tr className="bg-slate-50/50 border-b-2 border-border font-semibold">
-                            <td className="p-3 text-text-secondary text-[11px] italic">Group Total</td>
-                            <td className="p-3 font-bold text-navy-900 text-[11px]">{group.employeeName}</td>
-                            <td className="p-3 text-center text-[11px] bg-slate-100/50 font-bold text-navy-950">{empApps}</td>
-                            <td className="p-3 text-center text-[11px] bg-slate-100/50 font-bold text-navy-950">{empInts}</td>
-                            <td className="p-3 text-center text-[11px] font-bold text-navy-950">{empAssess}</td>
-                            <td className="p-3 text-center text-[11px] font-bold text-navy-950">{empTech}</td>
-                            <td className="p-3 text-center text-[11px] font-bold text-navy-950">{empNonTech}</td>
-                            <td className="p-3 text-center text-[11px] bg-amber-100/10 font-bold text-amber-800">{empSelf}</td>
-                            <td className="p-3 text-center text-[11px] bg-amber-100/10 font-bold text-amber-800">{empSupp}</td>
-                          </tr>
+                    return (
+                      <tbody key={empId} className="divide-y divide-border border-b border-border/80 last:border-b-0">
+                        {/* Employee Section Header Row */}
+                        <tr className="bg-slate-50/80 border-b border-border/60">
+                          <td colSpan={9} className="p-3.5 font-black text-primary-600 uppercase tracking-wider text-[10px] bg-slate-50/90 border-l-4 border-primary-500">
+                            <div className="flex items-center gap-2">
+                              <span>👤</span>
+                              <span>{group.employeeName}</span>
+                            </div>
+                          </td>
                         </tr>
-                      );
-                    })}
+                        
+                        {/* Profile Metric Rows */}
+                        {group.items.map(item => {
+                          const pDate = item.profile?.created_at 
+                            ? formatDate(item.profile.created_at) 
+                            : '—';
+                          const cName = item.profile?.client_name || 'Deleted Consultant';
 
-                    {/* Table Grand Summary Row */}
-                    <tr className="bg-amber-50/30 border-t-2 border-amber-300 font-extrabold text-[12px]">
-                      <td className="p-4 text-amber-900">GRAND TOTAL</td>
-                      <td className="p-4 text-amber-900">ALL SELECTED</td>
-                      <td className="p-4 text-center bg-amber-100/40 text-amber-950">{grandTotalApps}</td>
-                      <td className="p-4 text-center bg-amber-100/40 text-amber-950">{grandTotalInts}</td>
-                      <td className="p-4 text-center text-amber-950">{grandTotalAssess}</td>
-                      <td className="p-4 text-center text-amber-950">{grandTotalTech}</td>
-                      <td className="p-4 text-center text-amber-950">{grandTotalNonTech}</td>
-                      <td className="p-4 text-center bg-amber-100/20 text-amber-900">{grandTotalSelf}</td>
-                      <td className="p-4 text-center bg-amber-100/20 text-amber-900">{grandTotalSupp}</td>
-                    </tr>
-                  </tbody>
+                          return (
+                            <tr key={item.id} className="hover:bg-slate-50/40 transition-colors duration-150">
+                              <td className="p-4 text-text-secondary whitespace-nowrap">{pDate}</td>
+                              <td className="p-4 font-semibold text-navy-900">{cName}</td>
+                              <td className="p-4 text-center bg-slate-50/10 font-bold text-navy-900">{item.applications_count}</td>
+                              <td className="p-4 text-center bg-slate-50/10 font-bold text-navy-900">{item.interviews_count}</td>
+                              <td className="p-4 text-center font-medium text-navy-900">{item.assessments}</td>
+                              <td className="p-4 text-center font-medium text-navy-900">{item.technical_rounds}</td>
+                              <td className="p-4 text-center font-medium text-navy-900">{item.non_technical}</td>
+                              <td className="p-4 text-center bg-amber-500/[0.04] font-bold text-amber-800">{item.self_submissions}</td>
+                              <td className="p-4 text-center bg-amber-500/[0.04] font-bold text-amber-800">{item.support_submissions}</td>
+                            </tr>
+                          );
+                        })}
+
+                        {/* Employee Group Summary Row */}
+                        {group.items.length > 1 && (
+                          <tr className="bg-slate-50/40 font-semibold border-t border-border">
+                            <td className="p-3.5 text-text-secondary text-[11px] italic">Group Total</td>
+                            <td className="p-3.5 font-extrabold text-navy-900 text-[11px]">{group.employeeName}</td>
+                            <td className="p-3.5 text-center text-[11px] bg-slate-100/50 font-black text-navy-950">{empApps}</td>
+                            <td className="p-3.5 text-center text-[11px] bg-slate-100/50 font-black text-navy-950">{empInts}</td>
+                            <td className="p-3.5 text-center text-[11px] font-black text-navy-950">{empAssess}</td>
+                            <td className="p-3.5 text-center text-[11px] font-black text-navy-950">{empTech}</td>
+                            <td className="p-3.5 text-center text-[11px] font-black text-navy-950">{empNonTech}</td>
+                            <td className="p-3.5 text-center text-[11px] bg-amber-500/[0.06] font-black text-amber-800">{empSelf}</td>
+                            <td className="p-3.5 text-center text-[11px] bg-amber-500/[0.06] font-black text-amber-800">{empSupp}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    );
+                  })}
+
+                  {/* Table Grand Summary Row */}
+                  {Object.keys(groupedReports).length > 1 && (
+                    <tbody className="border-t-2 border-amber-300">
+                      <tr className="bg-gradient-to-r from-amber-500/[0.04] to-amber-500/[0.08] font-black text-[12px] hover:from-amber-500/[0.06] hover:to-amber-500/[0.12] transition-colors duration-150">
+                        <td className="p-4 text-amber-900 rounded-bl-xl">GRAND TOTAL</td>
+                        <td className="p-4 text-amber-900">ALL SELECTED</td>
+                        <td className="p-4 text-center bg-amber-100/40 text-amber-950">{grandTotalApps}</td>
+                        <td className="p-4 text-center bg-amber-100/40 text-amber-950">{grandTotalInts}</td>
+                        <td className="p-4 text-center text-amber-950">{grandTotalAssess}</td>
+                        <td className="p-4 text-center text-amber-950">{grandTotalTech}</td>
+                        <td className="p-4 text-center text-amber-950">{grandTotalNonTech}</td>
+                        <td className="p-4 text-center bg-amber-100/20 text-amber-900">{grandTotalSelf}</td>
+                        <td className="p-4 text-center bg-amber-100/20 text-amber-900 rounded-br-xl">{grandTotalSupp}</td>
+                      </tr>
+                    </tbody>
+                  )}
                 </table>
               </div>
             )}
