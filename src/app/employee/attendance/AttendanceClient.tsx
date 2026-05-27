@@ -514,10 +514,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       )}
 
       {/* Main Content Layout Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-[24px]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px] items-stretch">
         
         {/* Left Column: Console & Controls */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="flex flex-col gap-6">
           
           {/* Shift info header card */}
           <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs font-sans relative overflow-hidden">
@@ -537,7 +537,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           </div>
 
           {/* Hero Check-in Console */}
-          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs flex flex-col items-center justify-center space-y-6">
+          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs flex flex-col items-center justify-between flex-1 space-y-6">
             
             {/* Subtle, sleek Raycast-style clock widget */}
             <div className="w-full bg-slate-955 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-slate-900 shadow-inner">
@@ -746,11 +746,11 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           )}
         </div>
 
-        {/* Right Column: Calendar Ledger & Stats Block (40% Width) */}
-        <div className="lg:col-span-2 flex flex-col">
+        {/* Right Column: Calendar Ledger & Stats Block */}
+        <div className="flex flex-col">
           
           {/* Cal.com-Style Calendar Container */}
-          <div className="bg-[#FFFFFF] rounded-[16px] pt-[20px] pb-[20px] pl-[24px] pr-[24px] border border-[#E2E8F0] shadow-xs relative flex flex-col justify-between">
+          <div className="bg-[#FFFFFF] rounded-[16px] pt-[20px] pb-[20px] pl-[24px] pr-[24px] border border-[#E2E8F0] shadow-xs relative flex flex-col justify-between flex-1">
             <div>
               {/* Header row */}
               <div className="flex items-center justify-between mb-[16px]">
