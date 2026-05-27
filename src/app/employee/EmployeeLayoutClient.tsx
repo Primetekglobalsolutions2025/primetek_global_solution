@@ -134,12 +134,12 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-navy-900 gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-xl shadow-primary-500/30">
-          <span className="text-white font-bold text-lg">P</span>
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-white gap-3">
+        <div className="w-10 h-10 rounded-lg bg-navy-900 flex items-center justify-center">
+          <span className="text-white font-bold text-sm">P</span>
         </div>
-        <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
-        <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">Loading Portal</p>
+        <Loader2 className="w-4 h-4 text-zinc-400 animate-spin" />
+        <p className="text-zinc-400 text-[10px] uppercase tracking-widest font-mono font-semibold">Loading Portal</p>
       </div>
     );
   }
@@ -149,7 +149,7 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
   }
 
   return (
-    <div className="flex h-[100dvh] bg-surface-alt overflow-hidden">
+    <div className="flex h-[100dvh] bg-zinc-50 overflow-hidden">
       {session && <AppSidebar role={session.role} userName={session.name} />}
       <div className="flex-1 flex flex-col min-w-0">
         <AppHeader userName={session?.name} />
