@@ -30,6 +30,7 @@ export default function InterviewRequestModal({
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [clientCompany, setClientCompany] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
   const [interviewDatetime, setInterviewDatetime] = useState('');
   const [interviewPlatform, setInterviewPlatform] = useState('Zoom');
   const [resumeType, setResumeType] = useState<'original' | 'updated'>('original');
@@ -76,6 +77,10 @@ export default function InterviewRequestModal({
       toast.error('Please enter the Client/Company name.');
       return;
     }
+    if (!jobTitle.trim()) {
+      toast.error('Please enter the Job Title.');
+      return;
+    }
     if (!interviewDatetime) {
       toast.error('Please specify the Interview Date and Time.');
       return;
@@ -94,6 +99,7 @@ export default function InterviewRequestModal({
       const formData = new FormData();
       formData.append('profile_id', profile.id);
       formData.append('client_company', clientCompany);
+      formData.append('job_title', jobTitle);
       formData.append('interview_datetime', interviewDatetime);
       formData.append('interview_platform', interviewPlatform);
       formData.append('resume_type', resumeType);
@@ -128,7 +134,7 @@ export default function InterviewRequestModal({
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default"
+        className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white border-b border-border/60 px-4 py-3 flex justify-between items-center z-10">
@@ -145,28 +151,6 @@ export default function InterviewRequestModal({
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4 text-xs">
-          {/* Read-Only Consultant Profile Details */}
-          <div className="bg-slate-50 p-3 rounded-lg border border-border/60 space-y-2">
-            <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Consultant Details</h4>
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mb-0.5">Name</label>
-                <input type="text" readOnly value={profile.client_name || 'N/A'} className={readOnlyClasses} />
-              </div>
-              
-              <div>
-                <label className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mb-0.5">Phone Number</label>
-                <input type="text" readOnly value={profile.client_phone || 'N/A'} className={readOnlyClasses} />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[9px] font-bold text-text-muted uppercase tracking-wider block mb-0.5">Technology/Role</label>
-              <input type="text" readOnly value={profile.client_role || 'N/A'} className={readOnlyClasses} />
-            </div>
-          </div>
-
           {/* Form Fields */}
           <div className="space-y-3.5">
             <div className="space-y-1">
@@ -176,6 +160,18 @@ export default function InterviewRequestModal({
                 placeholder="e.g. JPMorgan Chase & Co." 
                 value={clientCompany}
                 onChange={(e) => setClientCompany(e.target.value)}
+                className={inputClasses}
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-bold text-navy-900 block">Job Title *</label>
+              <input 
+                type="text" 
+                placeholder="e.g. Senior Frontend Engineer" 
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
                 className={inputClasses}
                 required
               />

@@ -47,11 +47,12 @@ export async function submitInterviewRequest(formData: FormData) {
 
   const profileId = formData.get('profile_id') as string;
   const clientCompany = formData.get('client_company') as string;
+  const jobTitle = formData.get('job_title') as string;
   const interviewDatetime = formData.get('interview_datetime') as string;
   const interviewPlatform = formData.get('interview_platform') as string;
   const resumeType = formData.get('resume_type') as string; // 'original' or 'updated'
 
-  if (!profileId || !clientCompany || !interviewDatetime || !interviewPlatform) {
+  if (!profileId || !clientCompany || !jobTitle || !interviewDatetime || !interviewPlatform) {
     throw new Error('Missing required fields');
   }
 
@@ -188,7 +189,7 @@ export async function submitInterviewRequest(formData: FormData) {
       employee_id: session.id,
       consultant_name: profile.client_name,
       consultant_phone: profile.client_phone,
-      consultant_technology: profile.client_role,
+      consultant_technology: jobTitle,
       client_company: clientCompany,
       interview_datetime: new Date(interviewDatetime).toISOString(),
       interview_platform: interviewPlatform,
@@ -228,7 +229,7 @@ export async function submitInterviewRequest(formData: FormData) {
   const html = getInterviewRequestTemplate({
     consultantName: profile.client_name || 'N/A',
     consultantPhone: profile.client_phone || 'N/A',
-    consultantTechnology: profile.client_role || 'N/A',
+    consultantTechnology: jobTitle || 'N/A',
     clientCompany,
     interviewDateTime: estDateStr,
     interviewPlatform
