@@ -78,6 +78,11 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   } | null>(null);
   const [isBreakActionLoading, setIsBreakActionLoading] = useState(false);
   const [lateStats, setLateStats] = useState({ lateCount: 0, deduction: 0.0, warningMessage: '', remainingSafeCount: 3 });
+  const [selectedMonthDate, setSelectedMonthDate] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const [isCalendarLoading, setIsCalendarLoading] = useState(false);
   
   const { isOnline, pendingCount, isSyncing, syncQueue, refreshPendingCount } = useOfflineSync();
 
@@ -358,42 +363,90 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     const s = sec % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
-
   const elapsed = (checkInTime && !isCheckedOut) ? Math.floor((currentTime.getTime() - checkInTime.getTime()) / 1000) : 0;
   const elapsedHrs = Math.floor(elapsed / 3600);
   const elapsedMin = Math.floor((elapsed % 3600) / 60);
   const elapsedSec = elapsed % 60;
 
-  const monthStart = new Date(currentTime.getFullYear(), currentTime.getMonth(), 1);
-  const daysInMonth = new Date(currentTime.getFullYear(), currentTime.getMonth() + 1, 0).getDate();
+  const runningHrsDecimal = (productiveSeconds / 3600).toFixed(1);
+  const displayHrs = !isCheckedOut 
+    ? `${runningHrsDecimal}h / 9h` 
+    : `${todayRecord?.duration_hours || 0}h / 9h`;
+  const completedPercentage = !isCheckedOut
+    ? Math.min(Math.round((productiveSeconds / (9 * 3600)) * 100), 100)
+    : Math.min(Math.round(((todayRecord?.duration_hours || 0) / 9) * 100), 100);
+
+  const monthStart = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
+  const daysInMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0).getDate();
   const calendarDays = [];
   for (let i = 0; i < monthStart.getDay(); i++) calendarDays.push(null);
   for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
 
-  // Dynamic statistics calculation for PostHog style cards
-  const currentMonthRecords = initialRecords.filter(r => {
+  // Dynamic statistics calculation for the selected month
+  const selectedMonthRecords = initialRecords.filter(r => {
     if (!r.date) return false;
     const dateObj = new Date(r.date);
-    return dateObj.getMonth() === currentTime.getMonth() && dateObj.getFullYear() === currentTime.getFullYear();
+    return dateObj.getMonth() === selectedMonthDate.getMonth() && dateObj.getFullYear() === selectedMonthDate.getFullYear();
   });
 
-  const presentCount = currentMonthRecords.filter(r => {
+  const presentCount = selectedMonthRecords.filter(r => {
     const s = r.status?.toLowerCase();
     return s === 'present' || s === 'working' || s === 'logged out' || s === 'on break';
   }).length;
 
-  const lateMonthCount = currentMonthRecords.filter(r => r.status?.toLowerCase() === 'late').length;
-  const absentCount = currentMonthRecords.filter(r => r.status?.toLowerCase() === 'absent').length;
-  const wfhCount = currentMonthRecords.filter(r => r.status?.toLowerCase().includes('wfh')).length;
+  const lateMonthCount = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'late').length;
+  const absentCount = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'absent').length;
+  const wfhCount = selectedMonthRecords.filter(r => r.status?.toLowerCase().includes('wfh')).length;
+
+  const getWorkingDaysCount = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    let workingDays = 0;
+    for (let d = 1; d <= totalDays; d++) {
+      const dayOfWeek = new Date(year, month, d).getDay();
+      if (dayOfWeek !== 0) { // Exclude Sundays
+        workingDays++;
+      }
+    }
+    return workingDays;
+  };
+
+  const workingDaysCount = getWorkingDaysCount(selectedMonthDate);
+  const leaveTaken = selectedMonthRecords.filter(r => r.status?.toLowerCase().includes('leave')).length;
+  const lossOfPay = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'absent').length;
+
+  const now = new Date();
+  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const minMonthStart = new Date(now.getFullYear(), now.getMonth() - 12, 1);
+
+  const isNextDisabled = selectedMonthDate >= currentMonthStart;
+  const isPrevDisabled = selectedMonthDate <= minMonthStart;
+  const isPastMonth = selectedMonthDate < currentMonthStart;
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    setSelectedMonthDate(prev => {
+      const nextDate = new Date(prev.getFullYear(), prev.getMonth() + (direction === 'prev' ? -1 : 1), 1);
+      if (nextDate > currentMonthStart) return prev;
+      if (nextDate < minMonthStart) return prev;
+      
+      setIsCalendarLoading(true);
+      setTimeout(() => {
+        setIsCalendarLoading(false);
+      }, 300);
+      
+      return nextDate;
+    });
+  };
 
   const getStatusForDay = (day: number) => {
-    const dStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dStr = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const record = initialRecords.find(r => r.date === dStr);
     return record?.status?.toLowerCase() || null;
   };
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-6 pb-16 p-6 bg-[#F8FAFC]">
       {/* Offline / Pending Sync Indicator */}
       <AnimatePresence>
         {(!isOnline || pendingCount > 0) && (
@@ -430,179 +483,187 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
       {/* Sticky Top Warning Banner (Sentry Style) */}
       {lateStats.lateCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            "flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border text-xs font-semibold font-sans shadow-2xs bg-white",
-            lateStats.lateCount >= 6 ? "border-red-200 bg-red-50/30" :
-            lateStats.lateCount >= 3 ? "border-amber-200 bg-amber-50/30" : "border-primary-200 bg-primary-50/30"
-          )}
+        <div
+          className="sticky top-0 z-50 flex items-center justify-between gap-3 py-[12px] px-[20px] rounded-xl border border-[#F59E0B]/30 bg-[#FFFBEB] text-[#0F172A] shadow-3xs mb-[20px] w-full"
         >
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border",
-              lateStats.lateCount >= 6 ? "bg-red-50 text-red-650 border-red-200" :
-              lateStats.lateCount >= 3 ? "bg-amber-50 text-amber-650 border-amber-200" :
-              "bg-primary-50 text-primary-650 border-primary-200"
-            )}>
-              <ShieldAlert className="w-4.5 h-4.5" />
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="font-bold text-navy-950">Late Penalty Warning:</span>
-              <span className="font-medium text-zinc-650 text-xs">{lateStats.warningMessage}</span>
-              <span className="hidden sm:inline text-zinc-300">|</span>
-              <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
-                Lates: <span className="text-zinc-900">{lateStats.lateCount}</span> • Deductions: <span className="text-red-600">{lateStats.deduction} Day</span>
-              </span>
-            </div>
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-4.5 h-4.5 text-[#F59E0B] shrink-0" />
+            <span className="text-sm font-medium text-[#0F172A]">
+              Late Penalty Warning: {lateStats.remainingSafeCount} more late login{lateStats.remainingSafeCount !== 1 ? 's' : ''} will deduct {lateStats.lateCount < 3 ? 'Half' : 'Full'} Day attendance.
+            </span>
           </div>
-        </motion.div>
+          <div className="font-mono text-xs font-bold text-[#64748B] uppercase tracking-wider shrink-0">
+            LATES: <span className="text-[#0F172A]">{lateStats.lateCount}</span> • DEDUCTIONS: <span className="text-[#EF4444]">{lateStats.deduction} DAY</span>
+          </div>
+        </div>
       )}
 
-      {/* Main Content Layout Container */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Main Content Layout Container (60% Left, 40% Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-[24px]">
         
-        {/* Left Column: Console & Controls */}
-        <div className="lg:col-span-5 space-y-6">
+        {/* Left Column: Console & Controls (60% Width) */}
+        <div className="lg:col-span-3 flex flex-col">
           
           {/* Shift info header card */}
-          <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs font-sans relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none">
-              <CalendarIcon className="w-16 h-16 text-navy-900" />
+          <div className="bg-[#FFFFFF] rounded-[12px] px-[20px] py-[16px] border border-[#E2E8F0] shadow-xs flex items-center justify-between mb-[12px]">
+            <div>
+              <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] block mb-1">STANDARD WORK HOURS</span>
+              <h3 className="font-bold text-[#0F172A] text-sm">Shift: Night Shift</h3>
+              <p className="text-xs text-[#64748B] mt-0.5">Your shift: 06:30 PM - 03:30 AM</p>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">Standard Work Hours</span>
-                <h3 className="font-bold text-navy-900 text-sm tracking-tight">Shift: Night Shift</h3>
-                <p className="text-xs text-zinc-550 mt-1">Your shift: 06:30 PM - 03:30 AM</p>
-              </div>
-              <div className="px-2.5 py-1 rounded bg-primary-50 border border-primary-250 text-primary-750 text-[9px] font-mono font-bold uppercase tracking-wider">
-                Active Shift
-              </div>
+            <div className="px-2.5 py-0.5 rounded-full border border-[#0D9488] text-[#0D9488] bg-transparent text-[9px] font-mono font-bold uppercase tracking-wider">
+              ACTIVE SHIFT
             </div>
           </div>
 
-          {/* Hero Check-in Console */}
-          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs flex flex-col items-center justify-center space-y-6">
-            
-            {/* Subtle, sleek Raycast-style clock widget (Live clock always visible but subtle, not dominant) */}
-            <div className="w-full bg-slate-955 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-slate-900 shadow-inner">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">Live System Time</span>
-              </div>
-              <div className="font-mono text-sm font-black tracking-widest text-slate-200">
-                {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-              </div>
+          {/* Live System Time Bar */}
+          <div className="flex items-center justify-between py-[10px] px-[16px] border border-[#E2E8F0] rounded-[8px] bg-[#FFFFFF] mb-[8px] shadow-3xs">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+              <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em]">LIVE SYSTEM TIME</span>
             </div>
+            <div className="font-mono text-sm font-bold text-[#0D9488]">
+              {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            </div>
+          </div>
 
-            {/* Centered Hero Check-in / Check-out button (Full width, prominent) */}
-            <div className="w-full text-center space-y-3">
-              {!checkedIn ? (
-                <button
-                  onClick={handleCheckIn}
-                  disabled={gpsStatus === 'loading'}
-                  style={{ backgroundColor: '#10B981' }}
-                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
-                >
-                  {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
-                  ) : (
-                    <><LogIn className="w-4 h-4" /> Clock In</>
-                  )}
-                </button>
-              ) : !isCheckedOut ? (
-                <button
-                  onClick={handleCheckOut}
-                  disabled={gpsStatus === 'loading'}
-                  style={{ backgroundColor: '#EF4444' }}
-                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-red-500/10 cursor-pointer disabled:opacity-50"
-                >
-                  {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
-                  ) : (
-                    <><LogOut className="w-4 h-4" /> Clock Out</>
-                  )}
-                </button>
-              ) : (
-                <div className="bg-emerald-50/50 border border-emerald-250 rounded-xl p-5 text-center font-sans shadow-2xs relative overflow-hidden">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-505 mx-auto mb-2" />
-                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Clock Out Complete</p>
-                  <p className="text-[10px] text-emerald-600 mt-1 font-medium">Your attendance has been recorded successfully.</p>
-                </div>
-              )}
-
-              {/* GPS status indicator badge */}
-              <div className="flex items-center justify-center">
-                {gpsStatus === 'loading' ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-250 shadow-3xs">
-                    <Loader2 className="w-3 h-3 mr-1.5 animate-spin text-amber-500" /> Locating
-                  </span>
-                ) : coords ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-250 shadow-3xs">
-                    GPS Verified ✓
-                  </span>
-                ) : gpsStatus === 'error' ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-red-50 text-red-755 border border-red-250 shadow-3xs">
-                    GPS Error ✗
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-zinc-50 text-zinc-500 border border-zinc-200 shadow-3xs">
-                    GPS Ready
+          {/* Clock In / Out Console Card */}
+          <div className="mb-[16px]">
+            {isCheckedOut ? (
+              /* CLOCK OUT COMPLETE card: Full green background, large icon, bold state */
+              <div className="bg-[#10B981] text-white rounded-[12px] p-[32px] text-center font-sans shadow-sm flex flex-col items-center justify-center gap-2">
+                <CheckCircle2 className="w-12 h-12 text-white" />
+                <h4 className="text-[18px] font-bold uppercase tracking-wider">CLOCK OUT COMPLETE</h4>
+                <p className="text-white/80 text-sm">Your attendance has been recorded successfully.</p>
+                {coords && (
+                  <span className="inline-flex items-center text-[10px] font-mono font-bold text-white/90 uppercase tracking-wider mt-1">
+                    ● GPS Verified
                   </span>
                 )}
               </div>
-            </div>
+            ) : (
+              /* Clock In/Out card containing the CTA button and GPS warning/success info */
+              <div className="bg-[#FFFFFF] rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-2xs flex flex-col gap-4">
+                {!checkedIn ? (
+                  <button
+                    onClick={handleCheckIn}
+                    disabled={gpsStatus === 'loading'}
+                    className="w-full h-[52px] rounded-[12px] text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
+                    style={{ backgroundColor: '#10B981' }}
+                  >
+                    {gpsStatus === 'loading' ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
+                    ) : (
+                      <><LogIn className="w-4 h-4" /> Clock In</>
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCheckOut}
+                    disabled={gpsStatus === 'loading'}
+                    className="w-full h-[52px] rounded-[12px] text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
+                    style={{ backgroundColor: '#EF4444' }}
+                  >
+                    {gpsStatus === 'loading' ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
+                    ) : (
+                      <><LogOut className="w-4 h-4" /> Clock Out</>
+                    )}
+                  </button>
+                )}
 
-            {/* Today's Summary Card */}
-            {checkedIn && (
-              <div className="w-full border-t border-zinc-100 pt-5 space-y-3 font-sans">
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block">Today's Summary</span>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
-                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Check-in</span>
-                    <span className="font-mono text-xs font-bold text-navy-900">
-                      {todayRecord?.check_in || '--:--'}
+                {/* GPS Status Info */}
+                {gpsStatus === 'error' && (
+                  <button
+                    onClick={!checkedIn ? handleCheckIn : handleCheckOut}
+                    className="w-full p-[12px] rounded-[8px] border border-[#F59E0B]/30 bg-[#FFFBEB] text-[#F59E0B] flex items-center justify-center gap-1.5 text-xs font-semibold font-sans cursor-pointer hover:bg-[#FEF3C7]/60 transition-colors"
+                  >
+                    <span>⚠ GPS unavailable — tap to retry</span>
+                  </button>
+                )}
+
+                {coords && gpsStatus !== 'error' && (
+                  <div className="text-center">
+                    <span className="inline-flex items-center text-[10px] font-mono font-bold text-[#10B981] uppercase tracking-wider">
+                      ● GPS Verified
                     </span>
-                  </div>
-                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
-                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Check-out</span>
-                    <span className="font-mono text-xs font-bold text-navy-900">
-                      {todayRecord?.check_out || '--:--'}
-                    </span>
-                  </div>
-                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
-                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Hours Worked</span>
-                    <span className="font-mono text-xs font-bold text-navy-900">
-                      {!isCheckedOut ? (
-                        <span>{String(elapsedHrs).padStart(2, '0')}:{String(elapsedMin).padStart(2, '0')}</span>
-                      ) : (
-                        <span>{todayRecord?.duration_hours}h</span>
-                      )}
-                    </span>
-                  </div>
-                </div>
-                {isCheckedOut && (
-                  <div className="text-center pt-1">
-                    <button 
-                      onClick={handleResume} 
-                      className="text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider cursor-pointer"
-                    >
-                      Undo Clock Out
-                    </button>
                   </div>
                 )}
               </div>
             )}
           </div>
 
+          {/* Today's Summary (3 cards in a row) */}
+          {checkedIn && (
+            <div className="w-full mb-[24px]">
+              <div className="grid grid-cols-3 gap-[12px]">
+                {/* Check-In Card */}
+                <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[12px] p-[16px] shadow-3xs flex flex-col gap-[8px] text-left">
+                  <div className="flex items-center text-[#64748B]">
+                    <LogIn className="w-[16px] h-[16px] text-[#64748B]" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] block">CHECK-IN</span>
+                    <span className="font-mono text-[18px] font-bold text-[#0F172A] mt-0.5 block">
+                      {todayRecord?.check_in ? todayRecord.check_in.toLowerCase() : '--:--'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Check-Out Card */}
+                <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[12px] p-[16px] shadow-3xs flex flex-col gap-[8px] text-left">
+                  <div className="flex items-center text-[#64748B]">
+                    <LogOut className="w-[16px] h-[16px] text-[#64748B]" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] block">CHECK-OUT</span>
+                    <span className="font-mono text-[18px] font-bold text-[#0F172A] mt-0.5 block">
+                      {todayRecord?.check_out ? todayRecord.check_out.toLowerCase() : '--:--'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Hours Worked Card */}
+                <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[12px] p-[16px] shadow-3xs flex flex-col gap-[8px] text-left">
+                  <div className="flex items-center text-[#64748B]">
+                    <Clock className="w-[16px] h-[16px] text-[#64748B]" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] block">HOURS WORKED</span>
+                    <span className="font-mono text-[18px] font-bold text-[#0F172A] mt-0.5 block">
+                      {displayHrs}
+                    </span>
+                    {/* Thin progress bar */}
+                    <div className="w-full h-[4px] bg-[#E2E8F0] rounded-[2px] mt-2 overflow-hidden">
+                      <div 
+                        className="h-full bg-[#0D9488] rounded-[2px] transition-all duration-500" 
+                        style={{ width: `${completedPercentage}%` }} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Undo Clock Out outlined button */}
+              {isCheckedOut && (
+                <div className="text-center mt-[16px]">
+                  <button
+                    onClick={handleResume}
+                    className="inline-flex items-center justify-center gap-1.5 border border-[#F59E0B] text-[#F59E0B] bg-transparent hover:bg-amber-50/50 px-[20px] py-[8px] rounded-[8px] text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    ↩ Undo Clock Out
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Break and Shift Monitoring Widgets */}
           {checkedIn && !isCheckedOut && (
-            <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
+            <div className="bg-[#FFFFFF] rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
               <div className="space-y-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shadow-3xs">
+                  <div className="w-8 h-8 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-555 shadow-3xs">
                     <Coffee className="w-4.5 h-4.5" />
                   </div>
                   <div>
@@ -618,7 +679,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                     transition={{ repeat: Infinity, duration: 1.5 }}
                     className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-750 flex items-center gap-2 text-xs font-semibold font-sans"
                   >
-                    <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-red-505" />
+                    <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-red-500" />
                     <span>Break Limit Exceeded! Please return to work immediately.</span>
                   </motion.div>
                 ) : breakUsedSeconds >= 45 * 60 ? (
@@ -638,8 +699,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                     <div 
                       className={cn(
                         "h-full rounded-full transition-all duration-500",
-                        breakUsedSeconds >= 3600 ? "bg-red-500" :
-                        breakUsedSeconds >= 2700 ? "bg-amber-500" : "bg-primary-500"
+                        breakUsedSeconds >= 3600 ? "bg-[#EF4444]" :
+                        breakUsedSeconds >= 2700 ? "bg-[#F59E0B]" : "bg-[#0D9488]"
                       )}
                       style={{ width: `${Math.min((breakUsedSeconds / 3600) * 100, 100)}%` }}
                     />
@@ -649,22 +710,22 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 {/* Timers Grid */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
-                    <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Productive Work</span>
+                    <span className="text-[8px] font-mono font-bold text-zinc-455 uppercase tracking-wider block mb-1">Productive Work</span>
                     <span className="font-mono text-base font-black text-navy-900">{formatSeconds(productiveSeconds)}</span>
                   </div>
                   <div className={cn(
                     "rounded-xl p-3 border text-center shadow-3xs",
                     breakUsedSeconds >= 3600 ? "bg-red-50/50 border-red-200" : "bg-zinc-50 border-zinc-200"
                   )}>
-                    <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Break Used</span>
+                    <span className="text-[8px] font-mono font-bold text-zinc-455 uppercase tracking-wider block mb-1">Break Used</span>
                     <span className={cn(
                       "font-mono text-base font-black",
-                      breakUsedSeconds >= 3600 ? "text-red-650" :
+                      breakUsedSeconds >= 3600 ? "text-red-500" :
                       breakUsedSeconds >= 2700 ? "text-amber-600" : "text-navy-900"
                     )}>{formatSeconds(breakUsedSeconds)}</span>
                   </div>
-                  <div className="rounded-xl bg-zinc-55 border border-zinc-200 p-3 text-center shadow-3xs">
-                    <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Remaining Allowed</span>
+                  <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-455 uppercase tracking-wider block mb-1">Remaining Allowed</span>
                     <span className="font-mono text-base font-black text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
                   </div>
                 </div>
@@ -693,89 +754,187 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           )}
         </div>
 
-        {/* Right Column: Calendar Ledger & Stats Block */}
-        <div className="lg:col-span-7 space-y-6">
+        {/* Right Column: Calendar Ledger & Stats Block (40% Width) */}
+        <div className="lg:col-span-2 flex flex-col">
           
           {/* Cal.com-Style Calendar Container */}
-          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs relative flex flex-col justify-between min-h-[350px]">
+          <div className="bg-[#FFFFFF] rounded-[16px] pt-[20px] pb-[20px] pl-[24px] pr-[24px] border border-[#E2E8F0] shadow-xs relative flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between mb-5 max-w-sm mx-auto">
+              {/* Header row */}
+              <div className="flex items-center justify-between mb-[16px]">
                 <div className="flex items-center gap-2">
-                  <CalendarIcon className="w-4.5 h-4.5 text-primary-500" />
-                  <h2 className="font-bold text-navy-900 text-sm tracking-tight font-sans">Monthly Attendance Ledger</h2>
+                  <CalendarIcon className="w-[18px] h-[18px] text-[#0D9488]" />
+                  <h2 className="font-bold text-[#0F172A] text-[15px] tracking-tight font-sans">Monthly Attendance Ledger</h2>
                 </div>
-                <div className="px-2.5 py-1 rounded bg-zinc-100 border border-zinc-200 text-[9px] font-mono font-bold uppercase tracking-wider text-navy-900 shadow-3xs">
-                  {currentTime.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                
+                {/* Month navigation controls */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => navigateMonth('prev')}
+                    disabled={isPrevDisabled || isCalendarLoading}
+                    className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 cursor-pointer text-sm font-bold font-mono transition-colors"
+                  >
+                    &lt;
+                  </button>
+                  <div className="px-2.5 py-1 rounded bg-[#E2E8F0]/40 text-[#64748B] text-[10px] font-bold uppercase tracking-wider font-mono shadow-3xs min-w-[85px] text-center">
+                    {selectedMonthDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase()}
+                  </div>
+                  <button
+                    onClick={() => navigateMonth('next')}
+                    disabled={isNextDisabled || isCalendarLoading}
+                    className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 cursor-pointer text-sm font-bold font-mono transition-colors"
+                  >
+                    &gt;
+                  </button>
                 </div>
               </div>
 
-              {/* Day Grid */}
-              <div className="grid grid-cols-7 gap-y-1.5 gap-x-1 text-center max-w-sm mx-auto">
-                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                  <div key={d} className="text-[9px] font-mono font-bold text-zinc-400 py-1 uppercase tracking-wider">{d}</div>
+              {/* Day headers */}
+              <div className="grid grid-cols-7 gap-0 text-center mb-[12px]">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, index) => (
+                  <div key={index} className="text-[12px] font-semibold text-[#64748B] py-1 uppercase tracking-wider">{d}</div>
                 ))}
-                {calendarDays.map((day, i) => {
-                  const status = day ? getStatusForDay(day) : null;
-                  const isToday = day === new Date().getDate() && currentTime.getMonth() === new Date().getMonth() && currentTime.getFullYear() === new Date().getFullYear();
+              </div>
 
-                  const getStatusDotColor = (s: string | null) => {
-                    if (!s) return null;
-                    if (s === 'present' || s === 'working' || s === 'logged out' || s === 'on break') return 'bg-[#10B981]';
-                    if (s === 'late') return 'bg-[#F59E0B]';
-                    if (s === 'absent' || s === 'rejected wfh') return 'bg-[#EF4444]';
-                    if (s.includes('wfh') || s === 'half-day') return 'bg-[#3B82F6]';
-                    return null;
-                  };
-
-                  const dotColor = getStatusDotColor(status);
-
-                  return (
-                    <div key={i} className="h-9 flex items-center justify-center relative">
-                      {day && (
-                        <div className="flex flex-col items-center justify-center w-9 h-9 relative">
-                          <motion.div 
-                            whileHover={{ scale: 1.05 }}
-                            className={cn(
-                              "w-8 h-8 rounded-full flex flex-col items-center justify-center text-xs font-semibold font-sans transition-all cursor-default relative z-10",
-                              isToday 
-                                ? "bg-slate-900 text-white shadow-sm" 
-                                : "text-slate-800 hover:bg-slate-50 border border-transparent"
-                            )}
-                          >
-                            <span>{day}</span>
-                            {/* Cal.com Dot below date number */}
-                            {dotColor && (
-                              <span className={cn("w-1.5 h-1.5 rounded-full mt-0.5 shrink-0", dotColor)} />
-                            )}
-                          </motion.div>
-                        </div>
-                      )}
+              {/* Date grid area with transitions */}
+              {isCalendarLoading ? (
+                /* Skeleton Loader for Calendar Grid */
+                <div className="grid grid-cols-7 gap-y-[8px] justify-items-center text-center animate-pulse py-[4px]">
+                  {Array.from({ length: 35 }).map((_, idx) => (
+                    <div key={idx} className="flex flex-col items-center gap-[4px]">
+                      <div className="w-[36px] h-[36px] bg-[#E2E8F0] rounded-full" />
+                      <div className="w-[5px] h-[5px] bg-[#E2E8F0] rounded-full mt-0.5" />
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : selectedMonthRecords.length === 0 ? (
+                /* Empty State */
+                <div className="flex flex-col items-center justify-center py-[48px] text-center">
+                  <CalendarIcon className="w-8 h-8 text-[#64748B] mb-2 stroke-[1.5]" />
+                  <p className="text-xs font-semibold text-[#0F172A]">
+                    No attendance records for {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
+              ) : (
+                /* Calendar Grid */
+                <div className="grid grid-cols-7 gap-y-[8px] justify-items-center text-center">
+                  {calendarDays.map((day, i) => {
+                    const status = day ? getStatusForDay(day) : null;
+                    const isToday = day === new Date().getDate() && selectedMonthDate.getMonth() === new Date().getMonth() && selectedMonthDate.getFullYear() === new Date().getFullYear();
+
+                    const getStatusDotColor = (s: string | null, dayNum: number) => {
+                      if (s) {
+                        const statusLower = s.toLowerCase();
+                        if (statusLower === 'present' || statusLower === 'working' || statusLower === 'logged out' || statusLower === 'on break') return 'bg-[#10B981]';
+                        if (statusLower === 'late') return 'bg-[#F59E0B]';
+                        if (statusLower === 'absent' || statusLower === 'rejected wfh') return 'bg-[#EF4444]';
+                        if (statusLower.includes('wfh') || statusLower === 'half-day') return 'bg-[#3B82F6]';
+                        if (statusLower === 'holiday' || statusLower === 'off' || statusLower === 'weekly off') return 'bg-[#CBD5E1]';
+                      }
+                      const dateObj = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), dayNum);
+                      const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                      if (isWeekend) {
+                        return 'bg-[#CBD5E1]';
+                      }
+                      return null;
+                    };
+
+                    const dotColor = day ? getStatusDotColor(status, day) : null;
+
+                    return (
+                      <div key={i} className="flex flex-col items-center justify-center relative select-none">
+                        {day ? (
+                          <div className="flex flex-col items-center gap-[4px] relative">
+                            <div
+                              className={cn(
+                                "w-[36px] h-[36px] rounded-full flex items-center justify-center text-xs font-semibold transition-all cursor-default",
+                                isToday 
+                                  ? "bg-[#0F172A] text-white font-bold" 
+                                  : "text-[#0F172A] hover:bg-[#F8FAFC]"
+                              )}
+                            >
+                              <span>{day}</span>
+                            </div>
+                            {/* Dot below date number */}
+                            <div className="h-[5px] flex items-center justify-center">
+                              {dotColor ? (
+                                <span className={cn("w-[5px] h-[5px] rounded-full", dotColor)} />
+                              ) : (
+                                <span className="w-[5px] h-[5px] rounded-full bg-transparent" />
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="w-[36px] h-[36px]" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {/* PostHog-Style Data-Dense Stats Blocks (Legend + Dynamic Counters) */}
-            <div className="grid grid-cols-4 gap-2.5 mt-6 pt-5 border-t border-zinc-200 max-w-sm mx-auto w-full">
-              <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-2.5 text-center">
-                <span className="font-mono text-base font-extrabold text-[#10B981] block leading-none mb-1">{presentCount}</span>
-                <span className="text-[8px] font-mono font-bold text-emerald-600 uppercase tracking-wider">Present</span>
+            {/* Divider */}
+            <div className="border-t border-[#E2E8F0] my-[16px]" />
+
+            {/* Stats row or skeleton */}
+            {isCalendarLoading ? (
+              <div className="grid grid-cols-4 gap-2 text-center w-full animate-pulse">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div key={idx} className="flex flex-col items-center gap-1.5">
+                    <div className="w-8 h-[20px] bg-[#E2E8F0] rounded" />
+                    <div className="w-12 h-[11px] bg-[#E2E8F0] rounded mt-1" />
+                  </div>
+                ))}
               </div>
-              <div className="bg-amber-50/40 border border-amber-100 rounded-xl p-2.5 text-center">
-                <span className="font-mono text-base font-extrabold text-[#F59E0B] block leading-none mb-1">{lateMonthCount}</span>
-                <span className="text-[8px] font-mono font-bold text-amber-600 uppercase tracking-wider">Late</span>
+            ) : (
+              <div className="grid grid-cols-4 gap-0 text-center w-full">
+                <div className="text-center flex flex-col items-center">
+                  <span className="text-[20px] font-bold block text-[#10B981] leading-none">{presentCount}</span>
+                  <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] mt-1.5">Present</span>
+                </div>
+                <div className="text-center flex flex-col items-center">
+                  <span className="text-[20px] font-bold block text-[#F59E0B] leading-none">{lateMonthCount}</span>
+                  <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] mt-1.5">Late</span>
+                </div>
+                <div className="text-center flex flex-col items-center">
+                  <span className="text-[20px] font-bold block text-[#EF4444] leading-none">{absentCount}</span>
+                  <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] mt-1.5">Absent</span>
+                </div>
+                <div className="text-center flex flex-col items-center">
+                  <span className="text-[20px] font-bold block text-[#3B82F6] leading-none">{wfhCount}</span>
+                  <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] mt-1.5">WFH</span>
+                </div>
               </div>
-              <div className="bg-red-50/40 border border-red-100 rounded-xl p-2.5 text-center">
-                <span className="font-mono text-base font-extrabold text-[#EF4444] block leading-none mb-1">{absentCount}</span>
-                <span className="text-[8px] font-mono font-bold text-red-650 uppercase tracking-wider">Absent</span>
-              </div>
-              <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-2.5 text-center">
-                <span className="font-mono text-base font-extrabold text-[#3B82F6] block leading-none mb-1">{wfhCount}</span>
-                <span className="text-[8px] font-mono font-bold text-blue-600 uppercase tracking-wider">WFH</span>
+            )}
+          </div>
+
+          {/* Month Summary Card (shown only for past months below stats) */}
+          {isPastMonth && !isCalendarLoading && (
+            <div className="bg-[#FFFFFF] rounded-[12px] p-[16px] border border-[#E2E8F0] shadow-xs mt-[16px] font-sans">
+              <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.05em] block mb-3">
+                Month Summary: {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+              </span>
+              <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
+                <div className="flex justify-between items-center py-1.5 border-b border-[#E2E8F0]/50">
+                  <span className="text-[#64748B] font-medium">Working Days:</span>
+                  <span className="font-semibold text-[#0F172A]">{workingDaysCount}</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-[#E2E8F0]/50">
+                  <span className="text-[#64748B] font-medium">Days Present:</span>
+                  <span className="font-semibold text-[#0F172A]">{presentCount}</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-[#E2E8F0]/50 md:border-none">
+                  <span className="text-[#64748B] font-medium">Leave Taken:</span>
+                  <span className="font-semibold text-[#0F172A]">{leaveTaken}</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-[#E2E8F0]/50 md:border-none">
+                  <span className="text-[#64748B] font-medium">Loss of Pay:</span>
+                  <span className="font-semibold text-[#EF4444]">{lossOfPay}</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

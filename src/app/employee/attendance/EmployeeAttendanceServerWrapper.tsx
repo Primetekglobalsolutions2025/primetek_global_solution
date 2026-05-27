@@ -45,12 +45,6 @@ export default async function EmployeeAttendanceServerWrapper() {
   });
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">Attendance</h1>
-        <p className="text-zinc-500 text-sm">Clock in and out using GPS.</p>
-      </div>
-      <AttendanceClient initialRecords={empRecords} />
-    </div>
+    <AttendanceClient initialRecords={empRecords} />
   );
 }
