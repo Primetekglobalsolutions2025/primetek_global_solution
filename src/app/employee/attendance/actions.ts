@@ -678,3 +678,35 @@ export async function getLateLoginsStats() {
     return { lateCount: 0, deduction: 0.0, warningMessage: '', remainingSafeCount: 3 };
   }
 }
+
+export async function checkGeofence(lat: number, lng: number) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+
+    const { data: officeList } = await supabaseAdmin
+      .from('office_locations')
+      .select('lat, lng, radius_meters')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    if (!office) return { success: true, withinRange: true }; // default to true if no office set
+
+    const officeLat = Number(office.lat);
+    const officeLng = Number(office.lng);
+    const radius = Number(office.radius_meters || 500);
+
+    const distance = calculateDistance(lat, lng, officeLat, officeLng);
+    return {
+      success: true,
+      withinRange: distance <= radius,
+      distance: Math.round(distance),
+      radius
+    };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to verify geofence';
+    return { success: false, error: errorMsg };
+  }
+}

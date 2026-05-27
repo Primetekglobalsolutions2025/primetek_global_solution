@@ -5,7 +5,7 @@ import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, H
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats } from './actions';
+import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
@@ -121,6 +121,44 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       active = false;
     };
   }, [initialRecords]);
+
+  // Automated background geofencing to prevent employees from going outside without starting a break
+  useEffect(() => {
+    if (!checkedIn || isCheckedOut || currentStatus !== 'Working') return;
+
+    const performGeofenceCheck = () => {
+      if (!navigator.geolocation) return;
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          try {
+            const res = await checkGeofence(lat, lng);
+            if (res.success && !res.withinRange) {
+              showNotification('Outside office range detected. Automatically starting break...', 'error');
+              const breakRes = await startBreak();
+              if (breakRes.success) {
+                showNotification('Automated Break: You walked outside the office range.', 'success');
+                setTimeout(() => window.location.reload(), 1500);
+              }
+            }
+          } catch (err) {
+            console.error('Error in background geofence check:', err);
+          }
+        },
+        (error) => {
+          console.warn('Background geofencing geolocation error:', error);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
+    performGeofenceCheck();
+    const interval = setInterval(performGeofenceCheck, 60000);
+
+    return () => clearInterval(interval);
+  }, [checkedIn, isCheckedOut, currentStatus]);
 
   const handleCheckIn = async () => {
     setGpsStatus('loading');
