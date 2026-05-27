@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
@@ -12,16 +11,16 @@ import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
 
 const statusColors: Record<string, string> = {
-  present: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  late: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  absent: 'bg-red-500/10 text-red-600 border-red-500/20',
-  'half-day': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  'pending wfh': 'bg-violet-500/10 text-violet-600 border-violet-500/20',
-  'approved wfh': 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-  'rejected wfh': 'bg-red-500/10 text-red-600 border-red-500/20',
-  working: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  'on break': 'bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse',
-  'logged out': 'bg-gray-500/10 text-gray-500 border-gray-500/20',
+  present: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  late: 'bg-amber-50 text-amber-700 border-amber-200',
+  absent: 'bg-red-50 text-red-700 border-red-200',
+  'half-day': 'bg-blue-50 text-blue-700 border-blue-200',
+  'pending wfh': 'bg-violet-50 text-violet-750 border-violet-200',
+  'approved wfh': 'bg-emerald-50 text-emerald-750 border-emerald-250',
+  'rejected wfh': 'bg-red-50 text-red-750 border-red-200',
+  working: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'on break': 'bg-primary-50 text-primary-700 border-primary-200 animate-pulse',
+  'logged out': 'bg-zinc-50 text-zinc-650 border-zinc-200',
 };
 
 export interface AttendanceRecord {
@@ -34,6 +33,36 @@ export interface AttendanceRecord {
   status: string;
   total_break_seconds?: number;
   current_break_start?: string | null;
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const s = status?.toLowerCase();
+  const getTheme = () => {
+    if (['approved', 'logged out', 'approved wfh'].includes(s)) {
+      return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' };
+    }
+    if (['pending', 'pending wfh', 'working'].includes(s)) {
+      return { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' };
+    }
+    if (['rejected', 'rejected wfh', 'absent'].includes(s)) {
+      return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
+    }
+    if (s === 'on break') {
+      return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
+    }
+    return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };
+  };
+
+  const theme = getTheme();
+  return (
+    <span className={cn(
+      'inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-medium border uppercase tracking-wider',
+      theme.bg
+    )}>
+      <span className={cn('w-1.5 h-1.5 rounded-full mr-1.5 shrink-0', theme.dot)} />
+      {status}
+    </span>
+  );
 }
 
 export default function AttendanceClient({ initialRecords }: { initialRecords: AttendanceRecord[] }) {
@@ -62,8 +91,6 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       return () => clearTimeout(timer);
     }
   }, [notification]);
-
-
 
   const currentShiftDate = getISTShiftDate(currentTime);
   const todayRecord = initialRecords.find(r => r.date === currentShiftDate);
@@ -372,24 +399,24 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className={cn(
-              'flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-xs font-semibold',
+              'flex items-center justify-between gap-3 px-4 py-3 rounded-lg border text-xs font-semibold font-sans',
               !isOnline
-                ? 'bg-amber-500/10 border-amber-500/20 text-amber-700'
-                : 'bg-blue-500/10 border-blue-500/20 text-blue-700'
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-blue-50 text-blue-700 border-blue-200'
             )}
           >
             <div className="flex items-center gap-2">
               {!isOnline ? (
-                <><WifiOff className="w-4 h-4" /> You are offline. Attendance actions will be saved locally.</>
+                <><WifiOff className="w-4 h-4 text-amber-500" /> You are offline. Actions will save locally.</>
               ) : (
-                <><RefreshCw className={cn('w-4 h-4', isSyncing && 'animate-spin')} /> {pendingCount} pending attendance {pendingCount === 1 ? 'action' : 'actions'} to sync.</>
+                <><RefreshCw className={cn('w-4 h-4 text-blue-500', isSyncing && 'animate-spin')} /> {pendingCount} action{pendingCount !== 1 ? 's' : ''} to sync.</>
               )}
             </div>
             {isOnline && pendingCount > 0 && (
               <button
                 onClick={syncQueue}
                 disabled={isSyncing}
-                className="px-3 py-1 rounded-lg bg-blue-500 text-white text-[10px] font-bold uppercase tracking-wider hover:bg-blue-600 transition-colors disabled:opacity-50"
+                className="px-2.5 py-1 rounded bg-blue-600 text-white text-[9px] font-mono font-semibold uppercase tracking-wider hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 {isSyncing ? 'Syncing...' : 'Sync Now'}
               </button>
@@ -404,55 +431,54 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "p-5 rounded-2xl border flex items-start gap-4 shadow-sm backdrop-blur-md",
-            lateStats.lateCount >= 6 ? "bg-red-500/10 border-red-500/25 text-red-800" :
-            lateStats.lateCount >= 3 ? "bg-amber-500/10 border-amber-500/25 text-amber-800" :
-            "bg-blue-500/10 border-blue-500/20 text-blue-800"
+            "p-5 rounded-lg border flex items-start gap-4 shadow-2xs bg-white",
+            lateStats.lateCount >= 6 ? "border-red-200" :
+            lateStats.lateCount >= 3 ? "border-amber-200" : "border-primary-200"
           )}
         >
           <div className={cn(
-            "p-3 rounded-xl shrink-0 border",
-            lateStats.lateCount >= 6 ? "bg-red-500/10 border-red-500/20 text-red-500" :
-            lateStats.lateCount >= 3 ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
-            "bg-blue-500/10 border-blue-500/20 text-blue-500"
+            "w-10 h-10 rounded border flex items-center justify-center shrink-0",
+            lateStats.lateCount >= 6 ? "bg-red-50 text-red-500 border-red-200" :
+            lateStats.lateCount >= 3 ? "bg-amber-50 text-amber-500 border-amber-200" :
+            "bg-primary-50 text-primary-500 border-primary-200"
           )}>
-            <AlertTriangle className="w-6 h-6" />
+            <AlertTriangle className="w-5 h-5" />
           </div>
           <div className="flex-1 space-y-1">
-            <h4 className="text-sm font-black uppercase tracking-wider text-navy-950">Late Login Penalty Status</h4>
-            <div className="grid grid-cols-2 gap-4 pt-1 text-xs font-semibold text-navy-900/80">
+            <h4 className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">Late Login Penalty Status</h4>
+            <div className="grid grid-cols-2 gap-4 pt-1 text-xs font-semibold text-navy-900">
               <div>
-                <span className="text-[10px] text-gray-500 uppercase tracking-widest block">Lates This Month</span>
-                <span className="text-base font-extrabold text-navy-950">{lateStats.lateCount}</span>
+                <span className="text-[9px] font-mono font-medium text-zinc-400 uppercase tracking-wider block">Lates This Month</span>
+                <span className="text-xl font-bold text-navy-900 font-sans tracking-tight">{lateStats.lateCount}</span>
               </div>
               <div>
-                <span className="text-[10px] text-gray-500 uppercase tracking-widest block">Deductions Applied</span>
-                <span className="text-base font-extrabold text-navy-950">{lateStats.deduction} Day</span>
+                <span className="text-[9px] font-mono font-medium text-zinc-400 uppercase tracking-wider block">Deductions Applied</span>
+                <span className="text-xl font-bold text-navy-900 font-sans tracking-tight">{lateStats.deduction} Day</span>
               </div>
             </div>
-            <p className="text-[11px] mt-2 font-bold text-navy-900 leading-relaxed border-t border-navy-900/10 pt-2 flex items-center gap-1.5">
-              <Info className="w-3.5 h-3.5 shrink-0" />
+            <p className="text-[11px] mt-2 font-medium text-zinc-650 leading-relaxed border-t border-zinc-100 pt-2 flex items-center gap-1.5 font-sans">
+              <Info className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
               {lateStats.warningMessage}
             </p>
           </div>
         </motion.div>
       )}
 
-      {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-xl bg-navy-900 p-6 text-white shadow-md shadow-navy-900/10">
-        <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[100%] bg-primary-500/10 rounded-full blur-[80px]" />
+      {/* Premium Header - Vercel Layout + Brand Navy Background */}
+      <div className="relative overflow-hidden rounded-lg bg-navy-900 p-6 text-white shadow-md shadow-navy-900/10">
+        <div className="absolute top-[-25%] right-[-15%] w-[40%] h-[120%] bg-primary-500/15 rounded-full blur-[80px] animate-pulse" />
         <div className="relative z-10 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Sparkles className="w-4 h-4 text-primary-400" />
-              <span className="text-[9px] font-bold uppercase tracking-wider text-primary-200">Shift & Break Matrix</span>
+            <div className="flex items-center gap-1.5 mb-1.5 font-mono text-[9px] font-medium uppercase tracking-wider text-primary-200">
+              <Sparkles className="w-4 h-4 text-primary-400 animate-pulse" />
+              <span>Shift & Break Matrix</span>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">Time & Attendance</h1>
-            <p className="text-gray-400 text-xs mt-1 font-medium">Night Shift: 06:30 PM to 03:30 AM (9 Hours total)</p>
+            <h1 className="text-2xl font-bold tracking-tight text-white font-sans">Time & Attendance</h1>
+            <p className="text-zinc-400 text-xs mt-1 font-medium font-sans">Night Shift: 06:30 PM to 03:30 AM (9 Hours total)</p>
           </div>
           <div className="hidden md:block text-right">
-            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Current Time</p>
-            <p className="text-xl font-bold text-white font-mono">
+            <p className="text-[9px] font-mono font-medium text-zinc-500 uppercase tracking-wider">Current Time</p>
+            <p className="text-xl font-bold text-white font-mono mt-0.5">
               {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
             </p>
           </div>
@@ -461,33 +487,33 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Main Clock-in Control */}
-        <Card hover={false} className="p-6 rounded-xl border border-border shadow-sm bg-white overflow-hidden relative">
+        <div className="bg-white rounded-lg p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-center min-h-[300px]">
           <div className="absolute top-0 right-0 p-6 opacity-[0.02] pointer-events-none">
             <Clock className="w-36 h-36 text-navy-900" />
           </div>
 
           <div className="flex flex-col items-center justify-center space-y-6 py-2">
             <div className="text-center">
-              <p className="text-5xl font-bold text-navy-900 font-mono tracking-tight">
+              <p className="text-4xl font-bold text-navy-900 font-mono tracking-tight">
                 {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
               </p>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-alt border border-border/40 text-[9px] font-bold text-text-muted uppercase tracking-wider mt-4">
-                <CalendarIcon className="w-3 h-3" />
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-zinc-50 border border-zinc-200/80 text-[9px] font-mono font-semibold text-zinc-450 uppercase tracking-wider mt-4">
+                <CalendarIcon className="w-3.5 h-3.5 text-zinc-400" />
                 {currentTime.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
               </div>
             </div>
 
             {checkedIn && !isCheckedOut && (
               <motion.div 
-                initial={{ opacity: 0, y: 15 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-[240px] p-4 rounded-xl bg-gradient-to-br from-navy-900 to-navy-950 text-white shadow-md text-center relative overflow-hidden"
+                className="w-full max-w-[240px] p-4 rounded-lg bg-navy-900 text-white shadow-sm text-center relative overflow-hidden"
               >
                 <div className="absolute -top-10 -right-10 w-20 h-20 bg-white/5 rounded-full blur-xl" />
-                <p className="text-[9px] font-bold uppercase tracking-wider opacity-90 mb-1 flex items-center justify-center gap-1">
+                <p className="text-[9px] font-mono font-medium uppercase tracking-wider opacity-90 mb-1.5 flex items-center justify-center gap-1.5">
                   <span className={cn(
                     "w-2 h-2 rounded-full",
-                    currentStatus === 'On Break' ? "bg-amber-400 animate-ping" : "bg-emerald-400 animate-pulse"
+                    currentStatus === 'On Break' ? "bg-amber-400 animate-ping" : "bg-primary-400 animate-pulse"
                   )} />
                   Status: {currentStatus}
                 </p>
@@ -501,39 +527,39 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               {!checkedIn ? (
                 <Button 
                   size="md" 
-                  className="w-full py-3.5 rounded-lg bg-navy-900 hover:bg-navy-800 text-white font-semibold shadow active:scale-95 transition-all text-sm group"
+                  className="w-full py-2.5 rounded-md bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold shadow active:scale-95 transition-all font-sans flex items-center justify-center gap-2 group"
                   onClick={handleCheckIn} 
                   disabled={gpsStatus === 'loading'}
                 >
                   {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Locating...</>
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Locating...</>
                   ) : (
-                    <><LogIn className="w-4 h-4 mr-2 group-hover:-translate-x-0.5 transition-transform" /> Clock In</>
+                    <><LogIn className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" /> Clock In</>
                   )}
                 </Button>
               ) : !isCheckedOut ? (
                 <Button 
                   size="md" 
-                  className="w-full py-3.5 rounded-lg bg-white border border-red-500 text-red-500 hover:bg-red-50 font-semibold active:scale-95 transition-all text-sm group"
+                  className="w-full py-2.5 rounded-md bg-white border border-red-500 text-red-650 hover:bg-red-50/50 text-xs font-semibold active:scale-95 transition-all font-sans flex items-center justify-center gap-2 group"
                   onClick={handleCheckOut} 
                   disabled={gpsStatus === 'loading'}
                 >
                   {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Clocking out...</>
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Clocking out...</>
                   ) : (
-                    <><LogOut className="w-4 h-4 mr-2 group-hover:translate-x-0.5 transition-transform" /> Clock Out</>
+                    <><LogOut className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform text-red-500" /> Clock Out</>
                   )}
                 </Button>
               ) : (
                 <div className="space-y-3 text-center">
-                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 font-sans">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
                     <p className="text-xs font-bold text-navy-900 uppercase tracking-tight">Clock Out Complete</p>
-                    <p className="text-[10px] text-text-muted mt-0.5 font-medium">Your attendance has been recorded successfully.</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5 font-medium">Your attendance has been recorded successfully.</p>
                   </div>
                   <button 
                     onClick={handleResume} 
-                    className="text-[9px] font-bold text-primary-600 hover:text-primary-700 uppercase tracking-wider cursor-pointer"
+                    className="text-[9px] font-mono font-semibold text-primary-700 hover:text-primary-850 uppercase tracking-wider cursor-pointer"
                   >
                     Undo Clock Out
                   </button>
@@ -541,261 +567,254 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               )}
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Break and Shift Monitoring Widgets */}
         {checkedIn && !isCheckedOut ? (
-          <Card hover={false} className="p-6 rounded-xl border border-border shadow-sm bg-white overflow-hidden relative flex flex-col justify-between">
+          <div className="bg-white rounded-lg p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
             <div className="space-y-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                  <Coffee className="w-5.5 h-5.5" />
+                <div className="w-8 h-8 rounded bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500">
+                  <Coffee className="w-4.5 h-4.5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-navy-900 text-sm tracking-tight">Break Control Room</h3>
-                  <p className="text-[9px] font-bold text-text-muted uppercase tracking-wider">1 hour daily permitted limit</p>
+                  <h3 className="font-semibold text-navy-900 text-sm tracking-tight font-sans">Break Control Room</h3>
+                  <p className="text-[9px] font-mono font-medium text-zinc-400 uppercase tracking-wider mt-0.5">1 hour daily permitted limit</p>
                 </div>
               </div>
 
               {/* Break Overrun Warning System */}
               {breakUsedSeconds >= 60 * 60 ? (
                 <motion.div
-                  animate={{ scale: [1, 1.02, 1] }}
+                  animate={{ scale: [1, 1.01, 1] }}
                   transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="p-3.5 rounded-xl border border-red-500/20 bg-red-500/10 text-red-700 flex items-center gap-2.5 text-xs font-bold"
+                  className="p-3 rounded border border-red-200 bg-red-50 text-red-700 flex items-center gap-2 text-xs font-semibold font-sans"
                 >
-                  <ShieldAlert className="w-5 h-5 shrink-0 text-red-500" />
+                  <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-red-500" />
                   <span>Break Limit Exceeded! Please return to work immediately.</span>
                 </motion.div>
               ) : breakUsedSeconds >= 45 * 60 ? (
-                <div className="p-3.5 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-700 flex items-center gap-2.5 text-xs font-bold">
-                  <AlertTriangle className="w-5 h-5 shrink-0 text-amber-500" />
+                <div className="p-3 rounded border border-amber-200 bg-amber-50 text-amber-700 flex items-center gap-2 text-xs font-semibold font-sans">
+                  <AlertTriangle className="w-4.5 h-4.5 shrink-0 text-amber-500" />
                   <span>Approaching Allowed Break Limit (45m+ used).</span>
                 </div>
               ) : null}
 
               {/* Timers Grid */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl p-3 bg-surface-alt border border-border/50 text-center">
-                  <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Productive Work</span>
-                  <span className="font-mono text-base font-extrabold text-navy-900">{formatSeconds(productiveSeconds)}</span>
+                <div className="rounded bg-zinc-50 border border-zinc-150 p-3 text-center">
+                  <span className="text-[8px] font-mono font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Productive Work</span>
+                  <span className="font-mono text-base font-bold text-navy-900">{formatSeconds(productiveSeconds)}</span>
                 </div>
                 <div className={cn(
-                  "rounded-xl p-3 border text-center",
-                  breakUsedSeconds >= 3600 ? "bg-red-500/5 border-red-500/20" : "bg-surface-alt border-border/50"
+                  "rounded p-3 border text-center",
+                  breakUsedSeconds >= 3600 ? "bg-red-50 border-red-150" : "bg-zinc-50 border-zinc-150"
                 )}>
-                  <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Break Used</span>
+                  <span className="text-[8px] font-mono font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Break Used</span>
                   <span className={cn(
-                    "font-mono text-base font-extrabold",
-                    breakUsedSeconds >= 3600 ? "text-red-500" :
-                    breakUsedSeconds >= 2700 ? "text-amber-500" : "text-navy-900"
+                    "font-mono text-base font-bold",
+                    breakUsedSeconds >= 3600 ? "text-red-650" :
+                    breakUsedSeconds >= 2700 ? "text-amber-600" : "text-navy-900"
                   )}>{formatSeconds(breakUsedSeconds)}</span>
                 </div>
-                <div className="rounded-xl p-3 bg-surface-alt border border-border/50 text-center">
-                  <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Remaining allowed</span>
-                  <span className="font-mono text-base font-extrabold text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
+                <div className="rounded bg-zinc-50 border border-zinc-150 p-3 text-center">
+                  <span className="text-[8px] font-mono font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Remaining Allowed</span>
+                  <span className="font-mono text-base font-bold text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
                 </div>
               </div>
             </div>
 
             {/* Break Control Toggle Buttons */}
-            <div className="flex gap-3 pt-5 border-t border-border/40">
+            <div className="flex gap-3 pt-5 border-t border-zinc-150">
               <Button
                 variant={(currentStatus === 'Working' || currentStatus === 'Approved WFH') ? 'primary' : 'outline'}
                 disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
                 onClick={handleStartBreak}
-                className="flex-1 py-3.5 text-xs font-bold uppercase tracking-wider rounded-lg active:scale-95 transition-all shadow-sm border border-border"
+                className="flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md active:scale-95 transition-all shadow-3xs border border-zinc-200 font-sans"
               >
-                {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Start Break'}
+                {isBreakActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Start Break'}
               </Button>
               <Button
                 variant={currentStatus === 'On Break' ? 'primary' : 'outline'}
                 disabled={currentStatus !== 'On Break' || isBreakActionLoading}
                 onClick={handleEndBreak}
-                className="flex-1 py-3.5 text-xs font-bold uppercase tracking-wider rounded-lg active:scale-95 transition-all shadow-sm border border-border"
+                className="flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md active:scale-95 transition-all shadow-3xs border border-zinc-200 font-sans"
               >
-                {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'End Break'}
+                {isBreakActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'End Break'}
               </Button>
             </div>
-          </Card>
+          </div>
         ) : (
           /* Temporal Matrix (Calendar) */
-          <Card hover={false} className="p-6 rounded-xl border border-white/5 bg-navy-900 text-white overflow-hidden relative">
+          <div className="bg-navy-900 rounded-lg p-6 border border-white/5 text-white overflow-hidden relative flex flex-col justify-between min-h-[300px]">
             <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
               <CalendarIcon className="w-36 h-36 text-white" />
             </div>
             
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-semibold text-base tracking-tight text-white">Monthly Attendance</h2>
-              <div className="px-3 py-1 rounded bg-white/10 text-[9px] font-bold uppercase tracking-wider text-primary-300">
-                {currentTime.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+            <div>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-semibold text-sm tracking-tight text-white font-sans">Monthly Attendance</h2>
+                <div className="px-2.5 py-1 rounded bg-white/10 text-[9px] font-mono font-medium uppercase tracking-wider text-primary-300">
+                  {currentTime.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-7 gap-1 text-center">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
+                  <div key={d} className="text-[9px] font-mono font-semibold text-zinc-500 py-1 uppercase tracking-wider">{d}</div>
+                ))}
+                {calendarDays.map((day, i) => {
+                  const status = day ? getStatusForDay(day) : null;
+                  return (
+                    <div key={i} className="aspect-square flex items-center justify-center relative">
+                      {day && (
+                        <motion.div 
+                          whileHover={{ scale: 1.05 }}
+                          className={cn(
+                            "w-7 h-7 rounded flex items-center justify-center text-[11px] font-semibold transition-all cursor-default relative z-10 font-sans",
+                            status && calendarColors[status] ? calendarColors[status] : "bg-white/5 text-zinc-400 hover:bg-white/10"
+                          )}
+                        >
+                          {day}
+                          {day === new Date().getDate() && !status && (
+                            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary-500 rounded-full border border-navy-900" />
+                          )}
+                        </motion.div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="grid grid-cols-7 gap-1.5 text-center">
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                <div key={d} className="text-[9px] font-bold text-gray-500 py-1 uppercase tracking-wider">{d}</div>
-              ))}
-              {calendarDays.map((day, i) => {
-                const status = day ? getStatusForDay(day) : null;
-                return (
-                  <div key={i} className="aspect-square flex items-center justify-center relative group">
-                    {day && (
-                      <motion.div 
-                        whileHover={{ scale: 1.08 }}
-                        className={cn(
-                          "w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition-all cursor-default relative z-10",
-                          status && calendarColors[status] ? calendarColors[status] : "bg-white/5 text-gray-400 hover:bg-white/10"
-                        )}
-                      >
-                        {day}
-                        {day === new Date().getDate() && !status && (
-                          <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary-500 rounded-full border border-navy-900" />
-                        )}
-                      </motion.div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-6 pt-5 border-t border-white/10 grid grid-cols-4 gap-2">
-              <div className="text-center">
-                <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">Present</p>
+            <div className="mt-5 pt-4 border-t border-white/10 grid grid-cols-4 gap-2 text-[8px] font-mono uppercase tracking-wider text-zinc-400 text-center">
+              <div>
+                <p className="mb-1">Present</p>
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mx-auto" />
               </div>
-              <div className="text-center">
-                <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">WFH</p>
+              <div>
+                <p className="mb-1">WFH</p>
                 <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mx-auto" />
               </div>
-              <div className="text-center">
-                <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">Late</p>
+              <div>
+                <p className="mb-1">Late</p>
                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mx-auto" />
               </div>
-              <div className="text-center">
-                <p className="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">Absent</p>
+              <div>
+                <p className="mb-1">Absent</p>
                 <div className="w-1.5 h-1.5 rounded-full bg-red-500 mx-auto" />
               </div>
             </div>
-          </Card>
+          </div>
         )}
       </div>
 
       {/* History Sequence */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2.5 px-1">
+        <div className="flex items-center gap-2 px-1">
           <div className="w-1 h-5 bg-primary-500 rounded-full" />
-          <h2 className="font-semibold text-navy-900 text-lg tracking-tight">Attendance History</h2>
+          <h2 className="font-semibold text-navy-900 text-sm tracking-tight font-sans">Attendance History</h2>
         </div>
 
         {/* Mobile: Card List Layout */}
         <div className="block md:hidden space-y-2">
           {initialRecords.map(r => (
-            <Card key={r.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
+            <div key={r.id} className="p-4 rounded-lg border border-zinc-200 bg-white shadow-2xs font-sans">
               <div className="flex items-center justify-between mb-2">
                 <p className="font-semibold text-navy-900 tracking-tight text-xs">
                   {new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
                 </p>
-                <span className={cn(
-                  "px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border",
-                  statusColors[r.status.toLowerCase()] || 'bg-gray-100'
-                )}>
-                  {r.status}
-                </span>
+                <StatusBadge status={r.status} />
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[10px] text-text-muted font-medium">
-                  <Clock className="w-3 h-3" />
+                <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono">
+                  <Clock className="w-3 h-3 text-zinc-450" />
                   <span>{r.check_in || '--:--'} → {r.check_out || 'Active'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-10 h-1.5 bg-surface-alt rounded-full overflow-hidden">
+                  <div className="w-10 h-1 bg-zinc-100 rounded-full overflow-hidden border border-zinc-150">
                     <div className="h-full bg-primary-500 rounded-full" style={{ width: `${Math.min((r.duration_hours / 9) * 100, 100)}%` }} />
                   </div>
-                  <span className="text-[11px] font-bold text-navy-900">{r.duration_hours}h</span>
+                  <span className="text-[11px] font-bold text-navy-900 font-mono">{r.duration_hours}h</span>
                 </div>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
 
         {/* Desktop: Full Table Layout */}
-        <Card hover={false} className="p-0 overflow-hidden rounded-xl border border-border/80 shadow-sm bg-white hidden md:block">
+        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white hidden md:block shadow-2xs">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
-                <tr className="bg-surface-alt/50 text-[10px] font-bold text-text-muted uppercase tracking-wider">
-                  <th className="px-4 py-2.5">Date</th>
-                  <th className="px-4 py-2.5">Status</th>
-                  <th className="px-4 py-2.5">Work Hours</th>
-                  <th className="px-4 py-2.5 text-right">Actions</th>
+                <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Work Hours</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-zinc-100 font-sans">
                 {initialRecords.map(r => (
-                  <tr key={r.id} className="hover:bg-surface-alt/20 transition-all group">
-                    <td className="px-4 py-2.5">
+                  <tr key={r.id} className="hover:bg-zinc-50/40 transition-colors group">
+                    <td className="px-4 py-3">
                       <p className="font-semibold text-navy-900 tracking-tight text-xs">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
-                      <p className="text-[9px] text-text-muted font-medium uppercase tracking-wider mt-0.5">{r.check_in || '--:--'} → {r.check_out || 'Clocked In'}</p>
+                      <p className="text-[10px] text-zinc-400 font-mono mt-0.5">{r.check_in || '--:--'} → {r.check_out || 'Clocked In'}</p>
                     </td>
-                    <td className="px-4 py-2.5">
-                      <span className={cn(
-                        "px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border",
-                        statusColors[r.status.toLowerCase()] || 'bg-gray-100'
-                      )}>
-                        {r.status}
-                      </span>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={r.status} />
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-12 h-1.5 bg-surface-alt rounded-full overflow-hidden">
+                        <div className="w-12 h-1 bg-zinc-100 rounded-full overflow-hidden border border-zinc-150">
                           <div 
                             className="h-full bg-primary-500 rounded-full" 
                             style={{ width: `${Math.min((r.duration_hours / 9) * 100, 100)}%` }} 
                           />
                         </div>
-                        <span className="text-[11px] font-semibold text-navy-900">{r.duration_hours}h</span>
+                        <span className="text-[11px] font-semibold text-navy-900 font-mono">{r.duration_hours}h</span>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <History className="w-3.5 h-3.5 text-gray-300 ml-auto group-hover:text-primary-500 transition-colors" />
+                    <td className="px-4 py-3 text-right">
+                      <History className="w-3.5 h-3.5 text-zinc-300 ml-auto group-hover:text-primary-500 transition-colors" />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* WFH Request Interface */}
       <AnimatePresence>
         {wfhRequest && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-950/40 backdrop-blur-sm">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 15 }} 
+              initial={{ opacity: 0, scale: 0.96, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 15 }} 
+              exit={{ opacity: 0, scale: 0.96, y: 10 }} 
+              transition={{ duration: 0.15 }}
               className="w-full max-w-md"
             >
-              <Card hover={false} className="p-6 rounded-xl border border-border shadow-md bg-white relative overflow-hidden">
+              <div className="bg-white rounded-lg p-6 border border-zinc-200 shadow-xl relative overflow-hidden font-sans">
                 <div className="absolute top-0 right-0 p-4">
                   <button 
                     onClick={() => setWfhRequest(null)}
-                    className="w-8 h-8 rounded-lg bg-surface-alt flex items-center justify-center text-navy-900 hover:bg-navy-900 hover:text-white transition-all cursor-pointer"
+                    className="w-8 h-8 rounded border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 flex items-center justify-center text-zinc-650 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
                 
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-14 h-14 rounded-xl bg-primary-500 text-white flex items-center justify-center shadow shadow-primary-500/10 mb-1">
-                    <Home className="w-7 h-7" />
+                  <div className="w-12 h-12 rounded border border-primary-200 bg-primary-50 text-primary-500 flex items-center justify-center shadow-3xs mb-1">
+                    <Home className="w-6 h-6" />
                   </div>
                   
                   <div>
-                    <h3 className="text-lg font-semibold text-navy-900 tracking-tight leading-tight">Work from Home Request?</h3>
-                    <div className="mt-3 p-3 rounded-lg bg-surface-alt border border-border/40 text-xs text-text-muted font-medium leading-relaxed">
+                    <h3 className="text-sm font-bold text-navy-900 tracking-tight leading-tight">Work from Home Request?</h3>
+                    <div className="mt-3 p-3 rounded bg-zinc-50 border border-zinc-200 text-xs text-zinc-500 font-medium leading-relaxed">
                       You are currently <span className="font-bold text-navy-900 text-xs">{formatDistance(wfhRequest.distance || 0)}</span> away from the office (<span className="font-bold text-navy-900">{wfhRequest.officeName}</span>).
                       <p className="mt-1.5 italic">You are outside the office range. Would you like to submit a Work From Home (WFH) check-in request instead?</p>
                     </div>
@@ -806,19 +825,19 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                       onClick={handleWFHRequest} 
                       disabled={gpsStatus === 'loading'} 
                       size="sm"
-                      className="w-full"
+                      className="w-full py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-md text-xs font-semibold"
                     >
                       Submit WFH Check-In
                     </Button>
                     <button 
                       onClick={() => setWfhRequest(null)} 
-                      className="text-[9px] font-bold text-text-muted uppercase tracking-wider hover:text-navy-900 transition-colors cursor-pointer"
+                      className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider hover:text-navy-900 transition-colors cursor-pointer"
                     >
                       Cancel
                     </button>
                   </div>
                 </div>
-              </Card>
+              </div>
             </motion.div>
           </div>
         )}
@@ -829,32 +848,32 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         {confirmAction && (
           <div 
             onClick={() => setConfirmAction(null)}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-950/40 backdrop-blur-sm cursor-pointer"
           >
             <motion.div
               onClick={(e) => e.stopPropagation()}
-              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              transition={{ type: "spring", duration: 0.4 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              transition={{ duration: 0.15 }}
               className="w-full max-w-sm cursor-default"
             >
-              <Card hover={false} className="p-5 rounded-xl border border-border shadow-md bg-white relative overflow-hidden">
+              <div className="bg-white rounded-lg p-5 border border-zinc-200 shadow-xl relative overflow-hidden font-sans">
                 <div className="flex flex-col items-center text-center space-y-4">
                   <div className={cn(
-                    "w-12 h-12 rounded-lg flex items-center justify-center",
-                    confirmAction.variant === 'danger' ? "bg-red-500/10 text-red-500" : "bg-primary-500/10 text-primary-500"
+                    "w-12 h-12 rounded border flex items-center justify-center",
+                    confirmAction.variant === 'danger' ? "bg-red-50 border-red-200 text-red-500" : "bg-primary-50 border-primary-200 text-primary-500"
                   )}>
-                    <AlertCircle className="w-6 h-6" />
+                    <AlertCircle className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-navy-900 tracking-tight">Confirm Action</h3>
-                    <p className="text-xs text-text-muted mt-1.5 font-medium leading-relaxed">{confirmAction.message}</p>
+                    <p className="text-xs text-zinc-400 mt-1.5 font-medium leading-relaxed">{confirmAction.message}</p>
                   </div>
                   <div className="flex w-full gap-2 pt-2">
                     <button
                       onClick={() => setConfirmAction(null)}
-                      className="flex-1 py-2 px-3 rounded-lg bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-semibold transition-all cursor-pointer border border-border"
+                      className="flex-1 py-2 px-3 rounded-md bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold transition-all cursor-pointer border border-zinc-200"
                     >
                       Cancel
                     </button>
@@ -865,9 +884,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                       }}
                       size="sm"
                       className={cn(
-                        "flex-1 border",
+                        "flex-1 border rounded-md py-2 text-xs font-semibold shadow-3xs",
                         confirmAction.variant === 'danger' 
-                          ? "bg-red-500 hover:bg-red-600 border-red-500" 
+                          ? "bg-red-500 hover:bg-red-650 border-red-500 text-white" 
                           : "bg-navy-900 hover:bg-navy-800 border-navy-950 text-white"
                       )}
                     >
@@ -875,7 +894,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                     </Button>
                   </div>
                 </div>
-              </Card>
+              </div>
             </motion.div>
           </div>
         )}
@@ -892,10 +911,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             className="fixed top-6 left-1/2 -translate-x-1/2 z-[110] w-full max-w-sm px-4"
           >
             <div className={cn(
-              "rounded-2xl p-4 shadow-2xl border backdrop-blur-md flex items-start gap-3 bg-white/95",
-              notification.type === 'success' ? "border-emerald-500/20 text-emerald-600" :
-              notification.type === 'error' ? "border-red-500/20 text-red-600" :
-              "border-primary-500/20 text-primary-600"
+              "rounded-lg p-4 shadow-xl border backdrop-blur-md flex items-start gap-3 bg-white/95 border-zinc-200 font-sans",
+              notification.type === 'success' ? "text-emerald-700" :
+              notification.type === 'error' ? "text-red-700" :
+              "text-primary-700"
             )}>
               {notification.type === 'success' ? (
                 <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-500" />
@@ -905,12 +924,12 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 <Info className="w-5 h-5 shrink-0 mt-0.5 text-primary-500" />
               )}
               <div className="flex-1">
-                <p className="text-xs font-black uppercase tracking-wider text-navy-900">
+                <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-navy-900">
                   {notification.type === 'success' ? 'Success' : notification.type === 'error' ? 'Error' : 'Notification'}
                 </p>
-                <p className="text-[11px] mt-1 text-text-muted font-bold leading-relaxed">{notification.message}</p>
+                <p className="text-[11px] mt-1 text-zinc-450 font-medium leading-relaxed">{notification.message}</p>
               </div>
-              <button onClick={() => setNotification(null)} className="text-navy-950/40 hover:text-navy-950 transition-colors cursor-pointer">
+              <button onClick={() => setNotification(null)} className="text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
