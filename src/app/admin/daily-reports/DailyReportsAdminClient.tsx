@@ -280,16 +280,16 @@ export default function DailyReportsAdminClient({
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left text-xs overflow-hidden rounded-2xl shadow-sm border border-border/80">
                   <thead>
-                    <tr className="bg-navy-900 text-white border-b border-navy-800">
-                      <th className="p-4 font-semibold rounded-tl-xl select-none">Assign Date</th>
-                      <th className="p-4 font-semibold select-none">Consultant Name</th>
-                      <th className="p-4 font-semibold text-center bg-navy-800/40 select-none">Apps Count</th>
-                      <th className="p-4 font-semibold text-center bg-navy-800/40 select-none">Interviews</th>
-                      <th className="p-4 font-semibold text-center select-none">Assessments</th>
-                      <th className="p-4 font-semibold text-center select-none">Tech Rounds</th>
-                      <th className="p-4 font-semibold text-center select-none">Non-Tech</th>
-                      <th className="p-4 font-semibold text-center bg-amber-950/20 text-amber-300 font-bold select-none">Self</th>
-                      <th className="p-4 font-semibold text-center bg-amber-950/20 text-amber-300 font-bold rounded-tr-xl select-none">Support</th>
+                    <tr className="bg-surface-alt/60 text-[10px] font-bold text-text-muted uppercase tracking-wider border-b border-border/80">
+                      <th className="p-4 rounded-tl-xl select-none">Assign Date</th>
+                      <th className="p-4 select-none">Consultant Name</th>
+                      <th className="p-4 text-center bg-surface-alt/80 select-none">Apps Count</th>
+                      <th className="p-4 text-center bg-surface-alt/80 select-none">Interviews</th>
+                      <th className="p-4 text-center select-none">Assessments</th>
+                      <th className="p-4 text-center select-none">Tech Rounds</th>
+                      <th className="p-4 text-center select-none">Non-Tech</th>
+                      <th className="p-4 text-center bg-amber-500/10 text-amber-700 font-bold select-none">Self</th>
+                      <th className="p-4 text-center bg-amber-500/10 text-amber-700 font-bold rounded-tr-xl select-none">Support</th>
                     </tr>
                   </thead>
 
