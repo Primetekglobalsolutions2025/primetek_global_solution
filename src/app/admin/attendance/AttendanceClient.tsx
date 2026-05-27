@@ -323,7 +323,6 @@ export default function AttendanceClient({
 
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-primary-500" />
               <p className="text-[9px] font-bold uppercase tracking-wider text-text-muted">
                 <span className="text-navy-900 font-extrabold">{filtered.length}</span> entries synchronized
               </p>

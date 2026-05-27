@@ -172,7 +172,6 @@ export default function AdminSettingsPage() {
         <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[100%] bg-primary-500/10 rounded-full blur-[80px]" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-5 h-5 text-primary-400" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-200">System Config</span>
           </div>
           <h1 className="text-3xl font-heading font-black tracking-tight text-white">System Settings</h1>

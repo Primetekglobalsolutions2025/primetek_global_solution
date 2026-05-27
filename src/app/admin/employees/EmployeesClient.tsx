@@ -433,7 +433,6 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
               <div className="flex items-center justify-between px-10 py-8">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <Sparkles className="w-4 h-4 text-primary-500" />
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">Employee Management</span>
                   </div>
                   <h3 className="font-heading font-black text-2xl text-navy-900 tracking-tight">Add New Employee</h3>

@@ -144,7 +144,6 @@ export default function ApprovalsClient({
                                 {formatDate(leave.start_date)} — {formatDate(leave.end_date)}
                               </div>
                               <div className="flex items-center gap-1.5 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl bg-amber-50 border border-amber-100 text-[10px] md:text-[11px] font-black text-amber-700 uppercase tracking-wider md:tracking-widest">
-                                <Sparkles className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                 {leave.type} LEAVE
                               </div>
                             </div>

@@ -26,7 +26,6 @@ export default function DashboardGreeting({ userName }: DashboardGreetingProps) 
       <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-3">
-            <Sparkles className="w-3 h-3 text-primary-400 animate-pulse" />
             <span className="text-[9px] font-bold text-primary-200 uppercase tracking-wider">System Status: Optimal</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight leading-tight text-white">
