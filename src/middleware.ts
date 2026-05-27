@@ -17,20 +17,32 @@ async function getCachedEmployeeStatus(employeeId: string): Promise<string | nul
     return cached.status;
   }
 
-  try {
-    const { data: empData } = await supabaseAdmin
-      .from('employees')
-      .select('status')
-      .eq('id', employeeId)
-      .single();
+  let attempts = 0;
+  const maxAttempts = 3;
+  while (attempts < maxAttempts) {
+    try {
+      const { data: empData, error } = await supabaseAdmin
+        .from('employees')
+        .select('status')
+        .eq('id', employeeId)
+        .single();
 
-    const status = empData?.status || null;
-    statusCache.set(employeeId, { status, timestamp: now });
-    return status;
-  } catch (err) {
-    console.error('[Middleware Cache] Failed to fetch employee status:', err);
-    return null;
+      if (error) throw error;
+
+      const status = empData?.status || null;
+      statusCache.set(employeeId, { status, timestamp: now });
+      return status;
+    } catch (err) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        console.error(`[Middleware Cache Retry] Failed to fetch employee status after ${attempts} attempts:`, err);
+        throw err; // Fail closed by throwing error to caller
+      }
+      // Backoff delay: 100ms, 200ms
+      await new Promise((res) => setTimeout(res, attempts * 100));
+    }
   }
+  return null;
 }
 
 interface AdminCacheEntry {
@@ -47,20 +59,32 @@ async function getCachedAdminExistence(adminId: string): Promise<boolean> {
     return cached.exists;
   }
 
-  try {
-    const { data: adminData } = await supabaseAdmin
-      .from('admin_users')
-      .select('id')
-      .eq('id', adminId)
-      .maybeSingle();
+  let attempts = 0;
+  const maxAttempts = 3;
+  while (attempts < maxAttempts) {
+    try {
+      const { data: adminData, error } = await supabaseAdmin
+        .from('admin_users')
+        .select('id')
+        .eq('id', adminId)
+        .maybeSingle();
 
-    const exists = !!adminData;
-    adminCache.set(adminId, { exists, timestamp: now });
-    return exists;
-  } catch (err) {
-    console.error('[Middleware Cache] Failed to fetch admin existence:', err);
-    return true; // Fail open to avoid blocking admins on DB query failure
+      if (error) throw error;
+
+      const exists = !!adminData;
+      adminCache.set(adminId, { exists, timestamp: now });
+      return exists;
+    } catch (err) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        console.error(`[Middleware Cache Retry] Failed to fetch admin existence after ${attempts} attempts:`, err);
+        throw err; // Fail closed by throwing error to caller
+      }
+      // Backoff delay: 100ms, 200ms
+      await new Promise((res) => setTimeout(res, attempts * 100));
+    }
   }
+  return false;
 }
 
 export async function middleware(request: NextRequest) {
@@ -129,10 +153,18 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
 
-    // Check if admin account still exists in DB
-    const adminExists = await getCachedAdminExistence(session.id);
-    if (!adminExists) {
-      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+    // Check if admin account still exists in DB (Fail Closed)
+    try {
+      const adminExists = await getCachedAdminExistence(session.id);
+      if (!adminExists) {
+        console.warn(`[Security Guard] Admin user ID ${session.id} no longer exists in database.`);
+        const response = NextResponse.redirect(new URL('/admin/login?error=revoked', request.url));
+        response.cookies.delete('admin-auth-token');
+        return response;
+      }
+    } catch (err) {
+      console.error('[Security Guard] Admin account existence check failed closed:', err);
+      const response = NextResponse.redirect(new URL('/admin/login?error=db_error', request.url));
       response.cookies.delete('admin-auth-token');
       return response;
     }
@@ -159,11 +191,18 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/employee/login', request.url));
     }
 
-    // AUTH-02: Check if employee account is active (Cached)
-    const empStatus = await getCachedEmployeeStatus(session.id);
-
-    if (empStatus !== 'Active') {
-      const response = NextResponse.redirect(new URL('/employee/login', request.url));
+    // AUTH-02: Check if employee account is active (Fail Closed)
+    try {
+      const empStatus = await getCachedEmployeeStatus(session.id);
+      if (empStatus !== 'Active') {
+        console.warn(`[Security Guard] Employee user ID ${session.id} status is ${empStatus}. Blocking access.`);
+        const response = NextResponse.redirect(new URL('/employee/login?error=inactive', request.url));
+        response.cookies.delete('employee-auth-token');
+        return response;
+      }
+    } catch (err) {
+      console.error('[Security Guard] Employee status check failed closed:', err);
+      const response = NextResponse.redirect(new URL('/employee/login?error=db_error', request.url));
       response.cookies.delete('employee-auth-token');
       return response;
     }
@@ -186,21 +225,23 @@ export async function middleware(request: NextRequest) {
     if (pathname.startsWith('/api/inquiries') && session.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    // Add more role checks as needed
 
-    // AUTH-02: Check if employee account is active for non-admin API requests (Cached)
-    if (session.role !== 'admin') {
-      const empStatus = await getCachedEmployeeStatus(session.id);
-
-      if (empStatus !== 'Active') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Fail Closed API checks
+    try {
+      if (session.role !== 'admin') {
+        const empStatus = await getCachedEmployeeStatus(session.id);
+        if (empStatus !== 'Active') {
+          return NextResponse.json({ error: 'Unauthorized: Account status not active' }, { status: 401 });
+        }
+      } else {
+        const adminExists = await getCachedAdminExistence(session.id);
+        if (!adminExists) {
+          return NextResponse.json({ error: 'Unauthorized: Admin account not active' }, { status: 401 });
+        }
       }
-    } else {
-      // Check if admin user still exists in DB for API requests
-      const adminExists = await getCachedAdminExistence(session.id);
-      if (!adminExists) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    } catch (err) {
+      console.error('[Security Guard] API verification check failed closed:', err);
+      return NextResponse.json({ error: 'Security verification database unavailable' }, { status: 500 });
     }
   }
 

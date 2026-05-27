@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Download, FileSpreadsheet, Loader2, User, Clock, Calendar, MapPin, Sparkles, AlertTriangle, ShieldCheck } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { exportAttendanceExcel, toggleExemption } from './actions';
+import { exportAttendanceExcel, toggleExemption, getSessionEvents, reverseAutoBreak, correctClockOutTime, rebuildSessionProjection } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -72,6 +72,96 @@ export default function AttendanceClient({
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
   const [ticks, setTicks] = useState(0);
   const { toast } = useToast();
+
+  const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
+  const [selectedRecordEvents, setSelectedRecordEvents] = useState<any[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Override action state
+  const [overrideActionType, setOverrideActionType] = useState<'reverse_autobreak' | 'correct_clockout' | 'rebuild' | null>(null);
+  const [overrideJustification, setOverrideJustification] = useState('');
+  const [clockOutTimeCorrection, setClockOutTimeCorrection] = useState('');
+  const [isSubmittingOverride, setIsSubmittingOverride] = useState(false);
+
+  const handleOpenDrawer = async (record: AttendanceRecord) => {
+    setSelectedRecord(record);
+    setIsDrawerOpen(true);
+    setIsLoadingEvents(true);
+    setOverrideActionType(null);
+    setOverrideJustification('');
+    setClockOutTimeCorrection('');
+    
+    // Set a default clock out time if they correct it (e.g. current check out or check in + 9 hours)
+    if (record.check_out_raw) {
+      // Convert to local datetime-local format for input
+      const localDate = new Date(record.check_out_raw);
+      // adjust for timezone offset
+      const tzOffset = localDate.getTimezoneOffset() * 60000;
+      const formatted = new Date(localDate.getTime() - tzOffset).toISOString().slice(0, 16);
+      setClockOutTimeCorrection(formatted);
+    } else if (record.check_in_raw) {
+      const localDate = new Date(record.check_in_raw);
+      localDate.setHours(localDate.getHours() + 9); // default 9 hours later
+      const tzOffset = localDate.getTimezoneOffset() * 60000;
+      const formatted = new Date(localDate.getTime() - tzOffset).toISOString().slice(0, 16);
+      setClockOutTimeCorrection(formatted);
+    }
+
+    try {
+      const events = await getSessionEvents(record.id);
+      setSelectedRecordEvents(events);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to load session events timeline.');
+      setSelectedRecordEvents([]);
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+
+  const handleOverrideSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRecord) return;
+    if (!overrideActionType) return;
+    
+    if (overrideActionType !== 'rebuild' && (!overrideJustification || overrideJustification.trim() === '')) {
+      toast.error('A justification reason is required for overrides.');
+      return;
+    }
+
+    setIsSubmittingOverride(true);
+    try {
+      if (overrideActionType === 'rebuild') {
+        await rebuildSessionProjection(selectedRecord.id);
+        toast.success('Session projection successfully rebuilt.');
+      } else if (overrideActionType === 'reverse_autobreak') {
+        await reverseAutoBreak(selectedRecord.id, overrideJustification);
+        toast.success('Auto-break successfully reversed.');
+      } else if (overrideActionType === 'correct_clockout') {
+        const utcTimestamp = new Date(clockOutTimeCorrection).toISOString();
+        await correctClockOutTime(selectedRecord.id, utcTimestamp, overrideJustification);
+        toast.success('Clock-out time adjusted successfully.');
+      }
+      
+      // Refresh events and close action form
+      const updatedEvents = await getSessionEvents(selectedRecord.id);
+      setSelectedRecordEvents(updatedEvents);
+      setOverrideActionType(null);
+      setOverrideJustification('');
+      
+      // Refresh parent table state by updating the page/router
+      router.refresh();
+      
+      // Wait a moment and then update selected record local fields if possible, or just close and refresh
+      toast.success('Audit ledger updated.');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Action failed.');
+    } finally {
+      setIsSubmittingOverride(false);
+    }
+  };
 
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
@@ -338,7 +428,12 @@ export default function AttendanceClient({
               </Card>
             ) : (
               filtered.map((record) => (
-                <Card key={record.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
+                <Card 
+                  key={record.id} 
+                  hover={true} 
+                  onClick={() => handleOpenDrawer(record)}
+                  className="p-4 rounded-xl border border-border/60 shadow-sm bg-white cursor-pointer hover:border-primary-500/40 hover:shadow-md transition-all"
+                >
                   <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded bg-surface-alt flex items-center justify-center text-navy-900">
@@ -416,7 +511,11 @@ export default function AttendanceClient({
                     </tr>
                   ) : (
                     filtered.map((record) => (
-                      <tr key={record.id} className="group hover:bg-surface-alt/30 transition-colors">
+                      <tr 
+                        key={record.id} 
+                        onClick={() => handleOpenDrawer(record)}
+                        className="group hover:bg-surface-alt/30 transition-colors cursor-pointer"
+                      >
                         <td className="px-4 py-2.5 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded bg-surface-alt flex items-center justify-center text-navy-900 group-hover:bg-primary-500 group-hover:text-white transition-colors">
@@ -768,6 +867,325 @@ export default function AttendanceClient({
             </Card>
           </div>
         </div>
+      )}
+
+      {/* Slide-out details drawer */}
+      {isDrawerOpen && selectedRecord && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 transition-opacity" 
+            onClick={() => {
+              if (!isSubmittingOverride) {
+                setIsDrawerOpen(false);
+                setSelectedRecord(null);
+              }
+            }}
+          />
+          
+          {/* Drawer container */}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+            className="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl border-l border-border/40 z-50 flex flex-col"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-border/60 flex items-center justify-between bg-surface-alt/10">
+              <div>
+                <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider">
+                  Session Details
+                </h3>
+                <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mt-0.5">
+                  {selectedRecord.employee_name}
+                </p>
+              </div>
+              <button 
+                onClick={() => {
+                  setIsDrawerOpen(false);
+                  setSelectedRecord(null);
+                }}
+                disabled={isSubmittingOverride}
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-surface-alt text-text-muted hover:text-navy-900 transition-colors disabled:opacity-50"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scrollable Event Timeline */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {/* Session Overview Card */}
+              <div className="p-4 rounded-xl border border-border bg-surface-alt/20 space-y-2 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest block">Date</span>
+                    <span className="font-semibold text-navy-900">
+                      {selectedRecord.date}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest block">State</span>
+                    <span className={cn(
+                      "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase mt-0.5",
+                      statusColors[selectedRecord.status?.toLowerCase()] || statusColors.present
+                    )}>
+                      {selectedRecord.status}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest block">Check-in</span>
+                    <span className="font-semibold text-navy-900">{selectedRecord.check_in || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest block">Check-out</span>
+                    <span className="font-semibold text-navy-900">{selectedRecord.check_out || '—'}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-border/40 grid grid-cols-2 gap-2">
+                  <div>
+                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest block">Productive Hours</span>
+                    <span className="font-mono font-bold text-navy-900">
+                      {selectedRecord.productive_hours !== undefined ? selectedRecord.productive_hours.toFixed(1) : selectedRecord.duration_hours.toFixed(1)} hrs
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-black text-text-muted uppercase tracking-widest block">Break Time</span>
+                    <span className="font-mono font-bold text-navy-900">
+                      {selectedRecord.total_break_seconds !== undefined ? Math.round(selectedRecord.total_break_seconds / 60) : 0} mins
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Timeline Container */}
+              <div className="space-y-4 relative">
+                <h4 className="text-[10px] font-black text-navy-900 uppercase tracking-widest block mb-4 border-b border-border/30 pb-1">
+                  Immutable Telemetry Timeline
+                </h4>
+
+                {isLoadingEvents ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-text-muted text-xs font-bold gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary-500" />
+                    <span>Retrieving event stream logs...</span>
+                  </div>
+                ) : selectedRecordEvents.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-text-muted font-bold border border-dashed border-border rounded-xl p-4 bg-surface-alt/10">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 mx-auto mb-2" />
+                    <p>No telemetry logs found.</p>
+                    <p className="font-normal text-[10px] text-text-muted mt-1">This record predates the event-sourcing ledger.</p>
+                  </div>
+                ) : (
+                  <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border/60">
+                    {selectedRecordEvents.map((evt, idx) => {
+                      const date = new Date(evt.event_timestamp);
+                      const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+                      
+                      let dotColor = 'bg-gray-400';
+                      let iconColor = 'text-gray-500';
+                      let cardBg = 'bg-white border-border/40';
+                      let description = '';
+
+                      switch(evt.event_type) {
+                        case 'CLOCK_IN':
+                          dotColor = 'bg-emerald-500 ring-4 ring-emerald-500/20';
+                          iconColor = 'text-emerald-600';
+                          cardBg = 'bg-emerald-50/20 border-emerald-500/20';
+                          description = `Geofence: ${evt.payload?.within_geofence ? 'OK' : 'OUTSIDE'} (${evt.payload?.distance_meters ? Math.round(evt.payload.distance_meters) + 'm' : 'Unknown'})\nIP: ${evt.client_ip || '—'}`;
+                          break;
+                        case 'CLOCK_OUT':
+                        case 'FORCE_LOGOUT':
+                          dotColor = 'bg-red-500 ring-4 ring-red-500/20';
+                          iconColor = 'text-red-600';
+                          cardBg = 'bg-red-50/20 border-red-500/20';
+                          description = `${evt.event_type === 'FORCE_LOGOUT' ? 'Admin Force Logout' : 'Self Clock Out'}\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
+                          break;
+                        case 'BREAK_STARTED':
+                          dotColor = 'bg-amber-500';
+                          iconColor = 'text-amber-600';
+                          description = `Self initiated lunch/rest break`;
+                          break;
+                        case 'BREAK_ENDED':
+                          dotColor = 'bg-emerald-400';
+                          iconColor = 'text-emerald-600';
+                          description = `Resumed operations${evt.payload?.reason ? '\nAdmin reversal: ' + evt.payload.reason : ''}`;
+                          break;
+                        case 'AUTO_BREAK_TRIGGERED':
+                          dotColor = 'bg-red-500 animate-pulse ring-4 ring-red-500/10';
+                          iconColor = 'text-red-600';
+                          cardBg = 'bg-red-50/10 border-red-500/10';
+                          description = `Automatic break enforcement (No heartbeat activity detected for 5 minutes)`;
+                          break;
+                        case 'IDLE_WARNING':
+                          dotColor = 'bg-amber-400';
+                          iconColor = 'text-amber-500';
+                          description = `Idle popup triggered (No telemetry for 3 minutes)`;
+                          break;
+                        case 'GPS_EXIT':
+                          dotColor = 'bg-amber-500 ring-4 ring-amber-500/10';
+                          iconColor = 'text-amber-600';
+                          description = `GPS coordinate change: User exited the office bounds. Countdown started.`;
+                          break;
+                        case 'GPS_REENTRY':
+                          dotColor = 'bg-emerald-400';
+                          iconColor = 'text-emerald-600';
+                          description = `GPS coordinate change: User returned within geofence boundaries.`;
+                          break;
+                        case 'ADMIN_OVERRIDE':
+                          dotColor = 'bg-violet-500 ring-4 ring-violet-500/20';
+                          iconColor = 'text-violet-600';
+                          cardBg = 'bg-violet-50/20 border-violet-500/20';
+                          description = `Override: ${evt.payload?.override_field}\nFrom: ${String(evt.payload?.old_value)} → To: ${String(evt.payload?.new_value)}\nReason: ${evt.payload?.reason || '—'}`;
+                          break;
+                        case 'HEARTBEAT_RECEIVED':
+                          dotColor = 'bg-blue-400';
+                          iconColor = 'text-blue-500';
+                          const clicks = evt.payload?.clicks_count ?? evt.payload?.telemetry?.clicks ?? 0;
+                          const keys = evt.payload?.keys_count ?? evt.payload?.telemetry?.keys ?? 0;
+                          description = `Heartbeat check secure. Keyboard/Mouse telemetry: ${clicks} clicks, ${keys} keystrokes.`;
+                          break;
+                      }
+
+                      return (
+                        <div key={evt.id || idx} className="relative group/item">
+                          {/* Circle dot on the timeline line */}
+                          <div className={cn(
+                            "absolute left-[-21px] top-1.5 w-3 h-3 rounded-full border border-white z-10",
+                            dotColor
+                          )} />
+                          
+                          {/* Event details card */}
+                          <div className={cn("p-3 rounded-xl border text-xs shadow-sm space-y-1", cardBg)}>
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-navy-900 tracking-tight">{evt.event_type}</span>
+                              <span className="text-[10px] font-mono text-text-muted">{timeStr}</span>
+                            </div>
+                            <p className="text-[10px] text-text-secondary whitespace-pre-line leading-relaxed">
+                              {description}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Actions Drawer Panel */}
+            <div className="p-4 border-t border-border bg-surface-alt/10 space-y-3">
+              {/* Action Selector Toggles */}
+              {!overrideActionType ? (
+                <div className="flex flex-col gap-2">
+                  <h4 className="text-[10px] font-black text-navy-900 uppercase tracking-widest">
+                    Operational Administrative Controls
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => setOverrideActionType('reverse_autobreak')}
+                      className="px-2.5 py-2 rounded-lg bg-amber-500 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm shadow-amber-500/10 hover:bg-amber-600 active:scale-95 transition-all text-center"
+                    >
+                      Reverse Auto-Break
+                    </button>
+                    <button
+                      onClick={() => setOverrideActionType('correct_clockout')}
+                      className="px-2.5 py-2 rounded-lg bg-teal-600 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm shadow-teal-500/10 hover:bg-teal-700 active:scale-95 transition-all text-center"
+                    >
+                      Correct Clock-Out
+                    </button>
+                    <button
+                      onClick={() => setOverrideActionType('rebuild')}
+                      className="px-2.5 py-2 rounded-lg bg-navy-900 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm hover:bg-navy-950 active:scale-95 transition-all text-center"
+                    >
+                      Rebuild Session
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleOverrideSubmit} className="space-y-3">
+                  <div className="p-3 bg-white rounded-xl border border-border shadow-sm space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-border/30 pb-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-navy-900">
+                        {overrideActionType === 'reverse_autobreak' && 'Action: Reverse Auto-Break'}
+                        {overrideActionType === 'correct_clockout' && 'Action: Correct Clock-Out Time'}
+                        {overrideActionType === 'rebuild' && 'Action: Force Projection Rebuild'}
+                      </span>
+                      <button 
+                        type="button"
+                        onClick={() => setOverrideActionType(null)}
+                        className="text-[10px] text-text-muted font-bold hover:text-navy-900 uppercase"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+
+                    {/* Clockout datetime selector if needed */}
+                    {overrideActionType === 'correct_clockout' && (
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-text-muted uppercase tracking-widest block">
+                          Adjusted Clock-out Time (Local Time)
+                        </label>
+                        <input
+                          type="datetime-local"
+                          required
+                          value={clockOutTimeCorrection}
+                          onChange={(e) => setClockOutTimeCorrection(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-border/60 rounded text-xs focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                        />
+                      </div>
+                    )}
+
+                    {/* Justification Text Area (Mandatory for overrides) */}
+                    {overrideActionType !== 'rebuild' && (
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-text-muted uppercase tracking-widest block">
+                          Override Justification Reason (Mandatory)
+                        </label>
+                        <textarea
+                          placeholder="Provide the compliance or operations reason for this correction..."
+                          required
+                          rows={2}
+                          value={overrideJustification}
+                          onChange={(e) => setOverrideJustification(e.target.value)}
+                          className="w-full px-2.5 py-1.5 border border-border/60 rounded text-xs focus:ring-1 focus:ring-primary-500 focus:outline-none placeholder:text-text-muted/60"
+                        />
+                      </div>
+                    )}
+
+                    {overrideActionType === 'rebuild' && (
+                      <p className="text-[10px] text-text-muted leading-relaxed">
+                        This will delete the daily attendance cache projections for this session and fully recalculate them by replaying the event telemetry stream sequentially. Use this if the dashboard counters are out of sync.
+                      </p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingOverride}
+                      className={cn(
+                        "w-full text-[10px] uppercase font-bold py-2 rounded-lg text-white shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-50",
+                        overrideActionType === 'reverse_autobreak' ? 'bg-amber-500 hover:bg-amber-600' :
+                        overrideActionType === 'correct_clockout' ? 'bg-teal-600 hover:bg-teal-700' :
+                        'bg-navy-900 hover:bg-navy-950'
+                      )}
+                    >
+                      {isSubmittingOverride ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        'Apply Override & Replay Ledgers'
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </motion.div>
+        </>
       )}
     </div>
   );

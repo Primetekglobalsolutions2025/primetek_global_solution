@@ -4,16 +4,16 @@ import { useState } from 'react';
 import { 
   Calendar, Home, CheckCircle2, XCircle, 
   Clock, MapPin, User, Loader2, 
-  Sparkles, ShieldCheck, History
+  Sparkles, ShieldCheck, History, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { updateLeaveStatus, updateWFHStatus } from './actions';
+import { updateLeaveStatus, updateWFHStatus, resolveDispute } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { formatDate, cn } from '@/lib/utils';
 
-type Tab = 'leaves' | 'wfh' | 'history';
+type Tab = 'leaves' | 'wfh' | 'disputes' | 'history';
 
 const formatSafeTime = (timeStr: any) => {
   if (!timeStr) return '--:--';
@@ -33,16 +33,48 @@ export default function ApprovalsClient({
   initialLeaves, 
   initialWFH,
   initialHistory,
+  initialDisputes = [],
 }: { 
   initialLeaves: any[];
   initialWFH: any[];
   initialHistory: any[];
+  initialDisputes?: any[];
 }) {
   const [leaves, setLeaves] = useState(initialLeaves);
   const [wfh, setWfh] = useState(initialWFH);
+  const [disputes, setDisputes] = useState(initialDisputes);
   const [activeTab, setActiveTab] = useState<Tab>('leaves');
   const [processing, setProcessing] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const [disputeResolutionText, setDisputeResolutionText] = useState('');
+  const [resolvingDisputeId, setResolvingDisputeId] = useState<string | null>(null);
+  const [resolutionStatus, setResolutionStatus] = useState<'APPROVED' | 'REJECTED' | null>(null);
+
+  const handleResolveDisputeSubmit = async (disputeId: string, status: 'APPROVED' | 'REJECTED') => {
+    if (!disputeResolutionText || disputeResolutionText.trim() === '') {
+      toast.error('A justification reason is required to resolve a dispute.');
+      return;
+    }
+    setProcessing(disputeId);
+    try {
+      const res = await resolveDispute(disputeId, status, disputeResolutionText);
+      if (res && res.success) {
+        setDisputes(prev => prev.filter(d => d.id !== disputeId));
+        toast.success(`Dispute successfully ${status === 'APPROVED' ? 'approved' : 'rejected'}.`);
+        setResolvingDisputeId(null);
+        setDisputeResolutionText('');
+        setResolutionStatus(null);
+      } else {
+        toast.error('Failed to resolve dispute.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to resolve dispute.');
+    } finally {
+      setProcessing(null);
+    }
+  };
 
   const handleLeaveAction = async (id: string, status: 'Approved' | 'Rejected') => {
     setProcessing(id);
@@ -81,6 +113,7 @@ export default function ApprovalsClient({
   const tabs: { id: Tab; label: string; icon: any; count?: number }[] = [
     { id: 'leaves', label: 'Time Off', icon: Calendar, count: leaves.length || undefined },
     { id: 'wfh', label: 'Remote Work', icon: Home, count: wfh.length || undefined },
+    { id: 'disputes', label: 'Disputes Queue', icon: AlertTriangle, count: disputes.length || undefined },
     { id: 'history', label: 'History', icon: History },
   ];
 
@@ -216,6 +249,145 @@ export default function ApprovalsClient({
                           {processing === request.id ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5 md:mr-2" /> : <><CheckCircle2 className="w-3.5 h-3.5 mr-1.5 md:mr-2" /> Verify & Authorize</>}
                         </Button>
                       </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'disputes' && (
+            <motion.div key="disputes" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4 md:space-y-6">
+              {disputes.length === 0 ? (
+                <div className="p-12 md:p-20 text-center rounded-2xl md:rounded-[3rem] border border-dashed border-border/60 bg-surface-alt/20">
+                  <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
+                    <ShieldCheck className="w-6 h-6 md:w-8 md:h-8 text-gray-300" />
+                  </div>
+                  <p className="text-xs md:text-sm text-text-muted font-black uppercase tracking-widest">Registry Clear: No Pending Attendance Disputes</p>
+                </div>
+              ) : (
+                disputes.map((dispute) => (
+                  <Card key={dispute.id} hover={false} className="p-4 md:p-8 rounded-2xl md:rounded-[2.5rem] border-l-[6px] border-l-violet-500 shadow-sm bg-white overflow-hidden relative group">
+                    <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6 md:gap-10">
+                      <div className="flex items-start gap-4 md:gap-6 flex-1">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-3xl bg-violet-600 text-white flex items-center justify-center shrink-0 shadow-2xl shadow-violet-650/10">
+                          <AlertTriangle className="w-6 h-6 md:w-8 md:h-8" />
+                        </div>
+                        <div className="space-y-3 md:space-y-4 w-full">
+                          <div>
+                            <h3 className="text-lg md:text-2xl font-black text-navy-900 tracking-tight leading-none">{dispute.employee_name}</h3>
+                            <div className="flex flex-wrap items-center gap-2 mt-2.5 md:mt-3">
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl bg-surface-alt border border-border/50 text-[10px] md:text-[11px] font-bold text-navy-900 uppercase tracking-tighter">
+                                <Calendar className="w-3 h-3 md:w-3.5 md:h-3.5 text-primary-500" />
+                                {formatSafeDate(dispute.attendance_date)}
+                              </div>
+                              <div className="flex items-center gap-1.5 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl bg-violet-55 border border-violet-100 text-[10px] md:text-[11px] font-black text-violet-755 uppercase tracking-wider md:tracking-widest">
+                                {dispute.category.replace('_', ' ')}
+                              </div>
+                              {dispute.attendance_is_late && (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl bg-amber-50 border border-amber-100 text-[10px] md:text-[11px] font-black text-amber-700 uppercase tracking-wider">
+                                  Late: +{dispute.attendance_late_minutes}m
+                                </div>
+                              )}
+                              {dispute.attendance_deduction > 0 && (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg md:rounded-xl bg-red-50 border border-red-100 text-[10px] md:text-[11px] font-black text-red-700 uppercase tracking-wider">
+                                  Deduction: -{dispute.attendance_deduction} Day
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {dispute.reason && (
+                            <div className="relative pl-4 md:pl-6 py-0.5 md:py-1">
+                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-500/20 rounded-full" />
+                              <p className="text-xs md:text-sm text-text-secondary font-medium italic leading-relaxed">
+                                <span className="font-bold text-navy-900 not-italic block text-[10px] uppercase tracking-wider mb-1">Employee Explanation:</span>
+                                "{dispute.reason}"
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Resolution Form Expanded for this Dispute */}
+                          {resolvingDisputeId === dispute.id && resolutionStatus && (
+                            <motion.div 
+                              initial={{ opacity: 0, height: 0 }} 
+                              animate={{ opacity: 1, height: 'auto' }} 
+                              className="bg-surface-alt/40 p-4 rounded-xl border border-border/50 space-y-3 mt-4"
+                            >
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase tracking-wider text-navy-900 block font-mono">
+                                  Justification Reason for {resolutionStatus === 'APPROVED' ? 'Approval' : 'Rejection'}
+                                </label>
+                                <textarea
+                                  placeholder="Enter the operational or payroll context for audit compliance..."
+                                  required
+                                  rows={2}
+                                  value={disputeResolutionText}
+                                  onChange={(e) => setDisputeResolutionText(e.target.value)}
+                                  className="w-full px-3 py-2 border border-border rounded-lg text-xs focus:ring-1 focus:ring-primary-500 focus:outline-none bg-white text-navy-950 placeholder:text-zinc-300"
+                                />
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setResolvingDisputeId(null);
+                                    setResolutionStatus(null);
+                                    setDisputeResolutionText('');
+                                  }}
+                                  className="px-3 py-1.5 bg-white border border-border rounded-lg text-[10px] font-bold text-text-muted hover:text-navy-900 transition-colors uppercase"
+                                >
+                                  Cancel
+                                </button>
+                                <Button
+                                  onClick={() => handleResolveDisputeSubmit(dispute.id, resolutionStatus)}
+                                  disabled={processing === dispute.id}
+                                  className={cn(
+                                    "px-4 py-1.5 text-[10px] uppercase font-bold text-white rounded-lg flex items-center gap-1.5 shadow-sm",
+                                    resolutionStatus === 'APPROVED' ? 'bg-emerald-500 hover:bg-emerald-600 border-emerald-555' : 'bg-red-500 hover:bg-red-650 border-red-555'
+                                  )}
+                                >
+                                  {processing === dispute.id ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <>
+                                      {resolutionStatus === 'APPROVED' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                                      Confirm {resolutionStatus === 'APPROVED' ? 'Approval' : 'Denial'}
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Main review buttons */}
+                      {resolvingDisputeId !== dispute.id && (
+                        <div className="flex items-center gap-2 md:gap-3 w-full xl:w-auto shrink-0 border-t border-border/40 xl:border-t-0 pt-4 xl:pt-0">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setResolvingDisputeId(dispute.id);
+                              setResolutionStatus('REJECTED');
+                              setDisputeResolutionText('');
+                            }} 
+                            className="flex-1 xl:flex-initial rounded-xl md:rounded-2xl border-red-200 text-red-600 hover:bg-red-50 px-4 md:px-8 py-3 md:py-4 font-black text-[10px] md:text-[11px] uppercase tracking-wider md:tracking-widest h-auto shadow-sm"
+                          >
+                            <XCircle className="w-3.5 h-3.5 mr-1.5 md:mr-2" /> Deny
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setResolvingDisputeId(dispute.id);
+                              setResolutionStatus('APPROVED');
+                              setDisputeResolutionText('');
+                            }} 
+                            className="flex-1 xl:flex-initial rounded-xl md:rounded-2xl bg-navy-900 hover:bg-navy-800 text-white px-5 md:px-10 py-3 md:py-4 font-black text-[10px] md:text-[11px] uppercase tracking-wider md:tracking-widest h-auto shadow-xl shadow-navy-900/10 active:scale-95 transition-all"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 md:mr-2" /> Approve
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </Card>
                 ))

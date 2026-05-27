@@ -418,14 +418,39 @@ export async function toggleExemption(recordId: string, fieldName: string, value
 
   if (fetchError || !oldRecord) throw new Error('Record not found');
 
-  const { error } = await supabaseAdmin
-    .from('attendance')
-    .update({ [fieldName]: value })
-    .eq('id', recordId);
+  // Fetch the last sequence number for the session's event stream
+  const { data: lastEvent } = await supabaseAdmin
+    .from('attendance_events')
+    .select('sequence_number')
+    .eq('session_id', recordId)
+    .order('sequence_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (error) {
-    console.error('Error toggling exemption:', error);
-    throw new Error('Database update failed');
+  const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+  // Insert ADMIN_OVERRIDE event instead of direct mutation
+  const { error: insertError } = await supabaseAdmin
+    .from('attendance_events')
+    .insert([{
+      session_id: recordId,
+      employee_id: oldRecord.employee_id,
+      event_type: 'ADMIN_OVERRIDE',
+      sequence_number: nextSequence,
+      idempotency_key: `override-${recordId}-${fieldName}-${value}-${nextSequence}`,
+      client_ip: '0.0.0.0', // Admin action
+      payload: {
+        override_field: fieldName,
+        old_value: oldRecord[fieldName],
+        new_value: value,
+        reason: 'Administrative exemption override',
+        admin_id: session.id
+      }
+    }]);
+
+  if (insertError) {
+    console.error('Error logging ADMIN_OVERRIDE event:', insertError);
+    throw new Error('Database transaction failed to append override');
   }
 
   await logAuditAction(
@@ -439,6 +464,16 @@ export async function toggleExemption(recordId: string, fieldName: string, value
   const recordDate = new Date(oldRecord.date);
   const year = recordDate.getFullYear();
   const month = recordDate.getMonth() + 1;
+
+  // Trigger projection rebuild to apply the override event
+  const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+    p_session_id: recordId
+  });
+
+  if (rebuildError) {
+    console.error('Error rebuilding projection in toggleExemption:', rebuildError);
+    throw new Error('Database projection rebuild failed');
+  }
   
   await recalculateEmployeeLates(oldRecord.employee_id, year, month);
 
@@ -450,59 +485,199 @@ export async function toggleExemption(recordId: string, fieldName: string, value
 }
 
 export async function recalculateEmployeeLates(employeeId: string, year: number, month: number) {
-  const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextMonthYear = month === 12 ? year + 1 : year;
-  const endOfMonth = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
+  // Execute transaction-locked PL/pgSQL function to prevent race conditions
+  const { error } = await supabaseAdmin.rpc('recalculate_employee_lates_safe', {
+    p_employee_id: employeeId,
+    p_year: year,
+    p_month: month
+  });
 
-  const { data: records, error } = await supabaseAdmin
+  if (error) {
+    console.error('Error running recalculate_employee_lates_safe:', error);
+    throw new Error('Lates recalculation failed');
+  }
+}
+
+export async function getSessionEvents(sessionId: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data, error } = await supabaseAdmin
+    .from('attendance_events')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('sequence_number', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching session events:', error);
+    throw new Error('Failed to fetch session events');
+  }
+
+  return data || [];
+}
+
+export async function reverseAutoBreak(sessionId: string, reason: string) {
+  if (!reason || reason.trim() === '') throw new Error('Justification reason is required');
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data: oldRecord } = await supabaseAdmin
     .from('attendance')
     .select('*')
-    .eq('employee_id', employeeId)
-    .eq('is_late', true)
-    .gte('date', startOfMonth)
-    .lt('date', endOfMonth)
-    .order('date', { ascending: true });
+    .eq('id', sessionId)
+    .single();
+  if (!oldRecord) throw new Error('Session not found');
 
-  if (error || !records || records.length === 0) return;
+  const { data: lastEvent } = await supabaseAdmin
+    .from('attendance_events')
+    .select('sequence_number')
+    .eq('session_id', sessionId)
+    .order('sequence_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  const unexempted = records.filter(r => 
-    !r.late_approved && 
-    !r.permission_approved && 
-    !r.shift_override && 
-    !r.manager_exemption &&
-    r.status !== 'Approved WFH'
+  const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+  const { error: insertError } = await supabaseAdmin
+    .from('attendance_events')
+    .insert([{
+      session_id: sessionId,
+      employee_id: oldRecord.employee_id,
+      event_type: 'BREAK_ENDED',
+      sequence_number: nextSequence,
+      idempotency_key: `reverse-autobreak-${sessionId}-${nextSequence}`,
+      client_ip: '0.0.0.0',
+      payload: {
+        reason,
+        admin_id: session.id,
+        reversal_of: 'AUTO_BREAK'
+      }
+    }]);
+
+  if (insertError) {
+    console.error('Error logging BREAK_ENDED event:', insertError);
+    throw new Error('Database transaction failed to append break end event');
+  }
+
+  const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+    p_session_id: sessionId
+  });
+  if (rebuildError) {
+    console.error('Error rebuilding projection after reverseAutoBreak:', rebuildError);
+    throw new Error('Failed to rebuild projection');
+  }
+
+  await logAuditAction(
+    'REVERSE_AUTO_BREAK',
+    'attendance',
+    sessionId,
+    { reason },
+    { status: 'ACTIVE' }
   );
 
-  const lateCount = unexempted.length;
-  
-  let deductionTotal = 0.0;
-  if (lateCount >= 6) {
-    deductionTotal = 1.0;
-  } else if (lateCount >= 3) {
-    deductionTotal = 0.5;
+  const { revalidatePath: nextRevalidatePath } = await import('next/cache');
+  nextRevalidatePath('/admin/attendance');
+  nextRevalidatePath('/employee/attendance');
+
+  return { success: true };
+}
+
+export async function correctClockOutTime(sessionId: string, clockOutTime: string, reason: string) {
+  if (!reason || reason.trim() === '') throw new Error('Justification reason is required');
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data: oldRecord } = await supabaseAdmin
+    .from('attendance')
+    .select('*')
+    .eq('id', sessionId)
+    .single();
+  if (!oldRecord) throw new Error('Session not found');
+
+  const { data: lastEvent } = await supabaseAdmin
+    .from('attendance_events')
+    .select('sequence_number')
+    .eq('session_id', sessionId)
+    .order('sequence_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+  const { error: insertError } = await supabaseAdmin
+    .from('attendance_events')
+    .insert([{
+      session_id: sessionId,
+      employee_id: oldRecord.employee_id,
+      event_type: 'CLOCK_OUT',
+      sequence_number: nextSequence,
+      idempotency_key: `correct-clockout-${sessionId}-${nextSequence}`,
+      client_ip: '0.0.0.0',
+      event_timestamp: clockOutTime,
+      payload: {
+        reason,
+        admin_id: session.id,
+        is_override: true
+      }
+    }]);
+
+  if (insertError) {
+    console.error('Error logging adjusted CLOCK_OUT event:', insertError);
+    throw new Error('Database transaction failed to append adjusted clock out');
   }
 
-  // Bulk reset: clear all deductions in one query instead of N individual updates
-  const allIds = records.map(r => r.id);
-  const recordsWithDeduction = records.filter(r => r.deduction_applied !== 0.0);
-  if (recordsWithDeduction.length > 0) {
-    const idsToReset = recordsWithDeduction.map(r => r.id);
-    await supabaseAdmin
-      .from('attendance')
-      .update({ deduction_applied: 0.0 })
-      .in('id', idsToReset);
+  const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+    p_session_id: sessionId
+  });
+  if (rebuildError) {
+    console.error('Error rebuilding projection after correctClockOutTime:', rebuildError);
+    throw new Error('Failed to rebuild projection');
   }
 
-  // Apply targeted deductions
-  if (deductionTotal === 0.5 && unexempted.length >= 3) {
-    await supabaseAdmin.from('attendance').update({ deduction_applied: 0.5 }).eq('id', unexempted[2].id);
-  } else if (deductionTotal === 1.0 && unexempted.length >= 6) {
-    // Both the 3rd and 6th late records get 0.5 deduction each
-    await supabaseAdmin
-      .from('attendance')
-      .update({ deduction_applied: 0.5 })
-      .in('id', [unexempted[2].id, unexempted[5].id]);
+  await logAuditAction(
+    'CORRECT_CLOCK_OUT_TIME',
+    'attendance',
+    sessionId,
+    { reason, old_clock_out: oldRecord.check_out },
+    { check_out: clockOutTime }
+  );
+
+  const { revalidatePath: nextRevalidatePath } = await import('next/cache');
+  nextRevalidatePath('/admin/attendance');
+  nextRevalidatePath('/employee/attendance');
+
+  return { success: true };
+}
+
+export async function rebuildSessionProjection(sessionId: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data: record } = await supabaseAdmin
+    .from('attendance')
+    .select('*')
+    .eq('id', sessionId)
+    .single();
+  if (!record) throw new Error('Session not found');
+
+  const { error } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+    p_session_id: sessionId
+  });
+
+  if (error) {
+    console.error('Error rebuilding session projection:', error);
+    throw new Error('Rebuild projection failed');
   }
+
+  const recordDate = new Date(record.date);
+  const year = recordDate.getFullYear();
+  const month = recordDate.getMonth() + 1;
+  await recalculateEmployeeLates(record.employee_id, year, month);
+
+  const { revalidatePath: nextRevalidatePath } = await import('next/cache');
+  nextRevalidatePath('/admin/attendance');
+  nextRevalidatePath('/employee/attendance');
+
+  return { success: true };
 }
 

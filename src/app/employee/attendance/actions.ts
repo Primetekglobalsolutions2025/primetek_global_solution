@@ -998,3 +998,56 @@ export async function logGPSDismissEvent(sessionId: string, lat: number, lng: nu
   }
 }
 
+export async function submitDispute(attendanceId: string, category: string, reason: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+
+    if (!reason || reason.trim() === '') {
+      return { success: false, error: 'Reason is required' };
+    }
+
+    // Insert into disputes table
+    const { data, error } = await supabaseAdmin
+      .from('disputes')
+      .insert([{
+        employee_id: session.id,
+        attendance_id: attendanceId,
+        category,
+        reason,
+        status: 'PENDING',
+        evidence_snapshot: {}
+      }])
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error inserting dispute:', error);
+      return { success: false, error: 'Failed to submit dispute.' };
+    }
+
+    return { success: true, dispute: data };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to submit dispute' };
+  }
+}
+
+export async function getEmployeeDisputes() {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return [];
+
+    const { data, error } = await supabaseAdmin
+      .from('disputes')
+      .select('*')
+      .eq('employee_id', session.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching employee disputes:', err);
+    return [];
+  }
+}
+

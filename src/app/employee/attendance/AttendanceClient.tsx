@@ -5,7 +5,7 @@ import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, H
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent } from './actions';
+import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useRef } from 'react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
@@ -96,6 +96,48 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
   // 1. Stateful records array for real-time reconciliation updates without reload
   const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
+
+  // Disputes system states
+  const [disputeRecord, setDisputeRecord] = useState<AttendanceRecord | null>(null);
+  const [disputeCategory, setDisputeCategory] = useState<string>('LATE_PENALTY');
+  const [disputeReason, setDisputeReason] = useState<string>('');
+  const [isSubmittingDispute, setIsSubmittingDispute] = useState<boolean>(false);
+  const [myDisputes, setMyDisputes] = useState<any[]>([]);
+
+  useEffect(() => {
+    getEmployeeDisputes().then((data) => {
+      setMyDisputes(data || []);
+    }).catch(console.error);
+  }, [records]);
+
+  const handleDisputeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!disputeRecord) return;
+    if (!disputeReason || disputeReason.trim() === '') {
+      showNotification('Please enter a reason for your dispute.', 'error');
+      return;
+    }
+
+    setIsSubmittingDispute(true);
+    try {
+      const res = await submitDispute(disputeRecord.id, disputeCategory, disputeReason);
+      if (res.success) {
+        showNotification('Dispute submitted successfully.', 'success');
+        setDisputeRecord(null);
+        setDisputeReason('');
+        // Reload disputes
+        const updated = await getEmployeeDisputes();
+        setMyDisputes(updated || []);
+      } else {
+        showNotification(res.error || 'Failed to submit dispute.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification('An unexpected error occurred.', 'error');
+    } finally {
+      setIsSubmittingDispute(false);
+    }
+  };
 
   // 2. Tab Leader Election, Suspension, Version and Escalation States
   const tabId = useRef(Math.random().toString(36).substring(7)).current;
@@ -1601,6 +1643,31 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   <span className="text-[11px] font-bold text-navy-900 font-mono">{r.duration_hours}h</span>
                 </div>
               </div>
+              <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-zinc-100">
+                <span className="text-[9px] font-bold uppercase tracking-wider font-mono">
+                  {myDisputes.some(d => d.attendance_id === r.id) ? (
+                    <span className={cn(
+                      myDisputes.find(d => d.attendance_id === r.id).status === 'APPROVED' ? "text-emerald-600" :
+                      myDisputes.find(d => d.attendance_id === r.id).status === 'REJECTED' ? "text-red-650" : "text-amber-600"
+                    )}>
+                      Dispute: {myDisputes.find(d => d.attendance_id === r.id).status}
+                    </span>
+                  ) : (
+                    <span className="text-zinc-450">No disputes</span>
+                  )}
+                </span>
+                {!myDisputes.some(d => d.attendance_id === r.id) && (
+                  <button
+                    onClick={() => {
+                      setDisputeRecord(r);
+                      setDisputeReason('');
+                    }}
+                    className="px-2 py-0.5 bg-zinc-50 border border-zinc-200 rounded text-[9px] font-bold text-navy-900 hover:bg-zinc-100 transition-colors uppercase tracking-wider font-mono cursor-pointer"
+                  >
+                    File Dispute
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -1639,7 +1706,28 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <History className="w-3.5 h-3.5 text-zinc-300 ml-auto group-hover:text-primary-500 transition-colors" />
+                      <div className="flex items-center justify-end gap-3">
+                        {myDisputes.some(d => d.attendance_id === r.id) ? (
+                          <span className={cn(
+                            "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border font-mono",
+                            myDisputes.find(d => d.attendance_id === r.id).status === 'APPROVED' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            myDisputes.find(d => d.attendance_id === r.id).status === 'REJECTED' ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                          )}>
+                            Dispute: {myDisputes.find(d => d.attendance_id === r.id).status}
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setDisputeRecord(r);
+                              setDisputeReason('');
+                            }}
+                            className="px-2 py-1 bg-zinc-55 hover:bg-zinc-100 border border-zinc-200 rounded text-[10px] font-bold text-navy-900 transition-colors uppercase tracking-wider font-mono cursor-pointer"
+                          >
+                            File Dispute
+                          </button>
+                        )}
+                        <History className="w-3.5 h-3.5 text-zinc-300 group-hover:text-primary-500 transition-colors" />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1758,6 +1846,104 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   </div>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* File Dispute Modal */}
+      <AnimatePresence>
+        {disputeRecord && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-950/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 10 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.96, y: 10 }} 
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-md"
+            >
+              <form onSubmit={handleDisputeSubmit} className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-xl relative overflow-hidden font-sans space-y-4">
+                <div className="absolute top-0 right-0 p-4">
+                  <button 
+                    type="button"
+                    onClick={() => setDisputeRecord(null)}
+                    disabled={isSubmittingDispute}
+                    className="w-8 h-8 rounded-xl border border-zinc-200 bg-zinc-55 hover:bg-zinc-100 flex items-center justify-center text-zinc-650 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl border border-amber-200 bg-amber-50 text-amber-500 flex items-center justify-center shadow-3xs">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-navy-900 tracking-tight">File Attendance Dispute</h3>
+                    <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5">
+                      Session Date: {new Date(disputeRecord.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">
+                      Dispute Category
+                    </label>
+                    <select
+                      value={disputeCategory}
+                      onChange={(e) => setDisputeCategory(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-xs text-navy-900 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer bg-white"
+                    >
+                      <option value="LATE_PENALTY">Late Login Penalty Exemption</option>
+                      <option value="GPS_AUTO_BREAK">GPS Auto-Break Adjustment</option>
+                      <option value="IDLE_WARNING">Idle Hours Warning Exemption</option>
+                      <option value="MISSING_TIME">Missing Time / Heartbeat Sync Correction</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">
+                      Dispute Reason / Explanation (Mandatory)
+                    </label>
+                    <textarea
+                      placeholder="Provide detailed context, client meeting explanation, or network error details..."
+                      required
+                      rows={4}
+                      value={disputeReason}
+                      onChange={(e) => setDisputeReason(e.target.value)}
+                      className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 placeholder:text-zinc-350"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setDisputeRecord(null)}
+                    disabled={isSubmittingDispute}
+                    className="flex-1 py-2 px-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold border border-zinc-200 cursor-pointer disabled:opacity-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmittingDispute}
+                    size="sm"
+                    className="flex-1 bg-navy-900 hover:bg-navy-800 text-white rounded-xl text-xs font-semibold py-2 shadow-3xs flex items-center justify-center gap-1.5"
+                  >
+                    {isSubmittingDispute ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      'Submit Dispute'
+                    )}
+                  </Button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

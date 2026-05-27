@@ -214,19 +214,64 @@ export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Reje
     .eq('id', request.employee_id)
     .single();
 
-  // 2. Update Status atomically only if it is still Pending WFH
-  const { data: updatedRequest, error } = await supabaseAdmin
-    .from('attendance')
-    .update({ status })
-    .eq('id', id)
-    .eq('status', 'Pending WFH')
-    .select('*')
+  // 2. Fetch the last sequence number for the session's event stream
+  const { data: lastEvent } = await supabaseAdmin
+    .from('attendance_events')
+    .select('sequence_number')
+    .eq('session_id', id)
+    .order('sequence_number', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (error) throw error;
-  
-  if (!updatedRequest) {
-    return { success: false, error: 'WFH request has already been processed.' };
+  const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+  // Insert ADMIN_OVERRIDE event instead of direct mutation
+  const { error: insertError } = await supabaseAdmin
+    .from('attendance_events')
+    .insert([{
+      session_id: id,
+      employee_id: request.employee_id,
+      event_type: 'ADMIN_OVERRIDE',
+      sequence_number: nextSequence,
+      idempotency_key: `override-${id}-status-${status}-${nextSequence}`,
+      client_ip: '0.0.0.0', // Admin action
+      payload: {
+        override_field: 'status',
+        old_value: request.status,
+        new_value: status,
+        reason: `WFH request approval decision to ${status}`,
+        admin_id: session.id
+      }
+    }]);
+
+  if (insertError) {
+    console.error('Error logging WFH approval override event:', insertError);
+    throw new Error('Database transaction failed to append WFH override');
+  }
+
+  // Trigger projection rebuild to apply the WFH override status change
+  const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+    p_session_id: id
+  });
+
+  if (rebuildError) {
+    console.error('Error rebuilding projection in updateWFHStatus:', rebuildError);
+    throw new Error('Database projection rebuild failed');
+  }
+
+  // Recalculate employee lates for the month of this record
+  if (request.date) {
+    const recordDate = new Date(request.date);
+    const year = recordDate.getFullYear();
+    const month = recordDate.getMonth() + 1;
+    const { error: rpcError } = await supabaseAdmin.rpc('recalculate_employee_lates_safe', {
+      p_employee_id: request.employee_id,
+      p_year: year,
+      p_month: month
+    });
+    if (rpcError) {
+      console.error('Error running recalculate_employee_lates_safe in updateWFHStatus:', rpcError);
+    }
   }
 
   // Log action to audit ledger
@@ -332,4 +377,181 @@ export async function getApprovalHistory() {
     console.error('Error fetching approval history:', err);
     return [];
   }
+}
+
+export async function getPendingDisputes() {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') return [];
+
+  try {
+    const { data: disputes, error } = await supabaseAdmin
+      .from('disputes')
+      .select(`
+        *,
+        employees (
+          name,
+          email
+        ),
+        attendance (
+          date,
+          check_in,
+          check_out,
+          status,
+          is_late,
+          late_minutes,
+          deduction_applied
+        )
+      `)
+      .eq('status', 'PENDING')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (disputes || []).map((d: any) => ({
+      ...d,
+      employee_name: d.employees?.name || 'Unknown Employee',
+      employee_email: d.employees?.email || '',
+      attendance_date: d.attendance?.date || '',
+      attendance_check_in: d.attendance?.check_in || '',
+      attendance_check_out: d.attendance?.check_out || '',
+      attendance_status: d.attendance?.status || '',
+      attendance_is_late: d.attendance?.is_late || false,
+      attendance_late_minutes: d.attendance?.late_minutes || 0,
+      attendance_deduction: d.attendance?.deduction_applied || 0
+    }));
+  } catch (err) {
+    console.error('Error fetching pending disputes:', err);
+    return [];
+  }
+}
+
+export async function resolveDispute(
+  disputeId: string, 
+  status: 'APPROVED' | 'REJECTED', 
+  justification: string
+) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  if (!justification || justification.trim() === '') {
+    throw new Error('A justification is required to resolve a dispute.');
+  }
+
+  // 1. Get dispute details
+  const { data: dispute, error: fetchError } = await supabaseAdmin
+    .from('disputes')
+    .select('*')
+    .eq('id', disputeId)
+    .single();
+
+  if (fetchError || !dispute) throw new Error('Dispute not found');
+
+  if (dispute.status !== 'PENDING') {
+    throw new Error('Dispute has already been resolved.');
+  }
+
+  // 2. If APPROVED, append the ADMIN_OVERRIDE event
+  if (status === 'APPROVED') {
+    let overrideField = 'manager_exemption';
+    if (dispute.category === 'LATE_PENALTY') {
+      overrideField = 'late_approved';
+    } else if (dispute.category === 'GPS_AUTO_BREAK') {
+      overrideField = 'manager_exemption';
+    } else if (dispute.category === 'IDLE_WARNING') {
+      overrideField = 'manager_exemption';
+    } else if (dispute.category === 'MISSING_TIME') {
+      overrideField = 'shift_override';
+    }
+
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('sequence_number')
+      .eq('session_id', dispute.attendance_id)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+    const { error: insertError } = await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: dispute.attendance_id,
+        employee_id: dispute.employee_id,
+        event_type: 'ADMIN_OVERRIDE',
+        sequence_number: nextSequence,
+        idempotency_key: `dispute-override-${disputeId}-${nextSequence}`,
+        client_ip: '0.0.0.0',
+        payload: {
+          override_field: overrideField,
+          old_value: false,
+          new_value: true,
+          reason: `Dispute approved: ${justification}`,
+          admin_id: session.id,
+          dispute_id: disputeId
+        }
+      }]);
+
+    if (insertError) {
+      console.error('Error logging override event for dispute:', insertError);
+      throw new Error('Failed to append override event for dispute approval');
+    }
+
+    const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: dispute.attendance_id
+    });
+    if (rebuildError) {
+      console.error('Error rebuilding projection in resolveDispute:', rebuildError);
+      throw new Error('Projection rebuild failed');
+    }
+
+    const { data: attendanceRecord } = await supabaseAdmin
+      .from('attendance')
+      .select('date')
+      .eq('id', dispute.attendance_id)
+      .single();
+
+    if (attendanceRecord && attendanceRecord.date) {
+      const recordDate = new Date(attendanceRecord.date);
+      const year = recordDate.getFullYear();
+      const month = recordDate.getMonth() + 1;
+      const { error: rpcError } = await supabaseAdmin.rpc('recalculate_employee_lates_safe', {
+        p_employee_id: dispute.employee_id,
+        p_year: year,
+        p_month: month
+      });
+      if (rpcError) {
+        console.error('Error recalculating lates in resolveDispute:', rpcError);
+      }
+    }
+  }
+
+  // 3. Update dispute row
+  const { error: updateError } = await supabaseAdmin
+    .from('disputes')
+    .update({
+      status,
+      admin_justification: justification,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', disputeId);
+
+  if (updateError) {
+    console.error('Error updating dispute status:', updateError);
+    throw new Error('Failed to update dispute resolution status');
+  }
+
+  // 4. Log Audit
+  await logAuditAction(
+    status === 'APPROVED' ? 'APPROVE_DISPUTE' : 'REJECT_DISPUTE',
+    'disputes',
+    disputeId,
+    { status: 'PENDING' },
+    { status, justification }
+  );
+
+  revalidatePath('/admin/approvals');
+  revalidatePath('/admin/attendance');
+  revalidatePath('/employee/attendance');
+
+  return { success: true };
 }
