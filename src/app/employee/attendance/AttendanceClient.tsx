@@ -5,8 +5,9 @@ import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, H
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence } from './actions';
+import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
+import { useRef } from 'react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
 
@@ -86,6 +87,13 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   
   const { isOnline, pendingCount, isSyncing, syncQueue, refreshPendingCount } = useOfflineSync();
 
+  const [sessionState, setSessionState] = useState<'ACTIVE' | 'WARNING' | 'ON_BREAK'>('ACTIVE');
+  const clickCount = useRef(0);
+  const keypressCount = useRef(0);
+  const pointerMovesCount = useRef(0);
+  const sequenceNumber = useRef(2);
+  const geofenceHistory = useRef<{ lat: number; lng: number; accuracy: number }[]>([]);
+
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
   };
@@ -122,7 +130,157 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     };
   }, [initialRecords]);
 
-  // Automated background geofencing to prevent employees from going outside without starting a break
+  // SharedWorker / BroadcastChannel Multi-Tab Idle Tracker
+  useEffect(() => {
+    if (typeof window === 'undefined' || !checkedIn || isCheckedOut || currentStatus !== 'Working') return;
+
+    let worker: SharedWorker | null = null;
+    let fallbackBc: BroadcastChannel | null = null;
+    let localInterval: any = null;
+
+    try {
+      worker = new SharedWorker('/workers/idle-worker.js');
+      worker.port.onmessage = (e) => {
+        const { type, state } = e.data;
+        if (type === 'STATE_CHANGED') {
+          setSessionState(state);
+        } else if (type === 'TRIGGER_AUTO_BREAK') {
+          showNotification('Outside active session/idle timeout. Automatically starting break...', 'error');
+          handleStartBreak();
+        }
+      };
+      worker.port.start();
+    } catch (err) {
+      console.warn('SharedWorker not supported or blocked, running fallback BroadcastChannel:', err);
+      fallbackBc = new BroadcastChannel('idle_sync');
+      fallbackBc.onmessage = (e) => {
+        const { type, state } = e.data;
+        if (type === 'STATE_CHANGED') {
+          setSessionState(state);
+        } else if (type === 'TRIGGER_AUTO_BREAK') {
+          showNotification('Outside active session/idle timeout. Automatically starting break...', 'error');
+          handleStartBreak();
+        }
+      };
+
+      let lastAct = Date.now();
+      localInterval = setInterval(() => {
+        const delta = Date.now() - lastAct;
+        if (delta >= 300000 && sessionState === 'ACTIVE') {
+          setSessionState('WARNING');
+          if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'WARNING' });
+        } else if (delta >= 360000 && sessionState === 'WARNING') {
+          clearInterval(localInterval);
+          if (fallbackBc) fallbackBc.postMessage({ type: 'TRIGGER_AUTO_BREAK' });
+          handleStartBreak();
+        }
+      }, 1000);
+      
+      const onActivity = () => {
+        lastAct = Date.now();
+        if (sessionState !== 'ACTIVE') {
+          setSessionState('ACTIVE');
+          if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'ACTIVE' });
+        }
+      };
+      const events = ['mousemove', 'keydown', 'click', 'scroll'];
+      events.forEach(ev => window.addEventListener(ev, onActivity, { passive: true }));
+    }
+
+    const reportActivity = () => {
+      if (worker) worker.port.postMessage({ type: 'ACTIVITY' });
+    };
+
+    const events = ['mousemove', 'keydown', 'click', 'scroll'];
+    events.forEach(ev => window.addEventListener(ev, reportActivity, { passive: true }));
+
+    return () => {
+      events.forEach(ev => window.removeEventListener(ev, reportActivity));
+      if (worker) worker.port.close();
+      if (fallbackBc) fallbackBc.close();
+      if (localInterval) clearInterval(localInterval);
+    };
+  }, [checkedIn, isCheckedOut, currentStatus, sessionState]);
+
+  // Telemetry Input Listeners
+  useEffect(() => {
+    if (!checkedIn || isCheckedOut || currentStatus !== 'Working') return;
+
+    const trackClick = () => { clickCount.current++; };
+    const trackKeydown = () => { keypressCount.current++; };
+    const trackMousemove = () => { pointerMovesCount.current++; };
+
+    window.addEventListener('click', trackClick, { passive: true });
+    window.addEventListener('keydown', trackKeydown, { passive: true });
+    window.addEventListener('mousemove', trackMousemove, { passive: true });
+
+    return () => {
+      window.removeEventListener('click', trackClick);
+      window.removeEventListener('keydown', trackKeydown);
+      window.removeEventListener('mousemove', trackMousemove);
+    };
+  }, [checkedIn, isCheckedOut, currentStatus]);
+
+  // Periodic Telemetry Heartbeat Loop
+  useEffect(() => {
+    if (!checkedIn || isCheckedOut || currentStatus !== 'Working' || !todayRecord) return;
+
+    const sendHeartbeat = () => {
+      if (!navigator.geolocation) return;
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy || 10;
+          
+          const payload = {
+            sessionId: todayRecord.id,
+            sequenceNumber: sequenceNumber.current,
+            clientTimestamp: new Date().toISOString(),
+            idempotencyKey: `hbeat-${todayRecord.id}-${sequenceNumber.current}-${Date.now()}`,
+            activeWindow: !document.hidden,
+            meetingMode: false,
+            telemetry: {
+              clicks: clickCount.current,
+              keypresses: keypressCount.current,
+              pointerMoves: pointerMovesCount.current,
+              lat,
+              lng,
+              accuracy
+            }
+          };
+
+          // Reset counters and increment sequence
+          clickCount.current = 0;
+          keypressCount.current = 0;
+          pointerMovesCount.current = 0;
+          sequenceNumber.current++;
+
+          try {
+            const res = await processHeartbeat(payload);
+            if (res.success) {
+              if (res.status === 'On Break') {
+                showNotification('Automated Break: Server detected out-of-range state.', 'error');
+                setTimeout(() => window.location.reload(), 1500);
+              }
+            }
+          } catch (err) {
+            console.error('[Heartbeat Error]:', err);
+          }
+        },
+        (error) => {
+          console.warn('[Heartbeat GPS warning]:', error);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    };
+
+    const interval = setInterval(sendHeartbeat, 60000);
+    return () => clearInterval(interval);
+  }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
+
+  // Sliding Window Geofence Checker
   useEffect(() => {
     if (!checkedIn || isCheckedOut || currentStatus !== 'Working') return;
 
@@ -133,15 +291,35 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         async (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy || 10;
+          
+          geofenceHistory.current.push({ lat, lng, accuracy });
+          if (geofenceHistory.current.length > 5) {
+            geofenceHistory.current.shift();
+          }
+
           try {
-            const res = await checkGeofence(lat, lng);
-            if (res.success && !res.withinRange) {
-              showNotification('Outside office range detected. Automatically starting break...', 'error');
-              const breakRes = await startBreak();
-              if (breakRes.success) {
-                showNotification('Automated Break: You walked outside the office range.', 'success');
-                setTimeout(() => window.location.reload(), 1500);
+            const currentRes = await checkGeofence(lat, lng);
+            
+            if (geofenceHistory.current.length >= 3) {
+              const results = await Promise.all(
+                geofenceHistory.current.map(async (check) => {
+                  const checkRes = await checkGeofence(check.lat, check.lng);
+                  return checkRes.success && !checkRes.withinRange;
+                })
+              );
+              const outsideCount = results.filter(Boolean).length;
+
+              if (outsideCount >= 3) {
+                showNotification('Outside office range detected consecutively. Automatically starting break...', 'error');
+                const breakRes = await startBreak();
+                if (breakRes.success) {
+                  showNotification('Automated Break: You walked outside the office range.', 'success');
+                  setTimeout(() => window.location.reload(), 1500);
+                }
               }
+            } else if (currentRes.success && !currentRes.withinRange) {
+              showNotification('GPS signal indicates you are outside office range. Verifying location stability...', 'info');
             }
           } catch (err) {
             console.error('Error in background geofence check:', err);
@@ -485,6 +663,54 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
   return (
     <div className="space-y-6 pb-16">
+      {/* Inactivity / Idle Warning Modal Overlay */}
+      <AnimatePresence>
+        {sessionState === 'WARNING' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 font-sans"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="bg-white border border-zinc-200 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4"
+            >
+              <div className="flex items-center gap-3 text-amber-600">
+                <AlertTriangle className="w-8 h-8" />
+                <h3 className="text-lg font-bold text-navy-900 font-sans">Are you still working?</h3>
+              </div>
+              <p className="text-xs text-zinc-650 leading-relaxed font-sans">
+                We noticed you have been away from your screen. To prevent your session from automatically going on break, please click the button below.
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between font-sans">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700">Auto-Break Countdown</span>
+                <span className="text-sm font-mono font-black text-amber-700">Warning Active</span>
+              </div>
+              <button
+                onClick={() => {
+                  try {
+                    const sw = new SharedWorker('/workers/idle-worker.js');
+                    sw.port.postMessage({ type: 'ACTIVITY' });
+                    sw.port.close();
+                  } catch (err) {}
+                  
+                  const bc = new BroadcastChannel('idle_sync');
+                  bc.postMessage({ type: 'STATE_CHANGED', state: 'ACTIVE' });
+                  bc.close();
+                  
+                  setSessionState('ACTIVE');
+                }}
+                className="w-full py-3 rounded-xl bg-primary-600 hover:bg-primary-750 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer font-sans"
+              >
+                I am still working
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Offline / Pending Sync Indicator */}
       <AnimatePresence>
         {(!isOnline || pendingCount > 0) && (

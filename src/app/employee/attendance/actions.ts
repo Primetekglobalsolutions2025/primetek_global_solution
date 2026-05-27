@@ -213,6 +213,22 @@ export async function checkIn(
         .eq('id', risk.riskEventId);
     }
 
+    // Insert CLOCK_IN event
+    await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: attRecord.id,
+        employee_id: session.id,
+        event_type: 'CLOCK_IN',
+        sequence_number: 1,
+        idempotency_key: `clk-in-${attRecord.id}`,
+        client_ip: ip === 'unknown' ? '0.0.0.0' : ip,
+        gps_lat: Number(lat),
+        gps_lng: Number(lng),
+        gps_accuracy: 10,
+        payload: { is_late: isLate, late_minutes: lateMinutes }
+      }]);
+
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true, recordId: attRecord.id };
@@ -448,6 +464,33 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
         .eq('id', risk.riskEventId);
     }
 
+    // Fetch the last sequence number from events to determine the sequence number for CLOCK_OUT
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('sequence_number')
+      .eq('session_id', recordId)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+    // Insert CLOCK_OUT event
+    await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: recordId,
+        employee_id: session.id,
+        event_type: 'CLOCK_OUT',
+        sequence_number: nextSequence,
+        idempotency_key: `clk-out-${recordId}-${nextSequence}`,
+        client_ip: ip === 'unknown' ? '0.0.0.0' : ip,
+        gps_lat: numLat,
+        gps_lng: numLng,
+        gps_accuracy: 10,
+        payload: { duration_hours: durationHours, total_break_seconds: totalBreak, productive_hours: productiveHours }
+      }]);
+
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true };
@@ -541,6 +584,33 @@ export async function startBreak() {
 
     if (error) throw error;
 
+    // Get sequence
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('sequence_number')
+      .eq('session_id', record.id)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+    // Insert event
+    await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: record.id,
+        employee_id: session.id,
+        event_type: 'BREAK_STARTED',
+        sequence_number: nextSequence,
+        idempotency_key: `brk-start-${record.id}-${nextSequence}`,
+        client_ip: '0.0.0.0',
+        gps_lat: record.lat ? Number(record.lat) : null,
+        gps_lng: record.lng ? Number(record.lng) : null,
+        gps_accuracy: 10,
+        payload: { start_time: now.toISOString() }
+      }]);
+
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     return { success: true };
@@ -606,6 +676,33 @@ export async function endBreak() {
       .eq('id', record.id);
 
     if (error) throw error;
+
+    // Get sequence
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('sequence_number')
+      .eq('session_id', record.id)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+      
+    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+    // Insert event
+    await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: record.id,
+        employee_id: session.id,
+        event_type: 'BREAK_ENDED',
+        sequence_number: nextSequence,
+        idempotency_key: `brk-end-${record.id}-${nextSequence}`,
+        client_ip: '0.0.0.0',
+        gps_lat: record.lat ? Number(record.lat) : null,
+        gps_lng: record.lng ? Number(record.lng) : null,
+        gps_accuracy: 10,
+        payload: { end_time: now.toISOString(), total_break_seconds: newTotalBreak }
+      }]);
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
@@ -707,6 +804,106 @@ export async function checkGeofence(lat: number, lng: number) {
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Failed to verify geofence';
+    return { success: false, error: errorMsg };
+  }
+}
+
+export async function processHeartbeat(payload: {
+  sessionId: string;
+  sequenceNumber: number;
+  clientTimestamp: string;
+  idempotencyKey: string;
+  activeWindow: boolean;
+  meetingMode: boolean;
+  telemetry: {
+    clicks: number;
+    keypresses: number;
+    pointerMoves: number;
+    lat: number;
+    lng: number;
+    accuracy: number;
+  };
+}) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const reqHeaders = await headers();
+    const clientIp = reqHeaders.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+
+    // 1. Fetch current active session parameters
+    const { data: record, error: fetchError } = await supabaseAdmin
+      .from('attendance')
+      .select('*')
+      .eq('id', payload.sessionId)
+      .eq('employee_id', session.id)
+      .single();
+
+    if (fetchError || !record) {
+      return { success: false, error: 'Session not found' };
+    }
+
+    if (record.check_out || record.status === 'Logged Out') {
+      return { success: false, error: 'Session is already clocked out' };
+    }
+
+    // 2. Perform Geofencing Verification (Drift-tolerant check)
+    const { data: officeList } = await supabaseAdmin
+      .from('office_locations')
+      .select('lat, lng, radius_meters')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    const officeLat = Number(office?.lat || 17.3850);
+    const officeLng = Number(office?.lng || 78.4867);
+    const radius = Number(office?.radius_meters || 500);
+
+    const distance = calculateDistance(payload.telemetry.lat, payload.telemetry.lng, officeLat, officeLng);
+    const withinRange = distance <= (radius + payload.telemetry.accuracy * 0.1);
+
+    let resolvedEventType: 'HEARTBEAT_RECEIVED' | 'AUTO_BREAK_TRIGGERED' = 'HEARTBEAT_RECEIVED';
+    let nextStatus = record.status;
+
+    // 3. Write transactionally to DB using RPC write_heartbeat_event
+    const { error: rpcErr } = await supabaseAdmin.rpc('write_heartbeat_event', {
+      p_session_id: payload.sessionId,
+      p_employee_id: session.id,
+      p_event_type: resolvedEventType,
+      p_sequence: payload.sequenceNumber,
+      p_idempotency: payload.idempotencyKey,
+      p_client_ip: clientIp,
+      p_lat: Number(payload.telemetry.lat),
+      p_lng: Number(payload.telemetry.lng),
+      p_accuracy: Number(payload.telemetry.accuracy),
+      p_status: nextStatus,
+      p_payload: {
+        active_window: payload.activeWindow,
+        meeting_mode: payload.meetingMode,
+        clicks: payload.telemetry.clicks,
+        keypresses: payload.telemetry.keypresses,
+        pointer_moves: payload.telemetry.pointerMoves,
+        distance_meters: Math.round(distance)
+      }
+    });
+
+    if (rpcErr) {
+      console.error('[Heartbeat RPC Error]:', rpcErr);
+      return { success: false, error: 'Database transaction sync error' };
+    }
+
+    return { 
+      success: true, 
+      status: nextStatus,
+      withinRange,
+      distance: Math.round(distance)
+    };
+
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Internal server error';
     return { success: false, error: errorMsg };
   }
 }
