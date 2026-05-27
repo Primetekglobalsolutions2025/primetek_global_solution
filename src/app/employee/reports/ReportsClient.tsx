@@ -29,33 +29,26 @@ function formatSeconds(sec: number) {
 }
 
 function StatCard({
-  label, value, sub, icon: Icon, color, accentColor, iconBg,
+  label, value, sub, icon: Icon, color,
 }: {
   label: string; value: string | number; sub?: string;
-  icon: any; color: string; accentColor: string; iconBg: string;
+  icon: any; color: string;
 }) {
   return (
-    <div className="bg-white rounded-xl p-5 border border-border/50 flex flex-col gap-4 relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-xs hover:border-primary-500/30 transition-all duration-300">
-      {/* Left accent indicator line */}
-      <div className={cn('absolute left-0 top-0 bottom-0 w-1', accentColor)} />
-      
+    <div className="bg-white rounded-lg p-5 border border-zinc-200/80 flex flex-col gap-4 relative hover:border-zinc-400 transition-all duration-200 shadow-2xs">
       <div className="flex items-center justify-between">
-        <div className={cn(
-          'w-9 h-9 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-105 border',
-          color, 
-          iconBg
-        )}>
-          <Icon className="w-4.5 h-4.5" />
+        <div className="w-8 h-8 rounded-md bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500">
+          <Icon className="w-4 h-4" />
         </div>
         {sub && (
-          <span className="text-[8px] font-bold text-text-secondary bg-surface-alt px-2 py-0.5 rounded border border-border/50 shadow-2xs">
+          <span className="text-[9px] font-mono font-medium text-zinc-500 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded">
             {sub}
           </span>
         )}
       </div>
       <div>
-        <p className="text-2xl font-bold text-navy-900 leading-none font-sans tracking-tight">{value}</p>
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-text-muted mt-1.5">{label}</p>
+        <p className="text-2xl font-bold tracking-tight text-zinc-900 font-sans leading-none">{value}</p>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 mt-2 font-sans">{label}</p>
       </div>
     </div>
   );
@@ -63,12 +56,9 @@ function StatCard({
 
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
-    <div className="flex items-center gap-2.5 mb-5">
-      <div className="w-1 h-5 bg-gradient-to-b from-primary-400 to-primary-600 rounded-full" />
-      <div>
-        <h3 className="font-semibold text-navy-900 text-sm tracking-tight font-sans">{title}</h3>
-        {sub && <p className="text-[10px] text-text-muted font-bold mt-0.5 tracking-wide">{sub}</p>}
-      </div>
+    <div className="flex flex-col gap-1 mb-5">
+      <h3 className="font-semibold text-zinc-900 text-sm tracking-tight font-sans">{title}</h3>
+      {sub && <p className="text-[11px] text-zinc-400 font-medium tracking-normal">{sub}</p>}
     </div>
   );
 }
@@ -76,10 +66,10 @@ function SectionHeader({ title, sub }: { title: string; sub?: string }) {
 function RiskBadge({ level }: { level: string }) {
   return (
     <span className={cn(
-      'inline-flex items-center px-2.5 py-1 rounded-full text-[8px] font-bold uppercase tracking-wider border shadow-2xs',
+      'inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-medium border uppercase tracking-wider',
       level === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
       level === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-      'bg-emerald-50 text-emerald-700 border-emerald-200'
+      'bg-emerald-50 text-emerald-700 border-emerald-250'
     )}>
       <span className={cn(
         'w-1.5 h-1.5 rounded-full mr-1.5 shrink-0',
@@ -107,13 +97,13 @@ function StatusBadge({ status }: { status: string }) {
     if (s === 'on break') {
       return { bg: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' };
     }
-    return { bg: 'bg-gray-50 text-gray-700 border-gray-200', dot: 'bg-gray-500' };
+    return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };
   };
 
   const theme = getTheme();
   return (
     <span className={cn(
-      'inline-flex items-center px-2.5 py-1 rounded-full text-[8px] font-bold uppercase tracking-wider border shadow-2xs',
+      'inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-medium border uppercase tracking-wider',
       theme.bg
     )}>
       <span className={cn('w-1.5 h-1.5 rounded-full mr-1.5 shrink-0', theme.dot)} />
@@ -127,7 +117,7 @@ function StatusBadge({ status }: { status: string }) {
 function AttendanceReport({ data }: { data: any }) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  if (!data) return <p className="text-sm text-text-muted p-4">Failed to load attendance data.</p>;
+  if (!data) return <p className="text-sm text-zinc-400 p-4 font-sans">Failed to load attendance data.</p>;
 
   return (
     <div className="space-y-6">
@@ -138,8 +128,6 @@ function AttendanceReport({ data }: { data: any }) {
           value={data.present} 
           icon={CheckCircle2} 
           color="text-emerald-600" 
-          accentColor="bg-emerald-500" 
-          iconBg="bg-emerald-500/10 border-emerald-500/10" 
         />
         <StatCard 
           label="Late Entries" 
@@ -147,16 +135,12 @@ function AttendanceReport({ data }: { data: any }) {
           sub="Unexempted" 
           icon={AlertTriangle} 
           color="text-amber-600" 
-          accentColor="bg-amber-500" 
-          iconBg="bg-amber-500/10 border-amber-500/10" 
         />
         <StatCard 
           label="Absences" 
           value={data.absent} 
           icon={XCircle} 
           color="text-red-600" 
-          accentColor="bg-red-500" 
-          iconBg="bg-red-500/10 border-red-500/10" 
         />
         <StatCard 
           label="WFH Days" 
@@ -164,54 +148,46 @@ function AttendanceReport({ data }: { data: any }) {
           sub={data.pendingWfh > 0 ? `${data.pendingWfh} pending` : undefined} 
           icon={MapPin} 
           color="text-violet-600" 
-          accentColor="bg-violet-500" 
-          iconBg="bg-violet-500/10 border-violet-500/10" 
         />
       </div>
 
       {/* Hours Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="rounded-xl border border-border/50 bg-white p-5 space-y-2.5 relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-xs hover:border-primary-500/30 transition-all duration-300">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500" />
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-text-muted leading-none font-sans">Total Productive Hours</p>
-          <p className="text-2xl font-bold text-navy-900 leading-none font-sans tracking-tight">
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-zinc-400 transition-all duration-200 shadow-2xs">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">Total Productive Hours</p>
+          <p className="text-2xl font-bold text-zinc-900 leading-none font-sans tracking-tight">
             {data.totalProductiveHours}
-            <span className="text-xs font-semibold text-text-muted ml-1">hrs</span>
+            <span className="text-xs font-semibold text-zinc-400 ml-1">hrs</span>
           </p>
-          <p className="text-[10px] text-text-muted font-medium font-sans">Avg {data.avgProductiveHours} hrs/day</p>
+          <p className="text-[11px] text-zinc-400 font-medium font-sans">Avg {data.avgProductiveHours} hrs/day</p>
         </div>
         
-        <div className="rounded-xl border border-border/50 bg-white p-5 space-y-2.5 relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-xs hover:border-primary-500/30 transition-all duration-300">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-text-muted leading-none font-sans">Total Break Time</p>
-          <p className="text-2xl font-bold text-navy-900 leading-none font-sans tracking-tight">
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-zinc-400 transition-all duration-200 shadow-2xs">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">Total Break Time</p>
+          <p className="text-2xl font-bold text-zinc-900 leading-none font-sans tracking-tight">
             {formatSeconds(data.totalBreakSeconds)}
           </p>
-          <p className="text-[10px] text-text-muted font-medium font-sans">Across {data.present} working days</p>
+          <p className="text-[11px] text-zinc-400 font-medium font-sans">Across {data.present} working days</p>
         </div>
         
-        <div className={cn(
-          'rounded-xl border border-border/50 bg-white p-5 space-y-2.5 relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-xs hover:border-primary-500/30 transition-all duration-300',
-          data.deductionTotal > 0 ? 'border-l-red-500 border-l-2' : ''
-        )}>
-          {data.deductionTotal === 0 && <div className="absolute left-0 top-0 bottom-0 w-1 bg-slate-300" />}
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-text-muted leading-none font-sans">Attendance Deductions</p>
-          <p className={cn('text-2xl font-bold leading-none font-sans tracking-tight', data.deductionTotal > 0 ? 'text-red-600' : 'text-navy-900')}>
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-zinc-400 transition-all duration-200 shadow-2xs">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">Attendance Deductions</p>
+          <p className={cn('text-2xl font-bold leading-none font-sans tracking-tight', data.deductionTotal > 0 ? 'text-red-600' : 'text-zinc-900')}>
             {data.deductionTotal}
-            <span className="text-xs font-semibold text-text-muted ml-1">days</span>
+            <span className="text-xs font-semibold text-zinc-400 ml-1">days</span>
           </p>
-          <p className="text-[10px] text-text-muted font-medium font-sans">{data.late} late login{data.late !== 1 ? 's' : ''} this month</p>
+          <p className="text-[11px] text-zinc-400 font-medium font-sans">{data.late} late login{data.late !== 1 ? 's' : ''} this month</p>
         </div>
       </div>
 
       {/* Daily Log Table */}
       <div>
         <SectionHeader title="Daily Attendance Log" sub="This month's full record" />
-        <div className="rounded-xl border border-border/50 bg-white overflow-hidden shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-2xs">
           {data.records.length === 0 ? (
-            <div className="p-10 text-center text-text-muted text-xs font-semibold">No records this month.</div>
+            <div className="p-10 text-center text-zinc-400 text-xs font-medium font-sans">No records this month.</div>
           ) : (
-            <div className="divide-y divide-border/30">
+            <div className="divide-y divide-zinc-100">
               {data.records.map((r: any) => {
                 const isExpanded = expandedRow === r.id;
                 const checkIn = r.check_in ? new Date(r.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '—';
@@ -221,26 +197,26 @@ function AttendanceReport({ data }: { data: any }) {
                   <div key={r.id} className="group/row">
                     <button
                       onClick={() => setExpandedRow(isExpanded ? null : r.id)}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-alt/50 transition-colors text-left"
+                      className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-50/50 transition-colors text-left"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-surface-alt border border-border/50 flex flex-col items-center justify-center shrink-0 group-hover/row:border-primary-500/30 transition-colors">
-                        <span className="text-sm font-bold text-navy-900 leading-none font-sans">{new Date(r.date).getDate()}</span>
-                        <span className="text-[8px] font-semibold text-text-muted uppercase mt-0.5 font-sans">{new Date(r.date).toLocaleDateString('en-IN', { month: 'short' })}</span>
+                      <div className="w-10 h-10 rounded bg-zinc-50 border border-zinc-200 flex flex-col items-center justify-center shrink-0 group-hover/row:border-zinc-350 transition-colors">
+                        <span className="text-sm font-bold text-zinc-900 leading-none font-sans">{new Date(r.date).getDate()}</span>
+                        <span className="text-[8px] font-semibold text-zinc-400 uppercase mt-0.5 font-sans">{new Date(r.date).toLocaleDateString('en-IN', { month: 'short' })}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-navy-900">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long' })}</span>
+                          <span className="text-xs font-semibold text-zinc-900">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long' })}</span>
                           <StatusBadge status={r.status} />
-                          {r.is_late && !isExempted && <span className="text-[8px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider">Late {r.late_minutes}m</span>}
-                          {r.is_late && isExempted && <span className="text-[8px] font-bold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider">Exempted</span>}
+                          {r.is_late && !isExempted && <span className="text-[8px] font-mono font-medium text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded uppercase tracking-wider">Late {r.late_minutes}m</span>}
+                          {r.is_late && isExempted && <span className="text-[8px] font-mono font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded uppercase tracking-wider">Exempted</span>}
                         </div>
-                        <div className="flex items-center gap-3 mt-1 text-[10px] text-text-muted font-medium">
+                        <div className="flex items-center gap-3 mt-1 text-[10px] text-zinc-400 font-mono">
                           <span className="flex items-center gap-1"><LogIn className="w-3 h-3 text-emerald-500" />{checkIn}</span>
                           <span className="flex items-center gap-1"><LogOut className="w-3 h-3 text-red-400" />{checkOut}</span>
-                          {r.productive_hours > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{r.productive_hours}h productive</span>}
+                          {r.productive_hours > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-zinc-450" />{r.productive_hours}h productive</span>}
                         </div>
                       </div>
-                      <div className="shrink-0 text-gray-400 transition-transform duration-200">
+                      <div className="shrink-0 text-zinc-400 transition-transform duration-200">
                         <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", isExpanded && "rotate-180")} />
                       </div>
                     </button>
@@ -250,25 +226,25 @@ function AttendanceReport({ data }: { data: any }) {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
+                          transition={{ duration: 0.15 }}
+                          className="overflow-hidden bg-zinc-50/20"
                         >
-                          <div className="px-5 pb-5 pt-1.5 bg-surface-alt/25 border-t border-border/30 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-                            <div className="bg-white p-3 rounded-lg border border-border/50 shadow-2xs">
-                              <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-0.5">Break Time</p>
-                              <p className="font-bold text-navy-900 text-sm mt-1">{formatSeconds(r.total_break_seconds)}</p>
+                          <div className="px-5 pb-5 pt-1 bg-zinc-50/40 border-t border-zinc-150 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                            <div className="bg-white p-3 rounded border border-zinc-200">
+                              <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Break Time</p>
+                              <p className="font-semibold text-zinc-900 text-sm mt-1 font-mono">{formatSeconds(r.total_break_seconds)}</p>
                             </div>
-                            <div className="bg-white p-3 rounded-lg border border-border/50 shadow-2xs">
-                              <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-0.5">Productive</p>
-                              <p className="font-bold text-navy-900 text-sm mt-1">{r.productive_hours}h</p>
+                            <div className="bg-white p-3 rounded border border-zinc-200">
+                              <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Productive</p>
+                              <p className="font-semibold text-zinc-900 text-sm mt-1 font-mono">{r.productive_hours}h</p>
                             </div>
-                            <div className="bg-white p-3 rounded-lg border border-border/50 shadow-2xs">
-                              <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-0.5">Deduction</p>
-                              <p className={cn('font-bold text-sm mt-1', r.deduction_applied > 0 ? 'text-red-600' : 'text-navy-900')}>{r.deduction_applied > 0 ? `${r.deduction_applied} day` : 'None'}</p>
+                            <div className="bg-white p-3 rounded border border-zinc-200">
+                              <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Deduction</p>
+                              <p className={cn('font-semibold text-sm mt-1 font-mono', r.deduction_applied > 0 ? 'text-red-650' : 'text-zinc-900')}>{r.deduction_applied > 0 ? `${r.deduction_applied} day` : 'None'}</p>
                             </div>
-                            <div className="bg-white p-3 rounded-lg border border-border/50 shadow-2xs">
-                              <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-0.5">Exemption</p>
-                              <p className="font-bold text-navy-900 text-sm mt-1">{isExempted ? 'Yes' : 'No'}</p>
+                            <div className="bg-white p-3 rounded border border-zinc-200">
+                              <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Exemption</p>
+                              <p className="font-semibold text-zinc-900 text-sm mt-1 font-sans">{isExempted ? 'Yes' : 'No'}</p>
                             </div>
                           </div>
                         </motion.div>
@@ -288,7 +264,7 @@ function AttendanceReport({ data }: { data: any }) {
 // ─── Leaves Tab ───────────────────────────────────────────────────────────────
 
 function LeavesReport({ data }: { data: any }) {
-  if (!data) return <p className="text-sm text-text-muted p-4">Failed to load leave data.</p>;
+  if (!data) return <p className="text-sm text-zinc-400 p-4 font-sans">Failed to load leave data.</p>;
 
   return (
     <div className="space-y-6">
@@ -299,50 +275,41 @@ function LeavesReport({ data }: { data: any }) {
           value={data.total} 
           icon={Calendar} 
           color="text-blue-600" 
-          accentColor="bg-blue-500" 
-          iconBg="bg-blue-500/10 border-blue-500/10" 
         />
         <StatCard 
           label="Approved" 
           value={data.approved} 
           icon={CheckCircle2} 
           color="text-emerald-600" 
-          accentColor="bg-emerald-500" 
-          iconBg="bg-emerald-500/10 border-emerald-500/10" 
         />
         <StatCard 
           label="Pending" 
           value={data.pending} 
           icon={AlertTriangle} 
           color="text-amber-600" 
-          accentColor="bg-amber-500" 
-          iconBg="bg-amber-500/10 border-amber-500/10" 
         />
         <StatCard 
           label="Rejected" 
           value={data.rejected} 
           icon={XCircle} 
           color="text-red-600" 
-          accentColor="bg-red-500" 
-          iconBg="bg-red-500/10 border-red-500/10" 
         />
       </div>
 
       {/* Casual Leave Balance */}
-      <div className="rounded-xl border border-border/50 bg-white p-5 shadow-2xs relative overflow-hidden">
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500" />
-        <p className="text-[9px] font-semibold uppercase tracking-wider text-text-muted mb-3 font-sans">Casual Leave Balance — This Month</p>
+      <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-2xs">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-450 mb-3 font-sans">Casual Leave Balance — This Month</p>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="shrink-0">
-            <p className="text-2xl font-bold text-navy-900 font-sans tracking-tight">
+            <p className="text-2xl font-bold text-zinc-900 font-sans tracking-tight">
               {data.remainingCasual}
-              <span className="text-xs font-semibold text-text-muted ml-1 font-sans">/ 1 day</span>
+              <span className="text-xs font-semibold text-zinc-400 ml-1 font-sans">/ 1 day</span>
             </p>
-            <p className="text-[10px] text-text-muted font-medium mt-1 font-sans">{data.usedCasual} used this month</p>
+            <p className="text-[10px] text-zinc-400 font-medium mt-1 font-sans">{data.usedCasual} used this month</p>
           </div>
-          <div className="flex-1 h-2.5 rounded-full bg-surface-alt overflow-hidden border border-border/50">
+          <div className="flex-1 h-2 rounded bg-zinc-100 overflow-hidden border border-zinc-150">
             <div
-              className={cn('h-full rounded-full transition-all bg-gradient-to-r', data.usedCasual >= 1 ? 'from-red-400 to-red-500' : 'from-emerald-400 to-emerald-500')}
+              className={cn('h-full rounded transition-all', data.usedCasual >= 1 ? 'bg-red-500' : 'bg-emerald-500')}
               style={{ width: `${Math.min(100, (data.usedCasual / 1) * 100)}%` }}
             />
           </div>
@@ -352,28 +319,28 @@ function LeavesReport({ data }: { data: any }) {
       {/* Leave History */}
       <div>
         <SectionHeader title="Leave Request History" sub="All time" />
-        <div className="rounded-xl border border-border/50 bg-white overflow-hidden shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-2xs">
           {data.leaves.length === 0 ? (
-            <div className="p-10 text-center text-text-muted text-xs font-semibold">No leave requests found.</div>
+            <div className="p-10 text-center text-zinc-400 text-xs font-semibold font-sans">No leave requests found.</div>
           ) : (
-            <div className="divide-y divide-border/30">
+            <div className="divide-y divide-zinc-100">
               {data.leaves.map((l: any) => (
-                <div key={l.id} className="px-5 py-4 flex items-start justify-between gap-4 hover:bg-surface-alt/30 transition-colors">
+                <div key={l.id} className="px-5 py-4 flex items-start justify-between gap-4 hover:bg-zinc-50/40 transition-colors">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-navy-900">{l.type} Leave</span>
+                      <span className="text-xs font-semibold text-zinc-900">{l.type} Leave</span>
                       <StatusBadge status={l.status || 'Pending'} />
                     </div>
-                    <p className="text-[10px] text-text-muted font-bold tracking-wide uppercase">
+                    <p className="text-[10px] text-zinc-400 font-mono font-medium tracking-wide uppercase">
                       {formatDate(l.start_date)} — {formatDate(l.end_date)}
                     </p>
                     {l.reason && (
-                      <p className="text-[10px] text-text-secondary italic bg-surface-alt/40 px-3 py-1.5 rounded-lg border-l-2 border-primary-500/60 max-w-sm mt-1.5 leading-relaxed">
+                      <p className="text-[10px] text-zinc-500 italic bg-zinc-50 px-3 py-1.5 rounded border border-zinc-200 max-w-sm mt-1.5 leading-relaxed">
                         &ldquo;{l.reason}&rdquo;
                       </p>
                     )}
                   </div>
-                  <p className="text-[9px] text-text-muted font-bold shrink-0 text-right">
+                  <p className="text-[9px] text-zinc-400 font-mono font-semibold shrink-0 text-right">
                     {new Date(l.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </p>
                 </div>
@@ -391,7 +358,7 @@ function LeavesReport({ data }: { data: any }) {
 function DailyReportsReport({ data }: { data: any }) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  if (!data) return <p className="text-sm text-text-muted p-4">Failed to load daily report data.</p>;
+  if (!data) return <p className="text-sm text-zinc-400 p-4 font-sans">Failed to load daily report data.</p>;
 
   return (
     <div className="space-y-6">
@@ -401,49 +368,38 @@ function DailyReportsReport({ data }: { data: any }) {
           label="Days Reported" 
           value={data.daysReported} 
           icon={ClipboardList} 
-          color="text-primary-600" 
-          accentColor="bg-primary-500" 
-          iconBg="bg-primary-500/10 border-primary-500/10" 
+          color="text-zinc-650" 
         />
         <StatCard 
           label="Total Applications" 
           value={data.totalApplications} 
           icon={FileText} 
           color="text-blue-600" 
-          accentColor="bg-blue-500" 
-          iconBg="bg-blue-500/10 border-blue-500/10" 
         />
         <StatCard 
           label="Interviews Scheduled" 
           value={data.totalInterviews} 
           icon={User} 
           color="text-violet-600" 
-          accentColor="bg-violet-500" 
-          iconBg="bg-violet-500/10 border-violet-500/10" 
         />
         <StatCard 
           label="Assessments" 
           value={data.totalAssessments} 
           icon={Activity} 
           color="text-emerald-600" 
-          accentColor="bg-emerald-500" 
-          iconBg="bg-emerald-500/10 border-emerald-500/10" 
         />
       </div>
 
       {/* Submission Breakdown */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Technical Rounds', value: data.totalTechnical, color: 'text-cyan-600', border: 'border-l-cyan-500' },
-          { label: 'Non-Technical', value: data.totalNonTechnical, color: 'text-indigo-600', border: 'border-l-indigo-500' },
-          { label: 'Self Submissions', value: data.totalSelfSub, color: 'text-teal-600', border: 'border-l-teal-500' },
-          { label: 'Support Submissions', value: data.totalSupportSub, color: 'text-orange-600', border: 'border-l-orange-500' },
+          { label: 'Technical Rounds', value: data.totalTechnical, color: 'text-cyan-600' },
+          { label: 'Non-Technical', value: data.totalNonTechnical, color: 'text-indigo-650' },
+          { label: 'Self Submissions', value: data.totalSelfSub, color: 'text-teal-650' },
+          { label: 'Support Submissions', value: data.totalSupportSub, color: 'text-orange-650' },
         ].map(s => (
-          <div key={s.label} className={cn(
-            "bg-white rounded-xl p-4 border border-border/50 border-l-2 relative overflow-hidden group hover:-translate-y-0.5 hover:shadow-xs transition-all duration-300",
-            s.border
-          )}>
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-text-muted leading-none font-sans">{s.label}</p>
+          <div key={s.label} className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-450 transition-all duration-200 shadow-2xs">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">{s.label}</p>
             <p className={cn('text-2xl font-bold leading-none mt-2 font-sans', s.color)}>{s.value}</p>
           </div>
         ))}
@@ -452,11 +408,11 @@ function DailyReportsReport({ data }: { data: any }) {
       {/* Daily Log */}
       <div>
         <SectionHeader title="Daily Report Log" sub="This month's submissions" />
-        <div className="rounded-xl border border-border/50 bg-white overflow-hidden shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-2xs">
           {data.records.length === 0 ? (
-            <div className="p-10 text-center text-text-muted text-xs font-semibold">No reports submitted this month.</div>
+            <div className="p-10 text-center text-zinc-400 text-xs font-semibold font-sans">No reports submitted this month.</div>
           ) : (
-            <div className="divide-y divide-border/30">
+            <div className="divide-y divide-zinc-100">
               {data.records.map((r: any) => {
                 const isExpanded = expandedRow === r.id;
                 const total = r.applications_count + r.interviews_count + r.assessments + r.technical_rounds + r.non_technical + r.self_submissions + r.support_submissions;
@@ -464,17 +420,17 @@ function DailyReportsReport({ data }: { data: any }) {
                   <div key={r.id} className="group/row">
                     <button
                       onClick={() => setExpandedRow(isExpanded ? null : r.id)}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface-alt/50 transition-colors text-left"
+                      className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-zinc-50/50 transition-colors text-left"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-surface-alt border border-border/50 flex flex-col items-center justify-center shrink-0 group-hover/row:border-primary-500/30 transition-colors">
-                        <span className="text-sm font-bold text-navy-900 leading-none font-sans">{new Date(r.report_date).getDate()}</span>
-                        <span className="text-[8px] font-semibold text-text-muted uppercase mt-0.5 font-sans">{new Date(r.report_date).toLocaleDateString('en-IN', { month: 'short' })}</span>
+                      <div className="w-10 h-10 rounded bg-zinc-50 border border-zinc-200 flex flex-col items-center justify-center shrink-0 group-hover/row:border-zinc-350 transition-colors">
+                        <span className="text-sm font-bold text-zinc-900 leading-none font-sans">{new Date(r.report_date).getDate()}</span>
+                        <span className="text-[8px] font-semibold text-zinc-400 uppercase mt-0.5 font-sans">{new Date(r.report_date).toLocaleDateString('en-IN', { month: 'short' })}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-navy-900">{r.client_name}</p>
-                        <p className="text-[10px] text-text-muted font-medium mt-0.5">{total} total activities · {r.applications_count} apps · {r.interviews_count} interviews</p>
+                        <p className="text-xs font-semibold text-zinc-900">{r.client_name}</p>
+                        <p className="text-[10px] text-zinc-400 font-medium mt-0.5 font-sans">{total} total activities · {r.applications_count} apps · {r.interviews_count} interviews</p>
                       </div>
-                      <div className="shrink-0 text-gray-400">
+                      <div className="shrink-0 text-zinc-400">
                         <ChevronDown className={cn("w-4 h-4 transition-transform duration-200", isExpanded && "rotate-180")} />
                       </div>
                     </button>
@@ -484,10 +440,10 @@ function DailyReportsReport({ data }: { data: any }) {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
+                          transition={{ duration: 0.15 }}
+                          className="overflow-hidden bg-zinc-50/20"
                         >
-                          <div className="px-5 pb-5 pt-1.5 bg-surface-alt/25 border-t border-border/30 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                          <div className="px-5 pb-5 pt-1 bg-zinc-50/40 border-t border-zinc-150 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                             {[
                               { label: 'Applications', value: r.applications_count },
                               { label: 'Interviews', value: r.interviews_count },
@@ -497,9 +453,9 @@ function DailyReportsReport({ data }: { data: any }) {
                               { label: 'Self Submissions', value: r.self_submissions },
                               { label: 'Support Submissions', value: r.support_submissions },
                             ].map(f => (
-                              <div key={f.label} className="bg-white p-3 rounded-lg border border-border/50 shadow-2xs">
-                                <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-0.5">{f.label}</p>
-                                <p className="font-bold text-navy-900 text-sm mt-1">{f.value}</p>
+                              <div key={f.label} className="bg-white p-3 rounded border border-zinc-200 shadow-3xs">
+                                <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">{f.label}</p>
+                                <p className="font-semibold text-zinc-900 text-sm mt-1 font-mono">{f.value}</p>
                               </div>
                             ))}
                           </div>
@@ -522,7 +478,7 @@ function DailyReportsReport({ data }: { data: any }) {
 function SecurityReport({ data }: { data: any }) {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
 
-  if (!data) return <p className="text-sm text-text-muted p-4">Failed to load security data.</p>;
+  if (!data) return <p className="text-sm text-zinc-400 p-4 font-sans">Failed to load security data.</p>;
 
   return (
     <div className="space-y-6">
@@ -532,61 +488,53 @@ function SecurityReport({ data }: { data: any }) {
           label="Total Risk Events" 
           value={data.totalEvents} 
           icon={ShieldCheck} 
-          color="text-navy-600" 
-          accentColor="bg-navy-900" 
-          iconBg="bg-navy-900/10 border-navy-900/10" 
+          color="text-zinc-650" 
         />
         <StatCard 
           label="High Risk" 
           value={data.highRisk} 
           icon={AlertTriangle} 
-          color="text-red-600" 
-          accentColor="bg-red-500" 
-          iconBg="bg-red-500/10 border-red-500/10" 
+          color="text-red-650" 
         />
         <StatCard 
           label="Medium Risk" 
           value={data.mediumRisk} 
           icon={Info} 
-          color="text-amber-600" 
-          accentColor="bg-amber-500" 
-          iconBg="bg-amber-500/10 border-amber-500/10" 
+          color="text-amber-650" 
         />
         <StatCard 
           label="Avg Risk Score" 
           value={`${data.avgScore}/100`} 
           icon={BarChart2} 
-          color="text-blue-600" 
-          accentColor="bg-blue-500" 
-          iconBg="bg-blue-500/10 border-blue-500/10" 
+          color="text-blue-650" 
         />
       </div>
 
       {/* Device Trust */}
       <div>
         <SectionHeader title="Trusted Devices" sub="Devices used to access your account" />
-        <div className="rounded-xl border border-border/50 bg-white overflow-hidden shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-2xs">
           {data.devices.length === 0 ? (
-            <div className="p-8 text-center text-text-muted text-xs font-semibold">No devices registered.</div>
+            <div className="p-8 text-center text-zinc-400 text-xs font-semibold font-sans">No devices registered.</div>
           ) : (
-            <div className="divide-y divide-border/30">
+            <div className="divide-y divide-zinc-100">
               {data.devices.map((d: any) => (
-                <div key={d.id} className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-surface-alt/30 transition-colors">
+                <div key={d.id} className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-zinc-50/40 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className={cn(
-                      'w-9 h-9 rounded-lg flex items-center justify-center border',
-                      d.is_trusted ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 'bg-amber-500/10 border-amber-500/20 text-amber-600'
+                      'w-9 h-9 rounded flex items-center justify-center border',
+                      d.is_trusted ? 'bg-emerald-50 border-emerald-150 text-emerald-600' : 'bg-amber-50 border-amber-150 text-amber-600'
                     )}>
                       <Laptop className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-navy-900">{d.device_label || 'Unknown Device'}</p>
-                      <p className="text-[10px] text-text-muted font-medium mt-0.5">First seen: {formatDate(d.first_seen)} · Last used: {formatDate(d.last_used)}</p>
+                      <p className="text-xs font-semibold text-zinc-900">{d.device_label || 'Unknown Device'}</p>
+                      <p className="text-[10px] text-zinc-450 font-mono mt-0.5">First seen: {formatDate(d.first_seen)} · Last used: {formatDate(d.last_used)}</p>
                     </div>
                   </div>
                   <span className={cn(
-                    'text-[8px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border shadow-2xs',
-                    d.is_trusted ? 'bg-emerald-550/10 text-emerald-700 border-emerald-200' : 'bg-amber-500/10 text-amber-700 border-amber-200'
+                    'text-[9px] font-mono font-medium px-2 py-0.5 rounded border shadow-3xs uppercase tracking-wider',
+                    d.is_trusted ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
                   )}>
                     {d.is_trusted ? 'Trusted' : 'Unverified'}
                   </span>
@@ -600,29 +548,29 @@ function SecurityReport({ data }: { data: any }) {
       {/* Recent Sessions */}
       <div>
         <SectionHeader title="Recent Sessions" sub="Last 10 login sessions" />
-        <div className="rounded-xl border border-border/50 bg-white overflow-hidden shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-2xs">
           {data.sessions.length === 0 ? (
-            <div className="p-8 text-center text-text-muted text-xs font-semibold">No session history found.</div>
+            <div className="p-8 text-center text-zinc-400 text-xs font-semibold font-sans">No session history found.</div>
           ) : (
-            <div className="divide-y divide-border/30">
+            <div className="divide-y divide-zinc-100">
               {data.sessions.map((s: any) => (
-                <div key={s.id} className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-surface-alt/30 transition-colors">
+                <div key={s.id} className="px-5 py-4 flex items-center justify-between gap-4 hover:bg-zinc-50/40 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className={cn(
-                      'w-9 h-9 rounded-lg flex items-center justify-center border',
-                      s.is_valid ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600' : 'bg-gray-500/10 border-gray-500/20 text-gray-500'
+                      'w-9 h-9 rounded flex items-center justify-center border',
+                      s.is_valid ? 'bg-emerald-50 border-emerald-150 text-emerald-600' : 'bg-zinc-50 border-zinc-200 text-zinc-500'
                     )}>
                       {s.is_valid ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-navy-900">{s.ip_address || 'Unknown IP'}</p>
-                      <p className="text-[10px] text-text-muted truncate max-w-xs font-medium mt-0.5">{s.user_agent ? s.user_agent.slice(0, 60) + '...' : 'Unknown agent'}</p>
-                      <p className="text-[9px] text-text-muted mt-1 font-bold">Started: {new Date(s.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
+                      <p className="text-xs font-semibold text-zinc-900">{s.ip_address || 'Unknown IP'}</p>
+                      <p className="text-[10px] text-zinc-400 truncate max-w-xs font-mono mt-0.5">{s.user_agent ? s.user_agent.slice(0, 60) + '...' : 'Unknown agent'}</p>
+                      <p className="text-[9px] text-zinc-450 font-mono mt-1 font-semibold">Started: {new Date(s.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                     </div>
                   </div>
                   <span className={cn(
-                    'text-[8px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border shrink-0 shadow-2xs',
-                    s.is_valid ? 'bg-emerald-50/70 text-emerald-700 border-emerald-200' : 'bg-gray-100 text-gray-600 border-gray-300'
+                    'text-[9px] font-mono font-medium px-2 py-0.5 rounded border shrink-0 shadow-3xs uppercase tracking-wider',
+                    s.is_valid ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-zinc-50 text-zinc-650 border-zinc-200'
                   )}>
                     {s.is_valid ? 'Active' : 'Expired'}
                   </span>
@@ -636,34 +584,34 @@ function SecurityReport({ data }: { data: any }) {
       {/* Risk Event Log */}
       <div>
         <SectionHeader title="Risk Event Log" sub="Last 50 attendance security events" />
-        <div className="rounded-xl border border-border/50 bg-white overflow-hidden shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white overflow-hidden shadow-2xs">
           {data.riskEvents.length === 0 ? (
-            <div className="p-8 text-center text-text-muted text-xs font-semibold">No risk events recorded.</div>
+            <div className="p-8 text-center text-zinc-400 text-xs font-semibold font-sans">No risk events recorded.</div>
           ) : (
-            <div className="divide-y divide-border/30">
+            <div className="divide-y divide-zinc-100">
               {data.riskEvents.map((e: any) => {
                 const isExpanded = expandedEvent === e.id;
                 return (
                   <div key={e.id} className="group/row">
                     <button
                       onClick={() => setExpandedEvent(isExpanded ? null : e.id)}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-surface-alt/40 transition-colors text-left"
+                      className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-zinc-50/50 transition-colors text-left"
                     >
                       <div className={cn(
-                        'w-9 h-9 rounded-lg flex items-center justify-center border shrink-0 transition-colors group-hover/row:border-current/40',
-                        e.risk_level === 'high' ? 'bg-red-500/10 border-red-500/20 text-red-600' :
-                        e.risk_level === 'medium' ? 'bg-amber-500/10 border-amber-500/20 text-amber-600' :
-                        'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
+                        'w-9 h-9 rounded flex items-center justify-center border shrink-0 transition-colors group-hover/row:border-zinc-350',
+                        e.risk_level === 'high' ? 'bg-red-50 border-red-150 text-red-650' :
+                        e.risk_level === 'medium' ? 'bg-amber-50 border-amber-150 text-amber-650' :
+                        'bg-emerald-50 border-emerald-150 text-emerald-650'
                       )}>
                         <ShieldCheck className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-bold text-navy-900 capitalize">{e.action.replace('_', ' ')}</span>
+                          <span className="text-xs font-semibold text-zinc-900 capitalize">{e.action.replace('_', ' ')}</span>
                           <RiskBadge level={e.risk_level} />
-                          <span className="text-[9px] font-mono text-text-muted font-semibold">{e.risk_score} pts</span>
+                          <span className="text-[9px] font-mono text-zinc-400 font-semibold">{e.risk_score} pts</span>
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 text-[10px] text-text-muted font-medium">
+                        <div className="flex items-center gap-3 mt-0.5 text-[10px] text-zinc-400 font-mono">
                           <span>{e.ip_address || 'Unknown IP'}</span>
                           <span>{e.is_office_network ? '🏢 Office' : '🌐 External'}</span>
                           <span>{e.is_known_device ? '✓ Known Device' : '⚠ New Device'}</span>
@@ -671,9 +619,9 @@ function SecurityReport({ data }: { data: any }) {
                       </div>
                       <div className="shrink-0 text-right flex items-center gap-2">
                         <div>
-                          <p className="text-[9px] text-text-muted font-bold">{new Date(e.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</p>
+                          <p className="text-[9px] text-zinc-450 font-mono font-semibold">{new Date(e.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</p>
                         </div>
-                        <ChevronDown className={cn("w-4 h-4 text-gray-400 transition-transform duration-200", isExpanded && "rotate-180")} />
+                        <ChevronDown className={cn("w-4 h-4 text-zinc-400 transition-transform duration-200", isExpanded && "rotate-180")} />
                       </div>
                     </button>
                     <AnimatePresence initial={false}>
@@ -682,18 +630,15 @@ function SecurityReport({ data }: { data: any }) {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
+                          transition={{ duration: 0.15 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-5 pb-4 pt-1.5 bg-surface-alt/25 border-t border-border/30 space-y-1.5">
-                            <p className="text-[9px] text-text-muted uppercase tracking-wider font-semibold mb-2 leading-none">Signal Breakdown</p>
+                          <div className="px-5 pb-4 pt-1 bg-zinc-50/40 border-t border-zinc-150 space-y-1.5">
+                            <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-2 leading-none font-sans">Signal Breakdown</p>
                             {e.risk_reasons.map((sig: any, i: number) => (
-                              <div key={i} className={cn(
-                                "flex items-center justify-between text-[10px] bg-white rounded-lg px-3.5 py-2.5 border border-border/50 border-l-2 shadow-2xs",
-                                sig.weight > 0 ? "border-l-red-500" : "border-l-emerald-500"
-                              )}>
-                                <span className="font-semibold text-navy-900">{sig.detail}</span>
-                                <span className={cn('font-bold', sig.weight > 0 ? 'text-red-500' : 'text-emerald-600')}>
+                              <div key={i} className="flex items-center justify-between text-[10px] bg-white rounded p-2.5 border border-zinc-200 shadow-3xs">
+                                <span className="font-semibold text-zinc-900 font-sans">{sig.detail}</span>
+                                <span className={cn('font-bold font-mono', sig.weight > 0 ? 'text-red-500' : 'text-emerald-600')}>
                                   {sig.weight > 0 ? `+${sig.weight} pts` : '✓ Safe'}
                                 </span>
                               </div>
@@ -727,8 +672,8 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
 
   return (
     <div className="space-y-5">
-      {/* Tab Bar */}
-      <div className="flex gap-1 bg-surface-alt/80 rounded-xl p-1 border border-border/50 overflow-x-auto relative scrollbar-none">
+      {/* Tab Bar - Vercel Style */}
+      <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none relative">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -737,65 +682,53 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                'flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-300 whitespace-nowrap flex-1 justify-center relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 z-10',
+                'flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all duration-150 whitespace-nowrap relative border-b-2 focus-visible:outline-none',
                 isActive
-                  ? 'text-navy-900 font-bold'
-                  : 'text-text-muted hover:text-navy-900'
+                  ? 'border-black text-zinc-950 font-semibold'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-700'
               )}
             >
-              {isActive && (
-                <motion.div
-                  layoutId="activeTabIndicator"
-                  className="absolute inset-0 bg-white rounded-lg border border-border/50 shadow-2xs z-[-1]"
-                  transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
-              )}
-              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <Icon className="w-4 h-4 shrink-0" />
               <span>{tab.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Quick Overview Strip */}
+      {/* Quick Overview Strip - Vercel Style */}
       {activeTab === 'attendance' && attendance && (
-        <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-primary-50/45 border border-primary-100/60 shadow-2xs text-primary-950 text-xs font-medium overflow-x-auto relative overflow-hidden">
-          <Sparkles className="w-4 h-4 text-primary-500 shrink-0" />
-          <span className="text-primary-750 font-bold uppercase tracking-wider text-[9px] shrink-0">This Month Summary</span>
-          <div className="h-3.5 w-px bg-primary-200" />
-          <span className="shrink-0 font-semibold">{attendance.present} present</span>
-          <span className="text-primary-300">·</span>
-          <span className="shrink-0 text-amber-700 font-bold">{attendance.late} late</span>
-          <span className="text-primary-300">·</span>
-          <span className="shrink-0 font-semibold">{attendance.totalProductiveHours}h productive</span>
-          <span className="text-primary-300">·</span>
-          <span className="shrink-0 flex items-center gap-1"><Coffee className="w-3.5 h-3.5 text-primary-500" />{formatSeconds(attendance.totalBreakSeconds)} break</span>
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-3xs text-zinc-600 text-xs font-medium overflow-x-auto scrollbar-none">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+          <span className="text-[10px] font-mono font-medium text-zinc-450 uppercase tracking-wider shrink-0">Summary</span>
+          <div className="h-3 w-px bg-zinc-200" />
+          <span className="shrink-0 font-semibold text-zinc-900">{attendance.present} present</span>
+          <span className="text-zinc-300">·</span>
+          <span className="shrink-0 text-amber-600 font-semibold">{attendance.late} late</span>
+          <span className="text-zinc-300">·</span>
+          <span className="shrink-0 font-semibold text-zinc-900">{attendance.totalProductiveHours}h productive</span>
+          <span className="text-zinc-300">·</span>
+          <span className="shrink-0 flex items-center gap-1"><Coffee className="w-3.5 h-3.5 text-zinc-450" />{formatSeconds(attendance.totalBreakSeconds)} break</span>
           {attendance.deductionTotal > 0 && (
             <>
-              <span className="text-primary-300">·</span>
-              <span className="shrink-0 text-red-600 font-bold">{attendance.deductionTotal}d deducted</span>
+              <span className="text-zinc-300">·</span>
+              <span className="shrink-0 text-red-650 font-bold">{attendance.deductionTotal}d deducted</span>
             </>
           )}
         </div>
       )}
 
       {activeTab === 'security' && security && (
-        <div className={cn(
-          'flex items-center gap-3 px-5 py-3 rounded-xl text-xs font-semibold overflow-x-auto border shadow-2xs relative overflow-hidden',
-          security.highRisk > 0 
-            ? 'bg-red-50/60 border-red-200 text-red-800' 
-            : 'bg-emerald-50/60 border-emerald-200 text-emerald-800'
-        )}>
-          <ShieldCheck className={cn("w-4 h-4 shrink-0", security.highRisk > 0 ? "text-red-500" : "text-emerald-600")} />
-          <span className="font-bold uppercase tracking-wider text-[9px] shrink-0">Security Status</span>
-          <div className="h-3.5 w-px bg-current opacity-20" />
-          <span className="shrink-0 font-semibold">{security.totalEvents} events</span>
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-3xs text-zinc-650 text-xs font-medium overflow-x-auto scrollbar-none">
+          <div className={cn("w-1.5 h-1.5 rounded-full shrink-0 animate-pulse", security.highRisk > 0 ? "bg-red-500" : "bg-emerald-500")} />
+          <span className="text-[10px] font-mono font-medium text-zinc-450 uppercase tracking-wider shrink-0">Security Status</span>
+          <div className="h-3 w-px bg-zinc-200" />
+          <span className="shrink-0 font-semibold text-zinc-950">{security.totalEvents} events</span>
           <span className="opacity-30">·</span>
-          <span className="shrink-0 text-red-650 font-extrabold">{security.highRisk} high risk</span>
+          <span className="shrink-0 text-red-650 font-bold">{security.highRisk} high risk</span>
           <span className="opacity-30">·</span>
           <span className="shrink-0">{security.trustedDevices} trusted device{security.trustedDevices !== 1 ? 's' : ''}</span>
           <span className="opacity-30">·</span>
-          <span className="shrink-0 font-bold">Avg score: {security.avgScore}/100</span>
+          <span className="shrink-0 font-bold text-zinc-950">Avg score: {security.avgScore}/100</span>
         </div>
       )}
 
@@ -803,10 +736,10 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.1 }}
         >
           {activeTab === 'attendance' && <AttendanceReport data={attendance} />}
           {activeTab === 'leaves' && <LeavesReport data={leaves} />}
