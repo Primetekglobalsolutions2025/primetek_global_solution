@@ -1,6 +1,5 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 
@@ -9,9 +8,6 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ userName }: AppHeaderProps) {
-  const pathname = usePathname();
-  const isDashboard = pathname.includes('/dashboard');
-  
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -26,30 +22,15 @@ export default function AppHeader({ userName }: AppHeaderProps) {
   return (
     <header className="h-14 md:h-16 bg-white border-b border-border flex items-center px-4 md:px-6 shrink-0 sticky top-0 z-30">
       <div className="flex-1 min-w-0">
-        {/* Mobile/Tablet: show logo + title (only on dashboard) */}
+        {/* Mobile/Tablet: show logo */}
         <div className="flex md:hidden items-center gap-3 py-1">
           <Logo className="w-32 h-auto shrink-0" />
-          {isDashboard && (
-            <>
-              <div className="h-5 w-px bg-border/60" />
-              <h2 className="text-[15px] font-sans font-bold text-navy-900 truncate">
-                Overview
-              </h2>
-            </>
-          )}
         </div>
-        {/* Desktop: show greeting + page context (only on dashboard) */}
+        {/* Desktop: show greeting */}
         <div className="hidden md:block">
-          {isDashboard && (
-            <>
-              <p className="text-[11px] text-text-muted uppercase tracking-widest font-bold leading-none mb-0.5">
-                {getGreeting()}{userName ? `, ${userName.split(' ')[0]}` : ''}
-              </p>
-              <h2 className="text-base font-sans font-bold text-navy-900 tracking-tight leading-tight">
-                Overview
-              </h2>
-            </>
-          )}
+          <p className="text-[11px] text-text-muted uppercase tracking-widest font-bold leading-none">
+            {getGreeting()}{userName ? `, ${userName.split(' ')[0]}` : ''}
+          </p>
         </div>
       </div>
 
