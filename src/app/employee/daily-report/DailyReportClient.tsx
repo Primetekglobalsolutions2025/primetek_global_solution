@@ -145,67 +145,67 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
   }, {} as Record<string, HistoryItem[]>);
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 font-sans">
       {/* Header section with state */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-2xl border border-border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-lg border border-zinc-200 shadow-2xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-primary-500" />
             <h1 className="text-xl font-bold text-navy-900 tracking-tight">Daily Recruitment Report</h1>
           </div>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-zinc-450">
             Report your daily client staffing metrics. Filled daily per consultant profile.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-navy-800 rounded-xl border border-border text-xs font-semibold">
-            <Calendar className="w-3.5 h-3.5 text-text-muted" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-zinc-50 text-navy-800 rounded border border-zinc-200 text-[10px] font-mono font-medium uppercase tracking-wider">
+            <Calendar className="w-3.5 h-3.5 text-zinc-450" />
             <span>Today: {formatDate(reportDate)}</span>
           </div>
 
           {isAlreadySubmitted ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-250 uppercase tracking-wider">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>✅ Submitted</span>
+              <span>Submitted</span>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded text-[10px] font-mono font-medium bg-amber-50 text-amber-700 border border-amber-250 uppercase tracking-wider animate-pulse">
               <AlertCircle className="w-3.5 h-3.5" />
-              <span>⏳ Pending Submission</span>
+              <span>Pending</span>
             </div>
           )}
         </div>
       </div>
 
       {profiles.length === 0 ? (
-        <Card className="text-center py-16 border border-dashed border-border/80">
-          <Sparkles className="w-10 h-10 text-text-muted mx-auto mb-3 opacity-30" />
+        <div className="text-center py-16 bg-white rounded-lg border border-dashed border-zinc-250">
+          <Sparkles className="w-10 h-10 text-zinc-400 mx-auto mb-3 opacity-30" />
           <h3 className="font-semibold text-navy-900 text-sm mb-1">No Active Profiles</h3>
-          <p className="text-xs text-text-secondary max-w-md mx-auto">
+          <p className="text-xs text-zinc-500 max-w-md mx-auto">
             You currently have no active or processing profiles assigned to you. Daily reporting is only required for active assignments.
           </p>
-        </Card>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-hidden bg-white rounded-2xl border border-border shadow-sm">
+          <div className="hidden lg:block overflow-hidden bg-white rounded-lg border border-zinc-200 shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
-                  <tr className="bg-navy-900 text-white border-b border-navy-800">
-                    <th className="p-4 font-semibold">Assign Date</th>
-                    <th className="p-4 font-semibold">Consultant Name</th>
-                    <th className="p-4 font-semibold text-center w-28 bg-navy-800/40">Apps Count</th>
-                    <th className="p-4 font-semibold text-center w-28 bg-navy-800/40">Interviews</th>
-                    <th className="p-4 font-semibold text-center w-28">Assessments</th>
-                    <th className="p-4 font-semibold text-center w-28">Tech Rounds</th>
-                    <th className="p-4 font-semibold text-center w-28">Non-Tech</th>
-                    <th className="p-4 font-semibold text-center w-28 bg-amber-950/20 text-amber-300">Self (Own)</th>
-                    <th className="p-4 font-semibold text-center w-28 bg-amber-950/20 text-amber-300">Support</th>
+                  <tr className="bg-zinc-50 text-zinc-650 border-b border-zinc-200">
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Assign Date</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Consultant Name</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-zinc-100/50">Apps Count</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-zinc-100/50">Interviews</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Assessments</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Tech Rounds</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Non-Tech</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-primary-50/50 text-primary-750 font-bold">Self (Own)</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-primary-50/50 text-primary-750 font-bold">Support</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-border">
+                <tbody className="divide-y divide-zinc-150">
                   {profiles.map(profile => {
                     const values = formValues[profile.id] || {
                       applications_count: 0,
@@ -218,62 +218,62 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                     };
 
                     return (
-                      <tr key={profile.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 text-text-secondary whitespace-nowrap">
+                      <tr key={profile.id} className="hover:bg-zinc-50/50 transition-colors">
+                        <td className="p-4 text-zinc-500 font-mono whitespace-nowrap">
                           {formatDate(profile.created_at)}
                         </td>
                         <td className="p-4 font-semibold text-navy-900">
                           {profile.client_name}
                         </td>
                         {/* Applications */}
-                        <td className="p-3 bg-slate-50/30">
+                        <td className="p-3 bg-zinc-50/30">
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'applications_count')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
                               value={values.applications_count}
                               onChange={(e) => handleInputChange(profile.id, 'applications_count', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'applications_count')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Interviews */}
-                        <td className="p-3 bg-slate-50/30">
+                        <td className="p-3 bg-zinc-50/30">
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'interviews_count')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
                               value={values.interviews_count}
                               onChange={(e) => handleInputChange(profile.id, 'interviews_count', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'interviews_count')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
@@ -283,23 +283,23 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'assessments')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
                               value={values.assessments}
                               onChange={(e) => handleInputChange(profile.id, 'assessments', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'assessments')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
@@ -309,23 +309,23 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'technical_rounds')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
                               value={values.technical_rounds}
                               onChange={(e) => handleInputChange(profile.id, 'technical_rounds', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'technical_rounds')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
@@ -335,75 +335,75 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'non_technical')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
                               value={values.non_technical}
                               onChange={(e) => handleInputChange(profile.id, 'non_technical', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-border rounded-lg focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-medium text-navy-900"
+                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'non_technical')}
-                              className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Self */}
-                        <td className="p-3 bg-amber-50/20">
+                        <td className="p-3 bg-primary-50/30">
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'self_submissions')}
-                              className="p-1 hover:bg-amber-100/50 rounded text-amber-800"
+                              className="p-1 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
                               value={values.self_submissions}
                               onChange={(e) => handleInputChange(profile.id, 'self_submissions', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-amber-200 bg-amber-50/50 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-semibold text-amber-900"
+                              className="w-12 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'self_submissions')}
-                              className="p-1 hover:bg-amber-100/50 rounded text-amber-800"
+                              className="p-1 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Support */}
-                        <td className="p-3 bg-amber-50/20">
+                        <td className="p-3 bg-primary-50/30">
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'support_submissions')}
-                              className="p-1 hover:bg-amber-100/50 rounded text-amber-800"
+                              className="p-1 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
                               value={values.support_submissions}
                               onChange={(e) => handleInputChange(profile.id, 'support_submissions', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-amber-200 bg-amber-50/50 rounded-lg focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none font-semibold text-amber-900"
+                              className="w-12 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'support_submissions')}
-                              className="p-1 hover:bg-amber-100/50 rounded text-amber-800"
+                              className="p-1 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
@@ -429,13 +429,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
               };
 
               return (
-                <div key={profile.id} className="bg-white rounded-2xl border border-border shadow-sm p-5 space-y-4">
-                  <div className="flex justify-between items-start border-b border-border pb-3">
+                <div key={profile.id} className="bg-white rounded-lg border border-zinc-200 shadow-2xs p-5 space-y-4">
+                  <div className="flex justify-between items-start border-b border-zinc-100 pb-3">
                     <div>
-                      <h4 className="font-bold text-navy-900 text-sm">{profile.client_name}</h4>
-                      <p className="text-[10px] text-text-muted mt-0.5">Assigned: {formatDate(profile.created_at)}</p>
+                      <h4 className="font-bold text-navy-900 text-sm font-sans">{profile.client_name}</h4>
+                      <p className="text-[10px] font-mono text-zinc-400 mt-0.5">ASSIGNED: {formatDate(profile.created_at)}</p>
                     </div>
-                    <span className="text-[9px] bg-slate-100 text-navy-800 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    <span className="text-[9px] font-mono bg-zinc-100 border border-zinc-200 text-zinc-700 font-semibold px-2 py-0.5 rounded uppercase tracking-wider">
                       {profile.status}
                     </span>
                   </div>
@@ -450,12 +450,12 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                       { field: 'non_technical', label: 'Non-Tech' }
                     ].map(item => (
                       <div key={item.field} className="space-y-1">
-                        <label className="text-[10px] font-semibold text-text-secondary">{item.label}</label>
-                        <div className="flex items-center gap-1 border border-border rounded-lg py-1 px-2">
+                        <label className="text-[10px] font-semibold text-zinc-500 font-sans">{item.label}</label>
+                        <div className="flex items-center justify-between border border-zinc-200 rounded-md py-1 px-2 bg-white">
                           <button
                             type="button"
                             onClick={() => handleDecrement(profile.id, item.field)}
-                            className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            className="p-1 hover:bg-zinc-100 rounded border border-zinc-100 bg-zinc-50 text-zinc-500"
                           >
                             <Minus className="w-3 h-3" />
                           </button>
@@ -464,12 +464,12 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             min="0"
                             value={(values as any)[item.field]}
                             onChange={(e) => handleInputChange(profile.id, item.field, parseInt(e.target.value))}
-                            className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-navy-900 font-medium text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-navy-900 font-semibold font-mono text-xs"
                           />
                           <button
                             type="button"
                             onClick={() => handleIncrement(profile.id, item.field)}
-                            className="p-1 hover:bg-slate-100 rounded text-text-muted"
+                            className="p-1 hover:bg-zinc-100 rounded border border-zinc-100 bg-zinc-50 text-zinc-500"
                           >
                             <Plus className="w-3 h-3" />
                           </button>
@@ -479,14 +479,14 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                   </div>
 
                   {/* Self & Support */}
-                  <div className="grid grid-cols-2 gap-4 bg-amber-50/30 p-3 rounded-xl border border-amber-100/50">
+                  <div className="grid grid-cols-2 gap-4 bg-primary-50/30 p-3 rounded-lg border border-primary-100/50">
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-amber-800">Self Submissions</label>
-                      <div className="flex items-center gap-1 border border-amber-200 bg-white rounded-lg py-1 px-2">
+                      <label className="text-[10px] font-mono font-bold text-primary-800 uppercase tracking-wider">Self Submissions</label>
+                      <div className="flex items-center justify-between border border-primary-200 bg-white rounded-md py-1 px-2">
                         <button
                           type="button"
                           onClick={() => handleDecrement(profile.id, 'self_submissions')}
-                          className="p-1 hover:bg-slate-100 rounded text-amber-800"
+                          className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -495,12 +495,12 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                           min="0"
                           value={values.self_submissions}
                           onChange={(e) => handleInputChange(profile.id, 'self_submissions', parseInt(e.target.value))}
-                          className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-amber-900 font-bold text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-primary-900 font-bold font-mono text-xs"
                         />
                         <button
                           type="button"
                           onClick={() => handleIncrement(profile.id, 'self_submissions')}
-                          className="p-1 hover:bg-slate-100 rounded text-amber-800"
+                          className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -508,12 +508,12 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-amber-800">Support Submissions</label>
-                      <div className="flex items-center gap-1 border border-amber-200 bg-white rounded-lg py-1 px-2">
+                      <label className="text-[10px] font-mono font-bold text-primary-800 uppercase tracking-wider">Support Submissions</label>
+                      <div className="flex items-center justify-between border border-primary-200 bg-white rounded-md py-1 px-2">
                         <button
                           type="button"
                           onClick={() => handleDecrement(profile.id, 'support_submissions')}
-                          className="p-1 hover:bg-slate-100 rounded text-amber-800"
+                          className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
                         >
                           <Minus className="w-3 h-3" />
                         </button>
@@ -522,12 +522,12 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                           min="0"
                           value={values.support_submissions}
                           onChange={(e) => handleInputChange(profile.id, 'support_submissions', parseInt(e.target.value))}
-                          className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-amber-900 font-bold text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-primary-900 font-bold font-mono text-xs"
                         />
                         <button
                           type="button"
                           onClick={() => handleIncrement(profile.id, 'support_submissions')}
-                          className="p-1 hover:bg-slate-100 rounded text-amber-800"
+                          className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -543,7 +543,7 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
             <Button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2 bg-primary-500 hover:bg-primary-600 font-bold text-white rounded-xl shadow cursor-pointer transition-all active:scale-[0.98] min-h-[40px] w-full sm:w-auto"
+              className="flex items-center justify-center gap-1.5 px-6 py-2 bg-primary-500 hover:bg-primary-650 font-bold text-white rounded-md shadow-sm transition-all active:scale-[0.98] min-h-[40px] text-xs font-sans w-full sm:w-auto"
             >
               {submitting ? (
                 <>
@@ -559,63 +559,63 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
       )}
 
       {/* History log collapsible section */}
-      <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+      <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
         <button
           type="button"
           onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
-          className="flex justify-between items-center w-full p-5 font-bold text-navy-900 text-sm hover:bg-slate-50 transition-colors"
+          className="flex justify-between items-center w-full p-4 font-bold text-navy-900 text-sm hover:bg-zinc-50 transition-colors font-sans"
         >
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-primary-500" />
             <span>Recent Submission History (Past 7 Days)</span>
           </div>
-          <span className="text-xs text-primary-500 font-semibold">
+          <span className="text-xs text-primary-600 font-semibold font-sans">
             {isHistoryExpanded ? 'Collapse' : 'Expand'}
           </span>
         </button>
 
         {isHistoryExpanded && (
-          <div className="border-t border-border p-5 space-y-4">
+          <div className="border-t border-zinc-150 p-4 space-y-4 font-sans bg-white">
             {Object.keys(groupedHistory).length === 0 ? (
-              <p className="text-xs text-text-muted text-center py-4">No recent submission history found.</p>
+              <p className="text-xs text-zinc-400 text-center py-4">No recent submission history found.</p>
             ) : (
               <div className="space-y-6">
                 {Object.entries(groupedHistory).map(([date, items]) => (
                   <div key={date} className="space-y-2">
-                    <h4 className="font-bold text-xs text-navy-900 flex items-center gap-1.5 bg-slate-50 p-2 rounded-lg border border-border">
-                      <Calendar className="w-3.5 h-3.5 text-text-muted" />
+                    <h4 className="font-bold text-xs text-navy-900 flex items-center gap-1.5 bg-zinc-50 p-2 rounded border border-zinc-200 font-mono">
+                      <Calendar className="w-3.5 h-3.5 text-zinc-450" />
                       <span>{formatDate(date)}</span>
                     </h4>
 
-                    <div className="overflow-x-auto rounded-xl border border-border bg-white">
+                    <div className="overflow-x-auto rounded border border-zinc-200 bg-white">
                       <table className="w-full border-collapse text-left text-[11px]">
                         <thead>
-                          <tr className="bg-slate-50 text-text-secondary border-b border-border font-medium">
-                            <th className="p-3">Consultant</th>
-                            <th className="p-3 text-center">Apps</th>
-                            <th className="p-3 text-center">Interviews</th>
-                            <th className="p-3 text-center">Assessments</th>
-                            <th className="p-3 text-center">Tech</th>
-                            <th className="p-3 text-center">Non-Tech</th>
-                            <th className="p-3 text-center bg-amber-50/30 text-amber-800 font-semibold">Self</th>
-                            <th className="p-3 text-center bg-amber-50/30 text-amber-800 font-semibold">Support</th>
+                          <tr className="bg-zinc-50/80 text-zinc-500 border-b border-zinc-200 font-mono font-medium text-[9px] uppercase tracking-wider">
+                            <th className="p-2.5 font-semibold text-left">Consultant</th>
+                            <th className="p-2.5 text-center font-semibold">Apps</th>
+                            <th className="p-2.5 text-center font-semibold">Interviews</th>
+                            <th className="p-2.5 text-center font-semibold">Assessments</th>
+                            <th className="p-2.5 text-center font-semibold">Tech</th>
+                            <th className="p-2.5 text-center font-semibold">Non-Tech</th>
+                            <th className="p-2.5 text-center bg-primary-50/50 text-primary-850 font-bold">Self</th>
+                            <th className="p-2.5 text-center bg-primary-50/50 text-primary-850 font-bold">Support</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-border text-navy-900">
+                        <tbody className="divide-y divide-zinc-150 text-navy-900 font-mono">
                           {items.map(item => (
-                            <tr key={item.id} className="hover:bg-slate-50/30">
-                              <td className="p-3 font-semibold">
+                            <tr key={item.id} className="hover:bg-zinc-50/30">
+                              <td className="p-2.5 font-semibold font-sans text-xs">
                                 {(Array.isArray(item.application_profiles) 
                                   ? item.application_profiles[0]?.client_name 
                                   : item.application_profiles?.client_name) || 'Deleted Consultant'}
                               </td>
-                              <td className="p-3 text-center">{item.applications_count}</td>
-                              <td className="p-3 text-center">{item.interviews_count}</td>
-                              <td className="p-3 text-center">{item.assessments}</td>
-                              <td className="p-3 text-center">{item.technical_rounds}</td>
-                              <td className="p-3 text-center">{item.non_technical}</td>
-                              <td className="p-3 text-center bg-amber-50/10 font-bold text-amber-800">{item.self_submissions}</td>
-                              <td className="p-3 text-center bg-amber-50/10 font-bold text-amber-800">{item.support_submissions}</td>
+                              <td className="p-2.5 text-center">{item.applications_count}</td>
+                              <td className="p-2.5 text-center">{item.interviews_count}</td>
+                              <td className="p-2.5 text-center">{item.assessments}</td>
+                              <td className="p-2.5 text-center">{item.technical_rounds}</td>
+                              <td className="p-2.5 text-center">{item.non_technical}</td>
+                              <td className="p-2.5 text-center bg-primary-50/10 font-bold text-primary-800">{item.self_submissions}</td>
+                              <td className="p-2.5 text-center bg-primary-50/10 font-bold text-primary-800">{item.support_submissions}</td>
                             </tr>
                           ))}
                         </tbody>
