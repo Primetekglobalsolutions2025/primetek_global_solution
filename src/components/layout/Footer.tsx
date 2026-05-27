@@ -36,7 +36,7 @@ export default function Footer() {
               {[
                 { Icon: Globe, href: '#', label: 'LinkedIn' },
                 { Icon: Globe, href: '#', label: 'Twitter' },
-                { Icon: Mail, href: 'mailto:hr@globalprimetek.com', label: 'Email' },
+                { Icon: Mail, href: 'mailto:hr@primetekglobalsolutions.com', label: 'Email' },
               ].map(({ Icon, href, label }) => (
                 <a
                   key={label}
@@ -90,7 +90,7 @@ export default function Footer() {
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <Mail className="w-4 h-4 text-primary-400 mt-1 shrink-0" />
-                <span className="text-gray-400 text-sm">hr@globalprimetek.com</span>
+                <span className="text-gray-400 text-sm">hr@primetekglobalsolutions.com</span>
               </li>
               <li className="flex items-start gap-3">
                 <Phone className="w-4 h-4 text-primary-400 mt-1 shrink-0" />

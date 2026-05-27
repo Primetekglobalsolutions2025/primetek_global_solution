@@ -1,23 +1,53 @@
 import type { Metadata } from 'next';
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 import InquiryForm from '@/components/sections/InquiryForm';
+import SchemaMarkup from '@/components/layout/SchemaMarkup';
+import { generateBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: 'Contact Us',
   description:
     'Get in touch with Primetek Global Solutions. Submit an inquiry for staffing, consulting, or outsourcing services.',
+  alternates: {
+    canonical: 'https://www.primetekglobalsolutions.com/contact',
+  },
 };
 
 const contactInfo = [
-  { icon: <Mail className="w-5 h-5" />, label: 'Email', value: 'hr@globalprimetek.com', href: 'mailto:hr@globalprimetek.com' },
+  { icon: <Mail className="w-5 h-5" />, label: 'Email', value: 'hr@primetekglobalsolutions.com', href: 'mailto:hr@primetekglobalsolutions.com' },
   { icon: <Phone className="w-5 h-5" />, label: 'Phone', value: '+1 (219) 345-6559', href: 'tel:+12193456559' },
   { icon: <MapPin className="w-5 h-5" />, label: 'Office', value: '1680, Unit 2G, 14th Ave S, Birmingham, AL 35205, USA', href: '#' },
   { icon: <Clock className="w-5 h-5" />, label: 'Hours', value: 'Mon - Fri, 9:00 AM - 6:00 PM EST', href: '#' },
 ];
 
 export default function ContactPage() {
+  const contactSchema = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "mainEntity": {
+      "@type": "Organization",
+      "name": "Primetek Global Solutions",
+      "url": "https://www.primetekglobalsolutions.com",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+1-219-345-6559",
+        "email": "hr@primetekglobalsolutions.com",
+        "contactType": "HR and Sales Support",
+        "areaServed": "US",
+        "availableLanguage": "en"
+      }
+    }
+  };
+
+  const breadcrumbs = [
+    { name: 'Home', path: '/' },
+    { name: 'Contact Us', path: '/contact' }
+  ];
+
   return (
     <>
+      <SchemaMarkup schema={contactSchema} />
+      <SchemaMarkup schema={generateBreadcrumbSchema(breadcrumbs)} />
       {/* Hero */}
       <section className="pt-32 pb-16 bg-gradient-to-b from-navy-900 to-navy-800">
         <div className="container-wide text-center">

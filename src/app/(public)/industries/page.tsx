@@ -4,11 +4,16 @@ import Link from 'next/link';
 
 import Card from '@/components/ui/Card';
 import CTASection from '@/components/sections/CTASection';
+import SchemaMarkup from '@/components/layout/SchemaMarkup';
+import { generateBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: 'Industries We Serve',
   description:
     'Primetek Global Solutions delivers staffing and consulting across IT, Healthcare, Finance, Manufacturing, and Retail.',
+  alternates: {
+    canonical: 'https://www.primetekglobalsolutions.com/industries',
+  },
 };
 
 const industries = [
@@ -50,8 +55,14 @@ const industries = [
 ];
 
 export default function IndustriesPage() {
+  const breadcrumbs = [
+    { name: 'Home', path: '/' },
+    { name: 'Industries', path: '/industries' }
+  ];
+
   return (
     <>
+      <SchemaMarkup schema={generateBreadcrumbSchema(breadcrumbs)} />
       {/* Hero */}
       <section className="pt-32 pb-16 bg-gradient-to-b from-navy-900 to-navy-800">
         <div className="container-wide text-center">

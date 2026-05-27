@@ -2,11 +2,16 @@ import type { Metadata } from 'next';
 import { Users, Code, Cloud, Shield, Database, LayoutDashboard, Settings, UserCheck, Briefcase, FileText } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import CTASection from '@/components/sections/CTASection';
+import SchemaMarkup from '@/components/layout/SchemaMarkup';
+import { generateBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: 'Our Services',
   description:
     'Explore Primetek Global Solutions\' comprehensive services — IT Staffing, Contract, C2C, and Full-Time Recruitment.',
+  alternates: {
+    canonical: 'https://www.primetekglobalsolutions.com/services',
+  },
 };
 
 const serviceCategories = [
@@ -44,8 +49,81 @@ const serviceCategories = [
 ];
 
 export default function ServicesPage() {
+  const servicesSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Service",
+        "name": "IT Staffing & Talent Solutions",
+        "provider": {
+          "@type": "Organization",
+          "name": "Primetek Global Solutions",
+          "url": "https://www.primetekglobalsolutions.com"
+        },
+        "description": "Short-to-mid term IT professionals for project-based needs, direct C2C placement, contract-to-hire, and full-time permanent recruitment in the US.",
+        "areaServed": "US",
+        "hasOfferCatalog": {
+          "@type": "OfferCatalog",
+          "name": "Staffing Services",
+          "itemListElement": [
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "Contract Staffing",
+                "description": "Short-to-mid term IT professionals for project-based needs."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "C2C (Contractor-to-Client)",
+                "description": "Direct placement of independent contractors for specialized roles."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "Contract-to-Hire",
+                "description": "Evaluate candidates on the job before committing to permanent placements."
+              }
+            },
+            {
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": "Full-Time Recruitment",
+                "description": "End-to-end permanent IT hiring for US-based roles."
+              }
+            }
+          ]
+        }
+      },
+      {
+        "@type": "Service",
+        "name": "Technology Domain Services",
+        "provider": {
+          "@type": "Organization",
+          "name": "Primetek Global Solutions",
+          "url": "https://www.primetekglobalsolutions.com"
+        },
+        "description": "Talent placement and consulting across software development, data science, AI/ML, cloud, DevOps, cybersecurity, QA automation, and ERP systems.",
+        "areaServed": "US"
+      }
+    ]
+  };
+
+  const breadcrumbs = [
+    { name: 'Home', path: '/' },
+    { name: 'Services', path: '/services' }
+  ];
+
   return (
     <>
+      <SchemaMarkup schema={servicesSchema} />
+      <SchemaMarkup schema={generateBreadcrumbSchema(breadcrumbs)} />
       {/* Hero */}
       <section className="pt-32 pb-16 bg-gradient-to-b from-navy-900 to-navy-800">
         <div className="container-wide text-center">

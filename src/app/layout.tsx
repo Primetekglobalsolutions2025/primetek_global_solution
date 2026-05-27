@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 
 import PWAStandaloneGuard from '@/components/pwa/PWAStandaloneGuard';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
 import { ToastProvider } from '@/components/ui/Toast';
+import SchemaMarkup from '@/components/layout/SchemaMarkup';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -27,12 +29,29 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.primetekglobalsolutions.com'),
   title: {
     default: 'Primetek Global Solutions | Staffing & Consulting',
     template: '%s | Primetek Global Solutions',
   },
   description:
-    'Leading staffing and consulting firm specializing in IT, Healthcare, Finance, and Manufacturing.',
+    'Leading US-based staffing and consulting firm specializing in IT, Healthcare, Finance, Manufacturing, and Talent Acquisition.',
+  keywords: [
+    'IT Staffing',
+    'Recruiting Company',
+    'Talent Acquisition',
+    'C2C Staffing',
+    'Contract Staffing',
+    'Contract-to-Hire',
+    'Full-Time Recruitment',
+    'Consulting Services',
+    'Primetek',
+    'Primetek Global Solutions',
+    'Birmingham Alabama Staffing',
+  ],
+  authors: [{ name: 'Primetek Global Solutions' }],
+  creator: 'Primetek Global Solutions',
+  publisher: 'Primetek Global Solutions',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.svg',
@@ -43,6 +62,63 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Primetek Portal',
   },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://www.primetekglobalsolutions.com',
+    siteName: 'Primetek Global Solutions',
+    title: 'Primetek Global Solutions | Staffing & Consulting',
+    description: 'Leading US-based staffing and consulting firm specializing in IT, Healthcare, Finance, Manufacturing, and Talent Acquisition.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Primetek Global Solutions | Staffing & Consulting',
+    description: 'Leading US-based staffing and consulting firm specializing in IT, Healthcare, Finance, Manufacturing, and Talent Acquisition.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || 'google_verification_code',
+    other: {
+      'msvalidate.01': [process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || 'bing_verification_code'],
+    },
+  },
+};
+
+const orgSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://www.primetekglobalsolutions.com/#organization",
+  "name": "Primetek Global Solutions",
+  "url": "https://www.primetekglobalsolutions.com",
+  "logo": "https://www.primetekglobalsolutions.com/favicon.svg",
+  "sameAs": [
+    "https://www.linkedin.com/company/primetek-global-solutions"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+1-219-345-6559",
+    "contactType": "HR and Sales Support",
+    "areaServed": "US",
+    "availableLanguage": "en"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "1680, Unit 2G, 14th Ave S",
+    "addressLocality": "Birmingham",
+    "addressRegion": "AL",
+    "postalCode": "35205",
+    "addressCountry": "US"
+  }
 };
 
 export default function RootLayout({
@@ -50,9 +126,46 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const clarityId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
+
   return (
     <html lang="en" className={`h-full antialiased overflow-x-hidden ${inter.variable} ${playfair.variable}`}>
       <body className="min-h-full flex flex-col overflow-x-hidden w-full">
+        {/* Google Analytics 4 */}
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaId}', {
+                  page_path: window.location.pathname,
+                });
+              `}
+            </Script>
+          </>
+        )}
+
+        {/* Microsoft Clarity */}
+        {clarityId && (
+          <Script id="microsoft-clarity" strategy="afterInteractive">
+            {`
+              (function(c,l,a,r,i,t,y){
+                  c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                  t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                  y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+              })(window,document,"clarity","script","${clarityId}");
+            `}
+          </Script>
+        )}
+
+        <SchemaMarkup schema={orgSchema} />
         <ToastProvider>
           {children}
         </ToastProvider>
@@ -62,4 +175,5 @@ export default function RootLayout({
     </html>
   );
 }
+
 

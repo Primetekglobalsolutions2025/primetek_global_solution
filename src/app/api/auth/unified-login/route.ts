@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       .ilike('email', cleanEmail)
       .single();
 
-    const ADMIN_EMAIL_ENV = (process.env.ADMIN_EMAIL || 'admin@globalprimetek.com').trim().toLowerCase();
+    const ADMIN_EMAIL_ENV = (process.env.ADMIN_EMAIL || 'admin@primetekglobalsolutions.com').trim().toLowerCase();
     const isAdmin = adminRecord || cleanEmail === ADMIN_EMAIL_ENV;
 
     if (isAdmin) {

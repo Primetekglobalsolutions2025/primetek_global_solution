@@ -4,11 +4,16 @@ import { Target, Eye, Award, Users, Lightbulb, Zap, Briefcase } from 'lucide-rea
 import SectionHeading from '@/components/ui/SectionHeading';
 import Card from '@/components/ui/Card';
 import CTASection from '@/components/sections/CTASection';
+import SchemaMarkup from '@/components/layout/SchemaMarkup';
+import { generateBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
   title: 'About Us',
   description:
     'Learn about Primetek Global Solutions — our story, mission, vision, and the team behind world-class IT staffing and recruiting.',
+  alternates: {
+    canonical: 'https://www.primetekglobalsolutions.com/about',
+  },
 };
 
 const values = [
@@ -27,8 +32,34 @@ const usps = [
 ];
 
 export default function AboutPage() {
+  const aboutSchema = {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    "mainEntity": {
+      "@type": "Organization",
+      "name": "Primetek Global Solutions",
+      "url": "https://www.primetekglobalsolutions.com",
+      "description": "Primetek Global Solutions LLC is a US-based IT staffing and recruiting company founded in 2024, headquartered in Birmingham, Alabama.",
+      "foundingDate": "2024",
+      "knowsAbout": [
+        "IT Staffing",
+        "C2C Placements",
+        "Software Development Recruitment",
+        "DevOps Staffing",
+        "Data Science Recruitment"
+      ]
+    }
+  };
+
+  const breadcrumbs = [
+    { name: 'Home', path: '/' },
+    { name: 'About Us', path: '/about' }
+  ];
+
   return (
     <>
+      <SchemaMarkup schema={aboutSchema} />
+      <SchemaMarkup schema={generateBreadcrumbSchema(breadcrumbs)} />
       {/* Hero */}
       <section className="pt-32 pb-16 bg-gradient-to-b from-navy-900 to-navy-800">
         <div className="container-wide text-center">
