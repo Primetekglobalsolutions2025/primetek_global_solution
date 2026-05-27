@@ -526,7 +526,7 @@ export async function startBreak() {
       return { success: false, error: 'No active attendance record found for today.' };
     }
 
-    if (record.status !== 'Working') {
+    if (record.status !== 'Working' && record.status !== 'Approved WFH') {
       return { success: false, error: `Cannot start break from status: ${record.status}` };
     }
 
@@ -579,10 +579,27 @@ export async function endBreak() {
     const breakSeconds = Math.max(0, Math.floor((now.getTime() - breakStart.getTime()) / 1000));
     const newTotalBreak = (record.total_break_seconds || 0) + breakSeconds;
 
+    const { data: officeList } = await supabaseAdmin
+      .from('office_locations')
+      .select('lat, lng, radius_meters')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    const officeLat = Number(office?.lat || 17.3850);
+    const officeLng = Number(office?.lng || 78.4867);
+    const radius = Number(office?.radius_meters || 500);
+
+    const isRemote = record.lat && record.lng 
+      ? calculateDistance(Number(record.lat), Number(record.lng), officeLat, officeLng) > radius 
+      : false;
+    const nextStatus = isRemote ? 'Approved WFH' : 'Working';
+
     const { error } = await supabaseAdmin
       .from('attendance')
       .update({
-        status: 'Working',
+        status: nextStatus,
         current_break_start: null,
         total_break_seconds: newTotalBreak
       })

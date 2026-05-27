@@ -59,9 +59,10 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
         <p className="text-text-muted text-xs">Review and process your assigned client profiles.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Mobile Card List Layout */}
+      <div className="block md:hidden space-y-3">
         {profiles.length === 0 ? (
-          <div className="md:col-span-2 text-center py-12 bg-white rounded-xl border border-dashed border-border/80">
+          <div className="text-center py-12 bg-white rounded-xl border border-dashed border-border/80">
             <Briefcase className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-25" />
             <p className="text-xs text-text-secondary font-medium">No profiles assigned to you yet.</p>
           </div>
@@ -131,7 +132,7 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-[11px] font-semibold text-primary-600 hover:underline"
                   >
-                    <Download className="w-3 h-3" /> Resume
+                    <Download className="w-3.5 h-3.5" /> Resume
                   </a>
                 )}
               </div>
@@ -139,6 +140,110 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
           ))
         )}
       </div>
+
+      {/* Desktop Table Layout */}
+      <Card hover={false} className="p-0 overflow-hidden border border-border/80 shadow-sm bg-white hidden md:block">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left border-collapse">
+            <thead>
+              <tr className="bg-surface-alt/50 text-[10px] font-bold text-text-muted uppercase tracking-wider border-b border-border/60">
+                <th className="px-4 py-3">Client Profile</th>
+                <th className="px-4 py-3">Contact Details</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Resume</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {profiles.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-12 text-center">
+                    <Briefcase className="w-8 h-8 text-text-muted mx-auto mb-2 opacity-25" />
+                    <p className="text-xs text-text-secondary font-medium">No profiles assigned to you yet.</p>
+                  </td>
+                </tr>
+              ) : (
+                profiles.map(profile => (
+                  <tr key={profile.id} className="hover:bg-surface-alt/20 transition-all group">
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="font-semibold text-navy-900 tracking-tight text-xs">{profile.client_name}</p>
+                        <p className="text-[10px] text-primary-600 font-bold uppercase tracking-wider mt-0.5">{profile.client_role}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="space-y-0.5 text-xs text-text-secondary">
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="w-3 h-3 text-text-muted" />
+                          <span>{profile.client_email}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="w-3 h-3 text-text-muted" />
+                          <span>{profile.client_phone}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <select 
+                        value={(profile.status || 'assigned').toLowerCase()}
+                        onChange={(e) => handleStatusChange(profile.id, e.target.value)}
+                        disabled={updating === profile.id}
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-wider py-1.5 px-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-primary-400/50 cursor-pointer transition-all duration-200",
+                          (profile.status || 'assigned').toLowerCase() === 'assigned' && "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100/75",
+                          (profile.status || 'assigned').toLowerCase() === 'processing' && "bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100/75",
+                          (profile.status || 'assigned').toLowerCase() === 'completed' && "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100/75",
+                          (profile.status || 'assigned').toLowerCase() === 'rejected' && "bg-red-50 text-red-600 border-red-200 hover:bg-red-100/75"
+                        )}
+                      >
+                        <option value="assigned" className="bg-white text-navy-900 font-sans">Assigned</option>
+                        <option value="processing" className="bg-white text-navy-900 font-sans">Processing</option>
+                        <option value="completed" className="bg-white text-navy-900 font-sans">Completed</option>
+                        <option value="rejected" className="bg-white text-navy-900 font-sans">Rejected</option>
+                      </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      {profile.resume_url ? (
+                        <a 
+                          href={profile.resume_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-600 hover:underline"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Resume
+                        </a>
+                      ) : (
+                        <span className="text-[11px] text-text-muted">No resume</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            setRequestProfile(profile);
+                            setIsRequestModalOpen(true);
+                          }}
+                          className="bg-navy-900 hover:bg-navy-800 text-white text-[10px] py-1.5 px-2.5 rounded-lg font-bold shadow-sm cursor-pointer"
+                        >
+                          Request Interview
+                        </Button>
+                        <button 
+                          onClick={() => setSelectedProfile(profile)}
+                          className="p-1.5 hover:bg-surface-alt rounded-lg text-primary-500 transition-colors cursor-pointer"
+                          title="View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {/* Detail View Modal */}
       {selectedProfile && (

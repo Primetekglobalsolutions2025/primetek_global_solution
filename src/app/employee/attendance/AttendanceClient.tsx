@@ -601,8 +601,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             {/* Break Control Toggle Buttons */}
             <div className="flex gap-3 pt-5 border-t border-border/40">
               <Button
-                variant={currentStatus === 'Working' ? 'primary' : 'outline'}
-                disabled={currentStatus !== 'Working' || isBreakActionLoading}
+                variant={(currentStatus === 'Working' || currentStatus === 'Approved WFH') ? 'primary' : 'outline'}
+                disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
                 onClick={handleStartBreak}
                 className="flex-1 py-3.5 text-xs font-bold uppercase tracking-wider rounded-lg active:scale-95 transition-all shadow-sm border border-border"
               >
