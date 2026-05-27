@@ -101,27 +101,19 @@ export default function DailyReportsAdminClient({
   const handleExportExcel = async () => {
     setExporting(true);
     try {
-      const base64 = await exportDailyReportsExcel(date, selectedEmployee);
+      const res = await exportDailyReportsExcel(date, selectedEmployee);
       
-      // Native base64 to Blob conversion
-      const byteCharacters = atob(base64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      if (res && res.url) {
+        const a = document.createElement('a');
+        a.href = res.url;
+        a.download = `Daily_Recruitment_Reports_${date}${selectedEmployee !== 'all' ? `_Emp_${selectedEmployee}` : ''}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.success('Excel report downloaded successfully!');
+      } else {
+        throw new Error('No URL returned from server');
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Daily_Recruitment_Reports_${date}${selectedEmployee !== 'all' ? `_Emp_${selectedEmployee}` : ''}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast.success('Excel report downloaded successfully!');
     } catch (err) {
       console.error(err);
       toast.error('Failed to export daily reports to Excel.');

@@ -181,23 +181,19 @@ export default function AttendanceClient({
       setIsExporting(true);
       const year = new Date().getFullYear();
       toast.success('Excel export started.');
-      const base64Str = await exportAttendanceExcel(year);
+      const res = await exportAttendanceExcel(year);
       
-      const byteCharacters = atob(base64Str);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      if (res && res.url) {
+        const a = document.createElement('a');
+        a.href = res.url;
+        a.download = `Primetek_Attendance_${year}_Master.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.success('Excel file generated successfully.');
+      } else {
+        throw new Error('No URL returned from server');
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Primetek_Attendance_${year}_Master.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success('Excel file generated successfully.');
     } catch (error) {
       console.error('Failed to export Excel:', error);
       toast.error('Failed to generate Excel file.');

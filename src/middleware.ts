@@ -33,6 +33,36 @@ async function getCachedEmployeeStatus(employeeId: string): Promise<string | nul
   }
 }
 
+interface AdminCacheEntry {
+  exists: boolean;
+  timestamp: number;
+}
+
+const adminCache = new Map<string, AdminCacheEntry>();
+
+async function getCachedAdminExistence(adminId: string): Promise<boolean> {
+  const now = Date.now();
+  const cached = adminCache.get(adminId);
+  if (cached && (now - cached.timestamp) < CACHE_TTL_MS) {
+    return cached.exists;
+  }
+
+  try {
+    const { data: adminData } = await supabaseAdmin
+      .from('admin_users')
+      .select('id')
+      .eq('id', adminId)
+      .maybeSingle();
+
+    const exists = !!adminData;
+    adminCache.set(adminId, { exists, timestamp: now });
+    return exists;
+  } catch (err) {
+    console.error('[Middleware Cache] Failed to fetch admin existence:', err);
+    return true; // Fail open to avoid blocking admins on DB query failure
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -98,6 +128,14 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
+
+    // Check if admin account still exists in DB
+    const adminExists = await getCachedAdminExistence(session.id);
+    if (!adminExists) {
+      const response = NextResponse.redirect(new URL('/admin/login', request.url));
+      response.cookies.delete('admin-auth-token');
+      return response;
+    }
   }
 
   // 2. Employee route protection
@@ -155,6 +193,12 @@ export async function middleware(request: NextRequest) {
       const empStatus = await getCachedEmployeeStatus(session.id);
 
       if (empStatus !== 'Active') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+    } else {
+      // Check if admin user still exists in DB for API requests
+      const adminExists = await getCachedAdminExistence(session.id);
+      if (!adminExists) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
     }

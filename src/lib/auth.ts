@@ -2,6 +2,18 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies, headers } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { env } from './env';
+import { supabaseAdmin } from './supabase-admin';
+
+export async function verifyActiveSession(employeeId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from('employees')
+    .select('status')
+    .eq('id', employeeId)
+    .single();
+  if (error || !data || data.status !== 'Active') {
+    throw new Error('Unauthorized: Account is inactive or deleted.');
+  }
+}
 
 let _jwtSecret: Uint8Array | null = null;
 function getJwtSecret(): Uint8Array {

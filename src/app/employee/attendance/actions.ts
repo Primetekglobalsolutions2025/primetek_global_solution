@@ -1,7 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveSession } from '@/lib/auth';
 import { assessAttendanceRisk } from '@/lib/security/risk-engine';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
@@ -79,12 +79,40 @@ export async function closeStaleSessionsForEmployee(employeeId: string, currentS
   }
 }
 
-export async function checkIn(lat: number, lng: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
+export async function checkIn(
+  lat: number,
+  lng: number,
+  ipAddress?: string,
+  userAgent?: string,
+  deviceFingerprint?: string,
+  clientTimestamp?: string
+) {
   try {
     const session = await getSession();
     if (!session || !session.id) {
       return { success: false, error: 'Unauthorized' };
     }
+    await verifyActiveSession(session.id);
+
+    let now = new Date();
+    if (clientTimestamp) {
+      const parsedTime = new Date(clientTimestamp);
+      // Validate that clientTimestamp is not in the future (skew threshold: 5 minutes)
+      const diff = parsedTime.getTime() - Date.now();
+      if (diff > 5 * 60 * 1000) {
+        throw new Error('Future timestamp detected. Anti-tampering block triggered.');
+      }
+
+      // Check if client timestamp matches server shift date
+      const { shiftDateStr: serverShiftDate } = getShiftInfo();
+      const { shiftDateStr: clientShiftDate } = getShiftInfo(parsedTime);
+      if (clientShiftDate !== serverShiftDate) {
+        throw new Error('Timestamp shift date mismatch.');
+      }
+      
+      now = parsedTime;
+    }
+
     const reqHeaders = await headers();
     const ip = ipAddress || reqHeaders.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
@@ -101,7 +129,7 @@ export async function checkIn(lat: number, lng: number, ipAddress?: string, user
       action: 'check_in',
     });
 
-    const { shiftDateStr, shiftStart } = getShiftInfo();
+    const { shiftDateStr, shiftStart } = getShiftInfo(now);
 
     // Close stale sessions (auto logout yesterday's sessions)
     await closeStaleSessionsForEmployee(session.id, shiftDateStr);
@@ -152,7 +180,6 @@ export async function checkIn(lat: number, lng: number, ipAddress?: string, user
     }
 
     // 4. Record Check-in & Calculate Lateness
-    const now = new Date();
     // 6:45 PM IST is 13:15 UTC. Check-in is late if now >= shiftStart + 15 minutes
     const lateThreshold = new Date(shiftStart.getTime() + 15 * 60 * 1000);
     const isLate = now.getTime() >= lateThreshold.getTime();
@@ -188,20 +215,47 @@ export async function checkIn(lat: number, lng: number, ipAddress?: string, user
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
-    return { success: true };
+    return { success: true, recordId: attRecord.id };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Internal server error';
     return { success: false, error: errorMsg };
   }
 }
 
-export async function requestWFH(lat: number, lng: number, ipAddress?: string, userAgent?: string, deviceFingerprint?: string) {
+export async function requestWFH(
+  lat: number,
+  lng: number,
+  ipAddress?: string,
+  userAgent?: string,
+  deviceFingerprint?: string,
+  clientTimestamp?: string
+) {
   try {
     const reqHeaders = await headers();
     const ip = ipAddress || reqHeaders.get('x-forwarded-for')?.split(',')[0] || 'unknown';
     const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    await verifyActiveSession(session.id);
+
+    let now = new Date();
+    if (clientTimestamp) {
+      const parsedTime = new Date(clientTimestamp);
+      // Validate that clientTimestamp is not in the future (skew threshold: 5 minutes)
+      const diff = parsedTime.getTime() - Date.now();
+      if (diff > 5 * 60 * 1000) {
+        throw new Error('Future timestamp detected. Anti-tampering block triggered.');
+      }
+
+      // Check if client timestamp matches server shift date
+      const { shiftDateStr: serverShiftDate } = getShiftInfo();
+      const { shiftDateStr: clientShiftDate } = getShiftInfo(parsedTime);
+      if (clientShiftDate !== serverShiftDate) {
+        throw new Error('Timestamp shift date mismatch.');
+      }
+      
+      now = parsedTime;
+    }
     
     const risk = await assessAttendanceRisk({
       userId: session.id,
@@ -218,7 +272,7 @@ export async function requestWFH(lat: number, lng: number, ipAddress?: string, u
       return { success: false, error: 'High risk WFH request', riskLevel: risk.level };
     }
     
-    const { shiftDateStr, shiftStart } = getShiftInfo();
+    const { shiftDateStr, shiftStart } = getShiftInfo(now);
 
     // Close stale sessions (auto logout yesterday's sessions)
     await closeStaleSessionsForEmployee(session.id, shiftDateStr);
@@ -233,7 +287,6 @@ export async function requestWFH(lat: number, lng: number, ipAddress?: string, u
     if (existing) return { success: false, error: 'Already exists for today' };
 
     // Record WFH request & Lateness
-    const now = new Date();
     const lateThreshold = new Date(shiftStart.getTime() + 15 * 60 * 1000);
     const isLate = now.getTime() >= lateThreshold.getTime();
     const lateMinutes = isLate 
@@ -282,9 +335,10 @@ export async function requestWFH(lat: number, lng: number, ipAddress?: string, u
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
-    return { success: true };
-  } catch {
-    return { success: false, error: 'Failed to request WFH' };
+    return { success: true, recordId: attRecord.id };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to request WFH';
+    return { success: false, error: errorMsg };
   }
 }
 
@@ -304,6 +358,7 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
     const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    await verifyActiveSession(session.id);
     
     const risk = await assessAttendanceRisk({
       userId: session.id,
@@ -332,10 +387,21 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
       return { success: false, error: 'Attendance check-in record not found' };
     }
 
-    // BIZ-04: Validate that record date matches today's shift date
+    if (record.check_out || record.status === 'Logged Out') {
+      return { success: false, error: 'You are already clocked out.' };
+    }
+
+    // BIZ-04: Validate that the record is from the current shift or yesterday's shift (overnight check-out)
     const { shiftDateStr } = getShiftInfo();
-    if (record.date !== shiftDateStr) {
-      return { success: false, error: 'Cannot check out of past attendance records.' };
+    const timeSinceCheckIn = Date.now() - new Date(record.check_in).getTime();
+    const isPastShift = record.date !== shiftDateStr;
+    
+    if (isPastShift) {
+      // Allow overnight check-out if checked in within the last 16 hours
+      const isOvernightValid = timeSinceCheckIn < 16 * 60 * 60 * 1000;
+      if (!isOvernightValid) {
+        return { success: false, error: 'Cannot check out of past attendance records.' };
+      }
     }
 
 
@@ -444,6 +510,7 @@ export async function startBreak() {
   try {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    await verifyActiveSession(session.id);
 
     const { shiftDateStr } = getShiftInfo();
 
@@ -487,6 +554,7 @@ export async function endBreak() {
   try {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    await verifyActiveSession(session.id);
 
     const { shiftDateStr } = getShiftInfo();
 

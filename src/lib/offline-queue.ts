@@ -90,7 +90,7 @@ export function enqueueOfflineAction(
 
   const queue = getOfflineQueue();
 
-  // Duplicate prevention: block multiple check-ins for the same shift date
+  // Duplicate prevention: block multiple check-ins/check-outs for the same shift date
   const shiftDate = getClientShiftDate(new Date());
   if (action === 'check_in' || action === 'wfh_request') {
     const hasDuplicate = queue.some(
@@ -101,6 +101,18 @@ export function enqueueOfflineAction(
     );
     if (hasDuplicate) {
       throw new Error('A check-in for today is already queued offline.');
+    }
+  }
+
+  if (action === 'check_out') {
+    const hasDuplicate = queue.some(
+      (e) =>
+        e.action === 'check_out' &&
+        getClientShiftDate(e.timestamp) === shiftDate &&
+        e.status !== 'failed',
+    );
+    if (hasDuplicate) {
+      throw new Error('A check-out for today is already queued offline.');
     }
   }
 
@@ -118,7 +130,7 @@ export function removeFromQueue(entryId: string): void {
 /** Update the status of a queued entry */
 export function updateQueueEntry(
   entryId: string,
-  updates: Partial<Pick<OfflineAttendanceEntry, 'status' | 'retryCount' | 'errorMessage'>>,
+  updates: Partial<Pick<OfflineAttendanceEntry, 'status' | 'retryCount' | 'errorMessage' | 'recordId'>>,
 ): void {
   const queue = getOfflineQueue().map((e) =>
     e.id === entryId ? { ...e, ...updates } : e,

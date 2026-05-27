@@ -3,6 +3,15 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import ExcelJS from 'exceljs';
+import { logAuditAction } from '@/lib/audit';
+
+declare module 'exceljs' {
+  interface Worksheet {
+    dataValidations: {
+      add(address: string, validation: ExcelJS.DataValidation): void;
+    };
+  }
+}
 
 export async function getAdminAttendance(startDate?: string, endDate?: string) {
   const session = await getSession();
@@ -142,12 +151,30 @@ export async function exportAttendanceExcel(year: number) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
+  await logAuditAction(
+    'EXPORT_ATTENDANCE_EXCEL',
+    'attendance',
+    undefined,
+    null,
+    { year }
+  );
+
   const { data: employees, error: empError } = await supabaseAdmin
     .from('employees')
     .select('id, name')
     .order('name', { ascending: true });
 
   if (empError) throw new Error('Failed to fetch employees');
+
+  const getColLetter = (colIdx: number) => {
+    let temp, letter = '';
+    while (colIdx > 0) {
+      temp = (colIdx - 1) % 26;
+      letter = String.fromCharCode(temp + 65) + letter;
+      colIdx = (colIdx - temp - 1) / 26;
+    }
+    return letter;
+  };
 
   const startDate = `${year}-01-01`;
   const endDate = `${year}-12-31`;
@@ -191,7 +218,7 @@ export async function exportAttendanceExcel(year: number) {
   b4.value = 'How to add new employees:';
   b4.font = { bold: true, size: 12 };
   guideSheet.getCell('B5').value = "Simply type the new employee's name in the next empty row under the 'Employee Name' column.";
-  guideSheet.getCell('B6').value = "The S.No and all calculation formulas are already pre-filled for up to 50 rows.";
+  guideSheet.getCell('B6').value = "The S.No and all calculation formulas are already pre-filled for all employees.";
 
   const guideHeaders = ["Code", "Description", "Calculation Rule"];
   guideHeaders.forEach((h, i) => {
@@ -275,8 +302,8 @@ export async function exportAttendanceExcel(year: number) {
       ws.mergeCells(3, col, 4, col);
     });
 
-    const MAX_EMPLOYEES = 50;
-    for (let idx = 0; idx < MAX_EMPLOYEES; idx++) {
+    const employeeCount = employees.length;
+    for (let idx = 0; idx < employeeCount; idx++) {
       const r = 5 + idx;
       const emp = employees[idx] || null;
       
@@ -315,23 +342,8 @@ export async function exportAttendanceExcel(year: number) {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: WO_BG } };
         } else {
           if (statusCode) cell.value = statusCode;
-          cell.dataValidation = {
-            type: 'list',
-            allowBlank: true,
-            formulae: ['"P,A,L,HD,WO"']
-          };
         }
       }
-
-      const getColLetter = (colIdx: number) => {
-        let temp, letter = '';
-        while (colIdx > 0) {
-          temp = (colIdx - 1) % 26;
-          letter = String.fromCharCode(temp + 65) + letter;
-          colIdx = (colIdx - temp - 1) / 26;
-        }
-        return letter;
-      };
 
       const rng = `${getColLetter(3)}${r}:${getColLetter(days + 2)}${r}`;
       
@@ -345,11 +357,44 @@ export async function exportAttendanceExcel(year: number) {
       ws.getCell(r, summaryStartCol + 3).value = { formula: `IF(B${r}="","", ${pRef}+${aRef}+${lRef})` };
     }
 
+    if (employeeCount > 0) {
+      ws.dataValidations.add(`C5:${getColLetter(days + 2)}${4 + employeeCount}`, {
+        type: 'list',
+        allowBlank: true,
+        formulae: ['"P,A,L,HD,WO"']
+      });
+    }
+
     ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 4 }];
   }
 
   const buffer = await wb.xlsx.writeBuffer();
-  return Buffer.from(buffer).toString('base64');
+  const fileName = `attendance-${year}-${Date.now()}.xlsx`;
+
+  const { error: uploadError } = await supabaseAdmin
+    .storage
+    .from('exports')
+    .upload(fileName, buffer, {
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      upsert: true
+    });
+
+  if (uploadError) {
+    console.error('[exportAttendanceExcel] Upload error:', uploadError);
+    throw new Error('Failed to upload Excel export to storage');
+  }
+
+  const { data: signedData, error: signedError } = await supabaseAdmin
+    .storage
+    .from('exports')
+    .createSignedUrl(fileName, 300); // 5 minutes expiration
+
+  if (signedError || !signedData?.signedUrl) {
+    console.error('[exportAttendanceExcel] Signed URL generation error:', signedError);
+    throw new Error('Failed to generate download URL');
+  }
+
+  return { url: signedData.signedUrl };
 }
 
 export async function toggleExemption(recordId: string, fieldName: string, value: boolean) {
@@ -383,7 +428,6 @@ export async function toggleExemption(recordId: string, fieldName: string, value
     throw new Error('Database update failed');
   }
 
-  const { logAuditAction } = await import('@/lib/audit');
   await logAuditAction(
     'TOGGLE_ATTENDANCE_EXEMPTION',
     'attendance',

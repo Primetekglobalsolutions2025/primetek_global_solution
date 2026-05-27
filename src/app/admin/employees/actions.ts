@@ -154,3 +154,32 @@ export async function deleteEmployee(id: string) {
   revalidatePath('/admin/employees');
   revalidatePath('/admin/dashboard');
 }
+
+export async function resetEmployeeMFA(id: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data: employee } = await supabaseAdmin
+    .from('employees')
+    .select('name, email')
+    .eq('id', id)
+    .single();
+
+  const { error } = await supabaseAdmin
+    .from('employees')
+    .update({ mfa_enabled: false, mfa_secret: null })
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error resetting employee MFA:', error);
+    throw new Error('Failed to reset MFA');
+  }
+
+  if (employee) {
+    await logAuditAction('RESET_EMPLOYEE_MFA', 'employees', id, { email: employee.email, name: employee.name }, null);
+  }
+
+  revalidatePath('/admin/employees');
+  revalidatePath('/admin/dashboard');
+}
+

@@ -1,7 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function getAssignedProfiles() {
@@ -21,6 +21,7 @@ export async function getAssignedProfiles() {
 export async function updateProfileStatus(id: string, status: string) {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
+  await verifyActiveSession(session.id);
 
   // MED-05: Restrict to employee-allowed statuses
   const ALLOWED_STATUSES = ['assigned', 'processing', 'completed', 'rejected'];
@@ -42,6 +43,7 @@ export async function updateProfileStatus(id: string, status: string) {
 export async function submitInterviewRequest(formData: FormData) {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
+  await verifyActiveSession(session.id);
 
   const profileId = formData.get('profile_id') as string;
   const clientCompany = formData.get('client_company') as string;
@@ -80,12 +82,25 @@ export async function submitInterviewRequest(formData: FormData) {
 
     // MED-20: Read file buffer once
     const arrayBuffer = await file.arrayBuffer();
-    fileBuffer = Buffer.from(arrayBuffer);
+    const currentBuffer = Buffer.from(arrayBuffer);
+    fileBuffer = currentBuffer;
     
     // Ext check
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     if (!['pdf', 'doc', 'docx'].includes(fileExt || '')) {
       throw new Error('Invalid file type. Only PDF, DOC, or DOCX files are allowed.');
+    }
+
+    // Verify file content headers (magic bytes) to prevent executable spoofing
+    const fileHex = currentBuffer.toString('hex', 0, 4).toUpperCase();
+    if (fileExt === 'pdf' && fileHex !== '25504446') {
+      throw new Error('Invalid PDF content signature.');
+    }
+    if (fileExt === 'docx' && fileHex !== '504B0304') {
+      throw new Error('Invalid DOCX content signature.');
+    }
+    if (fileExt === 'doc' && fileHex !== 'D0CF11E0') {
+      throw new Error('Invalid DOC content signature.');
     }
 
     const fileName = `updated-resume-${Date.now()}.${fileExt}`;

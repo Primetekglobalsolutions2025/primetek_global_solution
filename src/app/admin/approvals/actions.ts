@@ -97,15 +97,23 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
     .eq('id', request.employee_id)
     .single();
 
-  // 2. Update Status
-  const { error } = await supabaseAdmin
+  // 2. Update Status atomically only if it is still Pending
+  const { data: updatedRequest, error } = await supabaseAdmin
     .from('leave_requests')
-    .update({ status }) // Removed approved_by as it may not exist in the schema
-    .eq('id', id);
+    .update({ status })
+    .eq('id', id)
+    .eq('status', 'Pending')
+    .select('*')
+    .maybeSingle();
 
   if (error) {
     console.error('Database update error:', error);
     throw new Error('Database update failed');
+  }
+
+  // If no row was updated, it means another request processed it first
+  if (!updatedRequest) {
+    return { success: false, error: 'Leave request has already been processed.' };
   }
 
   // 3. Deduct Balance if Approved
@@ -206,13 +214,20 @@ export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Reje
     .eq('id', request.employee_id)
     .single();
 
-  // 2. Update Status
-  const { error } = await supabaseAdmin
+  // 2. Update Status atomically only if it is still Pending WFH
+  const { data: updatedRequest, error } = await supabaseAdmin
     .from('attendance')
     .update({ status })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('status', 'Pending WFH')
+    .select('*')
+    .maybeSingle();
 
   if (error) throw error;
+  
+  if (!updatedRequest) {
+    return { success: false, error: 'WFH request has already been processed.' };
+  }
 
   // Log action to audit ledger
   await logAuditAction(

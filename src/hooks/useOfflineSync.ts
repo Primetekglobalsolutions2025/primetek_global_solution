@@ -44,21 +44,40 @@ export function useOfflineSync() {
       updateQueueEntry(entry.id, { status: 'syncing' });
 
       try {
-        let result: { success: boolean; error?: string };
+        let result: { success: boolean; error?: string; recordId?: string };
 
         switch (entry.action) {
           case 'check_in':
-            result = await checkIn(entry.lat, entry.lng, undefined, undefined, entry.fingerprint);
+            result = await checkIn(entry.lat, entry.lng, undefined, undefined, entry.fingerprint, entry.timestamp);
+            if (result.success && result.recordId) {
+              const queue = getOfflineQueue();
+              const checkoutEntry = queue.find(e => e.action === 'check_out' && e.recordId === entry.id);
+              if (checkoutEntry) {
+                updateQueueEntry(checkoutEntry.id, { recordId: result.recordId });
+              }
+            }
             break;
           case 'check_out':
-            if (!entry.recordId) {
+            // Read latest entry from localStorage to get updated recordId
+            const latestEntry = getOfflineQueue().find(e => e.id === entry.id);
+            const targetRecordId = latestEntry?.recordId || entry.recordId;
+            if (!targetRecordId) {
               result = { success: false, error: 'Missing record ID for checkout' };
+            } else if (targetRecordId.startsWith('offline_')) {
+              result = { success: false, error: 'Dependent check-in is not yet synced' };
             } else {
-              result = await checkOut(entry.recordId, entry.lat, entry.lng, undefined, undefined, entry.fingerprint);
+              result = await checkOut(targetRecordId, entry.lat, entry.lng, undefined, undefined, entry.fingerprint);
             }
             break;
           case 'wfh_request':
-            result = await requestWFH(entry.lat, entry.lng, undefined, undefined, entry.fingerprint);
+            result = await requestWFH(entry.lat, entry.lng, undefined, undefined, entry.fingerprint, entry.timestamp);
+            if (result.success && result.recordId) {
+              const queue = getOfflineQueue();
+              const checkoutEntry = queue.find(e => e.action === 'check_out' && e.recordId === entry.id);
+              if (checkoutEntry) {
+                updateQueueEntry(checkoutEntry.id, { recordId: result.recordId });
+              }
+            }
             break;
           default:
             result = { success: false, error: 'Unknown action' };

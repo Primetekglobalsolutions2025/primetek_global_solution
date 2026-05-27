@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import ExcelJS from 'exceljs';
+import { logAuditAction } from '@/lib/audit';
 
 export async function getAllDailyReports(date: string, employeeId?: string) {
   const session = await getSession();
@@ -92,6 +93,14 @@ export async function getSubmissionStatus(date: string) {
 export async function exportDailyReportsExcel(date: string, employeeId?: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  await logAuditAction(
+    'EXPORT_DAILY_REPORTS_EXCEL',
+    'profile_daily_metrics',
+    undefined,
+    null,
+    { date, employeeId }
+  );
 
   const reports = await getAllDailyReports(date, employeeId);
 
@@ -236,5 +245,30 @@ export async function exportDailyReportsExcel(date: string, employeeId?: string)
   }
 
   const buffer = await wb.xlsx.writeBuffer();
-  return Buffer.from(buffer).toString('base64');
+  const fileName = `daily-reports-${date}-${Date.now()}.xlsx`;
+
+  const { error: uploadError } = await supabaseAdmin
+    .storage
+    .from('exports')
+    .upload(fileName, buffer, {
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      upsert: true
+    });
+
+  if (uploadError) {
+    console.error('[exportDailyReportsExcel] Upload error:', uploadError);
+    throw new Error('Failed to upload daily reports export to storage');
+  }
+
+  const { data: signedData, error: signedError } = await supabaseAdmin
+    .storage
+    .from('exports')
+    .createSignedUrl(fileName, 300); // 5 minutes expiration
+
+  if (signedError || !signedData?.signedUrl) {
+    console.error('[exportDailyReportsExcel] Signed URL generation error:', signedError);
+    throw new Error('Failed to generate download URL');
+  }
+
+  return { url: signedData.signedUrl };
 }

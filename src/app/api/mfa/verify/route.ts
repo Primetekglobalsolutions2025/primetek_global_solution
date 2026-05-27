@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, getTokenFromRequest } from '@/lib/auth';
 import { verifyMFAToken, decryptSecret } from '@/lib/mfa';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { loginRateLimiter, consumeRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,6 +14,16 @@ export async function POST(request: NextRequest) {
 
     const { code } = await request.json();
     if (!code) return NextResponse.json({ error: 'MFA code is required' }, { status: 400 });
+
+    const rateLimitKey = `mfa-verify:${session.id}`;
+    const rateLimitResult = await consumeRateLimit(loginRateLimiter, rateLimitKey);
+    if (!rateLimitResult.allowed) {
+      const retryAfterSec = Math.ceil(rateLimitResult.retryAfterMs / 1000);
+      return NextResponse.json(
+        { error: `Too many verification attempts. Please try again after ${retryAfterSec} seconds.` },
+        { status: 429 }
+      );
+    }
 
     const table = session.role === 'admin' ? 'admin_users' : 'employees';
     const { data: user, error: fetchError } = await supabaseAdmin
@@ -29,6 +40,9 @@ export async function POST(request: NextRequest) {
     const isValid = await verifyMFAToken(code, decryptedSecret);
 
     if (isValid) {
+      // Clear rate limit
+      await loginRateLimiter.delete(rateLimitKey);
+
       // Enable MFA formally
       await supabaseAdmin
         .from(table)

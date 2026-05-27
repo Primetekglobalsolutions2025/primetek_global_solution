@@ -1,7 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 
 export async function applyForLeave(formData: {
@@ -12,6 +12,7 @@ export async function applyForLeave(formData: {
 }) {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
+  await verifyActiveSession(session.id);
 
   // 1. Enforce allowed leave types
   if (!['Casual', 'Unpaid'].includes(formData.type)) {
@@ -62,17 +63,18 @@ export async function applyForLeave(formData: {
     }
   }
 
-  // 5. Check for overlapping requests on the exact date
+  // 5. Check for overlapping requests within the date range
   const { data: overlaps, error: overlapError } = await supabaseAdmin
     .from('leave_requests')
     .select('id')
     .eq('employee_id', session.id)
     .in('status', ['Pending', 'Approved'])
-    .eq('start_date', formData.start_date);
+    .gte('end_date', formData.start_date)
+    .lte('start_date', formData.end_date);
 
   if (overlapError) throw overlapError;
   if (overlaps && overlaps.length > 0) {
-    throw new Error('You have an overlapping leave request for this date.');
+    throw new Error('You have an overlapping leave request for this date range.');
   }
 
   // 6. Record request

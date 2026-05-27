@@ -6,7 +6,7 @@ import { Plus, Search, ToggleLeft, ToggleRight, X, Loader2, Trash2, Users, Shiel
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { toggleEmployeeStatus, createEmployee, deleteEmployee } from './actions';
+import { toggleEmployeeStatus, createEmployee, deleteEmployee, resetEmployeeMFA } from './actions';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/Toast';
@@ -110,6 +110,21 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
           toast.success('Employee deleted successfully.');
         } catch (err) {
           toast.error('Failed to delete employee.');
+        }
+      }
+    });
+  };
+
+  const handleResetMFA = async (id: string, name: string) => {
+    setConfirmAction({
+      message: `Are you sure you want to reset MFA for ${name}? They will need to scan a new QR code on their next login attempt.`,
+      variant: 'primary',
+      onConfirm: async () => {
+        try {
+          await resetEmployeeMFA(id);
+          toast.success('Employee MFA credentials reset successfully.');
+        } catch (err) {
+          toast.error('Failed to reset employee MFA.');
         }
       }
     });
@@ -277,6 +292,14 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Delete</span>
                   </button>
+                  <button 
+                    onClick={() => handleResetMFA(emp.id, emp.name)}
+                    className="p-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors flex items-center gap-1 text-[9px] font-bold cursor-pointer"
+                    title="Reset MFA"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Reset MFA</span>
+                  </button>
                 </div>
               </div>
             </Card>
@@ -368,6 +391,13 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                           title="Manage Balances"
                         >
                           <Wallet className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => handleResetMFA(emp.id, emp.name)}
+                          className="w-6.5 h-6.5 rounded text-gray-400 hover:text-amber-600 hover:bg-amber-50 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
+                          title="Reset Employee MFA"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" />
                         </button>
                         <button 
                           onClick={() => handleDelete(emp.id, emp.name)}

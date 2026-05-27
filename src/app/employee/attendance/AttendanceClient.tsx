@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
-import { enqueueOfflineAction } from '@/lib/offline-queue';
+import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
 
 const statusColors: Record<string, string> = {
   present: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -174,7 +174,16 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   };
 
   const handleCheckOut = async () => {
-    if (!todayRecord) return;
+    const offlineQueue = getOfflineQueue();
+    const pendingCheckIn = offlineQueue.find(
+      e => (e.action === 'check_in' || e.action === 'wfh_request') && e.status !== 'failed'
+    );
+
+    if (!todayRecord && !pendingCheckIn) {
+      showNotification('No active clock-in session found.', 'error');
+      return;
+    }
+
     setConfirmAction({
       message: 'Are you sure you want to clock out for today? Any running breaks will be ended automatically.',
       variant: 'danger',
@@ -199,9 +208,25 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           return;
         }
 
+        const fingerprint = getOrCreateFingerprint();
+        const recordId = todayRecord ? todayRecord.id : pendingCheckIn!.id;
+
+        if (!navigator.onLine) {
+          try {
+            enqueueOfflineAction('check_out', lat, lng, fingerprint, recordId);
+            refreshPendingCount();
+            setGpsStatus('success');
+            showNotification('Offline mode — check-out saved locally. It will sync when you reconnect.', 'info');
+          } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : 'Failed to queue offline check-out';
+            setGpsStatus('error');
+            showNotification(errorMsg, 'error');
+          }
+          return;
+        }
+
         try {
-          const fingerprint = getOrCreateFingerprint();
-          const result = await checkOut(todayRecord.id, lat, lng, undefined, undefined, fingerprint);
+          const result = await checkOut(recordId, lat, lng, undefined, undefined, fingerprint);
           if (result.success) {
             setGpsStatus('success');
             showNotification('Clocked out successfully.', 'success');

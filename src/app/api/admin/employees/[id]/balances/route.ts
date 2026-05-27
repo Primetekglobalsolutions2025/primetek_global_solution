@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
+import { logAuditAction } from '@/lib/audit';
 
 export async function GET(
   req: Request,
@@ -78,12 +79,14 @@ export async function POST(
     // Check if balance exists
     const { data: existing } = await supabaseAdmin
       .from('leave_balances')
-      .select('id')
+      .select('id, total_days')
       .eq('employee_id', id)
       .eq('leave_type', 'Casual')
       .eq('year', currentYear)
       .eq('month', currentMonth)
       .maybeSingle();
+
+    const oldDays = existing ? existing.total_days : 0;
 
     if (existing) {
       const { error } = await supabaseAdmin
@@ -104,6 +107,14 @@ export async function POST(
         });
       if (error) throw error;
     }
+
+    await logAuditAction(
+      'UPDATE_LEAVE_BALANCE',
+      'leave_balances',
+      existing?.id || id,
+      { total_days: oldDays, employee_id: id },
+      { total_days: casual, employee_id: id }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

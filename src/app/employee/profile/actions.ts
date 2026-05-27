@@ -1,14 +1,16 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { logAuditAction } from '@/lib/audit';
 
 import { employeeProfileUpdateSchema } from '@/lib/validations';
 
 export async function updateProfile(name: string, phone: string) {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
+  await verifyActiveSession(session.id);
 
   const parsed = employeeProfileUpdateSchema.safeParse({ name, phone });
   if (!parsed.success) {
@@ -31,12 +33,22 @@ export async function updateProfile(name: string, phone: string) {
 
   revalidatePath('/employee/profile');
   revalidatePath('/employee/dashboard');
+  
+  await logAuditAction(
+    'UPDATE_PROFILE',
+    'employees',
+    session.id,
+    null,
+    { name: validatedName, phone: validatedPhone }
+  );
+
   return { success: true, employee: data };
 }
 
 export async function updateAvatar(formData: FormData) {
   const session = await getSession();
   if (!session || !session.id) throw new Error('Unauthorized');
+  await verifyActiveSession(session.id);
 
   const file = formData.get('avatar') as File | null;
   if (!file) throw new Error('No file provided');
@@ -98,6 +110,15 @@ export async function updateAvatar(formData: FormData) {
 
   revalidatePath('/employee/profile');
   revalidatePath('/employee/dashboard');
+
+  await logAuditAction(
+    'UPDATE_AVATAR',
+    'employees',
+    session.id,
+    null,
+    { avatar_url: publicUrl }
+  );
+
   return { success: true, avatarUrl: publicUrl };
 }
 
