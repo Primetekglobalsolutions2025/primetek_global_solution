@@ -35,19 +35,19 @@ function StatCard({
   icon: any; color: string;
 }) {
   return (
-    <div className="bg-white rounded-lg p-5 border border-zinc-200/80 flex flex-col gap-4 relative hover:border-zinc-400 transition-all duration-200 shadow-2xs">
+    <div className="bg-white rounded-lg p-5 border border-zinc-200/80 flex flex-col gap-4 relative hover:border-primary-500/50 transition-all duration-200 shadow-2xs">
       <div className="flex items-center justify-between">
-        <div className="w-8 h-8 rounded-md bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500">
+        <div className="w-8 h-8 rounded-md bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-550">
           <Icon className="w-4 h-4" />
         </div>
         {sub && (
-          <span className="text-[9px] font-mono font-medium text-zinc-500 bg-zinc-100 border border-zinc-200 px-1.5 py-0.5 rounded">
+          <span className="text-[9px] font-mono font-medium text-primary-700 bg-primary-50/50 border border-primary-200/40 px-1.5 py-0.5 rounded">
             {sub}
           </span>
         )}
       </div>
       <div>
-        <p className="text-2xl font-bold tracking-tight text-zinc-900 font-sans leading-none">{value}</p>
+        <p className="text-2xl font-bold tracking-tight text-navy-900 font-sans leading-none">{value}</p>
         <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 mt-2 font-sans">{label}</p>
       </div>
     </div>
@@ -57,7 +57,7 @@ function StatCard({
 function SectionHeader({ title, sub }: { title: string; sub?: string }) {
   return (
     <div className="flex flex-col gap-1 mb-5">
-      <h3 className="font-semibold text-zinc-900 text-sm tracking-tight font-sans">{title}</h3>
+      <h3 className="font-semibold text-navy-900 text-sm tracking-tight font-sans">{title}</h3>
       {sub && <p className="text-[11px] text-zinc-400 font-medium tracking-normal">{sub}</p>}
     </div>
   );
@@ -95,7 +95,7 @@ function StatusBadge({ status }: { status: string }) {
       return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
     }
     if (s === 'on break') {
-      return { bg: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' };
+      return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
     }
     return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };
   };
@@ -147,32 +147,32 @@ function AttendanceReport({ data }: { data: any }) {
           value={data.wfh} 
           sub={data.pendingWfh > 0 ? `${data.pendingWfh} pending` : undefined} 
           icon={MapPin} 
-          color="text-violet-600" 
+          color="text-primary-600" 
         />
       </div>
 
       {/* Hours Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-zinc-400 transition-all duration-200 shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-primary-500/50 transition-all duration-200 shadow-2xs">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">Total Productive Hours</p>
-          <p className="text-2xl font-bold text-zinc-900 leading-none font-sans tracking-tight">
+          <p className="text-2xl font-bold text-navy-900 leading-none font-sans tracking-tight">
             {data.totalProductiveHours}
             <span className="text-xs font-semibold text-zinc-400 ml-1">hrs</span>
           </p>
           <p className="text-[11px] text-zinc-400 font-medium font-sans">Avg {data.avgProductiveHours} hrs/day</p>
         </div>
         
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-zinc-400 transition-all duration-200 shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-primary-500/50 transition-all duration-200 shadow-2xs">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">Total Break Time</p>
-          <p className="text-2xl font-bold text-zinc-900 leading-none font-sans tracking-tight">
+          <p className="text-2xl font-bold text-navy-900 leading-none font-sans tracking-tight">
             {formatSeconds(data.totalBreakSeconds)}
           </p>
           <p className="text-[11px] text-zinc-400 font-medium font-sans">Across {data.present} working days</p>
         </div>
         
-        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-zinc-400 transition-all duration-200 shadow-2xs">
+        <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-primary-500/50 transition-all duration-200 shadow-2xs">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">Attendance Deductions</p>
-          <p className={cn('text-2xl font-bold leading-none font-sans tracking-tight', data.deductionTotal > 0 ? 'text-red-600' : 'text-zinc-900')}>
+          <p className={cn('text-2xl font-bold leading-none font-sans tracking-tight', data.deductionTotal > 0 ? 'text-red-650' : 'text-navy-900')}>
             {data.deductionTotal}
             <span className="text-xs font-semibold text-zinc-400 ml-1">days</span>
           </p>
@@ -199,13 +199,13 @@ function AttendanceReport({ data }: { data: any }) {
                       onClick={() => setExpandedRow(isExpanded ? null : r.id)}
                       className="w-full flex items-center gap-4 px-4 py-3 hover:bg-zinc-50/50 transition-colors text-left"
                     >
-                      <div className="w-10 h-10 rounded bg-zinc-50 border border-zinc-200 flex flex-col items-center justify-center shrink-0 group-hover/row:border-zinc-350 transition-colors">
-                        <span className="text-sm font-bold text-zinc-900 leading-none font-sans">{new Date(r.date).getDate()}</span>
+                      <div className="w-10 h-10 rounded bg-zinc-50 border border-zinc-200 flex flex-col items-center justify-center shrink-0 group-hover/row:border-primary-500/30 transition-colors">
+                        <span className="text-sm font-bold text-navy-900 leading-none font-sans">{new Date(r.date).getDate()}</span>
                         <span className="text-[8px] font-semibold text-zinc-400 uppercase mt-0.5 font-sans">{new Date(r.date).toLocaleDateString('en-IN', { month: 'short' })}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-semibold text-zinc-900">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long' })}</span>
+                          <span className="text-xs font-semibold text-navy-900">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long' })}</span>
                           <StatusBadge status={r.status} />
                           {r.is_late && !isExempted && <span className="text-[8px] font-mono font-medium text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded uppercase tracking-wider">Late {r.late_minutes}m</span>}
                           {r.is_late && isExempted && <span className="text-[8px] font-mono font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded uppercase tracking-wider">Exempted</span>}
@@ -213,7 +213,7 @@ function AttendanceReport({ data }: { data: any }) {
                         <div className="flex items-center gap-3 mt-1 text-[10px] text-zinc-400 font-mono">
                           <span className="flex items-center gap-1"><LogIn className="w-3 h-3 text-emerald-500" />{checkIn}</span>
                           <span className="flex items-center gap-1"><LogOut className="w-3 h-3 text-red-400" />{checkOut}</span>
-                          {r.productive_hours > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-zinc-450" />{r.productive_hours}h productive</span>}
+                          {r.productive_hours > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-zinc-455" />{r.productive_hours}h productive</span>}
                         </div>
                       </div>
                       <div className="shrink-0 text-zinc-400 transition-transform duration-200">
@@ -232,19 +232,19 @@ function AttendanceReport({ data }: { data: any }) {
                           <div className="px-5 pb-5 pt-1 bg-zinc-50/40 border-t border-zinc-150 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                             <div className="bg-white p-3 rounded border border-zinc-200">
                               <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Break Time</p>
-                              <p className="font-semibold text-zinc-900 text-sm mt-1 font-mono">{formatSeconds(r.total_break_seconds)}</p>
+                              <p className="font-semibold text-navy-900 text-sm mt-1 font-mono">{formatSeconds(r.total_break_seconds)}</p>
                             </div>
                             <div className="bg-white p-3 rounded border border-zinc-200">
                               <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Productive</p>
-                              <p className="font-semibold text-zinc-900 text-sm mt-1 font-mono">{r.productive_hours}h</p>
+                              <p className="font-semibold text-navy-900 text-sm mt-1 font-mono">{r.productive_hours}h</p>
                             </div>
                             <div className="bg-white p-3 rounded border border-zinc-200">
                               <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Deduction</p>
-                              <p className={cn('font-semibold text-sm mt-1 font-mono', r.deduction_applied > 0 ? 'text-red-650' : 'text-zinc-900')}>{r.deduction_applied > 0 ? `${r.deduction_applied} day` : 'None'}</p>
+                              <p className={cn('font-semibold text-sm mt-1 font-mono', r.deduction_applied > 0 ? 'text-red-650' : 'text-navy-900')}>{r.deduction_applied > 0 ? `${r.deduction_applied} day` : 'None'}</p>
                             </div>
                             <div className="bg-white p-3 rounded border border-zinc-200">
                               <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Exemption</p>
-                              <p className="font-semibold text-zinc-900 text-sm mt-1 font-sans">{isExempted ? 'Yes' : 'No'}</p>
+                              <p className="font-semibold text-navy-900 text-sm mt-1 font-sans">{isExempted ? 'Yes' : 'No'}</p>
                             </div>
                           </div>
                         </motion.div>
@@ -274,7 +274,7 @@ function LeavesReport({ data }: { data: any }) {
           label="Total Requests" 
           value={data.total} 
           icon={Calendar} 
-          color="text-blue-600" 
+          color="text-primary-600" 
         />
         <StatCard 
           label="Approved" 
@@ -301,7 +301,7 @@ function LeavesReport({ data }: { data: any }) {
         <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-450 mb-3 font-sans">Casual Leave Balance — This Month</p>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="shrink-0">
-            <p className="text-2xl font-bold text-zinc-900 font-sans tracking-tight">
+            <p className="text-2xl font-bold text-navy-900 font-sans tracking-tight">
               {data.remainingCasual}
               <span className="text-xs font-semibold text-zinc-400 ml-1 font-sans">/ 1 day</span>
             </p>
@@ -309,7 +309,7 @@ function LeavesReport({ data }: { data: any }) {
           </div>
           <div className="flex-1 h-2 rounded bg-zinc-100 overflow-hidden border border-zinc-150">
             <div
-              className={cn('h-full rounded transition-all', data.usedCasual >= 1 ? 'bg-red-500' : 'bg-emerald-500')}
+              className={cn('h-full rounded transition-all', data.usedCasual >= 1 ? 'bg-red-500' : 'bg-primary-500')}
               style={{ width: `${Math.min(100, (data.usedCasual / 1) * 100)}%` }}
             />
           </div>
@@ -328,7 +328,7 @@ function LeavesReport({ data }: { data: any }) {
                 <div key={l.id} className="px-5 py-4 flex items-start justify-between gap-4 hover:bg-zinc-50/40 transition-colors">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold text-zinc-900">{l.type} Leave</span>
+                      <span className="text-xs font-semibold text-navy-900">{l.type} Leave</span>
                       <StatusBadge status={l.status || 'Pending'} />
                     </div>
                     <p className="text-[10px] text-zinc-400 font-mono font-medium tracking-wide uppercase">
@@ -368,25 +368,25 @@ function DailyReportsReport({ data }: { data: any }) {
           label="Days Reported" 
           value={data.daysReported} 
           icon={ClipboardList} 
-          color="text-zinc-650" 
+          color="text-primary-600" 
         />
         <StatCard 
           label="Total Applications" 
           value={data.totalApplications} 
           icon={FileText} 
-          color="text-blue-600" 
+          color="text-primary-650" 
         />
         <StatCard 
           label="Interviews Scheduled" 
           value={data.totalInterviews} 
           icon={User} 
-          color="text-violet-600" 
+          color="text-violet-650" 
         />
         <StatCard 
           label="Assessments" 
           value={data.totalAssessments} 
           icon={Activity} 
-          color="text-emerald-600" 
+          color="text-emerald-650" 
         />
       </div>
 
@@ -394,11 +394,11 @@ function DailyReportsReport({ data }: { data: any }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Technical Rounds', value: data.totalTechnical, color: 'text-cyan-600' },
-          { label: 'Non-Technical', value: data.totalNonTechnical, color: 'text-indigo-650' },
-          { label: 'Self Submissions', value: data.totalSelfSub, color: 'text-teal-650' },
-          { label: 'Support Submissions', value: data.totalSupportSub, color: 'text-orange-650' },
+          { label: 'Non-Technical', value: data.totalNonTechnical, color: 'text-indigo-600' },
+          { label: 'Self Submissions', value: data.totalSelfSub, color: 'text-teal-600' },
+          { label: 'Support Submissions', value: data.totalSupportSub, color: 'text-orange-600' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-450 transition-all duration-200 shadow-2xs">
+          <div key={s.label} className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-primary-500/50 transition-all duration-200 shadow-2xs">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">{s.label}</p>
             <p className={cn('text-2xl font-bold leading-none mt-2 font-sans', s.color)}>{s.value}</p>
           </div>
@@ -422,12 +422,12 @@ function DailyReportsReport({ data }: { data: any }) {
                       onClick={() => setExpandedRow(isExpanded ? null : r.id)}
                       className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-zinc-50/50 transition-colors text-left"
                     >
-                      <div className="w-10 h-10 rounded bg-zinc-50 border border-zinc-200 flex flex-col items-center justify-center shrink-0 group-hover/row:border-zinc-350 transition-colors">
-                        <span className="text-sm font-bold text-zinc-900 leading-none font-sans">{new Date(r.report_date).getDate()}</span>
+                      <div className="w-10 h-10 rounded bg-zinc-50 border border-zinc-200 flex flex-col items-center justify-center shrink-0 group-hover/row:border-primary-500/30 transition-colors">
+                        <span className="text-sm font-bold text-navy-900 leading-none font-sans">{new Date(r.report_date).getDate()}</span>
                         <span className="text-[8px] font-semibold text-zinc-400 uppercase mt-0.5 font-sans">{new Date(r.report_date).toLocaleDateString('en-IN', { month: 'short' })}</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-zinc-900">{r.client_name}</p>
+                        <p className="text-xs font-semibold text-navy-900">{r.client_name}</p>
                         <p className="text-[10px] text-zinc-400 font-medium mt-0.5 font-sans">{total} total activities · {r.applications_count} apps · {r.interviews_count} interviews</p>
                       </div>
                       <div className="shrink-0 text-zinc-400">
@@ -455,7 +455,7 @@ function DailyReportsReport({ data }: { data: any }) {
                             ].map(f => (
                               <div key={f.label} className="bg-white p-3 rounded border border-zinc-200 shadow-3xs">
                                 <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">{f.label}</p>
-                                <p className="font-semibold text-zinc-900 text-sm mt-1 font-mono">{f.value}</p>
+                                <p className="font-semibold text-navy-900 text-sm mt-1 font-mono">{f.value}</p>
                               </div>
                             ))}
                           </div>
@@ -488,7 +488,7 @@ function SecurityReport({ data }: { data: any }) {
           label="Total Risk Events" 
           value={data.totalEvents} 
           icon={ShieldCheck} 
-          color="text-zinc-650" 
+          color="text-navy-900" 
         />
         <StatCard 
           label="High Risk" 
@@ -506,7 +506,7 @@ function SecurityReport({ data }: { data: any }) {
           label="Avg Risk Score" 
           value={`${data.avgScore}/100`} 
           icon={BarChart2} 
-          color="text-blue-650" 
+          color="text-primary-600" 
         />
       </div>
 
@@ -528,7 +528,7 @@ function SecurityReport({ data }: { data: any }) {
                       <Laptop className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-zinc-900">{d.device_label || 'Unknown Device'}</p>
+                      <p className="text-xs font-semibold text-navy-900">{d.device_label || 'Unknown Device'}</p>
                       <p className="text-[10px] text-zinc-450 font-mono mt-0.5">First seen: {formatDate(d.first_seen)} · Last used: {formatDate(d.last_used)}</p>
                     </div>
                   </div>
@@ -563,7 +563,7 @@ function SecurityReport({ data }: { data: any }) {
                       {s.is_valid ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-zinc-900">{s.ip_address || 'Unknown IP'}</p>
+                      <p className="text-xs font-semibold text-navy-900">{s.ip_address || 'Unknown IP'}</p>
                       <p className="text-[10px] text-zinc-400 truncate max-w-xs font-mono mt-0.5">{s.user_agent ? s.user_agent.slice(0, 60) + '...' : 'Unknown agent'}</p>
                       <p className="text-[9px] text-zinc-450 font-mono mt-1 font-semibold">Started: {new Date(s.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</p>
                     </div>
@@ -607,9 +607,9 @@ function SecurityReport({ data }: { data: any }) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-semibold text-zinc-900 capitalize">{e.action.replace('_', ' ')}</span>
+                          <span className="text-xs font-semibold text-navy-900 capitalize">{e.action.replace('_', ' ')}</span>
                           <RiskBadge level={e.risk_level} />
-                          <span className="text-[9px] font-mono text-zinc-400 font-semibold">{e.risk_score} pts</span>
+                          <span className="text-[9px] font-mono text-zinc-450 font-semibold">{e.risk_score} pts</span>
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-[10px] text-zinc-400 font-mono">
                           <span>{e.ip_address || 'Unknown IP'}</span>
@@ -619,7 +619,7 @@ function SecurityReport({ data }: { data: any }) {
                       </div>
                       <div className="shrink-0 text-right flex items-center gap-2">
                         <div>
-                          <p className="text-[9px] text-zinc-450 font-mono font-semibold">{new Date(e.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</p>
+                          <p className="text-[9px] text-zinc-455 font-mono font-semibold">{new Date(e.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</p>
                         </div>
                         <ChevronDown className={cn("w-4 h-4 text-zinc-400 transition-transform duration-200", isExpanded && "rotate-180")} />
                       </div>
@@ -637,7 +637,7 @@ function SecurityReport({ data }: { data: any }) {
                             <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-2 leading-none font-sans">Signal Breakdown</p>
                             {e.risk_reasons.map((sig: any, i: number) => (
                               <div key={i} className="flex items-center justify-between text-[10px] bg-white rounded p-2.5 border border-zinc-200 shadow-3xs">
-                                <span className="font-semibold text-zinc-900 font-sans">{sig.detail}</span>
+                                <span className="font-semibold text-navy-900 font-sans">{sig.detail}</span>
                                 <span className={cn('font-bold font-mono', sig.weight > 0 ? 'text-red-500' : 'text-emerald-600')}>
                                   {sig.weight > 0 ? `+${sig.weight} pts` : '✓ Safe'}
                                 </span>
@@ -672,7 +672,7 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
 
   return (
     <div className="space-y-5">
-      {/* Tab Bar - Vercel Style */}
+      {/* Tab Bar - Vercel layout + Primetek Navy Color */}
       <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none relative">
         {tabs.map(tab => {
           const Icon = tab.icon;
@@ -684,7 +684,7 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
               className={cn(
                 'flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all duration-150 whitespace-nowrap relative border-b-2 focus-visible:outline-none',
                 isActive
-                  ? 'border-black text-zinc-950 font-semibold'
+                  ? 'border-navy-900 text-navy-900 font-semibold'
                   : 'border-transparent text-zinc-400 hover:text-zinc-700'
               )}
             >
@@ -695,17 +695,17 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
         })}
       </div>
 
-      {/* Quick Overview Strip - Vercel Style */}
+      {/* Quick Overview Strip - Vercel layout + Primetek Teal Color */}
       {activeTab === 'attendance' && attendance && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-3xs text-zinc-600 text-xs font-medium overflow-x-auto scrollbar-none">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-          <span className="text-[10px] font-mono font-medium text-zinc-450 uppercase tracking-wider shrink-0">Summary</span>
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-3xs text-zinc-650 text-xs font-medium overflow-x-auto scrollbar-none">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse shrink-0" />
+          <span className="text-[10px] font-mono font-medium text-primary-600 uppercase tracking-wider shrink-0">Summary</span>
           <div className="h-3 w-px bg-zinc-200" />
-          <span className="shrink-0 font-semibold text-zinc-900">{attendance.present} present</span>
+          <span className="shrink-0 font-semibold text-navy-900">{attendance.present} present</span>
           <span className="text-zinc-300">·</span>
           <span className="shrink-0 text-amber-600 font-semibold">{attendance.late} late</span>
           <span className="text-zinc-300">·</span>
-          <span className="shrink-0 font-semibold text-zinc-900">{attendance.totalProductiveHours}h productive</span>
+          <span className="shrink-0 font-semibold text-navy-900">{attendance.totalProductiveHours}h productive</span>
           <span className="text-zinc-300">·</span>
           <span className="shrink-0 flex items-center gap-1"><Coffee className="w-3.5 h-3.5 text-zinc-450" />{formatSeconds(attendance.totalBreakSeconds)} break</span>
           {attendance.deductionTotal > 0 && (
@@ -719,16 +719,16 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
 
       {activeTab === 'security' && security && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-3xs text-zinc-650 text-xs font-medium overflow-x-auto scrollbar-none">
-          <div className={cn("w-1.5 h-1.5 rounded-full shrink-0 animate-pulse", security.highRisk > 0 ? "bg-red-500" : "bg-emerald-500")} />
-          <span className="text-[10px] font-mono font-medium text-zinc-450 uppercase tracking-wider shrink-0">Security Status</span>
+          <div className={cn("w-1.5 h-1.5 rounded-full shrink-0 animate-pulse", security.highRisk > 0 ? "bg-red-500" : "bg-primary-500")} />
+          <span className="text-[10px] font-mono font-medium text-primary-600 uppercase tracking-wider shrink-0">Security Status</span>
           <div className="h-3 w-px bg-zinc-200" />
-          <span className="shrink-0 font-semibold text-zinc-950">{security.totalEvents} events</span>
+          <span className="shrink-0 font-semibold text-navy-950">{security.totalEvents} events</span>
           <span className="opacity-30">·</span>
           <span className="shrink-0 text-red-650 font-bold">{security.highRisk} high risk</span>
           <span className="opacity-30">·</span>
           <span className="shrink-0">{security.trustedDevices} trusted device{security.trustedDevices !== 1 ? 's' : ''}</span>
           <span className="opacity-30">·</span>
-          <span className="shrink-0 font-bold text-zinc-950">Avg score: {security.avgScore}/100</span>
+          <span className="shrink-0 font-bold text-navy-950">Avg score: {security.avgScore}/100</span>
         </div>
       )}
 
