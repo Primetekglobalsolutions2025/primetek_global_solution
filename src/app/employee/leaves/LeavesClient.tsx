@@ -72,7 +72,6 @@ export default function LeavesClient({
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="inline-flex items-center gap-1.5 mb-1.5 px-2 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[9px] font-medium uppercase tracking-wider text-primary-200">
-              <Sparkles className="w-3 h-3 text-primary-400" />
               <span>Leave Balance</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-white font-sans">Leave Management</h1>

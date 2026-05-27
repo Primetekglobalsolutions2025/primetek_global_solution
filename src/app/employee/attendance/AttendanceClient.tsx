@@ -470,7 +470,6 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         <div className="relative z-10 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-1.5 mb-1.5 font-mono text-[9px] font-medium uppercase tracking-wider text-primary-200">
-              <Sparkles className="w-4 h-4 text-primary-400 animate-pulse" />
               <span>Shift & Break Matrix</span>
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-white font-sans">Time & Attendance</h1>

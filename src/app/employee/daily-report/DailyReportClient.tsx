@@ -180,7 +180,7 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
 
       {profiles.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-lg border border-dashed border-zinc-250">
-          <Sparkles className="w-10 h-10 text-zinc-400 mx-auto mb-3 opacity-30" />
+          <ClipboardCheck className="w-10 h-10 text-zinc-400 mx-auto mb-3 opacity-30" />
           <h3 className="font-semibold text-navy-900 text-sm mb-1">No Active Profiles</h3>
           <p className="text-xs text-zinc-500 max-w-md mx-auto">
             You currently have no active or processing profiles assigned to you. Daily reporting is only required for active assignments.

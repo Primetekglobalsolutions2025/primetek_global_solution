@@ -146,7 +146,6 @@ export default async function EmployeeDashboardServerWrapper() {
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-white/5 border border-white/10 shadow-inner font-mono text-[9px] font-medium uppercase tracking-wider text-primary-200">
-              <Sparkles className="w-3.5 h-3.5 text-primary-400" />
               <span>Employee ID: {employee?.employee_id || 'Active'}</span>
             </div>
             
