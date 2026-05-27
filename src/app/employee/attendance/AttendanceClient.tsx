@@ -446,7 +446,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   };
 
   return (
-    <div className="space-y-6 pb-16 p-6 bg-[#F8FAFC]">
+    <div className="space-y-6 pb-16">
       {/* Offline / Pending Sync Indicator */}
       <AnimatePresence>
         {(!isOnline || pendingCount > 0) && (
@@ -483,184 +483,176 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
       {/* Sticky Top Warning Banner (Sentry Style) */}
       {lateStats.lateCount > 0 && (
-        <div
-          className="sticky top-0 z-50 flex items-center justify-between gap-3 py-[12px] px-[20px] rounded-xl border border-[#F59E0B]/30 bg-[#FFFBEB] text-[#0F172A] shadow-3xs mb-[20px] w-full"
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            "flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border text-xs font-semibold font-sans shadow-2xs bg-white",
+            lateStats.lateCount >= 6 ? "border-red-200 bg-red-50/30" :
+            lateStats.lateCount >= 3 ? "border-amber-200 bg-amber-50/30" : "border-primary-200 bg-primary-50/30"
+          )}
         >
-          <div className="flex items-center gap-2.5">
-            <ShieldAlert className="w-4.5 h-4.5 text-[#F59E0B] shrink-0" />
-            <span className="text-sm font-medium text-[#0F172A]">
-              Late Penalty Warning: {lateStats.remainingSafeCount} more late login{lateStats.remainingSafeCount !== 1 ? 's' : ''} will deduct {lateStats.lateCount < 3 ? 'Half' : 'Full'} Day attendance.
-            </span>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border",
+              lateStats.lateCount >= 6 ? "bg-red-50 text-red-650 border-red-200" :
+              lateStats.lateCount >= 3 ? "bg-amber-50 text-amber-650 border-amber-200" :
+              "bg-primary-50 text-primary-650 border-primary-200"
+            )}>
+              <ShieldAlert className="w-4.5 h-4.5" />
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="font-bold text-navy-955">Late Penalty Warning:</span>
+              <span className="font-medium text-zinc-650 text-xs">{lateStats.warningMessage}</span>
+              <span className="hidden sm:inline text-zinc-300">|</span>
+              <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
+                Lates: <span className="text-zinc-900">{lateStats.lateCount}</span> • Deductions: <span className="text-red-600">{lateStats.deduction} Day</span>
+              </span>
+            </div>
           </div>
-          <div className="font-mono text-xs font-bold text-[#64748B] uppercase tracking-wider shrink-0">
-            LATES: <span className="text-[#0F172A]">{lateStats.lateCount}</span> • DEDUCTIONS: <span className="text-[#EF4444]">{lateStats.deduction} DAY</span>
-          </div>
-        </div>
+        </motion.div>
       )}
 
-      {/* Main Content Layout Container (60% Left, 40% Right) */}
+      {/* Main Content Layout Container */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-[24px]">
         
-        {/* Left Column: Console & Controls (60% Width) */}
-        <div className="lg:col-span-3 flex flex-col">
+        {/* Left Column: Console & Controls */}
+        <div className="lg:col-span-3 space-y-6">
           
           {/* Shift info header card */}
-          <div className="bg-[#FFFFFF] rounded-[12px] px-[20px] py-[16px] border border-[#E2E8F0] shadow-xs flex items-center justify-between mb-[12px]">
-            <div>
-              <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] block mb-1">STANDARD WORK HOURS</span>
-              <h3 className="font-bold text-[#0F172A] text-sm">Shift: Night Shift</h3>
-              <p className="text-xs text-[#64748B] mt-0.5">Your shift: 06:30 PM - 03:30 AM</p>
+          <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs font-sans relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none">
+              <CalendarIcon className="w-16 h-16 text-navy-900" />
             </div>
-            <div className="px-2.5 py-0.5 rounded-full border border-[#0D9488] text-[#0D9488] bg-transparent text-[9px] font-mono font-bold uppercase tracking-wider">
-              ACTIVE SHIFT
-            </div>
-          </div>
-
-          {/* Live System Time Bar */}
-          <div className="flex items-center justify-between py-[10px] px-[16px] border border-[#E2E8F0] rounded-[8px] bg-[#FFFFFF] mb-[8px] shadow-3xs">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em]">LIVE SYSTEM TIME</span>
-            </div>
-            <div className="font-mono text-sm font-bold text-[#0D9488]">
-              {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">Standard Work Hours</span>
+                <h3 className="font-bold text-navy-900 text-sm tracking-tight">Shift: Night Shift</h3>
+                <p className="text-xs text-zinc-555 mt-1">Your shift: 06:30 PM - 03:30 AM</p>
+              </div>
+              <div className="px-2.5 py-1 rounded bg-primary-50 border border-primary-250 text-primary-750 text-[9px] font-mono font-bold uppercase tracking-wider">
+                Active Shift
+              </div>
             </div>
           </div>
 
-          {/* Clock In / Out Console Card */}
-          <div className="mb-[16px]">
-            {isCheckedOut ? (
-              /* CLOCK OUT COMPLETE card: Full green background, large icon, bold state */
-              <div className="bg-[#10B981] text-white rounded-[12px] p-[32px] text-center font-sans shadow-sm flex flex-col items-center justify-center gap-2">
-                <CheckCircle2 className="w-12 h-12 text-white" />
-                <h4 className="text-[18px] font-bold uppercase tracking-wider">CLOCK OUT COMPLETE</h4>
-                <p className="text-white/80 text-sm">Your attendance has been recorded successfully.</p>
-                {coords && (
-                  <span className="inline-flex items-center text-[10px] font-mono font-bold text-white/90 uppercase tracking-wider mt-1">
-                    ● GPS Verified
+          {/* Hero Check-in Console */}
+          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs flex flex-col items-center justify-center space-y-6">
+            
+            {/* Subtle, sleek Raycast-style clock widget */}
+            <div className="w-full bg-slate-955 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-slate-900 shadow-inner">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">Live System Time</span>
+              </div>
+              <div className="font-mono text-sm font-black tracking-widest text-slate-200">
+                {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+              </div>
+            </div>
+
+            {/* Centered Hero Check-in / Check-out button */}
+            <div className="w-full text-center space-y-3">
+              {!checkedIn ? (
+                <button
+                  onClick={handleCheckIn}
+                  disabled={gpsStatus === 'loading'}
+                  style={{ backgroundColor: '#10B981' }}
+                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
+                >
+                  {gpsStatus === 'loading' ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
+                  ) : (
+                    <><LogIn className="w-4 h-4" /> Clock In</>
+                  )}
+                </button>
+              ) : !isCheckedOut ? (
+                <button
+                  onClick={handleCheckOut}
+                  disabled={gpsStatus === 'loading'}
+                  style={{ backgroundColor: '#EF4444' }}
+                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-red-500/10 cursor-pointer disabled:opacity-50"
+                >
+                  {gpsStatus === 'loading' ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
+                  ) : (
+                    <><LogOut className="w-4 h-4" /> Clock Out</>
+                  )}
+                </button>
+              ) : (
+                <div className="bg-emerald-50/50 border border-emerald-250 rounded-xl p-5 text-center font-sans shadow-2xs relative overflow-hidden">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-505 mx-auto mb-2" />
+                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Clock Out Complete</p>
+                  <p className="text-[10px] text-emerald-600 mt-1 font-medium">Your attendance has been recorded successfully.</p>
+                </div>
+              )}
+
+              {/* GPS status indicator badge */}
+              <div className="flex items-center justify-center">
+                {gpsStatus === 'loading' ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-250 shadow-3xs">
+                    <Loader2 className="w-3 h-3 mr-1.5 animate-spin text-amber-500" /> Locating
+                  </span>
+                ) : coords ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-250 shadow-3xs">
+                    GPS Verified ✓
+                  </span>
+                ) : gpsStatus === 'error' ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-red-50 text-red-755 border border-red-250 shadow-3xs">
+                    GPS Error ✗
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-zinc-50 text-zinc-500 border border-zinc-200 shadow-3xs">
+                    GPS Ready
                   </span>
                 )}
               </div>
-            ) : (
-              /* Clock In/Out card containing the CTA button and GPS warning/success info */
-              <div className="bg-[#FFFFFF] rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-2xs flex flex-col gap-4">
-                {!checkedIn ? (
-                  <button
-                    onClick={handleCheckIn}
-                    disabled={gpsStatus === 'loading'}
-                    className="w-full h-[52px] rounded-[12px] text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
-                    style={{ backgroundColor: '#10B981' }}
-                  >
-                    {gpsStatus === 'loading' ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
-                    ) : (
-                      <><LogIn className="w-4 h-4" /> Clock In</>
-                    )}
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleCheckOut}
-                    disabled={gpsStatus === 'loading'}
-                    className="w-full h-[52px] rounded-[12px] text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50"
-                    style={{ backgroundColor: '#EF4444' }}
-                  >
-                    {gpsStatus === 'loading' ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
-                    ) : (
-                      <><LogOut className="w-4 h-4" /> Clock Out</>
-                    )}
-                  </button>
-                )}
+            </div>
 
-                {/* GPS Status Info */}
-                {gpsStatus === 'error' && (
-                  <button
-                    onClick={!checkedIn ? handleCheckIn : handleCheckOut}
-                    className="w-full p-[12px] rounded-[8px] border border-[#F59E0B]/30 bg-[#FFFBEB] text-[#F59E0B] flex items-center justify-center gap-1.5 text-xs font-semibold font-sans cursor-pointer hover:bg-[#FEF3C7]/60 transition-colors"
-                  >
-                    <span>⚠ GPS unavailable — tap to retry</span>
-                  </button>
-                )}
-
-                {coords && gpsStatus !== 'error' && (
-                  <div className="text-center">
-                    <span className="inline-flex items-center text-[10px] font-mono font-bold text-[#10B981] uppercase tracking-wider">
-                      ● GPS Verified
+            {/* Today's Summary Card */}
+            {checkedIn && (
+              <div className="w-full border-t border-zinc-100 pt-5 space-y-3 font-sans">
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block">Today's Summary</span>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Check-in</span>
+                    <span className="font-mono text-xs font-bold text-navy-900">
+                      {todayRecord?.check_in || '--:--'}
                     </span>
+                  </div>
+                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Check-out</span>
+                    <span className="font-mono text-xs font-bold text-navy-900">
+                      {todayRecord?.check_out || '--:--'}
+                    </span>
+                  </div>
+                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Hours Worked</span>
+                    <span className="font-mono text-xs font-bold text-navy-900">
+                      {!isCheckedOut ? (
+                        <span>{String(elapsedHrs).padStart(2, '0')}:{String(elapsedMin).padStart(2, '0')}</span>
+                      ) : (
+                        <span>{todayRecord?.duration_hours}h</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+                {isCheckedOut && (
+                  <div className="text-center pt-1">
+                    <button 
+                      onClick={handleResume} 
+                      className="text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider cursor-pointer"
+                    >
+                      Undo Clock Out
+                    </button>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          {/* Today's Summary (3 cards in a row) */}
-          {checkedIn && (
-            <div className="w-full mb-[24px]">
-              <div className="grid grid-cols-3 gap-[12px]">
-                {/* Check-In Card */}
-                <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[12px] p-[16px] shadow-3xs flex flex-col gap-[8px] text-left">
-                  <div className="flex items-center text-[#64748B]">
-                    <LogIn className="w-[16px] h-[16px] text-[#64748B]" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] block">CHECK-IN</span>
-                    <span className="font-mono text-[18px] font-bold text-[#0F172A] mt-0.5 block">
-                      {todayRecord?.check_in ? todayRecord.check_in.toLowerCase() : '--:--'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Check-Out Card */}
-                <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[12px] p-[16px] shadow-3xs flex flex-col gap-[8px] text-left">
-                  <div className="flex items-center text-[#64748B]">
-                    <LogOut className="w-[16px] h-[16px] text-[#64748B]" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] block">CHECK-OUT</span>
-                    <span className="font-mono text-[18px] font-bold text-[#0F172A] mt-0.5 block">
-                      {todayRecord?.check_out ? todayRecord.check_out.toLowerCase() : '--:--'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Hours Worked Card */}
-                <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-[12px] p-[16px] shadow-3xs flex flex-col gap-[8px] text-left">
-                  <div className="flex items-center text-[#64748B]">
-                    <Clock className="w-[16px] h-[16px] text-[#64748B]" />
-                  </div>
-                  <div>
-                    <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-[0.05em] block">HOURS WORKED</span>
-                    <span className="font-mono text-[18px] font-bold text-[#0F172A] mt-0.5 block">
-                      {displayHrs}
-                    </span>
-                    {/* Thin progress bar */}
-                    <div className="w-full h-[4px] bg-[#E2E8F0] rounded-[2px] mt-2 overflow-hidden">
-                      <div 
-                        className="h-full bg-[#0D9488] rounded-[2px] transition-all duration-500" 
-                        style={{ width: `${completedPercentage}%` }} 
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Undo Clock Out outlined button */}
-              {isCheckedOut && (
-                <div className="text-center mt-[16px]">
-                  <button
-                    onClick={handleResume}
-                    className="inline-flex items-center justify-center gap-1.5 border border-[#F59E0B] text-[#F59E0B] bg-transparent hover:bg-amber-50/50 px-[20px] py-[8px] rounded-[8px] text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
-                  >
-                    ↩ Undo Clock Out
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Break and Shift Monitoring Widgets */}
           {checkedIn && !isCheckedOut && (
-            <div className="bg-[#FFFFFF] rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
+            <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
               <div className="space-y-5">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-555 shadow-3xs">
@@ -677,7 +669,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   <motion.div
                     animate={{ scale: [1, 1.01, 1] }}
                     transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-750 flex items-center gap-2 text-xs font-semibold font-sans"
+                    className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-755 flex items-center gap-2 text-xs font-semibold font-sans"
                   >
                     <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-red-500" />
                     <span>Break Limit Exceeded! Please return to work immediately.</span>
@@ -699,8 +691,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                     <div 
                       className={cn(
                         "h-full rounded-full transition-all duration-500",
-                        breakUsedSeconds >= 3600 ? "bg-[#EF4444]" :
-                        breakUsedSeconds >= 2700 ? "bg-[#F59E0B]" : "bg-[#0D9488]"
+                        breakUsedSeconds >= 3600 ? "bg-red-500" :
+                        breakUsedSeconds >= 2700 ? "bg-amber-500" : "bg-primary-500"
                       )}
                       style={{ width: `${Math.min((breakUsedSeconds / 3600) * 100, 100)}%` }}
                     />
@@ -724,8 +716,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                       breakUsedSeconds >= 2700 ? "text-amber-600" : "text-navy-900"
                     )}>{formatSeconds(breakUsedSeconds)}</span>
                   </div>
-                  <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
-                    <span className="text-[8px] font-mono font-bold text-zinc-455 uppercase tracking-wider block mb-1">Remaining Allowed</span>
+                  <div className="rounded-xl bg-zinc-55 border border-zinc-200 p-3 text-center shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Remaining Allowed</span>
                     <span className="font-mono text-base font-black text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
                   </div>
                 </div>
