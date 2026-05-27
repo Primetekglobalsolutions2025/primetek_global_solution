@@ -8,7 +8,7 @@ self.addEventListener('install', (event) => {
       return cache.addAll([
         '/employee/login',
         '/admin/login',
-        '/favicon.ico',
+        '/favicon.svg',
         '/icons/icon-192.png',
         '/icons/icon-512.png'
       ]);
