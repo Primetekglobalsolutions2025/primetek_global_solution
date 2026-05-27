@@ -5,7 +5,7 @@ import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, H
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat } from './actions';
+import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useRef } from 'react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
@@ -94,6 +94,24 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   const sequenceNumber = useRef(2);
   const geofenceHistory = useRef<{ lat: number; lng: number; accuracy: number }[]>([]);
 
+  // 1. Stateful records array for real-time reconciliation updates without reload
+  const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
+
+  // 2. Tab Leader Election, Suspension, Version and Escalation States
+  const tabId = useRef(Math.random().toString(36).substring(7)).current;
+  const [isLeader, setIsLeader] = useState(false);
+  const isLeaderRef = useRef(false);
+  
+  const [gpsWarningSeconds, setGpsWarningSeconds] = useState<number | null>(null);
+  const [gpsConfidence, setGpsConfidence] = useState<number>(100); // 100 -> 60 (suspicious) -> 30 (critical retry) -> 0 (auto-break)
+  const [gpsWarningSuspended, setGpsWarningSuspended] = useState(false);
+  const [isVerifyingLocation, setIsVerifyingLocation] = useState(false);
+  const [syncBannerVisible, setSyncBannerVisible] = useState(false);
+
+  const projectionVersion = useRef<number>(1);
+  const gpsSuppressionUntil = useRef<number>(0);
+  const LEASE_KEY = 'primetek_attendance_leader_lease';
+
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
   };
@@ -106,7 +124,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   }, [notification]);
 
   const currentShiftDate = getISTShiftDate(currentTime);
-  const todayRecord = initialRecords.find(r => r.date === currentShiftDate);
+  const todayRecord = records.find(r => r.date === currentShiftDate);
 
   const checkedIn = !!todayRecord;
   const isCheckedOut = todayRecord && (todayRecord.status === 'Logged Out' || todayRecord.check_out);
@@ -128,7 +146,318 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     return () => {
       active = false;
     };
-  }, [initialRecords]);
+  }, [records]);
+
+  const broadcastStateRefreshAndReload = () => {
+    try {
+      const bc = new BroadcastChannel('attendance_tabs');
+      bc.postMessage({ type: 'STATE_REFRESH' });
+      bc.close();
+    } catch (err) {
+      console.error('Failed to broadcast state refresh:', err);
+    }
+    window.location.reload();
+  };
+
+  // Lightweight projection reconciliation - pulls latest DB projection state safely
+  const refreshProjectionState = async () => {
+    if (!todayRecord) return;
+    try {
+      const res = await getAttendanceSessionState(todayRecord.id);
+      if (res.success && res.attendance && res.projection) {
+        const att = res.attendance;
+        const proj = res.projection;
+
+        // Keep local projection version matched
+        projectionVersion.current = proj.session_version;
+
+        setRecords((prev) => {
+          return prev.map((r) => {
+            if (r.id === att.id) {
+              const checkIn = att.check_in ? new Date(att.check_in) : null;
+              const checkOut = att.check_out ? new Date(att.check_out) : null;
+              let durationHours = 0;
+              const isValidCheckIn = checkIn && !isNaN(checkIn.getTime());
+              const isValidCheckOut = checkOut && !isNaN(checkOut.getTime());
+
+              if (isValidCheckIn && isValidCheckOut) {
+                durationHours = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10;
+              }
+              return {
+                id: att.id,
+                date: att.date,
+                check_in_raw: att.check_in,
+                check_in: isValidCheckIn ? checkIn.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+                check_out: isValidCheckOut ? checkOut.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+                duration_hours: durationHours,
+                status: att.status,
+                total_break_seconds: att.total_break_seconds,
+                current_break_start: att.current_break_start,
+              };
+            }
+            return r;
+          });
+        });
+
+        // Set recovery success banner
+        setSyncBannerVisible(true);
+        setTimeout(() => setSyncBannerVisible(false), 5000);
+      } else {
+        console.warn('[Sync]: Projection reconciliation failed, forcing reload...');
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('[Sync]: Reconciliation error, forcing reload:', err);
+      window.location.reload();
+    }
+  };
+
+  // Projection Version Verification wrapper for mutations
+  const executeMutationWithVersionCheck = async (
+    mutationFn: () => Promise<{ success: boolean; error?: string }>,
+    actionName: string
+  ) => {
+    if (!todayRecord) {
+      // If session not created yet, just call directly
+      const res = await mutationFn();
+      if (res.success) {
+        broadcastStateRefreshAndReload();
+      } else {
+        showNotification(res.error || `Failed to ${actionName}`, 'error');
+      }
+      return;
+    }
+
+    try {
+      const res = await getAttendanceSessionState(todayRecord.id);
+      if (!res.success || !res.projection) {
+        showNotification('Connection unstable. Retrying synchronization...', 'error');
+        await refreshProjectionState();
+        return;
+      }
+
+      const serverVersion = res.projection.session_version;
+      if (serverVersion !== projectionVersion.current) {
+        console.warn(`[Version Conflict]: Local version ${projectionVersion.current} vs Server version ${serverVersion}. Reconciling...`);
+        showNotification('Session updated on another tab. Synchronizing status...', 'info');
+        await refreshProjectionState();
+        return;
+      }
+
+      const mutationResult = await mutationFn();
+      if (mutationResult.success) {
+        projectionVersion.current++;
+        await refreshProjectionState();
+        // Notify other tabs to refresh projection dynamically
+        const bc = new BroadcastChannel('attendance_tabs');
+        bc.postMessage({ type: 'STATE_REFRESH' });
+        bc.close();
+      } else {
+        showNotification(mutationResult.error || `Action failed: ${actionName}`, 'error');
+      }
+    } catch (err) {
+      console.error(`[Mutation Error] ${actionName}:`, err);
+      showNotification('Failed to connect to the server.', 'error');
+    }
+  };
+
+  const handleVerifyLocation = async () => {
+    setIsVerifyingLocation(true);
+    if (!navigator.geolocation) {
+      setIsVerifyingLocation(false);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        try {
+          const checkRes = await checkGeofence(lat, lng);
+          if (checkRes.success && checkRes.withinRange) {
+            setGpsWarningSeconds(null);
+            setGpsConfidence(100);
+            geofenceHistory.current = [];
+            showNotification('Location verified successfully. Active status restored.', 'success');
+          } else {
+            showNotification('Verification failed. Still outside range.', 'error');
+          }
+        } catch (err) {
+          showNotification('Error checking geofence coordinates.', 'error');
+        } finally {
+          setIsVerifyingLocation(false);
+        }
+      },
+      (error) => {
+        showNotification('Could not access geolocation. Please check permissions.', 'error');
+        setIsVerifyingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const handleDismissGpsWarning = async () => {
+    if (!todayRecord) return;
+    let lat = 0;
+    let lng = 0;
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+          logGPSDismissEvent(todayRecord.id, lat, lng);
+        },
+        () => {
+          logGPSDismissEvent(todayRecord.id, lat, lng);
+        }
+      );
+    } else {
+      await logGPSDismissEvent(todayRecord.id, lat, lng);
+    }
+    gpsSuppressionUntil.current = Date.now() + 5 * 60 * 1000;
+    setGpsWarningSeconds(null);
+    setGpsConfidence(100);
+    showNotification('GPS warning dismissed for 5 minutes.', 'info');
+  };
+
+  // 1. Lease-based Leader Election
+  useEffect(() => {
+    const bc = new BroadcastChannel('attendance_tabs');
+    
+    const checkLease = () => {
+      const now = Date.now();
+      const leaseRaw = localStorage.getItem(LEASE_KEY);
+      let lease: { tabId: string; expiresAt: number } | null = null;
+      try {
+        if (leaseRaw) {
+          lease = JSON.parse(leaseRaw);
+        }
+      } catch (e) {}
+
+      if (!lease || now > lease.expiresAt || lease.tabId === tabId) {
+        const expiresAt = now + 4000; // lease valid for 4 seconds
+        localStorage.setItem(LEASE_KEY, JSON.stringify({ tabId, expiresAt }));
+        if (!isLeaderRef.current) {
+          isLeaderRef.current = true;
+          setIsLeader(true);
+          console.log(`[Lease Election]: Tab ${tabId} acquired leadership lease.`);
+        }
+      } else {
+        if (isLeaderRef.current) {
+          isLeaderRef.current = false;
+          setIsLeader(false);
+          console.log(`[Lease Election]: Tab ${tabId} stepped down. Leader is ${lease.tabId}`);
+        }
+      }
+    };
+
+    bc.onmessage = (e) => {
+      if (e.data.type === 'STATE_REFRESH') {
+        console.log('[Tab Sync]: Received refresh request. Reconciling projection state...');
+        refreshProjectionState();
+      }
+    };
+
+    checkLease();
+    const leaseInterval = setInterval(checkLease, 1500);
+
+    const handleUnload = () => {
+      try {
+        const leaseRaw = localStorage.getItem(LEASE_KEY);
+        if (leaseRaw) {
+          const lease = JSON.parse(leaseRaw);
+          if (lease.tabId === tabId) {
+            localStorage.removeItem(LEASE_KEY); // release lease immediately
+          }
+        }
+        bc.close();
+      } catch (err) {}
+    };
+
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      clearInterval(leaseInterval);
+      window.removeEventListener('beforeunload', handleUnload);
+      handleUnload();
+    };
+  }, []);
+
+  // 2. Sleep / Suspension Tick Recovery Heuristic (30-60s threshold, lightweight sync)
+  useEffect(() => {
+    if (!checkedIn || isCheckedOut) return;
+    let lastTime = Date.now();
+    const tickInterval = setInterval(() => {
+      const now = Date.now();
+      const delta = now - lastTime;
+      lastTime = now;
+      if (delta > 35000) { // 35 seconds threshold
+        console.warn(`[Suspension Recovery]: Detected clock drift of ${delta}ms. Syncing projection state...`);
+        refreshProjectionState();
+      }
+    }, 1000);
+    return () => clearInterval(tickInterval);
+  }, [checkedIn, isCheckedOut]);
+
+  // 3. Countdown Pause Listener
+  useEffect(() => {
+    const handleVisibility = () => {
+      setGpsWarningSuspended(document.hidden || !navigator.onLine);
+    };
+    const handleOnlineStatus = () => {
+      setGpsWarningSuspended(document.hidden || !navigator.onLine);
+    };
+    window.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+    };
+  }, []);
+
+  // 4. GPS Warning Countdown & Escalation Logic
+  useEffect(() => {
+    if (gpsWarningSeconds === null) return;
+    if (gpsWarningSeconds <= 0) {
+      if (gpsConfidence === 60) {
+        // Suspicious -> degrade confidence to 30, retry window of 30 seconds
+        setGpsConfidence(30);
+        setGpsWarningSeconds(30);
+        showNotification('GPS signal weak. Initiating second location verification window...', 'info');
+      } else if (gpsConfidence === 30) {
+        // Critical countdown expired -> degrade to 0 and trigger auto break
+        setGpsConfidence(0);
+        const triggerAutoBreak = async () => {
+          showNotification('Location verification timed out. Pausing session...', 'error');
+          const breakRes = await startBreak();
+          if (breakRes.success) {
+            showNotification("Your timer was paused due to inactivity. Click 'Resume Work' when you are back at your desk.", 'info');
+            refreshProjectionState();
+            const bc = new BroadcastChannel('attendance_tabs');
+            bc.postMessage({ type: 'STATE_REFRESH' });
+            bc.close();
+          }
+        };
+        triggerAutoBreak();
+      }
+      return;
+    }
+
+    // Pause countdown when warning is suspended
+    if (gpsWarningSuspended || document.hidden || !navigator.onLine) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setGpsWarningSeconds((prev) => {
+        if (prev === null || prev <= 0) return null;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [gpsWarningSeconds, gpsConfidence, gpsWarningSuspended]);
 
   // SharedWorker / BroadcastChannel Multi-Tab Idle Tracker
   useEffect(() => {
@@ -145,7 +474,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         if (type === 'STATE_CHANGED') {
           setSessionState(state);
         } else if (type === 'TRIGGER_AUTO_BREAK') {
-          showNotification('Outside active session/idle timeout. Automatically starting break...', 'error');
+          showNotification("Your timer was paused due to inactivity. Click 'Resume Work' when you are back at your desk.", 'info');
           handleStartBreak();
         }
       };
@@ -158,7 +487,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         if (type === 'STATE_CHANGED') {
           setSessionState(state);
         } else if (type === 'TRIGGER_AUTO_BREAK') {
-          showNotification('Outside active session/idle timeout. Automatically starting break...', 'error');
+          showNotification("Your timer was paused due to inactivity. Click 'Resume Work' when you are back at your desk.", 'info');
           handleStartBreak();
         }
       };
@@ -227,6 +556,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
     const sendHeartbeat = () => {
       if (!navigator.geolocation) return;
+      if (!isLeaderRef.current) return; // Only leader sends heartbeats
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -261,8 +591,13 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             const res = await processHeartbeat(payload);
             if (res.success) {
               if (res.status === 'On Break') {
-                showNotification('Automated Break: Server detected out-of-range state.', 'error');
-                setTimeout(() => window.location.reload(), 1500);
+                showNotification("Your timer was paused due to inactivity. Click 'Resume Work' when you are back at your desk.", 'info');
+                setTimeout(() => {
+                  refreshProjectionState();
+                  const bc = new BroadcastChannel('attendance_tabs');
+                  bc.postMessage({ type: 'STATE_REFRESH' });
+                  bc.close();
+                }, 1500);
               }
             }
           } catch (err) {
@@ -285,7 +620,11 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     if (!checkedIn || isCheckedOut || currentStatus !== 'Working') return;
 
     const performGeofenceCheck = () => {
+      if (Date.now() < gpsSuppressionUntil.current) {
+        return; // Geofence check suppressed for dismiss duration
+      }
       if (!navigator.geolocation) return;
+      if (!isLeaderRef.current) return; // Only leader checks geofence
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -311,15 +650,24 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               const outsideCount = results.filter(Boolean).length;
 
               if (outsideCount >= 3) {
-                showNotification('Outside office range detected consecutively. Automatically starting break...', 'error');
-                const breakRes = await startBreak();
-                if (breakRes.success) {
-                  showNotification('Automated Break: You walked outside the office range.', 'success');
-                  setTimeout(() => window.location.reload(), 1500);
-                }
+                // Suspicious -> degrade confidence to 60, retry window of 60 seconds
+                setGpsConfidence((prev) => {
+                  if (prev === 100) return 60;
+                  return prev;
+                });
+                setGpsWarningSeconds((prev) => {
+                  if (prev === null) return 60;
+                  return prev;
+                });
+              } else if (currentRes.success && currentRes.withinRange) {
+                setGpsWarningSeconds(null);
+                setGpsConfidence(100);
               }
             } else if (currentRes.success && !currentRes.withinRange) {
-              showNotification('GPS signal indicates you are outside office range. Verifying location stability...', 'info');
+              showNotification("We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal.", 'info');
+            } else if (currentRes.success && currentRes.withinRange) {
+              setGpsWarningSeconds(null);
+              setGpsConfidence(100);
             }
           } catch (err) {
             console.error('Error in background geofence check:', err);
@@ -367,22 +715,11 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         return;
       }
 
-      const result = await checkIn(lat, lng, undefined, undefined, fingerprint);
-      
-      if (!result.success) {
-        if (result.outOfRadius) {
-          setWfhRequest({ active: true, distance: result.distance, officeName: result.officeName });
-          setGpsStatus('idle');
-        } else {
-          setGpsStatus('error');
-          showNotification(result.error || 'Check-in failed', 'error');
-        }
-        return;
-      }
-
+      await executeMutationWithVersionCheck(async () => {
+        const result = await checkIn(lat, lng, undefined, undefined, fingerprint);
+        return result;
+      }, 'Check In');
       setGpsStatus('success');
-      showNotification('Clocked in successfully.', 'success');
-      window.location.reload();
     } catch (err) {
       if (!navigator.onLine && coords) {
         try {
@@ -405,16 +742,12 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     setGpsStatus('loading');
     try {
       const fingerprint = getOrCreateFingerprint();
-      const result = await requestWFH(coords.lat, coords.lng, undefined, undefined, fingerprint);
-      if (result.success) {
-        setGpsStatus('success');
-        setWfhRequest(null);
-        showNotification('Work From Home request submitted successfully.', 'success');
-        window.location.reload();
-      } else {
-        showNotification(result.error || 'Failed to request WFH', 'error');
-        setGpsStatus('error');
-      }
+      await executeMutationWithVersionCheck(async () => {
+        const result = await requestWFH(coords.lat, coords.lng, undefined, undefined, fingerprint);
+        return result;
+      }, 'WFH Request');
+      setGpsStatus('success');
+      setWfhRequest(null);
     } catch {
       setGpsStatus('error');
       showNotification('Failed to request WFH', 'error');
@@ -473,21 +806,11 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           return;
         }
 
-        try {
+        await executeMutationWithVersionCheck(async () => {
           const result = await checkOut(recordId, lat, lng, undefined, undefined, fingerprint);
-          if (result.success) {
-            setGpsStatus('success');
-            showNotification('Clocked out successfully.', 'success');
-            window.location.reload();
-          } else {
-            showNotification(result.error || 'Check-out failed', 'error');
-            setGpsStatus('error');
-          }
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Check-out failed';
-          setGpsStatus('error');
-          showNotification(errorMsg, 'error');
-        }
+          return result;
+        }, 'Check Out');
+        setGpsStatus('success');
       }
     });
   };
@@ -499,20 +822,11 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       variant: 'primary',
       onConfirm: async () => {
         setGpsStatus('loading');
-        try {
+        await executeMutationWithVersionCheck(async () => {
           const result = await resumeSession(todayRecord.id);
-          if (result.success) {
-            setGpsStatus('success');
-            showNotification('Clock out undone. Session resumed.', 'success');
-            window.location.reload();
-          } else {
-            showNotification(result.error || 'Failed to resume session', 'error');
-            setGpsStatus('error');
-          }
-        } catch {
-          setGpsStatus('error');
-          showNotification('Failed to resume session', 'error');
-        }
+          return result;
+        }, 'Resume Session');
+        setGpsStatus('success');
       }
     });
   };
@@ -520,16 +834,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   const handleStartBreak = async () => {
     setIsBreakActionLoading(true);
     try {
-      const res = await startBreak();
-      if (res.success) {
-        showNotification('Break started. Productive timer paused.', 'success');
-        window.location.reload();
-      } else {
-        showNotification(res.error || 'Failed to start break', 'error');
-      }
-    } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : 'Failed to start break';
-      showNotification(errorMsg, 'error');
+      await executeMutationWithVersionCheck(async () => {
+        const res = await startBreak();
+        return res;
+      }, 'Start Break');
     } finally {
       setIsBreakActionLoading(false);
     }
@@ -538,16 +846,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   const handleEndBreak = async () => {
     setIsBreakActionLoading(true);
     try {
-      const res = await endBreak();
-      if (res.success) {
-        showNotification('Break ended. Productive timer resumed.', 'success');
-        window.location.reload();
-      } else {
-        showNotification(res.error || 'Failed to end break', 'error');
-      }
-    } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : 'Failed to end break';
-      showNotification(errorMsg, 'error');
+      await executeMutationWithVersionCheck(async () => {
+        const res = await endBreak();
+        return res;
+      }, 'End Break');
     } finally {
       setIsBreakActionLoading(false);
     }
@@ -683,7 +985,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 <h3 className="text-lg font-bold text-navy-900 font-sans">Are you still working?</h3>
               </div>
               <p className="text-xs text-zinc-650 leading-relaxed font-sans">
-                We noticed you have been away from your screen. To prevent your session from automatically going on break, please click the button below.
+                We haven't detected activity for a few minutes. Confirm you're still working to keep your session active.
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between font-sans">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700">Auto-Break Countdown</span>
@@ -745,6 +1047,21 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         )}
       </AnimatePresence>
 
+      {/* Recovery / Reconnect Sync Success Banner */}
+      <AnimatePresence>
+        {syncBannerVisible && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-250 bg-emerald-50/40 text-emerald-705 text-xs font-semibold font-sans shadow-2xs bg-white"
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>Session synchronized successfully.</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sticky Top Warning Banner (Sentry Style) */}
       {lateStats.lateCount > 0 && (
         <motion.div
@@ -776,6 +1093,67 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           </div>
         </motion.div>
       )}
+
+      {/* GPS Weak Signal / Verification Warning Banner */}
+      <AnimatePresence>
+        {gpsWarningSeconds !== null && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-amber-250 bg-amber-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-amber-50 text-amber-650 border-amber-250 animate-pulse mt-0.5 sm:mt-0">
+                <AlertTriangle className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-navy-955">
+                    {gpsConfidence === 30 ? 'Location Verification Required' : 'GPS Signal Weak'}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold">
+                    Confidence: {gpsConfidence}%
+                  </span>
+                  {gpsWarningSuspended && (
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-150 text-zinc-600 font-mono font-bold uppercase animate-pulse">
+                      Paused
+                    </span>
+                  )}
+                </div>
+                <span className="font-medium text-zinc-650 text-xs text-left">
+                  {gpsConfidence === 30
+                    ? 'GPS accuracy degraded. Verification retry in progress. Please move to an open location.'
+                    : "We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal."}
+                </span>
+                <span className="text-[10px] font-mono font-bold text-amber-700 uppercase tracking-wider mt-0.5 text-left">
+                  Verification countdown: {gpsWarningSeconds}s {gpsWarningSuspended && '(Paused - check connection)'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+              <button
+                onClick={handleDismissGpsWarning}
+                className="px-2.5 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Dismiss for 5m
+              </button>
+              <button
+                onClick={handleVerifyLocation}
+                disabled={isVerifyingLocation}
+                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-mono font-bold uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+              >
+                {isVerifyingLocation ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-3 h-3" />
+                )}
+                Verify Presence
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Layout Container */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-[24px] items-stretch">

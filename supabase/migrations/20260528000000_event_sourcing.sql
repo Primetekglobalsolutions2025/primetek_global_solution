@@ -271,3 +271,117 @@ BEGIN
 
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. Get Session State Function (Event Replay Projection Helper)
+CREATE OR REPLACE FUNCTION public.get_session_state(p_session_id UUID)
+RETURNS TABLE (
+    current_state VARCHAR,
+    total_productive_seconds INT,
+    total_break_seconds INT,
+    last_known_gps POINT,
+    is_active BOOLEAN
+) AS $$
+DECLARE
+    r RECORD;
+    v_state VARCHAR := 'OFFLINE';
+    v_last_event_time TIMESTAMPTZ;
+    v_prod_sec INT := 0;
+    v_break_sec INT := 0;
+    v_break_start TIMESTAMPTZ := NULL;
+    v_work_start TIMESTAMPTZ := NULL;
+    v_last_gps POINT := NULL;
+BEGIN
+    FOR r IN 
+        SELECT event_type, event_timestamp, gps_lat, gps_lng 
+        FROM public.attendance_events 
+        WHERE session_id = p_session_id 
+        ORDER BY sequence_number ASC 
+    LOOP
+        v_last_event_time := r.event_timestamp;
+        IF r.gps_lat IS NOT NULL THEN
+            v_last_gps := point(r.gps_lng, r.gps_lat);
+        END IF;
+
+        CASE r.event_type
+            WHEN 'CLOCK_IN' THEN
+                v_state := 'ACTIVE';
+                v_work_start := r.event_timestamp;
+            WHEN 'BREAK_STARTED', 'AUTO_BREAK_TRIGGERED' THEN
+                v_state := CASE WHEN r.event_type = 'AUTO_BREAK_TRIGGERED' THEN 'AUTO_BREAK' ELSE 'ON_BREAK' END;
+                v_break_start := r.event_timestamp;
+                IF v_work_start IS NOT NULL THEN
+                    v_prod_sec := v_prod_sec + EXTRACT(EPOCH FROM (r.event_timestamp - v_work_start))::INT;
+                    v_work_start := NULL;
+                END IF;
+            WHEN 'BREAK_ENDED' THEN
+                v_state := 'ACTIVE';
+                v_work_start := r.event_timestamp;
+                IF v_break_start IS NOT NULL THEN
+                    v_break_sec := v_break_sec + EXTRACT(EPOCH FROM (r.event_timestamp - v_break_start))::INT;
+                    v_break_start := NULL;
+                END IF;
+            WHEN 'CLOCK_OUT', 'FORCE_LOGOUT' THEN
+                v_state := 'CLOCKED_OUT';
+                IF v_work_start IS NOT NULL THEN
+                    v_prod_sec := v_prod_sec + EXTRACT(EPOCH FROM (r.event_timestamp - v_work_start))::INT;
+                    v_work_start := NULL;
+                END IF;
+                IF v_break_start IS NOT NULL THEN
+                    v_break_sec := v_break_sec + EXTRACT(EPOCH FROM (r.event_timestamp - v_break_start))::INT;
+                    v_break_start := NULL;
+                END IF;
+            ELSE
+                -- Keep current state for telemetry events
+        END CASE;
+    END LOOP;
+
+    -- Handle ongoing time if session is still active
+    IF v_state = 'ACTIVE' AND v_work_start IS NOT NULL THEN
+        v_prod_sec := v_prod_sec + EXTRACT(EPOCH FROM (now() - v_work_start))::INT;
+    ELSIF (v_state = 'ON_BREAK' OR v_state = 'AUTO_BREAK') AND v_break_start IS NOT NULL THEN
+        v_break_sec := v_break_sec + EXTRACT(EPOCH FROM (now() - v_break_start))::INT;
+    END IF;
+
+    RETURN QUERY SELECT v_state, v_prod_sec, v_break_sec, v_last_gps, (v_state != 'CLOCKED_OUT');
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+-- 8. Projection Rebuild Action Function
+CREATE OR REPLACE FUNCTION public.rebuild_attendance_projection(p_session_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    v_calculated RECORD;
+    v_emp_id UUID;
+BEGIN
+    -- 1. Fetch employee ID from master session
+    SELECT employee_id INTO v_emp_id FROM public.attendance WHERE id = p_session_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Session ID % not found.', p_session_id;
+    END IF;
+
+    -- 2. Obtain session lock and delete old projection
+    DELETE FROM public.attendance_projections WHERE session_id = p_session_id;
+
+    -- 3. Calculate state by replaying the events stream
+    SELECT * INTO v_calculated FROM public.get_session_state(p_session_id);
+
+    -- 4. Re-insert fresh, verified projection record
+    INSERT INTO public.attendance_projections (
+        session_id,
+        employee_id,
+        current_state,
+        productive_seconds,
+        break_seconds,
+        last_heartbeat_at,
+        session_version
+    ) VALUES (
+        p_session_id,
+        v_emp_id,
+        v_calculated.current_state,
+        v_calculated.total_productive_seconds,
+        v_calculated.total_break_seconds,
+        now(),
+        1
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

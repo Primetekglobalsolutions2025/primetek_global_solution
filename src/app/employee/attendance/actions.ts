@@ -907,3 +907,94 @@ export async function processHeartbeat(payload: {
     return { success: false, error: errorMsg };
   }
 }
+
+export async function rebuildSession(sessionId: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+
+    const { error } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: sessionId
+    });
+
+    if (error) throw error;
+    revalidatePath('/employee/attendance');
+    revalidatePath('/employee/dashboard');
+    return { success: true };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to rebuild session projection';
+    return { success: false, error: errorMsg };
+  }
+}
+
+export async function getAttendanceSessionState(sessionId: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const { data: projection, error: projErr } = await supabaseAdmin
+      .from('attendance_projections')
+      .select('*')
+      .eq('session_id', sessionId)
+      .eq('employee_id', session.id)
+      .maybeSingle();
+
+    if (projErr) throw projErr;
+
+    const { data: attendance, error: attErr } = await supabaseAdmin
+      .from('attendance')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('employee_id', session.id)
+      .maybeSingle();
+
+    if (attErr) throw attErr;
+
+    return {
+      success: true,
+      projection,
+      attendance
+    };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+export async function logGPSDismissEvent(sessionId: string, lat: number, lng: number) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('sequence_number')
+      .eq('session_id', sessionId)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+    await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: sessionId,
+        employee_id: session.id,
+        event_type: 'HEARTBEAT_RECEIVED',
+        sequence_number: nextSequence,
+        idempotency_key: `dismiss-${sessionId}-${nextSequence}`,
+        client_ip: '0.0.0.0',
+        gps_lat: lat ? Number(lat) : null,
+        gps_lng: lng ? Number(lng) : null,
+        gps_accuracy: 10,
+        payload: { audit_event: 'GPS_WARNING_DISMISSED', timestamp: new Date().toISOString() }
+      }]);
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to log event' };
+  }
+}
+
