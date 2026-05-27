@@ -697,9 +697,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         <div className="lg:col-span-7 space-y-6">
           
           {/* Cal.com-Style Calendar Container */}
-          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[350px]">
+          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs relative flex flex-col justify-between min-h-[350px]">
             <div>
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-5 max-w-sm mx-auto">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="w-4.5 h-4.5 text-primary-500" />
                   <h2 className="font-bold text-navy-900 text-sm tracking-tight font-sans">Monthly Attendance Ledger</h2>
@@ -710,7 +710,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               </div>
 
               {/* Day Grid */}
-              <div className="grid grid-cols-7 gap-1.5 text-center">
+              <div className="grid grid-cols-7 gap-y-1.5 gap-x-1 text-center max-w-sm mx-auto">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
                   <div key={d} className="text-[9px] font-mono font-bold text-zinc-400 py-1 uppercase tracking-wider">{d}</div>
                 ))}
@@ -730,7 +730,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   const dotColor = getStatusDotColor(status);
 
                   return (
-                    <div key={i} className="aspect-square flex items-center justify-center relative">
+                    <div key={i} className="h-9 flex items-center justify-center relative">
                       {day && (
                         <div className="flex flex-col items-center justify-center w-9 h-9 relative">
                           <motion.div 
@@ -757,7 +757,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             </div>
 
             {/* PostHog-Style Data-Dense Stats Blocks (Legend + Dynamic Counters) */}
-            <div className="grid grid-cols-4 gap-2.5 mt-6 pt-5 border-t border-zinc-200">
+            <div className="grid grid-cols-4 gap-2.5 mt-6 pt-5 border-t border-zinc-200 max-w-sm mx-auto w-full">
               <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-2.5 text-center">
                 <span className="font-mono text-base font-extrabold text-[#10B981] block leading-none mb-1">{presentCount}</span>
                 <span className="text-[8px] font-mono font-bold text-emerald-600 uppercase tracking-wider">Present</span>
@@ -768,7 +768,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               </div>
               <div className="bg-red-50/40 border border-red-100 rounded-xl p-2.5 text-center">
                 <span className="font-mono text-base font-extrabold text-[#EF4444] block leading-none mb-1">{absentCount}</span>
-                <span className="text-[8px] font-mono font-bold text-red-600 uppercase tracking-wider">Absent</span>
+                <span className="text-[8px] font-mono font-bold text-red-650 uppercase tracking-wider">Absent</span>
               </div>
               <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-2.5 text-center">
                 <span className="font-mono text-base font-extrabold text-[#3B82F6] block leading-none mb-1">{wfhCount}</span>
