@@ -370,22 +370,26 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   for (let i = 0; i < monthStart.getDay(); i++) calendarDays.push(null);
   for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
 
+  // Dynamic statistics calculation for PostHog style cards
+  const currentMonthRecords = initialRecords.filter(r => {
+    if (!r.date) return false;
+    const dateObj = new Date(r.date);
+    return dateObj.getMonth() === currentTime.getMonth() && dateObj.getFullYear() === currentTime.getFullYear();
+  });
+
+  const presentCount = currentMonthRecords.filter(r => {
+    const s = r.status?.toLowerCase();
+    return s === 'present' || s === 'working' || s === 'logged out' || s === 'on break';
+  }).length;
+
+  const lateMonthCount = currentMonthRecords.filter(r => r.status?.toLowerCase() === 'late').length;
+  const absentCount = currentMonthRecords.filter(r => r.status?.toLowerCase() === 'absent').length;
+  const wfhCount = currentMonthRecords.filter(r => r.status?.toLowerCase().includes('wfh')).length;
+
   const getStatusForDay = (day: number) => {
     const dStr = `${currentTime.getFullYear()}-${String(currentTime.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const record = initialRecords.find(r => r.date === dStr);
     return record?.status?.toLowerCase() || null;
-  };
-  const calendarColors: Record<string, string> = {
-    present: 'bg-emerald-50 text-emerald-700 border border-emerald-150',
-    late: 'bg-amber-50 text-amber-700 border border-amber-150',
-    absent: 'bg-red-50 text-red-700 border border-red-150',
-    'half-day': 'bg-blue-50 text-blue-700 border border-blue-150',
-    'pending wfh': 'bg-violet-50 text-violet-750 border border-violet-150',
-    'approved wfh': 'bg-primary-50 text-primary-700 border border-primary-150',
-    'rejected wfh': 'bg-red-50 text-red-750 border border-red-150',
-    working: 'bg-emerald-50 text-emerald-700 border border-emerald-150',
-    'on break': 'bg-amber-50 text-amber-700 border border-amber-150',
-    'logged out': 'bg-zinc-50 text-zinc-500 border border-zinc-200',
   };
 
   return (
@@ -424,314 +428,355 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         )}
       </AnimatePresence>
 
-      {/* Monthly Late Login Penalty Banner */}
+      {/* Sticky Top Warning Banner (Sentry Style) */}
       {lateStats.lateCount > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: -15 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "p-5 rounded-2xl border flex items-start gap-4 shadow-2xs bg-white",
-            lateStats.lateCount >= 6 ? "border-red-200" :
-            lateStats.lateCount >= 3 ? "border-amber-200" : "border-primary-200"
+            "flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border text-xs font-semibold font-sans shadow-2xs bg-white",
+            lateStats.lateCount >= 6 ? "border-red-200 bg-red-50/30" :
+            lateStats.lateCount >= 3 ? "border-amber-200 bg-amber-50/30" : "border-primary-200 bg-primary-50/30"
           )}
         >
-          <div className={cn(
-            "w-10 h-10 rounded-xl border flex items-center justify-center shrink-0",
-            lateStats.lateCount >= 6 ? "bg-red-50 text-red-500 border-red-200" :
-            lateStats.lateCount >= 3 ? "bg-amber-50 text-amber-500 border-amber-200" :
-            "bg-primary-50 text-primary-500 border-primary-200"
-          )}>
-            <AlertTriangle className="w-5 h-5" />
-          </div>
-          <div className="flex-1 space-y-1">
-            <h4 className="text-[10px] font-mono font-semibold uppercase tracking-wider text-zinc-400">Late Login Penalty Status</h4>
-            <div className="grid grid-cols-2 gap-4 pt-1 text-xs font-semibold text-navy-900">
-              <div>
-                <span className="text-[9px] font-mono font-medium text-zinc-400 uppercase tracking-wider block">Lates This Month</span>
-                <span className="text-xl font-bold text-navy-900 font-sans tracking-tight">{lateStats.lateCount}</span>
-              </div>
-              <div>
-                <span className="text-[9px] font-mono font-medium text-zinc-400 uppercase tracking-wider block">Deductions Applied</span>
-                <span className="text-xl font-bold text-navy-900 font-sans tracking-tight">{lateStats.deduction} Day</span>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border",
+              lateStats.lateCount >= 6 ? "bg-red-50 text-red-650 border-red-200" :
+              lateStats.lateCount >= 3 ? "bg-amber-50 text-amber-650 border-amber-200" :
+              "bg-primary-50 text-primary-650 border-primary-200"
+            )}>
+              <ShieldAlert className="w-4.5 h-4.5" />
             </div>
-            <p className="text-[11px] mt-2 font-medium text-zinc-650 leading-relaxed border-t border-zinc-100 pt-2 flex items-center gap-1.5 font-sans">
-              <Info className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
-              {lateStats.warningMessage}
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              <span className="font-bold text-navy-950">Late Penalty Warning:</span>
+              <span className="font-medium text-zinc-650 text-xs">{lateStats.warningMessage}</span>
+              <span className="hidden sm:inline text-zinc-300">|</span>
+              <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
+                Lates: <span className="text-zinc-900">{lateStats.lateCount}</span> • Deductions: <span className="text-red-600">{lateStats.deduction} Day</span>
+              </span>
+            </div>
           </div>
         </motion.div>
       )}
 
-      {/* Premium Header - Vercel Layout + Brand Navy Background */}
-      <div className="relative overflow-hidden rounded-2xl bg-navy-900 p-6 text-white shadow-md shadow-navy-900/10">
-        <div className="absolute top-[-25%] right-[-15%] w-[40%] h-[120%] bg-primary-500/15 rounded-full blur-[80px] animate-pulse" />
-        <div className="relative z-10 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1.5 font-mono text-[9px] font-medium uppercase tracking-wider text-primary-200">
-              <span>Shift & Break Matrix</span>
+      {/* Main Content Layout Container */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Column: Console & Controls */}
+        <div className="lg:col-span-5 space-y-6">
+          
+          {/* Shift info header card */}
+          <div className="bg-white rounded-2xl p-5 border border-zinc-200/80 shadow-2xs font-sans relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none">
+              <CalendarIcon className="w-16 h-16 text-navy-900" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white font-sans">Time & Attendance</h1>
-            <p className="text-zinc-400 text-xs mt-1 font-medium font-sans">Night Shift: 06:30 PM to 03:30 AM (9 Hours total)</p>
-          </div>
-          <div className="hidden md:block text-right">
-            <p className="text-[9px] font-mono font-medium text-zinc-500 uppercase tracking-wider">Current Time</p>
-            <p className="text-xl font-bold text-white font-mono mt-0.5">
-              {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Main Clock-in Control */}
-        <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-center min-h-[300px]">
-          <div className="absolute top-0 right-0 p-6 opacity-[0.01] pointer-events-none">
-            <Clock className="w-36 h-36 text-navy-900" />
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">Standard Work Hours</span>
+                <h3 className="font-bold text-navy-900 text-sm tracking-tight">Shift: Night Shift</h3>
+                <p className="text-xs text-zinc-550 mt-1">Your shift: 06:30 PM - 03:30 AM</p>
+              </div>
+              <div className="px-2.5 py-1 rounded bg-primary-50 border border-primary-250 text-primary-750 text-[9px] font-mono font-bold uppercase tracking-wider">
+                Active Shift
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center space-y-6 py-2">
-            {/* Modern dark readout box */}
-            <div className="w-full bg-slate-900 text-white rounded-xl p-5 text-center relative overflow-hidden shadow-inner border border-slate-800">
-              <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none" />
-              <p className="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase mb-2">System Time</p>
-              <p className="text-4xl font-bold font-mono tracking-widest text-primary-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.2)]">
+          {/* Hero Check-in Console */}
+          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs flex flex-col items-center justify-center space-y-6">
+            
+            {/* Subtle, sleek Raycast-style clock widget (Live clock always visible but subtle, not dominant) */}
+            <div className="w-full bg-slate-955 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-slate-900 shadow-inner">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">Live System Time</span>
+              </div>
+              <div className="font-mono text-sm font-black tracking-widest text-slate-200">
                 {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-              </p>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-mono font-semibold text-slate-350 uppercase tracking-wider mt-3">
-                <CalendarIcon className="w-3.5 h-3.5 text-slate-450" />
-                {currentTime.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
               </div>
             </div>
 
-            {checkedIn && !isCheckedOut && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full p-4 rounded-xl border border-zinc-200 bg-zinc-50 shadow-inner text-center relative overflow-hidden"
-              >
-                <div className="absolute -top-10 -right-10 w-20 h-20 bg-white/5 rounded-full blur-xl" />
-                <p className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-455 mb-1.5 flex items-center justify-center gap-1.5">
-                  <span className={cn(
-                    "w-1.5 h-1.5 rounded-full",
-                    currentStatus === 'On Break' ? "bg-amber-500 animate-ping" : "bg-emerald-500 animate-pulse"
-                  )} />
-                  Session Status: {currentStatus}
-                </p>
-                <p className="text-2xl font-bold font-mono text-navy-900 tracking-tight">
-                  {String(elapsedHrs).padStart(2, '0')}:{String(elapsedMin).padStart(2, '0')}:{String(elapsedSec).padStart(2, '0')}
-                </p>
-              </motion.div>
-            )}
-
-            <div className="w-full max-w-[280px]">
+            {/* Centered Hero Check-in / Check-out button (Full width, prominent) */}
+            <div className="w-full text-center space-y-3">
               {!checkedIn ? (
-                <Button 
-                  size="md" 
-                  className="w-full py-3 rounded-xl bg-navy-900 hover:bg-navy-950 text-white text-xs font-bold uppercase tracking-wider shadow hover:shadow-navy-900/10 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 group"
-                  onClick={handleCheckIn} 
+                <button
+                  onClick={handleCheckIn}
                   disabled={gpsStatus === 'loading'}
+                  style={{ backgroundColor: '#10B981' }}
+                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
                 >
                   {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Locating...</>
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
                   ) : (
-                    <><LogIn className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" /> Clock In</>
+                    <><LogIn className="w-4 h-4" /> Clock In</>
                   )}
-                </Button>
+                </button>
               ) : !isCheckedOut ? (
-                <Button 
-                  size="md" 
-                  className="w-full py-3 rounded-xl bg-white border border-red-200 hover:border-red-300 text-red-650 hover:bg-red-50/25 text-xs font-bold uppercase tracking-wider active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 group"
-                  onClick={handleCheckOut} 
+                <button
+                  onClick={handleCheckOut}
                   disabled={gpsStatus === 'loading'}
+                  style={{ backgroundColor: '#EF4444' }}
+                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-red-500/10 cursor-pointer disabled:opacity-50"
                 >
                   {gpsStatus === 'loading' ? (
-                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Clocking out...</>
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
                   ) : (
-                    <><LogOut className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform text-red-500" /> Clock Out</>
+                    <><LogOut className="w-4 h-4" /> Clock Out</>
                   )}
-                </Button>
+                </button>
               ) : (
-                <div className="space-y-3 text-center">
-                  <div className="bg-emerald-50/50 border border-emerald-250 rounded-xl p-5 text-center font-sans shadow-2xs relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] pointer-events-none">
-                      <CheckCircle2 className="w-16 h-16 text-emerald-600" />
-                    </div>
-                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                    <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Clock Out Complete</p>
-                    <p className="text-[10px] text-emerald-600 mt-1 font-medium leading-relaxed">Your attendance has been recorded successfully.</p>
-                  </div>
-                  <button 
-                    onClick={handleResume} 
-                    className="text-[9px] font-mono font-semibold text-primary-700 hover:text-primary-850 uppercase tracking-wider cursor-pointer"
-                  >
-                    Undo Clock Out
-                  </button>
+                <div className="bg-emerald-50/50 border border-emerald-250 rounded-xl p-5 text-center font-sans shadow-2xs relative overflow-hidden">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-505 mx-auto mb-2" />
+                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Clock Out Complete</p>
+                  <p className="text-[10px] text-emerald-600 mt-1 font-medium">Your attendance has been recorded successfully.</p>
                 </div>
               )}
+
+              {/* GPS status indicator badge */}
+              <div className="flex items-center justify-center">
+                {gpsStatus === 'loading' ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-250 shadow-3xs">
+                    <Loader2 className="w-3 h-3 mr-1.5 animate-spin text-amber-500" /> Locating
+                  </span>
+                ) : coords ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-250 shadow-3xs">
+                    GPS Verified ✓
+                  </span>
+                ) : gpsStatus === 'error' ? (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-red-50 text-red-755 border border-red-250 shadow-3xs">
+                    GPS Error ✗
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-zinc-50 text-zinc-500 border border-zinc-200 shadow-3xs">
+                    GPS Ready
+                  </span>
+                )}
+              </div>
             </div>
+
+            {/* Today's Summary Card */}
+            {checkedIn && (
+              <div className="w-full border-t border-zinc-100 pt-5 space-y-3 font-sans">
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block">Today's Summary</span>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Check-in</span>
+                    <span className="font-mono text-xs font-bold text-navy-900">
+                      {todayRecord?.check_in || '--:--'}
+                    </span>
+                  </div>
+                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Check-out</span>
+                    <span className="font-mono text-xs font-bold text-navy-900">
+                      {todayRecord?.check_out || '--:--'}
+                    </span>
+                  </div>
+                  <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Hours Worked</span>
+                    <span className="font-mono text-xs font-bold text-navy-900">
+                      {!isCheckedOut ? (
+                        <span>{String(elapsedHrs).padStart(2, '0')}:{String(elapsedMin).padStart(2, '0')}</span>
+                      ) : (
+                        <span>{todayRecord?.duration_hours}h</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+                {isCheckedOut && (
+                  <div className="text-center pt-1">
+                    <button 
+                      onClick={handleResume} 
+                      className="text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider cursor-pointer"
+                    >
+                      Undo Clock Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Break and Shift Monitoring Widgets */}
+          {checkedIn && !isCheckedOut && (
+            <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
+              <div className="space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shadow-3xs">
+                    <Coffee className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-navy-900 text-sm tracking-tight font-sans">Break Control Room</h3>
+                    <p className="text-[9px] font-mono font-medium text-zinc-400 uppercase tracking-wider mt-0.5">1 hour daily permitted limit</p>
+                  </div>
+                </div>
+
+                {/* Break Overrun Warning System */}
+                {breakUsedSeconds >= 60 * 60 ? (
+                  <motion.div
+                    animate={{ scale: [1, 1.01, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-750 flex items-center gap-2 text-xs font-semibold font-sans"
+                  >
+                    <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-red-505" />
+                    <span>Break Limit Exceeded! Please return to work immediately.</span>
+                  </motion.div>
+                ) : breakUsedSeconds >= 45 * 60 ? (
+                  <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 flex items-center gap-2 text-xs font-semibold font-sans">
+                    <AlertTriangle className="w-4.5 h-4.5 shrink-0 text-amber-500" />
+                    <span>Approaching Allowed Break Limit (45m+ used).</span>
+                  </div>
+                ) : null}
+
+                {/* Break progress bar */}
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex justify-between items-center text-[10px] font-mono text-zinc-450 uppercase tracking-wider font-bold">
+                    <span>Break Usage</span>
+                    <span>{Math.round((breakUsedSeconds / 3600) * 100)}% ({Math.round(breakUsedSeconds / 60)}m / 60m)</span>
+                  </div>
+                  <div className="w-full h-2 bg-zinc-100 rounded-full border border-zinc-250 overflow-hidden shadow-inner">
+                    <div 
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        breakUsedSeconds >= 3600 ? "bg-red-500" :
+                        breakUsedSeconds >= 2700 ? "bg-amber-500" : "bg-primary-500"
+                      )}
+                      style={{ width: `${Math.min((breakUsedSeconds / 3600) * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {/* Timers Grid */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Productive Work</span>
+                    <span className="font-mono text-base font-black text-navy-900">{formatSeconds(productiveSeconds)}</span>
+                  </div>
+                  <div className={cn(
+                    "rounded-xl p-3 border text-center shadow-3xs",
+                    breakUsedSeconds >= 3600 ? "bg-red-50/50 border-red-200" : "bg-zinc-50 border-zinc-200"
+                  )}>
+                    <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Break Used</span>
+                    <span className={cn(
+                      "font-mono text-base font-black",
+                      breakUsedSeconds >= 3600 ? "text-red-650" :
+                      breakUsedSeconds >= 2700 ? "text-amber-600" : "text-navy-900"
+                    )}>{formatSeconds(breakUsedSeconds)}</span>
+                  </div>
+                  <div className="rounded-xl bg-zinc-55 border border-zinc-200 p-3 text-center shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Remaining Allowed</span>
+                    <span className="font-mono text-base font-black text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Break Control Toggle Buttons */}
+              <div className="flex gap-3 pt-5 border-t border-zinc-200">
+                <Button
+                  variant={(currentStatus === 'Working' || currentStatus === 'Approved WFH') ? 'primary' : 'outline'}
+                  disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
+                  onClick={handleStartBreak}
+                  className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans"
+                >
+                  {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Start Break'}
+                </Button>
+                <Button
+                  variant={currentStatus === 'On Break' ? 'primary' : 'outline'}
+                  disabled={currentStatus !== 'On Break' || isBreakActionLoading}
+                  onClick={handleEndBreak}
+                  className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans"
+                >
+                  {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'End Break'}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Break and Shift Monitoring Widgets */}
-        {checkedIn && !isCheckedOut ? (
-          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
-            <div className="space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shadow-3xs">
-                  <Coffee className="w-4.5 h-4.5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-navy-900 text-sm tracking-tight font-sans">Break Control Room</h3>
-                  <p className="text-[9px] font-mono font-medium text-zinc-400 uppercase tracking-wider mt-0.5">1 hour daily permitted limit</p>
-                </div>
-              </div>
-
-              {/* Break Overrun Warning System */}
-              {breakUsedSeconds >= 60 * 60 ? (
-                <motion.div
-                  animate={{ scale: [1, 1.01, 1] }}
-                  transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-750 flex items-center gap-2 text-xs font-semibold font-sans"
-                >
-                  <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-red-500" />
-                  <span>Break Limit Exceeded! Please return to work immediately.</span>
-                </motion.div>
-              ) : breakUsedSeconds >= 45 * 60 ? (
-                <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 flex items-center gap-2 text-xs font-semibold font-sans">
-                  <AlertTriangle className="w-4.5 h-4.5 shrink-0 text-amber-500" />
-                  <span>Approaching Allowed Break Limit (45m+ used).</span>
-                </div>
-              ) : null}
-
-              {/* Break progress bar */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-bold">
-                  <span>Break Usage</span>
-                  <span>{Math.round((breakUsedSeconds / 3600) * 100)}% ({Math.round(breakUsedSeconds / 60)}m / 60m)</span>
-                </div>
-                <div className="w-full h-2 bg-zinc-100 rounded-full border border-zinc-250 overflow-hidden shadow-inner">
-                  <div 
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500",
-                      breakUsedSeconds >= 3600 ? "bg-red-500" :
-                      breakUsedSeconds >= 2700 ? "bg-amber-500" : "bg-primary-500"
-                    )}
-                    style={{ width: `${Math.min((breakUsedSeconds / 3600) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Timers Grid */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
-                  <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Productive Work</span>
-                  <span className="font-mono text-base font-black text-navy-900">{formatSeconds(productiveSeconds)}</span>
-                </div>
-                <div className={cn(
-                  "rounded-xl p-3 border text-center shadow-3xs",
-                  breakUsedSeconds >= 3600 ? "bg-red-50/50 border-red-200" : "bg-zinc-50 border-zinc-200"
-                )}>
-                  <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Break Used</span>
-                  <span className={cn(
-                    "font-mono text-base font-black",
-                    breakUsedSeconds >= 3600 ? "text-red-650" :
-                    breakUsedSeconds >= 2700 ? "text-amber-600" : "text-navy-900"
-                  )}>{formatSeconds(breakUsedSeconds)}</span>
-                </div>
-                <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
-                  <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Remaining Allowed</span>
-                  <span className="font-mono text-base font-black text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Break Control Toggle Buttons */}
-            <div className="flex gap-3 pt-5 border-t border-zinc-200">
-              <Button
-                variant={(currentStatus === 'Working' || currentStatus === 'Approved WFH') ? 'primary' : 'outline'}
-                disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
-                onClick={handleStartBreak}
-                className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans"
-              >
-                {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Start Break'}
-              </Button>
-              <Button
-                variant={currentStatus === 'On Break' ? 'primary' : 'outline'}
-                disabled={currentStatus !== 'On Break' || isBreakActionLoading}
-                onClick={handleEndBreak}
-                className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans"
-              >
-                {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'End Break'}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          /* Temporal Matrix (Calendar) */
-          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
-            <div className="absolute top-0 right-0 p-6 opacity-[0.01] pointer-events-none">
-              <CalendarIcon className="w-36 h-36 text-navy-900" />
-            </div>
-            
+        {/* Right Column: Calendar Ledger & Stats Block */}
+        <div className="lg:col-span-7 space-y-6">
+          
+          {/* Cal.com-Style Calendar Container */}
+          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[350px]">
             <div>
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="w-4.5 h-4.5 text-primary-500" />
-                  <h2 className="font-bold text-navy-900 text-sm tracking-tight font-sans">Monthly Ledger</h2>
+                  <h2 className="font-bold text-navy-900 text-sm tracking-tight font-sans">Monthly Attendance Ledger</h2>
                 </div>
                 <div className="px-2.5 py-1 rounded bg-zinc-100 border border-zinc-200 text-[9px] font-mono font-bold uppercase tracking-wider text-navy-900 shadow-3xs">
                   {currentTime.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                 </div>
               </div>
- 
+
+              {/* Day Grid */}
               <div className="grid grid-cols-7 gap-1.5 text-center">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
                   <div key={d} className="text-[9px] font-mono font-bold text-zinc-400 py-1 uppercase tracking-wider">{d}</div>
                 ))}
                 {calendarDays.map((day, i) => {
                   const status = day ? getStatusForDay(day) : null;
+                  const isToday = day === new Date().getDate() && currentTime.getMonth() === new Date().getMonth() && currentTime.getFullYear() === new Date().getFullYear();
+
+                  const getStatusDotColor = (s: string | null) => {
+                    if (!s) return null;
+                    if (s === 'present' || s === 'working' || s === 'logged out' || s === 'on break') return 'bg-[#10B981]';
+                    if (s === 'late') return 'bg-[#F59E0B]';
+                    if (s === 'absent' || s === 'rejected wfh') return 'bg-[#EF4444]';
+                    if (s.includes('wfh') || s === 'half-day') return 'bg-[#3B82F6]';
+                    return null;
+                  };
+
+                  const dotColor = getStatusDotColor(status);
+
                   return (
                     <div key={i} className="aspect-square flex items-center justify-center relative">
                       {day && (
-                        <motion.div 
-                          whileHover={{ scale: 1.1 }}
-                          className={cn(
-                            "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold transition-all cursor-default relative z-10 font-sans",
-                            status && calendarColors[status] ? calendarColors[status] : "bg-zinc-50 border border-zinc-150 text-zinc-450 hover:bg-zinc-100"
-                          )}
-                        >
-                          {day}
-                          {day === new Date().getDate() && !status && (
-                            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary-500 rounded-full border border-white" />
-                          )}
-                        </motion.div>
+                        <div className="flex flex-col items-center justify-center w-9 h-9 relative">
+                          <motion.div 
+                            whileHover={{ scale: 1.05 }}
+                            className={cn(
+                              "w-8 h-8 rounded-full flex flex-col items-center justify-center text-xs font-semibold font-sans transition-all cursor-default relative z-10",
+                              isToday 
+                                ? "bg-slate-900 text-white shadow-sm" 
+                                : "text-slate-800 hover:bg-slate-50 border border-transparent"
+                            )}
+                          >
+                            <span>{day}</span>
+                            {/* Cal.com Dot below date number */}
+                            {dotColor && (
+                              <span className={cn("w-1.5 h-1.5 rounded-full mt-0.5 shrink-0", dotColor)} />
+                            )}
+                          </motion.div>
+                        </div>
                       )}
                     </div>
                   );
                 })}
               </div>
             </div>
- 
-            <div className="mt-5 pt-4 border-t border-zinc-200 grid grid-cols-4 gap-2 text-[8px] font-mono font-bold uppercase tracking-wider text-zinc-450 text-center">
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-50 border border-emerald-250 text-emerald-700" />
-                <span>Present</span>
+
+            {/* PostHog-Style Data-Dense Stats Blocks (Legend + Dynamic Counters) */}
+            <div className="grid grid-cols-4 gap-2.5 mt-6 pt-5 border-t border-zinc-200">
+              <div className="bg-emerald-50/40 border border-emerald-100 rounded-xl p-2.5 text-center">
+                <span className="font-mono text-base font-extrabold text-[#10B981] block leading-none mb-1">{presentCount}</span>
+                <span className="text-[8px] font-mono font-bold text-emerald-600 uppercase tracking-wider">Present</span>
               </div>
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-primary-50 border border-primary-200 text-primary-700" />
-                <span>WFH</span>
+              <div className="bg-amber-50/40 border border-amber-100 rounded-xl p-2.5 text-center">
+                <span className="font-mono text-base font-extrabold text-[#F59E0B] block leading-none mb-1">{lateMonthCount}</span>
+                <span className="text-[8px] font-mono font-bold text-amber-600 uppercase tracking-wider">Late</span>
               </div>
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-50 border border-amber-250 text-amber-700" />
-                <span>Late</span>
+              <div className="bg-red-50/40 border border-red-100 rounded-xl p-2.5 text-center">
+                <span className="font-mono text-base font-extrabold text-[#EF4444] block leading-none mb-1">{absentCount}</span>
+                <span className="text-[8px] font-mono font-bold text-red-600 uppercase tracking-wider">Absent</span>
               </div>
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-50 border border-red-250 text-red-700" />
-                <span>Absent</span>
+              <div className="bg-blue-50/40 border border-blue-100 rounded-xl p-2.5 text-center">
+                <span className="font-mono text-base font-extrabold text-[#3B82F6] block leading-none mb-1">{wfhCount}</span>
+                <span className="text-[8px] font-mono font-bold text-blue-600 uppercase tracking-wider">WFH</span>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* History Sequence */}
