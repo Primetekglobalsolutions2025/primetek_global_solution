@@ -375,18 +375,17 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
     const record = initialRecords.find(r => r.date === dStr);
     return record?.status?.toLowerCase() || null;
   };
-
   const calendarColors: Record<string, string> = {
-    present: 'bg-emerald-500 text-white',
-    late: 'bg-amber-500 text-white',
-    absent: 'bg-red-500 text-white',
-    'half-day': 'bg-blue-500 text-white',
-    'pending wfh': 'bg-violet-400 text-white',
-    'approved wfh': 'bg-primary-500 text-white',
-    'rejected wfh': 'bg-red-400 text-white',
-    working: 'bg-emerald-500 text-white',
-    'on break': 'bg-amber-500 text-white',
-    'logged out': 'bg-gray-500 text-white',
+    present: 'bg-emerald-50 text-emerald-700 border border-emerald-150',
+    late: 'bg-amber-50 text-amber-700 border border-amber-150',
+    absent: 'bg-red-50 text-red-700 border border-red-150',
+    'half-day': 'bg-blue-50 text-blue-700 border border-blue-150',
+    'pending wfh': 'bg-violet-50 text-violet-750 border border-violet-150',
+    'approved wfh': 'bg-primary-50 text-primary-700 border border-primary-150',
+    'rejected wfh': 'bg-red-50 text-red-750 border border-red-150',
+    working: 'bg-emerald-50 text-emerald-700 border border-emerald-150',
+    'on break': 'bg-amber-50 text-amber-700 border border-amber-150',
+    'logged out': 'bg-zinc-50 text-zinc-500 border border-zinc-200',
   };
 
   return (
@@ -399,7 +398,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className={cn(
-              'flex items-center justify-between gap-3 px-4 py-3 rounded-lg border text-xs font-semibold font-sans',
+              'flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-xs font-semibold font-sans',
               !isOnline
                 ? 'bg-amber-50 text-amber-700 border-amber-200'
                 : 'bg-blue-50 text-blue-700 border-blue-200'
@@ -431,13 +430,13 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "p-5 rounded-lg border flex items-start gap-4 shadow-2xs bg-white",
+            "p-5 rounded-2xl border flex items-start gap-4 shadow-2xs bg-white",
             lateStats.lateCount >= 6 ? "border-red-200" :
             lateStats.lateCount >= 3 ? "border-amber-200" : "border-primary-200"
           )}
         >
           <div className={cn(
-            "w-10 h-10 rounded border flex items-center justify-center shrink-0",
+            "w-10 h-10 rounded-xl border flex items-center justify-center shrink-0",
             lateStats.lateCount >= 6 ? "bg-red-50 text-red-500 border-red-200" :
             lateStats.lateCount >= 3 ? "bg-amber-50 text-amber-500 border-amber-200" :
             "bg-primary-50 text-primary-500 border-primary-200"
@@ -465,7 +464,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
       )}
 
       {/* Premium Header - Vercel Layout + Brand Navy Background */}
-      <div className="relative overflow-hidden rounded-lg bg-navy-900 p-6 text-white shadow-md shadow-navy-900/10">
+      <div className="relative overflow-hidden rounded-2xl bg-navy-900 p-6 text-white shadow-md shadow-navy-900/10">
         <div className="absolute top-[-25%] right-[-15%] w-[40%] h-[120%] bg-primary-500/15 rounded-full blur-[80px] animate-pulse" />
         <div className="relative z-10 flex items-center justify-between">
           <div>
@@ -484,20 +483,23 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Main Clock-in Control */}
-        <div className="bg-white rounded-lg p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-center min-h-[300px]">
-          <div className="absolute top-0 right-0 p-6 opacity-[0.02] pointer-events-none">
+        <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-center min-h-[300px]">
+          <div className="absolute top-0 right-0 p-6 opacity-[0.01] pointer-events-none">
             <Clock className="w-36 h-36 text-navy-900" />
           </div>
 
           <div className="flex flex-col items-center justify-center space-y-6 py-2">
-            <div className="text-center">
-              <p className="text-4xl font-bold text-navy-900 font-mono tracking-tight">
+            {/* Modern dark readout box */}
+            <div className="w-full bg-slate-900 text-white rounded-xl p-5 text-center relative overflow-hidden shadow-inner border border-slate-800">
+              <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:10px_10px] pointer-events-none" />
+              <p className="text-[9px] font-mono font-bold tracking-widest text-slate-500 uppercase mb-2">System Time</p>
+              <p className="text-4xl font-bold font-mono tracking-widest text-primary-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.2)]">
                 {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
               </p>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-zinc-50 border border-zinc-200/80 text-[9px] font-mono font-semibold text-zinc-450 uppercase tracking-wider mt-4">
-                <CalendarIcon className="w-3.5 h-3.5 text-zinc-400" />
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-white/5 border border-white/10 text-[9px] font-mono font-semibold text-slate-350 uppercase tracking-wider mt-3">
+                <CalendarIcon className="w-3.5 h-3.5 text-slate-450" />
                 {currentTime.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
               </div>
             </div>
@@ -506,17 +508,17 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-[240px] p-4 rounded-lg bg-navy-900 text-white shadow-sm text-center relative overflow-hidden"
+                className="w-full p-4 rounded-xl border border-zinc-200 bg-zinc-50 shadow-inner text-center relative overflow-hidden"
               >
                 <div className="absolute -top-10 -right-10 w-20 h-20 bg-white/5 rounded-full blur-xl" />
-                <p className="text-[9px] font-mono font-medium uppercase tracking-wider opacity-90 mb-1.5 flex items-center justify-center gap-1.5">
+                <p className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-455 mb-1.5 flex items-center justify-center gap-1.5">
                   <span className={cn(
-                    "w-2 h-2 rounded-full",
-                    currentStatus === 'On Break' ? "bg-amber-400 animate-ping" : "bg-primary-400 animate-pulse"
+                    "w-1.5 h-1.5 rounded-full",
+                    currentStatus === 'On Break' ? "bg-amber-500 animate-ping" : "bg-emerald-500 animate-pulse"
                   )} />
-                  Status: {currentStatus}
+                  Session Status: {currentStatus}
                 </p>
-                <p className="text-2xl font-bold font-mono tracking-tight">
+                <p className="text-2xl font-bold font-mono text-navy-900 tracking-tight">
                   {String(elapsedHrs).padStart(2, '0')}:{String(elapsedMin).padStart(2, '0')}:{String(elapsedSec).padStart(2, '0')}
                 </p>
               </motion.div>
@@ -526,7 +528,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               {!checkedIn ? (
                 <Button 
                   size="md" 
-                  className="w-full py-2.5 rounded-md bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold shadow active:scale-95 transition-all font-sans flex items-center justify-center gap-2 group"
+                  className="w-full py-3 rounded-xl bg-navy-900 hover:bg-navy-950 text-white text-xs font-bold uppercase tracking-wider shadow hover:shadow-navy-900/10 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 group"
                   onClick={handleCheckIn} 
                   disabled={gpsStatus === 'loading'}
                 >
@@ -539,7 +541,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               ) : !isCheckedOut ? (
                 <Button 
                   size="md" 
-                  className="w-full py-2.5 rounded-md bg-white border border-red-500 text-red-650 hover:bg-red-50/50 text-xs font-semibold active:scale-95 transition-all font-sans flex items-center justify-center gap-2 group"
+                  className="w-full py-3 rounded-xl bg-white border border-red-200 hover:border-red-300 text-red-650 hover:bg-red-50/25 text-xs font-bold uppercase tracking-wider active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 group"
                   onClick={handleCheckOut} 
                   disabled={gpsStatus === 'loading'}
                 >
@@ -551,10 +553,13 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 </Button>
               ) : (
                 <div className="space-y-3 text-center">
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 font-sans">
-                    <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-                    <p className="text-xs font-bold text-navy-900 uppercase tracking-tight">Clock Out Complete</p>
-                    <p className="text-[10px] text-zinc-400 mt-0.5 font-medium">Your attendance has been recorded successfully.</p>
+                  <div className="bg-emerald-50/50 border border-emerald-250 rounded-xl p-5 text-center font-sans shadow-2xs relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-[0.03] pointer-events-none">
+                      <CheckCircle2 className="w-16 h-16 text-emerald-600" />
+                    </div>
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Clock Out Complete</p>
+                    <p className="text-[10px] text-emerald-600 mt-1 font-medium leading-relaxed">Your attendance has been recorded successfully.</p>
                   </div>
                   <button 
                     onClick={handleResume} 
@@ -570,10 +575,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
         {/* Break and Shift Monitoring Widgets */}
         {checkedIn && !isCheckedOut ? (
-          <div className="bg-white rounded-lg p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
+          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
             <div className="space-y-5">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500">
+                <div className="w-8 h-8 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shadow-3xs">
                   <Coffee className="w-4.5 h-4.5" />
                 </div>
                 <div>
@@ -587,80 +592,101 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 <motion.div
                   animate={{ scale: [1, 1.01, 1] }}
                   transition={{ repeat: Infinity, duration: 1.5 }}
-                  className="p-3 rounded border border-red-200 bg-red-50 text-red-700 flex items-center gap-2 text-xs font-semibold font-sans"
+                  className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-750 flex items-center gap-2 text-xs font-semibold font-sans"
                 >
                   <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-red-500" />
                   <span>Break Limit Exceeded! Please return to work immediately.</span>
                 </motion.div>
               ) : breakUsedSeconds >= 45 * 60 ? (
-                <div className="p-3 rounded border border-amber-200 bg-amber-50 text-amber-700 flex items-center gap-2 text-xs font-semibold font-sans">
+                <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-700 flex items-center gap-2 text-xs font-semibold font-sans">
                   <AlertTriangle className="w-4.5 h-4.5 shrink-0 text-amber-500" />
                   <span>Approaching Allowed Break Limit (45m+ used).</span>
                 </div>
               ) : null}
 
+              {/* Break progress bar */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400 uppercase tracking-wider font-bold">
+                  <span>Break Usage</span>
+                  <span>{Math.round((breakUsedSeconds / 3600) * 100)}% ({Math.round(breakUsedSeconds / 60)}m / 60m)</span>
+                </div>
+                <div className="w-full h-2 bg-zinc-100 rounded-full border border-zinc-250 overflow-hidden shadow-inner">
+                  <div 
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500",
+                      breakUsedSeconds >= 3600 ? "bg-red-500" :
+                      breakUsedSeconds >= 2700 ? "bg-amber-500" : "bg-primary-500"
+                    )}
+                    style={{ width: `${Math.min((breakUsedSeconds / 3600) * 100, 100)}%` }}
+                  />
+                </div>
+              </div>
+
               {/* Timers Grid */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded bg-zinc-50 border border-zinc-150 p-3 text-center">
-                  <span className="text-[8px] font-mono font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Productive Work</span>
-                  <span className="font-mono text-base font-bold text-navy-900">{formatSeconds(productiveSeconds)}</span>
+                <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
+                  <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Productive Work</span>
+                  <span className="font-mono text-base font-black text-navy-900">{formatSeconds(productiveSeconds)}</span>
                 </div>
                 <div className={cn(
-                  "rounded p-3 border text-center",
-                  breakUsedSeconds >= 3600 ? "bg-red-50 border-red-150" : "bg-zinc-50 border-zinc-150"
+                  "rounded-xl p-3 border text-center shadow-3xs",
+                  breakUsedSeconds >= 3600 ? "bg-red-50/50 border-red-200" : "bg-zinc-50 border-zinc-200"
                 )}>
-                  <span className="text-[8px] font-mono font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Break Used</span>
+                  <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Break Used</span>
                   <span className={cn(
-                    "font-mono text-base font-bold",
+                    "font-mono text-base font-black",
                     breakUsedSeconds >= 3600 ? "text-red-650" :
                     breakUsedSeconds >= 2700 ? "text-amber-600" : "text-navy-900"
                   )}>{formatSeconds(breakUsedSeconds)}</span>
                 </div>
-                <div className="rounded bg-zinc-50 border border-zinc-150 p-3 text-center">
-                  <span className="text-[8px] font-mono font-semibold text-zinc-400 uppercase tracking-wider block mb-1">Remaining Allowed</span>
-                  <span className="font-mono text-base font-bold text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
+                <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
+                  <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Remaining Allowed</span>
+                  <span className="font-mono text-base font-black text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
                 </div>
               </div>
             </div>
 
             {/* Break Control Toggle Buttons */}
-            <div className="flex gap-3 pt-5 border-t border-zinc-150">
+            <div className="flex gap-3 pt-5 border-t border-zinc-200">
               <Button
                 variant={(currentStatus === 'Working' || currentStatus === 'Approved WFH') ? 'primary' : 'outline'}
                 disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
                 onClick={handleStartBreak}
-                className="flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md active:scale-95 transition-all shadow-3xs border border-zinc-200 font-sans"
+                className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans"
               >
-                {isBreakActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Start Break'}
+                {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Start Break'}
               </Button>
               <Button
                 variant={currentStatus === 'On Break' ? 'primary' : 'outline'}
                 disabled={currentStatus !== 'On Break' || isBreakActionLoading}
                 onClick={handleEndBreak}
-                className="flex-1 py-2 text-xs font-semibold uppercase tracking-wider rounded-md active:scale-95 transition-all shadow-3xs border border-zinc-200 font-sans"
+                className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans"
               >
-                {isBreakActionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'End Break'}
+                {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'End Break'}
               </Button>
             </div>
           </div>
         ) : (
           /* Temporal Matrix (Calendar) */
-          <div className="bg-navy-900 rounded-lg p-6 border border-white/5 text-white overflow-hidden relative flex flex-col justify-between min-h-[300px]">
-            <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
-              <CalendarIcon className="w-36 h-36 text-white" />
+          <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
+            <div className="absolute top-0 right-0 p-6 opacity-[0.01] pointer-events-none">
+              <CalendarIcon className="w-36 h-36 text-navy-900" />
             </div>
             
             <div>
               <div className="flex items-center justify-between mb-5">
-                <h2 className="font-semibold text-sm tracking-tight text-white font-sans">Monthly Attendance</h2>
-                <div className="px-2.5 py-1 rounded bg-white/10 text-[9px] font-mono font-medium uppercase tracking-wider text-primary-300">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-4.5 h-4.5 text-primary-500" />
+                  <h2 className="font-bold text-navy-900 text-sm tracking-tight font-sans">Monthly Ledger</h2>
+                </div>
+                <div className="px-2.5 py-1 rounded bg-zinc-100 border border-zinc-200 text-[9px] font-mono font-bold uppercase tracking-wider text-navy-900 shadow-3xs">
                   {currentTime.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                 </div>
               </div>
-
-              <div className="grid grid-cols-7 gap-1 text-center">
+ 
+              <div className="grid grid-cols-7 gap-1.5 text-center">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                  <div key={d} className="text-[9px] font-mono font-semibold text-zinc-500 py-1 uppercase tracking-wider">{d}</div>
+                  <div key={d} className="text-[9px] font-mono font-bold text-zinc-400 py-1 uppercase tracking-wider">{d}</div>
                 ))}
                 {calendarDays.map((day, i) => {
                   const status = day ? getStatusForDay(day) : null;
@@ -668,15 +694,15 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                     <div key={i} className="aspect-square flex items-center justify-center relative">
                       {day && (
                         <motion.div 
-                          whileHover={{ scale: 1.05 }}
+                          whileHover={{ scale: 1.1 }}
                           className={cn(
-                            "w-7 h-7 rounded flex items-center justify-center text-[11px] font-semibold transition-all cursor-default relative z-10 font-sans",
-                            status && calendarColors[status] ? calendarColors[status] : "bg-white/5 text-zinc-400 hover:bg-white/10"
+                            "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold transition-all cursor-default relative z-10 font-sans",
+                            status && calendarColors[status] ? calendarColors[status] : "bg-zinc-50 border border-zinc-150 text-zinc-450 hover:bg-zinc-100"
                           )}
                         >
                           {day}
                           {day === new Date().getDate() && !status && (
-                            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary-500 rounded-full border border-navy-900" />
+                            <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary-500 rounded-full border border-white" />
                           )}
                         </motion.div>
                       )}
@@ -685,23 +711,23 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 })}
               </div>
             </div>
-
-            <div className="mt-5 pt-4 border-t border-white/10 grid grid-cols-4 gap-2 text-[8px] font-mono uppercase tracking-wider text-zinc-400 text-center">
-              <div>
-                <p className="mb-1">Present</p>
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mx-auto" />
+ 
+            <div className="mt-5 pt-4 border-t border-zinc-200 grid grid-cols-4 gap-2 text-[8px] font-mono font-bold uppercase tracking-wider text-zinc-450 text-center">
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-50 border border-emerald-250 text-emerald-700" />
+                <span>Present</span>
               </div>
-              <div>
-                <p className="mb-1">WFH</p>
-                <div className="w-1.5 h-1.5 rounded-full bg-primary-500 mx-auto" />
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-primary-50 border border-primary-200 text-primary-700" />
+                <span>WFH</span>
               </div>
-              <div>
-                <p className="mb-1">Late</p>
-                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mx-auto" />
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-50 border border-amber-250 text-amber-700" />
+                <span>Late</span>
               </div>
-              <div>
-                <p className="mb-1">Absent</p>
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 mx-auto" />
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-50 border border-red-250 text-red-700" />
+                <span>Absent</span>
               </div>
             </div>
           </div>
@@ -718,7 +744,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         {/* Mobile: Card List Layout */}
         <div className="block md:hidden space-y-2">
           {initialRecords.map(r => (
-            <div key={r.id} className="p-4 rounded-lg border border-zinc-200 bg-white shadow-2xs font-sans">
+            <div key={r.id} className="p-4 rounded-xl border border-zinc-200 bg-white shadow-2xs font-sans">
               <div className="flex items-center justify-between mb-2">
                 <p className="font-semibold text-navy-900 tracking-tight text-xs">
                   {new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
@@ -742,7 +768,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         </div>
 
         {/* Desktop: Full Table Layout */}
-        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white hidden md:block shadow-2xs">
+        <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white hidden md:block shadow-2xs">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left border-collapse">
               <thead>
@@ -796,24 +822,24 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               transition={{ duration: 0.15 }}
               className="w-full max-w-md"
             >
-              <div className="bg-white rounded-lg p-6 border border-zinc-200 shadow-xl relative overflow-hidden font-sans">
+              <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-xl relative overflow-hidden font-sans">
                 <div className="absolute top-0 right-0 p-4">
                   <button 
                     onClick={() => setWfhRequest(null)}
-                    className="w-8 h-8 rounded border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 flex items-center justify-center text-zinc-650 transition-colors cursor-pointer"
+                    className="w-8 h-8 rounded-xl border border-zinc-200 bg-zinc-50 hover:bg-zinc-100 flex items-center justify-center text-zinc-650 transition-colors cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
                 
                 <div className="flex flex-col items-center text-center space-y-4">
-                  <div className="w-12 h-12 rounded border border-primary-200 bg-primary-50 text-primary-500 flex items-center justify-center shadow-3xs mb-1">
+                  <div className="w-12 h-12 rounded-xl border border-primary-200 bg-primary-50 text-primary-500 flex items-center justify-center shadow-3xs mb-1">
                     <Home className="w-6 h-6" />
                   </div>
                   
                   <div>
                     <h3 className="text-sm font-bold text-navy-900 tracking-tight leading-tight">Work from Home Request?</h3>
-                    <div className="mt-3 p-3 rounded bg-zinc-50 border border-zinc-200 text-xs text-zinc-500 font-medium leading-relaxed">
+                    <div className="mt-3 p-3 rounded-xl bg-zinc-50 border border-zinc-200 text-xs text-zinc-500 font-medium leading-relaxed">
                       You are currently <span className="font-bold text-navy-900 text-xs">{formatDistance(wfhRequest.distance || 0)}</span> away from the office (<span className="font-bold text-navy-900">{wfhRequest.officeName}</span>).
                       <p className="mt-1.5 italic">You are outside the office range. Would you like to submit a Work From Home (WFH) check-in request instead?</p>
                     </div>
@@ -824,7 +850,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                       onClick={handleWFHRequest} 
                       disabled={gpsStatus === 'loading'} 
                       size="sm"
-                      className="w-full py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-md text-xs font-semibold"
+                      className="w-full py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl text-xs font-semibold"
                     >
                       Submit WFH Check-In
                     </Button>
@@ -857,22 +883,22 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               transition={{ duration: 0.15 }}
               className="w-full max-w-sm cursor-default"
             >
-              <div className="bg-white rounded-lg p-5 border border-zinc-200 shadow-xl relative overflow-hidden font-sans">
+              <div className="bg-white rounded-2xl p-5 border border-zinc-200 shadow-xl relative overflow-hidden font-sans">
                 <div className="flex flex-col items-center text-center space-y-4">
                   <div className={cn(
-                    "w-12 h-12 rounded border flex items-center justify-center",
+                    "w-12 h-12 rounded-xl border flex items-center justify-center",
                     confirmAction.variant === 'danger' ? "bg-red-50 border-red-200 text-red-500" : "bg-primary-50 border-primary-200 text-primary-500"
                   )}>
                     <AlertCircle className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-navy-900 tracking-tight">Confirm Action</h3>
-                    <p className="text-xs text-zinc-400 mt-1.5 font-medium leading-relaxed">{confirmAction.message}</p>
+                    <p className="text-xs text-zinc-450 mt-1.5 font-medium leading-relaxed">{confirmAction.message}</p>
                   </div>
                   <div className="flex w-full gap-2 pt-2">
                     <button
                       onClick={() => setConfirmAction(null)}
-                      className="flex-1 py-2 px-3 rounded-md bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold transition-all cursor-pointer border border-zinc-200"
+                      className="flex-1 py-2 px-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold transition-all cursor-pointer border border-zinc-200"
                     >
                       Cancel
                     </button>
@@ -883,7 +909,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                       }}
                       size="sm"
                       className={cn(
-                        "flex-1 border rounded-md py-2 text-xs font-semibold shadow-3xs",
+                        "flex-1 border rounded-xl py-2 text-xs font-semibold shadow-3xs",
                         confirmAction.variant === 'danger' 
                           ? "bg-red-500 hover:bg-red-650 border-red-500 text-white" 
                           : "bg-navy-900 hover:bg-navy-800 border-navy-950 text-white"
@@ -910,7 +936,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             className="fixed top-6 left-1/2 -translate-x-1/2 z-[110] w-full max-w-sm px-4"
           >
             <div className={cn(
-              "rounded-lg p-4 shadow-xl border backdrop-blur-md flex items-start gap-3 bg-white/95 border-zinc-200 font-sans",
+              "rounded-xl p-4 shadow-xl border backdrop-blur-md flex items-start gap-3 bg-white/95 border-zinc-200 font-sans",
               notification.type === 'success' ? "text-emerald-700" :
               notification.type === 'error' ? "text-red-700" :
               "text-primary-700"
