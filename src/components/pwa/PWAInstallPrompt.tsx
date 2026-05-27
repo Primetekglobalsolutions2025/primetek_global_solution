@@ -47,35 +47,35 @@ export default function PWAInstallPrompt() {
           exit={{ opacity: 0, y: 20, scale: 0.9 }}
           className="fixed bottom-6 right-6 z-[100] w-[calc(100%-3rem)] sm:w-[320px]"
         >
-          <div className="bg-white/80 backdrop-blur-2xl rounded-[2rem] p-5 shadow-2xl shadow-navy-900/10 border border-white/40 ring-1 ring-black/5 overflow-hidden">
+          <div className="bg-white rounded-lg p-5 shadow-2xs border border-zinc-200 overflow-hidden">
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary-500/5 rounded-full blur-2xl" />
             
             <div className="flex justify-between items-start mb-4 relative">
-              <div className="w-10 h-10 rounded-2xl bg-primary-50 flex items-center justify-center text-primary-500">
-                <Smartphone className="w-5 h-5" />
+              <div className="w-9 h-9 rounded bg-primary-50 flex items-center justify-center text-primary-600">
+                <Smartphone className="w-4 h-4" />
               </div>
               <button 
                 onClick={() => setIsVisible(false)} 
-                className="text-gray-400 hover:text-navy-900 transition-colors p-2 bg-surface-alt/50 rounded-xl"
+                className="text-zinc-400 hover:text-navy-900 transition-colors p-1.5 bg-zinc-50 rounded border border-zinc-200"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
             
             <div className="relative">
-              <h3 className="font-heading font-black text-navy-900 text-sm mb-1 uppercase tracking-tight">
+              <h3 className="font-sans font-bold text-navy-900 text-xs mb-1 uppercase tracking-wider">
                 Install Portal App
               </h3>
-              <p className="text-text-secondary text-[11px] font-medium leading-relaxed mb-5">
+              <p className="text-zinc-500 text-[11px] font-medium leading-relaxed mb-4">
                 For a faster, app-like experience with quick access to your dashboard and notifications.
               </p>
               
               <Button 
                 onClick={handleInstall}
                 size="sm"
-                className="w-full bg-navy-900 text-white hover:bg-navy-800 font-bold rounded-xl py-3 border-0 shadow-lg shadow-navy-900/10"
+                className="w-full bg-navy-900 text-white hover:bg-navy-800 font-bold rounded-md py-2.5 border-0 shadow-2xs"
               >
-                <Download className="w-4 h-4 mr-2" /> Add to Home Screen
+                <Download className="w-3.5 h-3.5 mr-1.5" /> Add to Home Screen
               </Button>
             </div>
           </div>
