@@ -80,8 +80,9 @@
 
   /* Dashboard Portal Heading Font Override (Employee/Admin pages) */
   .employee-portal h1, .employee-portal h2, .employee-portal h3, .employee-portal h4, .employee-portal h5, .employee-portal h6,
-  .admin-portal h1, .admin-portal h2, .admin-portal h3, .admin-portal h4, .admin-portal h5, .admin-portal h6 {
-    font-family: var(--font-sans);
+  .admin-portal h1, .admin-portal h2, .admin-portal h3, .admin-portal h4, .admin-portal h5, .admin-portal h6,
+  .employee-portal .font-heading, .admin-portal .font-heading {
+    font-family: var(--font-sans) !important;
   }
 
   .employee-portal .font-mono,
