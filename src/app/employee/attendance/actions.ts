@@ -103,7 +103,8 @@ export async function checkIn(
   userAgent?: string,
   deviceFingerprint?: string,
   clientTimestamp?: string,
-  deviceInfo?: { deviceType: string; deviceLabel: string }
+  deviceInfo?: { deviceType: string; deviceLabel: string },
+  tabId?: string
 ) {
   try {
     const session = await getSession();
@@ -208,8 +209,7 @@ export async function checkIn(
       : 0;
 
     const isMobile = deviceInfo?.deviceType === 'mobile' || deviceInfo?.deviceType === 'tablet';
-    const initialStatus = isMobile ? 'AWAITING_DESKTOP' : 'Working';
-    const deadline = isMobile ? new Date(now.getTime() + 10 * 60 * 1000).toISOString() : null;
+    const initialStatus = 'Working';
 
     const { data: attRecord, error } = await supabaseAdmin
       .from('attendance')
@@ -222,9 +222,10 @@ export async function checkIn(
         status: initialStatus,
         is_late: isLate,
         late_minutes: lateMinutes,
-        awaiting_desktop_deadline: deadline,
         device_type: deviceInfo?.deviceType || 'desktop',
         device_label: deviceInfo?.deviceLabel || 'Desktop',
+        active_device_fingerprint: deviceFingerprint || null,
+        active_tab_id: tabId || null,
       }])
       .select('id')
       .single();
@@ -257,8 +258,7 @@ export async function checkIn(
           is_late: isLate, 
           late_minutes: lateMinutes,
           device_type: deviceInfo?.deviceType || 'desktop',
-          device_label: deviceInfo?.deviceLabel || 'Desktop',
-          awaiting_desktop_deadline: deadline
+          device_label: deviceInfo?.deviceLabel || 'Desktop'
         }
       }]);
 
@@ -850,6 +850,8 @@ export async function processHeartbeat(payload: {
   meetingMode: boolean;
   deviceType?: string;
   deviceLabel?: string;
+  deviceFingerprint?: string;
+  tabId?: string;
   telemetry: {
     clicks: number;
     keypresses: number;
@@ -884,6 +886,22 @@ export async function processHeartbeat(payload: {
       return { success: false, error: 'Session is already clocked out' };
     }
 
+    // Single active session check (device fingerprint mismatch)
+    if (payload.deviceFingerprint && record.active_device_fingerprint && record.active_device_fingerprint !== payload.deviceFingerprint) {
+      return { success: false, error: 'Session active on another device' };
+    }
+
+    // Auto-update active identifiers on first heartbeat if missing
+    if (payload.deviceFingerprint && !record.active_device_fingerprint) {
+      await supabaseAdmin
+        .from('attendance')
+        .update({
+          active_device_fingerprint: payload.deviceFingerprint,
+          active_tab_id: payload.tabId || null
+        })
+        .eq('id', record.id);
+    }
+
     // 2. Perform Geofencing Verification (Drift-tolerant check)
     const { data: officeList } = await supabaseAdmin
       .from('office_locations')
@@ -902,92 +920,6 @@ export async function processHeartbeat(payload: {
 
     let resolvedEventType: 'HEARTBEAT_RECEIVED' | 'AUTO_BREAK_TRIGGERED' = 'HEARTBEAT_RECEIVED';
     let nextStatus = record.status;
-
-    // Check for grace expiry if we are currently awaiting desktop
-    if (nextStatus === 'AWAITING_DESKTOP' && record.awaiting_desktop_deadline) {
-      const deadline = new Date(record.awaiting_desktop_deadline).getTime();
-      if (Date.now() > deadline) {
-        // Grace window expired! Log DESKTOP_SESSION_MISSING
-        const { data: lastEvent } = await supabaseAdmin
-          .from('attendance_events')
-          .select('sequence_number')
-          .eq('session_id', payload.sessionId)
-          .order('sequence_number', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-          
-        const nextSequence = (lastEvent?.sequence_number || 1) + 1;
-        await supabaseAdmin
-          .from('attendance_events')
-          .insert([{
-            session_id: payload.sessionId,
-            employee_id: session.id,
-            event_type: 'DESKTOP_SESSION_MISSING',
-            sequence_number: nextSequence,
-            idempotency_key: `desktop-missing-${payload.sessionId}-${nextSequence}`,
-            client_ip: clientIp,
-            gps_lat: Number(payload.telemetry.lat),
-            gps_lng: Number(payload.telemetry.lng),
-            gps_accuracy: Number(payload.telemetry.accuracy),
-            payload: { 
-              device_type: payload.deviceType || 'mobile', 
-              device_label: payload.deviceLabel || 'Mobile' 
-            }
-          }]);
-          
-        // Rebuild projection
-        await supabaseAdmin.rpc('rebuild_attendance_projection', {
-          p_session_id: payload.sessionId
-        });
-        
-        // Fetch updated status
-        const { data: updatedRec } = await supabaseAdmin
-          .from('attendance')
-          .select('status')
-          .eq('id', payload.sessionId)
-          .single();
-        nextStatus = updatedRec?.status || 'PRODUCTIVE_TIMER_PAUSED';
-      }
-    }
-
-    // If device is desktop and we are in awaiting/paused state, verify desktop presence
-    if (payload.deviceType === 'desktop' && (nextStatus === 'AWAITING_DESKTOP' || nextStatus === 'PRODUCTIVE_TIMER_PAUSED')) {
-      const { data: lastEvent } = await supabaseAdmin
-        .from('attendance_events')
-        .select('sequence_number')
-        .eq('session_id', payload.sessionId)
-        .order('sequence_number', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-        
-      const nextSequence = (lastEvent?.sequence_number || 1) + 1;
-      
-      // Log DESKTOP_SESSION_VERIFIED
-      await supabaseAdmin
-        .from('attendance_events')
-        .insert([{
-          session_id: payload.sessionId,
-          employee_id: session.id,
-          event_type: 'DESKTOP_SESSION_VERIFIED',
-          sequence_number: nextSequence,
-          idempotency_key: `desktop-verified-${payload.sessionId}-${nextSequence}`,
-          client_ip: clientIp,
-          gps_lat: Number(payload.telemetry.lat),
-          gps_lng: Number(payload.telemetry.lng),
-          gps_accuracy: Number(payload.telemetry.accuracy),
-          payload: { 
-            device_type: payload.deviceType, 
-            device_label: payload.deviceLabel 
-          }
-        }]);
-        
-      // Rebuild projection
-      await supabaseAdmin.rpc('rebuild_attendance_projection', {
-        p_session_id: payload.sessionId
-      });
-      
-      nextStatus = 'DESKTOP_ACTIVE';
-    }
 
     // 3. Write transactionally to DB using RPC write_heartbeat_event
     const { error: rpcErr } = await supabaseAdmin.rpc('write_heartbeat_event', {
@@ -1031,6 +963,52 @@ export async function processHeartbeat(payload: {
   }
 }
 
+export async function moveActiveSession(sessionId: string, newFingerprint: string, tabId: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+
+    const { error } = await supabaseAdmin
+      .from('attendance')
+      .update({
+        active_device_fingerprint: newFingerprint,
+        active_tab_id: tabId
+      })
+      .eq('id', sessionId)
+      .eq('employee_id', session.id);
+
+    if (error) throw error;
+    
+    // Also append an event indicating session was moved/hijacked
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('sequence_number')
+      .eq('session_id', sessionId)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+    await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: sessionId,
+        employee_id: session.id,
+        event_type: 'SESSION_RECOVERED',
+        sequence_number: nextSequence,
+        idempotency_key: `move-${sessionId}-${nextSequence}`,
+        client_ip: '0.0.0.0',
+        payload: { moved_to_fingerprint: newFingerprint, tab_id: tabId }
+      }]);
+
+    revalidatePath('/employee/attendance');
+    revalidatePath('/employee/dashboard');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Internal error' };
+  }
+}
+
 export async function rebuildSession(sessionId: string) {
   try {
     const session = await getSession();
@@ -1057,7 +1035,7 @@ export async function getAttendanceSessionState(sessionId: string) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    // Fetch record first to check grace expiry
+    // Fetch record
     const { data: att, error: attErr } = await supabaseAdmin
       .from('attendance')
       .select('*')
@@ -1067,52 +1045,6 @@ export async function getAttendanceSessionState(sessionId: string) {
 
     if (attErr) throw attErr;
     if (!att) return { success: false, error: 'Session not found' };
-
-    let currentAttendance = att;
-
-    if (att.status === 'AWAITING_DESKTOP' && att.awaiting_desktop_deadline) {
-      const deadline = new Date(att.awaiting_desktop_deadline).getTime();
-      if (Date.now() > deadline) {
-        // Grace window expired! Log DESKTOP_SESSION_MISSING
-        const { data: lastEvent } = await supabaseAdmin
-          .from('attendance_events')
-          .select('sequence_number')
-          .eq('session_id', sessionId)
-          .order('sequence_number', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-          
-        const nextSequence = (lastEvent?.sequence_number || 1) + 1;
-        const reqHeaders = await headers();
-        const clientIp = reqHeaders.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
-
-        await supabaseAdmin
-          .from('attendance_events')
-          .insert([{
-            session_id: sessionId,
-            employee_id: session.id,
-            event_type: 'DESKTOP_SESSION_MISSING',
-            sequence_number: nextSequence,
-            idempotency_key: `desktop-missing-pull-${sessionId}-${nextSequence}`,
-            client_ip: clientIp,
-            payload: { device_type: 'mobile', device_label: 'Mobile' }
-          }]);
-
-        await supabaseAdmin.rpc('rebuild_attendance_projection', {
-          p_session_id: sessionId
-        });
-
-        // Re-fetch updated record
-        const { data: updatedAtt } = await supabaseAdmin
-          .from('attendance')
-          .select('*')
-          .eq('id', sessionId)
-          .single();
-        if (updatedAtt) {
-          currentAttendance = updatedAtt;
-        }
-      }
-    }
 
     const { data: projection, error: projErr } = await supabaseAdmin
       .from('attendance_projections')
@@ -1126,10 +1058,94 @@ export async function getAttendanceSessionState(sessionId: string) {
     return {
       success: true,
       projection,
-      attendance: currentAttendance
+      attendance: att
     };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+export async function logStatusTransitionEvent(sessionId: string, newStatus: 'Working' | 'Idle' | 'Break (Auto)') {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    await verifyActiveSession(session.id);
+
+    // Fetch the current record first
+    const { data: record, error: fetchError } = await supabaseAdmin
+      .from('attendance')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('employee_id', session.id)
+      .single();
+
+    if (fetchError || !record) {
+      return { success: false, error: 'Session not found' };
+    }
+
+    if (record.check_out || record.status === 'Logged Out') {
+      return { success: false, error: 'Session is already clocked out' };
+    }
+
+    let eventType: string;
+    if (newStatus === 'Working') {
+      eventType = 'PRODUCTIVE_TIMER_RESUMED';
+    } else if (newStatus === 'Idle') {
+      eventType = 'IDLE_DETECTED';
+    } else if (newStatus === 'Break (Auto)') {
+      eventType = 'AUTO_BREAK_TRIGGERED';
+    } else {
+      return { success: false, error: 'Invalid transition status' };
+    }
+
+    // Check if the status is already what we want, to avoid duplicate events
+    if (record.status === newStatus) {
+      return { success: true };
+    }
+
+    const now = new Date();
+    
+    // Get next sequence number
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('sequence_number')
+      .eq('session_id', sessionId)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+    // Insert the transition event
+    const { error: insertErr } = await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: sessionId,
+        employee_id: session.id,
+        event_type: eventType,
+        sequence_number: nextSequence,
+        idempotency_key: `transition-${sessionId}-${eventType}-${nextSequence}`,
+        client_ip: '0.0.0.0',
+        gps_lat: record.lat ? Number(record.lat) : null,
+        gps_lng: record.lng ? Number(record.lng) : null,
+        gps_accuracy: 10,
+        payload: { transition_time: now.toISOString(), previous_status: record.status }
+      }]);
+
+    if (insertErr) throw insertErr;
+
+    // Rebuild projection to update public.attendance status and stats
+    const { error: rebuildErr } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: sessionId
+    });
+
+    if (rebuildErr) throw rebuildErr;
+
+    revalidatePath('/employee/attendance');
+    revalidatePath('/employee/dashboard');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to log transition' };
   }
 }
 

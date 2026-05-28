@@ -5,13 +5,20 @@ import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, H
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes } from './actions';
+import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
 import { getDeviceInfo } from '@/lib/security/device-detect';
 
 const statusColors: Record<string, string> = {
+  working: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  idle: 'bg-amber-50 text-amber-700 border-amber-200',
+  break: 'bg-primary-50 text-primary-700 border-primary-200 animate-pulse',
+  'break (auto)': 'bg-red-50 text-red-700 border-red-200 animate-pulse',
+  'logged out': 'bg-zinc-55 text-zinc-600 border-zinc-200',
+  
+  // Historical / compatibility states
   present: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   late: 'bg-amber-50 text-amber-700 border-amber-200',
   absent: 'bg-red-50 text-red-700 border-red-200',
@@ -19,13 +26,6 @@ const statusColors: Record<string, string> = {
   'pending wfh': 'bg-violet-50 text-violet-700 border-violet-200',
   'approved wfh': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'rejected wfh': 'bg-red-50 text-red-700 border-red-200',
-  working: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'on break': 'bg-primary-50 text-primary-700 border-primary-200 animate-pulse',
-  'logged out': 'bg-zinc-50 text-zinc-600 border-zinc-200',
-  mobile_clocked_in: 'bg-violet-50 text-violet-700 border-violet-200',
-  awaiting_desktop: 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse',
-  desktop_active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  productive_timer_paused: 'bg-red-50 text-red-700 border-red-200',
 };
 
 export interface AttendanceRecord {
@@ -46,17 +46,23 @@ export interface AttendanceRecord {
 function StatusBadge({ status }: { status: string }) {
   const s = status?.toLowerCase();
   const getTheme = () => {
-    if (['approved', 'logged out', 'approved wfh', 'desktop_active', 'desktop active'].includes(s)) {
+    if (['working', 'present', 'approved wfh', 'desktop_active', 'desktop active'].includes(s)) {
       return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' };
     }
-    if (['pending', 'pending wfh', 'working', 'awaiting_desktop', 'awaiting desktop', 'mobile_clocked_in', 'mobile clocked in'].includes(s)) {
+    if (['idle', 'late', 'pending wfh'].includes(s)) {
       return { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' };
     }
-    if (['rejected', 'rejected wfh', 'absent', 'productive_timer_paused', 'productive timer paused', 'timer paused'].includes(s)) {
+    if (['break (auto)', 'rejected wfh', 'absent', 'productive_timer_paused', 'productive timer paused', 'timer paused'].includes(s)) {
       return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
     }
-    if (s === 'on break') {
+    if (['break', 'on break'].includes(s)) {
       return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
+    }
+    if (['logged out', 'logged_out', 'force_logged_out'].includes(s)) {
+      return { bg: 'bg-zinc-50 text-zinc-650 border-zinc-200', dot: 'bg-zinc-400' };
+    }
+    if (s === 'half-day') {
+      return { bg: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' };
     }
     return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };
   };
@@ -107,6 +113,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   // Disputes system states
   const [disputeRecord, setDisputeRecord] = useState<AttendanceRecord | null>(null);
+  const [hijackWarning, setHijackWarning] = useState<{ active: boolean; sessionId: string } | null>(null);
   const [disputeCategory, setDisputeCategory] = useState<string>('LATE_PENALTY');
   const [disputeReason, setDisputeReason] = useState<string>('');
   const [isSubmittingDispute, setIsSubmittingDispute] = useState<boolean>(false);
@@ -181,102 +188,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   const checkInTime = todayRecord && todayRecord.check_in_raw ? new Date(todayRecord.check_in_raw) : null;
   const currentStatus = todayRecord ? todayRecord.status : 'Logged Out';
 
-  const verificationAttempted = useRef(false);
-  const [countdownText, setCountdownText] = useState('10:00');
 
-  const triggerDesktopVerification = async () => {
-    if (!todayRecord || !navigator.geolocation) return;
-    
-    showNotification('Detecting workstation location...', 'info');
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        const accuracy = position.coords.accuracy || 10;
-        
-        const devInfo = getDeviceInfo();
-        const payload = {
-          sessionId: todayRecord.id,
-          sequenceNumber: sequenceNumber.current,
-          clientTimestamp: new Date().toISOString(),
-          idempotencyKey: `hbeat-verify-${todayRecord.id}-${sequenceNumber.current}-${Date.now()}`,
-          activeWindow: !document.hidden,
-          meetingMode: false,
-          deviceType: devInfo.deviceType,
-          deviceLabel: devInfo.deviceLabel,
-          telemetry: {
-            clicks: 0,
-            keypresses: 0,
-            pointerMoves: 0,
-            lat,
-            lng,
-            accuracy
-          }
-        };
-        
-        sequenceNumber.current++;
-        
-        try {
-          const res = await processHeartbeat(payload);
-          if (res.success) {
-            if (res.status === 'DESKTOP_ACTIVE') {
-              showNotification('Desktop work session verified successfully.', 'success');
-            } else {
-              showNotification('Verification processed. Status: ' + res.status, 'info');
-            }
-            await refreshProjectionState();
-            
-            // Broadcast state refresh to other tabs
-            const bc = new BroadcastChannel('attendance_tabs');
-            bc.postMessage({ type: 'STATE_REFRESH' });
-            bc.close();
-          } else {
-            showNotification(res.error || 'Desktop verification failed.', 'error');
-          }
-        } catch (err) {
-          console.error(err);
-          showNotification('Verification network error.', 'error');
-        }
-      },
-      (error) => {
-        showNotification('GPS access required for desktop verification: ' + error.message, 'error');
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
-  // Instant desktop verification trigger when page loads or status updates
-  useEffect(() => {
-    if (checkedIn && !isCheckedOut && (currentStatus === 'AWAITING_DESKTOP' || currentStatus === 'PRODUCTIVE_TIMER_PAUSED')) {
-      const devInfo = getDeviceInfo();
-      if (devInfo.deviceType === 'desktop' && !verificationAttempted.current) {
-        verificationAttempted.current = true;
-        triggerDesktopVerification();
-      }
-    } else {
-      verificationAttempted.current = false;
-    }
-  }, [checkedIn, currentStatus]);
-
-  // Countdown timer hook for Awaiting Desktop state
-  useEffect(() => {
-    if (currentStatus !== 'AWAITING_DESKTOP' || !todayRecord?.awaiting_desktop_deadline) return;
-    const target = new Date(todayRecord.awaiting_desktop_deadline).getTime();
-    
-    const interval = setInterval(() => {
-      const diff = target - Date.now();
-      if (diff <= 0) {
-        setCountdownText('00:00');
-        clearInterval(interval);
-        refreshProjectionState();
-      } else {
-        const m = Math.floor(diff / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
-        setCountdownText(`${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [currentStatus, todayRecord?.awaiting_desktop_deadline]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -548,118 +460,83 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
     return () => clearInterval(tickInterval);
   }, [checkedIn, isCheckedOut]);
 
-  // 3. Countdown Pause Listener
+  // 3. Visibility Change Auto-Break Listener (transition to Break (Auto) when tab is hidden)
   useEffect(() => {
-    const handleVisibility = () => {
-      setGpsWarningSuspended(document.hidden || !navigator.onLine);
-    };
-    const handleOnlineStatus = () => {
-      setGpsWarningSuspended(document.hidden || !navigator.onLine);
+    const handleVisibility = async () => {
+      if (document.hidden && checkedIn && !isCheckedOut && currentStatus === 'Working' && todayRecord) {
+        await executeMutationWithVersionCheck(async () => {
+          return await logStatusTransitionEvent(todayRecord.id, 'Break (Auto)');
+        }, 'Auto Break (Page Hidden)');
+      }
     };
     window.addEventListener('visibilitychange', handleVisibility);
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOnlineStatus);
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOnlineStatus);
     };
-  }, []);
-
-  // 4. GPS Warning Countdown & Escalation Logic
-  useEffect(() => {
-    if (gpsWarningSeconds === null) return;
-    if (gpsWarningSeconds <= 0) {
-      if (gpsConfidence === 60) {
-        // Suspicious -> degrade confidence to 30, retry window of 30 seconds
-        setGpsConfidence(30);
-        setGpsWarningSeconds(30);
-        showNotification('GPS signal weak. Initiating second location verification window...', 'info');
-      } else if (gpsConfidence === 30) {
-        // Critical countdown expired -> degrade to 0 and trigger auto break
-        setGpsConfidence(0);
-        const triggerAutoBreak = async () => {
-          showNotification('Location verification timed out. Pausing session...', 'error');
-          const breakRes = await startBreak();
-          if (breakRes.success) {
-            showNotification("Your timer was paused due to inactivity. Click 'Resume Work' when you are back at your desk.", 'info');
-            refreshProjectionState();
-            const bc = new BroadcastChannel('attendance_tabs');
-            bc.postMessage({ type: 'STATE_REFRESH' });
-            bc.close();
-          }
-        };
-        triggerAutoBreak();
-      }
-      return;
-    }
-
-    // Pause countdown when warning is suspended
-    if (gpsWarningSuspended || document.hidden || !navigator.onLine) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      setGpsWarningSeconds((prev) => {
-        if (prev === null || prev <= 0) return null;
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [gpsWarningSeconds, gpsConfidence, gpsWarningSuspended]);
+  }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
 
   // SharedWorker / BroadcastChannel Multi-Tab Idle Tracker
   useEffect(() => {
-    if (typeof window === 'undefined' || !checkedIn || isCheckedOut || currentStatus !== 'Working') return;
+    if (typeof window === 'undefined' || !checkedIn || isCheckedOut || !todayRecord) return;
+    // Only run idle tracking if currently in Working, Idle, or Break (Auto)
+    if (!['Working', 'Idle', 'Break (Auto)'].includes(currentStatus)) return;
 
     let worker: SharedWorker | null = null;
     let fallbackBc: BroadcastChannel | null = null;
     let localInterval: any = null;
 
+    const handleStateTransition = async (newState: 'Working' | 'Idle' | 'Break (Auto)') => {
+      if (newState !== currentStatus) {
+        await executeMutationWithVersionCheck(async () => {
+          return await logStatusTransitionEvent(todayRecord.id, newState);
+        }, `Transition to ${newState}`);
+      }
+    };
+
     try {
       worker = new SharedWorker('/workers/idle-worker.js');
-      worker.port.onmessage = (e) => {
-        const { type, state } = e.data;
+      worker.port.onmessage = async (e) => {
+        const { type, state: workerState } = e.data;
         if (type === 'STATE_CHANGED') {
-          setSessionState(state);
+          await handleStateTransition(workerState);
         } else if (type === 'TRIGGER_AUTO_BREAK') {
-          showNotification("Your timer was paused due to inactivity. Click 'Resume Work' when you are back at your desk.", 'info');
-          handleStartBreak();
+          await handleStateTransition('Break (Auto)');
         }
       };
       worker.port.start();
     } catch (err) {
       console.warn('SharedWorker not supported or blocked, running fallback BroadcastChannel:', err);
       fallbackBc = new BroadcastChannel('idle_sync');
-      fallbackBc.onmessage = (e) => {
-        const { type, state } = e.data;
+      fallbackBc.onmessage = async (e) => {
+        const { type, state: workerState } = e.data;
         if (type === 'STATE_CHANGED') {
-          setSessionState(state);
+          await handleStateTransition(workerState);
         } else if (type === 'TRIGGER_AUTO_BREAK') {
-          showNotification("Your timer was paused due to inactivity. Click 'Resume Work' when you are back at your desk.", 'info');
-          handleStartBreak();
+          await handleStateTransition('Break (Auto)');
         }
       };
 
       let lastAct = Date.now();
-      localInterval = setInterval(() => {
+      localInterval = setInterval(async () => {
         const delta = Date.now() - lastAct;
-        if (delta >= 300000 && sessionState === 'ACTIVE') {
-          setSessionState('WARNING');
-          if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'WARNING' });
-        } else if (delta >= 360000 && sessionState === 'WARNING') {
+        // 3 minutes (180,000 ms) idle threshold
+        if (delta >= 180000 && delta < 300000 && currentStatus === 'Working') {
+          await handleStateTransition('Idle');
+          if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Idle' });
+        } 
+        // 5 minutes (300,000 ms) auto break threshold
+        else if (delta >= 300000 && (currentStatus === 'Working' || currentStatus === 'Idle')) {
           clearInterval(localInterval);
           if (fallbackBc) fallbackBc.postMessage({ type: 'TRIGGER_AUTO_BREAK' });
-          handleStartBreak();
+          await handleStateTransition('Break (Auto)');
         }
       }, 1000);
       
-      const onActivity = () => {
+      const onActivity = async () => {
         lastAct = Date.now();
-        if (sessionState !== 'ACTIVE') {
-          setSessionState('ACTIVE');
-          if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'ACTIVE' });
+        if (currentStatus === 'Idle' || currentStatus === 'Break (Auto)') {
+          await handleStateTransition('Working');
+          if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Working' });
         }
       };
       const events = ['mousemove', 'keydown', 'click', 'scroll'];
@@ -679,7 +556,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
       if (fallbackBc) fallbackBc.close();
       if (localInterval) clearInterval(localInterval);
     };
-  }, [checkedIn, isCheckedOut, currentStatus, sessionState]);
+  }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
 
   // Telemetry Input Listeners
   useEffect(() => {
@@ -702,7 +579,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   // Periodic Telemetry Heartbeat Loop
   useEffect(() => {
-    const isTimerActive = currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'AWAITING_DESKTOP' || currentStatus === 'PRODUCTIVE_TIMER_PAUSED';
+    const isTimerActive = currentStatus === 'Working';
     if (!checkedIn || isCheckedOut || !isTimerActive || !todayRecord) return;
 
     const sendHeartbeat = () => {
@@ -725,6 +602,8 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
             meetingMode: false,
             deviceType: devInfo.deviceType,
             deviceLabel: devInfo.deviceLabel,
+            deviceFingerprint: getOrCreateFingerprint(),
+            tabId: tabId,
             telemetry: {
               clicks: clickCount.current,
               keypresses: keypressCount.current,
@@ -744,25 +623,17 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
           try {
             const res = await processHeartbeat(payload);
             if (res.success) {
-              if (res.status === 'On Break') {
-                showNotification("Your timer was paused due to inactivity. Click 'Resume Work' when you are back at your desk.", 'info');
-                setTimeout(() => {
-                  refreshProjectionState();
-                  const bc = new BroadcastChannel('attendance_tabs');
-                  bc.postMessage({ type: 'STATE_REFRESH' });
-                  bc.close();
-                }, 1500);
-              } else if (res.status !== currentStatus) {
-                // If status changed (e.g. verified desktop or expired), sync local state
+              if (res.status !== currentStatus) {
+                // If status changed, sync local state
                 await refreshProjectionState();
                 const bc = new BroadcastChannel('attendance_tabs');
                 bc.postMessage({ type: 'STATE_REFRESH' });
                 bc.close();
               }
             } else {
-              // Self-healing: if heartbeat fails because the session was terminated by admin/sweeper,
-              // force local state synchronization to stop timers and update UI.
-              if (res.error?.includes('Session is already clocked out') || res.error?.includes('not found')) {
+              if (res.error === 'Session active on another device') {
+                setHijackWarning({ active: true, sessionId: todayRecord.id });
+              } else if (res.error?.includes('Session is already clocked out') || res.error?.includes('not found')) {
                 showNotification("Session closed by administrator. Syncing state...", "info");
                 await refreshProjectionState();
                 const bc = new BroadcastChannel('attendance_tabs');
@@ -1026,6 +897,24 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
     }
   };
 
+  const handleResumeWork = async () => {
+    if (!todayRecord) return;
+    setIsBreakActionLoading(true);
+    try {
+      if (currentStatus === 'Idle') {
+        await executeMutationWithVersionCheck(async () => {
+          return await logStatusTransitionEvent(todayRecord.id, 'Working');
+        }, 'Resume Work');
+      } else {
+        await executeMutationWithVersionCheck(async () => {
+          return await endBreak();
+        }, 'End Break');
+      }
+    } finally {
+      setIsBreakActionLoading(false);
+    }
+  };
+
   // Break variables calculation
   let breakUsedSeconds = 0;
   let productiveSeconds = 0;
@@ -1036,7 +925,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
     const currentBreakStart = todayRecord?.current_break_start ? new Date(todayRecord.current_break_start) : null;
     
     let activeBreakSec = 0;
-    if (currentStatus === 'On Break' && currentBreakStart) {
+    if (['Break', 'Break (Auto)'].includes(currentStatus) && currentBreakStart) {
       activeBreakSec = Math.max(0, Math.floor((currentTime.getTime() - currentBreakStart.getTime()) / 1000));
     }
     
@@ -1285,170 +1174,57 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
         </motion.div>
       )}
 
-      {/* Workstation Validation Banners */}
+      {/* Session Hijack Warning Modal */}
       <AnimatePresence>
-        {currentStatus === 'AWAITING_DESKTOP' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-amber-50 text-amber-600 border-amber-200 animate-pulse mt-0.5 sm:mt-0">
-                <Clock className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-navy-900 text-left">Awaiting Workstation Verification</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold animate-pulse">
-                    Time Remaining: {countdownText}
-                  </span>
+        {hijackWarning?.active && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-zinc-950/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.96, y: 10 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.96, y: 10 }} 
+              transition={{ duration: 0.15 }}
+              className="w-full max-w-md"
+            >
+              <div className="bg-white rounded-2xl p-6 border border-zinc-200 shadow-xl relative overflow-hidden font-sans space-y-4">
+                <div className="flex items-center gap-3 text-amber-600">
+                  <AlertTriangle className="w-6 h-6 text-amber-500" />
+                  <h3 className="text-sm font-bold text-navy-900 tracking-tight leading-tight">Session Active on Another Device</h3>
                 </div>
-                <span className="font-medium text-zinc-600 text-xs text-left">
-                  Your attendance has started successfully. To continue productive hours tracking, please open the portal on your laptop or desktop device within 10 minutes.
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
-              <button
-                onClick={triggerDesktopVerification}
-                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                Verify On Laptop
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {currentStatus === 'PRODUCTIVE_TIMER_PAUSED' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-red-200 bg-red-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-red-50 text-red-600 border-red-200 mt-0.5 sm:mt-0">
-                <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="font-bold text-red-800 text-left">Productive Timer Paused</span>
-                <span className="font-medium text-zinc-600 text-xs text-left font-sans">
-                  We couldn't detect an active laptop or desktop work session yet. Please continue work from your laptop or desktop device to resume productive hours tracking.
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
-              <button
-                onClick={handleStartBreak}
-                className="px-2.5 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                Start Break
-              </button>
-              <button
-                onClick={() => {
-                  if (todayRecord) {
-                    setDisputeRecord(todayRecord);
-                    setDisputeReason('Requesting Mobile-Only exception.');
-                  }
-                }}
-                className="px-2.5 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                Request Exception
-              </button>
-              <button
-                onClick={triggerDesktopVerification}
-                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[10px] font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer animate-pulse"
-              >
-                Resume On Laptop
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {currentStatus === 'DESKTOP_ACTIVE' && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
-          >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-emerald-50 text-emerald-600 border-emerald-200">
-              <CheckCircle2 className="w-4.5 h-4.5" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className="font-bold text-emerald-800 text-left font-sans">Desktop Session Verified</span>
-              <span className="font-medium text-zinc-600 text-xs text-left font-sans">
-                Desktop work session verified successfully.
-              </span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* GPS Weak Signal / Verification Warning Banner */}
-      <AnimatePresence>
-        {gpsWarningSeconds !== null && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-amber-50 text-amber-600 border-amber-200 animate-pulse mt-0.5 sm:mt-0">
-                <AlertTriangle className="w-4.5 h-4.5" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-navy-900">
-                    {gpsConfidence === 30 ? 'Location Verification Required' : 'GPS Signal Weak'}
-                  </span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold">
-                    Confidence: {gpsConfidence}%
-                  </span>
-                  {gpsWarningSuspended && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-150 text-zinc-600 font-mono font-bold uppercase animate-pulse">
-                      Paused
-                    </span>
-                  )}
+                <p className="text-xs text-zinc-500 leading-relaxed">
+                  Your attendance session is currently active on another device or tab. You can move the active session to this device and browser tab to resume tracking.
+                </p>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setHijackWarning(null)}
+                    className="flex-1 py-2 px-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-xs font-semibold border border-zinc-200 cursor-pointer transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <Button
+                    onClick={async () => {
+                      const fingerprint = getOrCreateFingerprint();
+                      const res = await moveActiveSession(hijackWarning.sessionId, fingerprint, tabId);
+                      if (res.success) {
+                        setHijackWarning(null);
+                        showNotification('Session moved to this device successfully.', 'success');
+                        await refreshProjectionState();
+                        const bc = new BroadcastChannel('attendance_tabs');
+                        bc.postMessage({ type: 'STATE_REFRESH' });
+                        bc.close();
+                      } else {
+                        showNotification(res.error || 'Failed to move session.', 'error');
+                      }
+                    }}
+                    size="sm"
+                    className="flex-1 bg-navy-900 hover:bg-navy-800 text-white rounded-xl text-xs font-semibold py-2 shadow-3xs flex items-center justify-center text-center cursor-pointer"
+                  >
+                    Move Session Here
+                  </Button>
                 </div>
-                <span className="font-medium text-zinc-600 text-xs text-left">
-                  {gpsConfidence === 30
-                    ? 'GPS accuracy degraded. Verification retry in progress. Please move to an open location.'
-                    : "We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal."}
-                </span>
-                <span className="text-[10px] font-mono font-bold text-amber-700 uppercase tracking-wider mt-0.5 text-left">
-                  Verification countdown: {gpsWarningSeconds}s {gpsWarningSuspended && '(Paused - check connection)'}
-                </span>
               </div>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
-              <button
-                onClick={handleDismissGpsWarning}
-                className="px-2.5 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
-              >
-                Dismiss for 5m
-              </button>
-              <button
-                onClick={handleVerifyLocation}
-                disabled={isVerifyingLocation}
-                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-mono font-bold uppercase tracking-wider transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
-              >
-                {isVerifyingLocation ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-3 h-3" />
-                )}
-                Verify Presence
-              </button>
-            </div>
-          </motion.div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -1663,23 +1439,26 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
               </div>
 
               {/* Break Control Toggle Buttons */}
-              <div className="flex gap-3 pt-5 border-t border-zinc-200">
-                <Button
-                  variant={(currentStatus === 'Working' || currentStatus === 'Approved WFH') ? 'primary' : 'outline'}
-                  disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
-                  onClick={handleStartBreak}
-                  className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans"
-                >
-                  {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Start Break'}
-                </Button>
-                <Button
-                  variant={currentStatus === 'On Break' ? 'primary' : 'outline'}
-                  disabled={currentStatus !== 'On Break' || isBreakActionLoading}
-                  onClick={handleEndBreak}
-                  className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans"
-                >
-                  {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'End Break'}
-                </Button>
+              <div className="flex gap-3 pt-5 border-t border-zinc-200 w-full">
+                {['Break', 'Break (Auto)', 'Idle'].includes(currentStatus) ? (
+                  <Button
+                    variant="primary"
+                    disabled={isBreakActionLoading}
+                    onClick={handleResumeWork}
+                    className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-emerald-500 font-sans text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
+                  >
+                    {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : 'Resume Work'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
+                    onClick={handleStartBreak}
+                    className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans hover:bg-slate-50 cursor-pointer text-zinc-700"
+                  >
+                    {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Start Break'}
+                  </Button>
+                )}
               </div>
             </div>
           )}

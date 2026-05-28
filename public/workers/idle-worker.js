@@ -2,9 +2,9 @@
 
 let ports = [];
 let lastActivity = Date.now();
-let idleThreshold = 300000; // 5 minutes standard
-let warningThreshold = 60000; // 60 seconds warning countdown
-let state = 'ACTIVE'; // ACTIVE, WARNING, ON_BREAK
+const idleThreshold = 180000;      // 3 minutes of inactivity -> Idle
+const autoBreakThreshold = 300000; // 5 minutes of inactivity -> Break (Auto)
+let state = 'Working';             // Working, Idle, Break (Auto)
 
 self.onconnect = function (e) {
   const port = e.ports[0];
@@ -15,18 +15,12 @@ self.onconnect = function (e) {
     
     switch (data.type) {
       case 'ACTIVITY':
-        // If we are currently warning or idle, resume back to active
-        if (state === 'WARNING' || state === 'ON_BREAK') {
-          updateState('ACTIVE');
+        // If we are currently Idle or on Break (Auto), automatically resume back to Working
+        if (state === 'Idle' || state === 'Break (Auto)') {
+          updateState('Working');
         }
         lastActivity = Date.now();
-        broadcast({ type: 'STATE_CHANGED', state: 'ACTIVE', lastActivity });
-        break;
-        
-      case 'CONFIG':
-        if (data.idleThreshold !== undefined) {
-          idleThreshold = data.idleThreshold;
-        }
+        broadcast({ type: 'STATE_CHANGED', state: 'Working', lastActivity });
         break;
         
       case 'SET_STATE':
@@ -65,11 +59,11 @@ setInterval(() => {
   const now = Date.now();
   const timeSinceActivity = now - lastActivity;
   
-  if (state === 'ACTIVE' && timeSinceActivity >= idleThreshold) {
-    state = 'WARNING';
-    broadcast({ type: 'STATE_CHANGED', state: 'WARNING', lastActivity });
-  } else if (state === 'WARNING' && timeSinceActivity >= (idleThreshold + warningThreshold)) {
-    state = 'ON_BREAK';
+  if (state === 'Working' && timeSinceActivity >= idleThreshold && timeSinceActivity < autoBreakThreshold) {
+    state = 'Idle';
+    broadcast({ type: 'STATE_CHANGED', state: 'Idle', lastActivity });
+  } else if ((state === 'Working' || state === 'Idle') && timeSinceActivity >= autoBreakThreshold) {
+    state = 'Break (Auto)';
     broadcast({ type: 'TRIGGER_AUTO_BREAK', lastActivity });
   }
 }, 1000);

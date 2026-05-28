@@ -75,6 +75,7 @@ export interface AttendanceRecord {
   device_type?: string | null;
   device_label?: string | null;
   awaiting_desktop_deadline?: string | null;
+  last_heartbeat_at?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -101,6 +102,32 @@ const statusColors: Record<string, string> = {
   stale_session: 'bg-red-500/10 text-red-650 border-red-500/20 animate-pulse',
   auto_break: 'bg-red-500/10 text-red-600 border-red-500/20',
   force_logged_out: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
+};
+
+const getRowHighlightClass = (record: AttendanceRecord, breakSecs: number) => {
+  const status = record.status;
+  if (status === 'Idle') {
+    return 'bg-amber-50/50 border-amber-200 hover:bg-amber-100/50';
+  }
+  if (status === 'Break (Auto)') {
+    return 'bg-orange-50/50 border-orange-200 hover:bg-orange-100/50';
+  }
+  if (status === 'Break' && breakSecs > 15 * 60) {
+    return 'bg-red-50/50 border-red-200 hover:bg-red-100/50';
+  }
+  return 'hover:bg-zinc-50';
+};
+
+const formatRelativeTime = (isoString: string | null | undefined) => {
+  if (!isoString) return 'No activity';
+  const diffMs = Date.now() - new Date(isoString).getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return 'Just now';
+  if (diffMins === 1) return '1 minute ago';
+  if (diffMins < 60) return `${diffMins} minutes ago`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs === 1) return '1 hour ago';
+  return `${diffHrs} hours ago`;
 };
 
 export default function AttendanceClient({
@@ -382,18 +409,18 @@ export default function AttendanceClient({
       sessionSecs = Math.max(0, Math.floor((now - checkInMs) / 1000));
       
       const accumulatedBreak = record.total_break_seconds ?? 0;
-      if ((record.status === 'On Break' || record.status === 'AUTO_BREAK') && record.current_break_start) {
+      if (['Break', 'Break (Auto)'].includes(record.status) && record.current_break_start) {
         const breakStartMs = new Date(record.current_break_start).getTime();
         breakSecs = accumulatedBreak + Math.max(0, Math.floor((now - breakStartMs) / 1000));
       } else {
         breakSecs = accumulatedBreak;
       }
       
-      if (record.status === 'PRODUCTIVE_TIMER_PAUSED' || record.status === 'IDLE_WARNING') {
+      if (record.status === 'Idle') {
         idleSecs = Math.max(0, sessionSecs - breakSecs - ((record.productive_hours ?? 0) * 3600));
       }
       
-      if (record.status === 'Working' || record.status === 'DESKTOP_ACTIVE' || record.status === 'MOBILE_CLOCKED_IN' || record.status === 'AWAITING_DESKTOP') {
+      if (record.status === 'Working' || record.status === 'Idle') {
         productiveSecs = Math.max(0, sessionSecs - breakSecs);
       } else {
         productiveSecs = (record.productive_hours ?? 0) * 3600;
@@ -948,157 +975,101 @@ export default function AttendanceClient({
               {/* Desktop Table layout */}
               <Card hover={false} className="p-0 overflow-hidden border border-zinc-200 bg-white backdrop-blur-md rounded-xl shadow-sm hidden md:block">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-zinc-200 bg-zinc-50/50">
+                      <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
                         <th className="w-10 px-2 py-2.5"></th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Staff Member</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Telemetry</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Timeline</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Clock In</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Clock Out</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Intensity</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Compliance</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Trust Engine</th>
+                        <th className="px-4 py-2.5">Employee Name</th>
+                        <th className="px-4 py-2.5">Date</th>
+                        <th className="px-4 py-2.5">Clock In</th>
+                        <th className="px-4 py-2.5">Clock Out</th>
+                        <th className="px-4 py-2.5">Total Hours</th>
+                        <th className="px-4 py-2.5">Break Time</th>
+                        <th className="px-4 py-2.5">Final Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100/60">
                       {filtered.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="px-4 py-12 text-center">
+                          <td colSpan={8} className="px-4 py-12 text-center">
                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-3">
-                              <Calendar className="w-5 h-5 text-slate-600" />
+                              <Calendar className="w-5 h-5 text-slate-655" />
                             </div>
                             <p className="text-xs text-zinc-505 font-bold">No synchronization logs found for this period.</p>
                           </td>
                         </tr>
                       ) : (
-                        filtered.map((record) => (
-                          <Fragment key={record.id}>
-                            <tr 
-                              onClick={() => handleOpenDrawer(record)}
-                              className={cn(
-                                "group hover:bg-zinc-50/30 transition-colors cursor-pointer",
-                                expandedRows[record.id] && "bg-zinc-50/20"
-                              )}
-                            >
-                              <td className="w-10 px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
-                                <button 
-                                  onClick={(e) => toggleRow(record.id, e)}
-                                  className="p-1 rounded hover:bg-zinc-150 text-zinc-500 transition-colors"
-                                >
-                                  {expandedRows[record.id] ? (
-                                    <ChevronDown className="w-4 h-4" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4" />
-                                  )}
-                                </button>
-                              </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-zinc-700 group-hover:bg-primary-500 group-hover:text-navy-900 transition-colors">
-                                    <User className="w-3.5 h-3.5" />
-                                  </div>
-                                  <span className="text-xs font-semibold text-navy-900 tracking-tight flex items-center gap-1.5">
-                                    {record.employee_name}
-                                    <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
-                                      {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+                        filtered.map((record) => {
+                          const times = getRealtimeDurations(record);
+                          return (
+                            <Fragment key={record.id}>
+                              <tr 
+                                onClick={() => handleOpenDrawer(record)}
+                                className={cn(
+                                  "group hover:bg-zinc-50/30 transition-colors cursor-pointer",
+                                  expandedRows[record.id] && "bg-zinc-50/20"
+                                )}
+                              >
+                                <td className="w-10 px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                  <button 
+                                    onClick={(e) => toggleRow(record.id, e)}
+                                    className="p-1 rounded hover:bg-zinc-150 text-zinc-505 transition-colors"
+                                  >
+                                    {expandedRows[record.id] ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
+                                      <ChevronRight className="w-4 h-4" />
+                                    )}
+                                  </button>
+                                </td>
+                                <td className="px-4 py-2.5 whitespace-nowrap">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-zinc-700 transition-colors">
+                                      <User className="w-3.5 h-3.5" />
+                                    </div>
+                                    <span className="text-xs font-semibold text-navy-900 tracking-tight flex items-center gap-1.5">
+                                      {record.employee_name}
+                                      <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                                        {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+                                      </span>
                                     </span>
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                {renderTelemetry(record)}
-                              </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <div className="text-[10px] font-semibold text-zinc-505">
-                                  {!isNaN(new Date(record.date).getTime()) 
-                                    ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' }).toUpperCase() 
-                                    : record.date?.toUpperCase() || '—'}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <div className="flex items-center gap-1 text-xs font-medium text-navy-900">
-                                  <Clock className="w-3.5 h-3.5 text-emerald-400/50" />
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5 whitespace-nowrap">
+                                  <div className="text-[10px] font-semibold text-zinc-505 font-mono">
+                                    {!isNaN(new Date(record.date).getTime()) 
+                                      ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase() 
+                                      : record.date?.toUpperCase() || '—'}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-semibold text-zinc-650">
                                   {record.check_in || '—'}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <div className="flex items-center gap-1 text-xs font-medium text-navy-900">
-                                  <Clock className="w-3.5 h-3.5 text-red-400/50" />
+                                </td>
+                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-semibold text-zinc-650">
                                   {record.check_out || '—'}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                {(() => {
-                                  const times = getRealtimeDurations(record);
-                                  if (times.isClockedOut) {
-                                    return (
-                                      <div className="text-xs font-semibold text-zinc-500 flex items-center gap-1.5">
-                                        <span className="bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200 text-[10px] text-zinc-650 font-mono">
-                                          {times.productive}
-                                        </span>
-                                        {times.breakSecs > 0 && (
-                                          <span className="bg-amber-50 text-amber-600 border border-amber-25 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
-                                            B: {times.break}
-                                          </span>
-                                        )}
-                                      </div>
-                                    );
-                                  } else {
-                                    return (
-                                      <div className="text-xs font-semibold flex items-center gap-1.5">
-                                        <span className="bg-emerald-50 text-emerald-600 border border-emerald-25 px-2 py-0.5 rounded text-[10px] font-mono animate-pulse flex items-center gap-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                                          {times.productive}
-                                        </span>
-                                        {times.breakSecs > 0 && (
-                                          <span className="bg-amber-50 text-amber-600 border border-amber-25 px-1.5 py-0.5 rounded text-[9px] font-mono animate-pulse font-bold">
-                                            B: {times.break}
-                                          </span>
-                                        )}
-                                        {times.idleSecs > 0 && (
-                                          <span className="bg-red-50 text-red-655 border border-red-25 px-1.5 py-0.5 rounded text-[9px] font-mono animate-pulse font-bold">
-                                            I: {times.idle}
-                                          </span>
-                                        )}
-                                      </div>
-                                    );
-                                  }
-                                })()}
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <div className={cn(
-                                  "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                                  statusColors[record.status?.toLowerCase()] || statusColors.present
-                                )}>
-                                  {record.status}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 whitespace-nowrap">
-                                <div 
-                                  className="flex items-center gap-1.5 cursor-help"
-                                  title={record.risk_reasons && record.risk_reasons.length > 0 
-                                    ? record.risk_reasons.map((r) => `• ${r.detail} (+${r.weight} pts)`).join('\n') 
-                                    : 'All trust signals secure (0 pts)'}
-                                >
+                                </td>
+                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-bold text-navy-900">
+                                  {times.productive}
+                                </td>
+                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-bold text-navy-900">
+                                  {times.break}
+                                </td>
+                                <td className="px-4 py-2.5 whitespace-nowrap">
                                   <span className={cn(
                                     "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                                    record.risk_level === 'high' ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                                    record.risk_level === 'medium' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
-                                    "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                    record.status === 'Working' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                                    record.status === 'Idle' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                                    record.status === 'Break (Auto)' ? "bg-orange-500/10 text-orange-600 border-orange-500/20 border-zinc-200" :
+                                    record.status === 'Break' ? "bg-sky-500/10 text-sky-600 border-sky-500/20" :
+                                    "bg-zinc-500/10 text-zinc-600 border-zinc-500/20"
                                   )}>
-                                    {record.risk_level || 'low'}
+                                    {record.status}
                                   </span>
-                                  {record.risk_score !== undefined && record.risk_score > 0 && (
-                                    <span className="text-[10px] font-mono text-zinc-400">({record.risk_score} pts)</span>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                            {expandedRows[record.id] && (
-                              <tr className="bg-zinc-50/20" onClick={(e) => e.stopPropagation()}>
-                                <td colSpan={9} className="px-6 py-4 border-b border-zinc-200">
+                                </td>
+                              </tr>
+                              {expandedRows[record.id] && (
+                                <tr className="bg-zinc-50/20" onClick={(e) => e.stopPropagation()}>
+                                  <td colSpan={8} className="px-6 py-4 border-b border-zinc-200">
                                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
                                     <div className="space-y-1">
                                       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Geofence Telemetry</span>
@@ -1184,10 +1155,11 @@ export default function AttendanceClient({
                               </tr>
                             )}
                           </Fragment>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
                 </div>
               </Card>
             </div>
@@ -1213,98 +1185,91 @@ export default function AttendanceClient({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {liveRecords.length === 0 ? (
-                <div className="col-span-full p-12 text-center bg-white rounded-2xl border border-zinc-200">
-                  <Clock className="w-10 h-10 text-slate-655 mx-auto mb-3" />
-                  <p className="text-xs text-zinc-505 font-bold">No active check-ins detected today.</p>
-                </div>
-              ) : (
-                liveRecords.map((record) => {
-                  const times = getRealtimeDurations(record);
-                  const currentStatus = record.status;
-                  const isOverrun = times.breakSecs > 3600;
-                  const isWarning = times.breakSecs > 2700 && times.breakSecs <= 3600;
-
-                  return (
-                    <Card 
-                      key={record.id} 
-                      hover={false} 
-                      className={cn(
-                        "p-5 rounded-2xl border bg-white shadow-sm transition-all duration-300 relative overflow-hidden text-navy-900 cursor-pointer hover:border-primary-500/40 hover:shadow-md",
-                        currentStatus === 'On Break' ? "border-amber-500/30 bg-amber-500/5 animate-pulse" : "border-zinc-200",
-                        isOverrun && "ring-2 ring-red-500/50 border-red-500/50 bg-red-500/[0.02]"
-                      )}
-                      onClick={() => handleOpenDrawer(record)}
-                    >
-                      {isOverrun && (
-                        <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-black text-center py-1 uppercase tracking-widest">
-                          ⚠️ Break Overrun Danger (&gt; 1hr)
-                        </div>
-                      )}
-                      
-                      <div className={cn("flex items-start justify-between", isOverrun && "mt-4")}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-zinc-650 font-bold border border-zinc-200/40">
-                            {record.employee_name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
-                          </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-navy-900 flex items-center gap-1.5">
-                              {record.employee_name}
-                              <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
-                                {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+            <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
+                      <th className="px-6 py-4">Employee Name</th>
+                      <th className="px-6 py-4">Current Status</th>
+                      <th className="px-6 py-4">Clock In (IST)</th>
+                      <th className="px-6 py-4">Work Duration</th>
+                      <th className="px-6 py-4">Break Duration</th>
+                      <th className="px-6 py-4">Last Activity</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-150/60 font-sans">
+                    {liveRecords.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-8 text-center text-zinc-400 italic">
+                          No active check-ins detected today.
+                        </td>
+                      </tr>
+                    ) : (
+                      liveRecords.map((record) => {
+                        const times = getRealtimeDurations(record);
+                        const rowClass = getRowHighlightClass(record, times.breakSecs);
+                        
+                        return (
+                          <tr 
+                            key={record.id}
+                            onClick={() => handleOpenDrawer(record)}
+                            className={cn("transition-colors cursor-pointer border-b border-zinc-100", rowClass)}
+                          >
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-7 h-7 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-700 font-bold border border-zinc-200/40 text-xs">
+                                  {record.employee_name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-navy-900 text-xs flex items-center gap-1.5">
+                                    {record.employee_name}
+                                    <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                                      {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+                                    </span>
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={cn(
+                                "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border",
+                                record.status === 'Working' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                                record.status === 'Idle' ? "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse" :
+                                record.status === 'Break (Auto)' ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
+                                record.status === 'Break' ? "bg-sky-500/10 text-sky-600 border-sky-500/20" :
+                                "bg-zinc-500/10 text-zinc-600 border-zinc-500/20"
+                              )}>
+                                <span className={cn(
+                                  "w-1.5 h-1.5 rounded-full",
+                                  record.status === 'Working' ? "bg-emerald-500 animate-pulse" :
+                                  record.status === 'Idle' ? "bg-amber-500" :
+                                  record.status === 'Break (Auto)' ? "bg-orange-500" :
+                                  record.status === 'Break' ? "bg-sky-500 animate-ping" :
+                                  "bg-zinc-500"
+                                )} />
+                                {record.status}
                               </span>
-                            </h4>
-                            <div className="mt-1">
-                              {renderTelemetry(record)}
-                            </div>
-                            <p className="text-[9px] text-zinc-505 font-bold tracking-widest mt-1.5 font-mono">
-                              IN: {record.check_in || '—'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <span className={cn(
-                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border",
-                          (currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'MOBILE_CLOCKED_IN' || currentStatus === 'AWAITING_DESKTOP') ? "bg-emerald-500/10 text-emerald-450 border-emerald-500/25" :
-                          currentStatus === 'On Break' ? "bg-amber-500/10 text-amber-450 border-amber-500/25" :
-                          "bg-slate-800/40 text-zinc-500 border-slate-700/50"
-                        )}>
-                          <span className={cn(
-                            "w-1.5 h-1.5 rounded-full",
-                            (currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'MOBILE_CLOCKED_IN' || currentStatus === 'AWAITING_DESKTOP') ? "bg-emerald-500 animate-pulse" :
-                            currentStatus === 'On Break' ? "bg-amber-500 animate-ping" :
-                            "bg-slate-500"
-                          )} />
-                          {currentStatus}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-zinc-200">
-                        <div>
-                          <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Productive Work</span>
-                          <span className="text-xs font-black text-navy-900 font-mono tracking-tight flex items-center gap-1">
-                            {!times.isClockedOut && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />}
-                            {times.productive}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Break Duration</span>
-                          <span className={cn(
-                            "text-xs font-black font-mono tracking-tight flex items-center gap-1",
-                            isOverrun ? "text-red-500 animate-pulse" :
-                            isWarning ? "text-amber-400" :
-                            "text-navy-900"
-                          )}>
-                            {currentStatus === 'On Break' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />}
-                            {times.break}
-                          </span>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })
-              )}
+                            </td>
+                            <td className="px-6 py-4 font-mono text-xs font-semibold text-zinc-600">
+                              {record.check_in || '—'}
+                            </td>
+                            <td className="px-6 py-4 font-mono text-xs font-bold text-navy-900">
+                              {times.productive}
+                            </td>
+                            <td className="px-6 py-4 font-mono text-xs font-bold text-navy-900">
+                              {times.break}
+                            </td>
+                            <td className="px-6 py-4 text-xs font-medium text-zinc-500">
+                              {formatRelativeTime(record.last_heartbeat_at)}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 

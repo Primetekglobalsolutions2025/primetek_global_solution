@@ -50,6 +50,9 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       *,
       employees (
         name
+      ),
+      attendance_projections (
+        last_heartbeat_at
       )
     `);
 
@@ -161,6 +164,9 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       device_type: record.device_type || 'desktop',
       device_label: record.device_label || 'Desktop',
       awaiting_desktop_deadline: record.awaiting_desktop_deadline || null,
+      last_heartbeat_at: (Array.isArray(record.attendance_projections) 
+        ? record.attendance_projections[0]?.last_heartbeat_at 
+        : record.attendance_projections?.last_heartbeat_at) || null,
     };
   });
 }
@@ -831,13 +837,13 @@ export async function getRealtimeAttendanceUpdates() {
       disputesRes,
       staleRes
     ] = await Promise.all([
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).in('status', ['Working', 'DESKTOP_ACTIVE', 'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP']),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).in('status', ['On Break', 'AUTO_BREAK']),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).in('status', ['PRODUCTIVE_TIMER_PAUSED', 'IDLE_WARNING']),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).in('status', ['Working', 'Idle']),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).in('status', ['Break', 'Break (Auto)']),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).eq('status', 'Idle'),
       supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'GPS_EXIT').gte('event_timestamp', todayIST + 'T00:00:00'),
       supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).eq('device_type', 'mobile'),
       supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'AUTO_BREAK_TRIGGERED').gte('event_timestamp', todayIST + 'T00:00:00'),
-      supabaseAdmin.from('attendance_disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+      supabaseAdmin.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
       supabaseAdmin.from('attendance').select('id, check_in').is('check_out', null).neq('status', 'Logged Out').gte('date', (() => {
         const d = new Date();
         d.setDate(d.getDate() - 2);
