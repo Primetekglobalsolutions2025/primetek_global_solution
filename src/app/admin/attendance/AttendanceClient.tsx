@@ -92,7 +92,7 @@ function StatusBadge({ status }: { status: string }) {
     if (['break (auto)', 'rejected wfh', 'absent'].includes(s)) {
       return { bg: 'bg-orange-500/10 text-orange-600 border-orange-500/20', dot: 'bg-orange-500' };
     }
-    if (['break', 'on break'].includes(s)) {
+    if (['break'].includes(s)) {
       return { bg: 'bg-sky-500/10 text-sky-600 border-sky-500/20', dot: 'bg-sky-500' };
     }
     if (['logged out', 'clocked_out', 'logged_out', 'force_logged_out', 'force_logout'].includes(s)) {

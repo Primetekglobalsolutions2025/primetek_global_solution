@@ -40,7 +40,7 @@ function StatusBadge({ status }: { status: string }) {
     if (['break (auto)', 'rejected wfh', 'absent', 'productive_timer_paused', 'productive timer paused', 'timer paused'].includes(s)) {
       return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
     }
-    if (['break', 'on break'].includes(s)) {
+    if (['break'].includes(s)) {
       return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
     }
     if (['logged out', 'logged_out', 'force_logged_out'].includes(s)) {
@@ -987,7 +987,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   const presentCount = selectedMonthRecords.filter(r => {
     const s = r.status?.toLowerCase();
-    return s === 'present' || s === 'working' || s === 'logged out' || s === 'on break';
+    return s === 'present' || s === 'working' || s === 'logged out' || s === 'break' || s === 'break (auto)';
   }).length;
 
   const lateMonthCount = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'late').length;
@@ -1553,7 +1553,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
                     const getStatusDotColor = (s: string | null, dayNum: number) => {
                       if (s) {
                         const statusLower = s.toLowerCase();
-                        if (statusLower === 'present' || statusLower === 'working' || statusLower === 'logged out' || statusLower === 'on break' || statusLower === 'desktop_active' || statusLower === 'desktop active') return 'bg-[#10B981]';
+                        if (statusLower === 'present' || statusLower === 'working' || statusLower === 'logged out' || statusLower === 'break' || statusLower === 'break (auto)' || statusLower === 'desktop_active' || statusLower === 'desktop active') return 'bg-[#10B981]';
                         if (statusLower === 'late') return 'bg-[#F59E0B]';
                         if (statusLower === 'absent' || statusLower === 'rejected wfh' || statusLower === 'productive_timer_paused' || statusLower === 'productive timer paused' || statusLower === 'timer paused') return 'bg-[#EF4444]';
                         if (statusLower.includes('wfh') || statusLower === 'half-day' || statusLower === 'awaiting_desktop' || statusLower === 'awaiting desktop' || statusLower === 'mobile_clocked_in' || statusLower === 'mobile clocked in') return 'bg-[#3B82F6]';

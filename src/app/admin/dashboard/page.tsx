@@ -73,7 +73,7 @@ async function OperationalKPIGrid() {
 
   const kpis = [
     { label: 'Active Now', value: activeEmployees, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-500/10 border-emerald-500/15', href: '/admin/attendance', pulse: true },
-    { label: 'On Break', value: activeBreaks, icon: Coffee, color: 'text-amber-600', bg: 'bg-amber-500/10 border-amber-500/15', href: '/admin/attendance' },
+    { label: 'Break', value: activeBreaks, icon: Coffee, color: 'text-amber-600', bg: 'bg-amber-500/10 border-amber-500/15', href: '/admin/attendance' },
     { label: 'Idle Sessions', value: idleSessions, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-500/10 border-red-500/15', href: '/admin/attendance' },
     { label: 'GPS Alerts', value: gpsAlerts, icon: MapPin, color: 'text-orange-600', bg: 'bg-orange-500/10 border-orange-500/15', href: '/admin/attendance' },
     { label: 'Auto-Breaks', value: autoBreaks, icon: ShieldAlert, color: 'text-rose-600', bg: 'bg-rose-500/10 border-rose-500/15', href: '/admin/audit' },

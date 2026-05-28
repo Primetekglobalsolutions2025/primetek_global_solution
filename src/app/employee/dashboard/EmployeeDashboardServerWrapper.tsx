@@ -19,7 +19,7 @@ function StatusBadge({ status }: { status: string }) {
     if (['rejected', 'rejected wfh', 'absent'].includes(s)) {
       return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
     }
-    if (['on break', 'break', 'break (auto)'].includes(s)) {
+    if (['break', 'break (auto)'].includes(s)) {
       return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
     }
     return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };
@@ -112,7 +112,7 @@ export default async function EmployeeDashboardServerWrapper() {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   });
 
-  const present = monthRecords.filter(r => r.status && (r.status.includes('Present') || r.status.includes('Approved WFH') || r.status.includes('Working') || r.status.includes('On Break') || r.status.includes('Break') || r.status.includes('Break (Auto)') || r.status.includes('Logged Out'))).length;
+  const present = monthRecords.filter(r => r.status && (r.status.includes('Present') || r.status.includes('Approved WFH') || r.status.includes('Working') || r.status.includes('Break') || r.status.includes('Break (Auto)') || r.status.includes('Logged Out'))).length;
   const late = monthRecords.filter(r => r.is_late && (!r.status || r.status !== 'Approved WFH') && !r.late_approved && !r.permission_approved && !r.shift_override && !r.manager_exemption).length;
   const absent = monthRecords.filter(r => r.status && r.status.toLowerCase() === 'absent').length;
   const totalRemainingLeaves = (balances || []).reduce((acc, curr) => acc + curr.remaining_days, 0);
@@ -131,7 +131,6 @@ export default async function EmployeeDashboardServerWrapper() {
     'pending wfh': 'bg-violet-50 text-violet-750 border-violet-200',
     'approved wfh': 'bg-emerald-50 text-emerald-750 border-emerald-250',
     'rejected wfh': 'bg-red-50 text-red-700 border-red-200',
-    'on break': 'bg-primary-50 text-primary-700 border-primary-200',
     'break': 'bg-primary-50 text-primary-700 border-primary-200',
     'break (auto)': 'bg-primary-50 text-primary-700 border-primary-200',
   };
