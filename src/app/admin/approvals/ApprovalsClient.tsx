@@ -41,6 +41,10 @@ const statusColors: Record<string, string> = {
   working: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20',
   'on break': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
   'logged out': 'bg-slate-500/10 text-slate-400 border-slate-700/30',
+  mobile_clocked_in: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  awaiting_desktop: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse',
+  desktop_active: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/25',
+  productive_timer_paused: 'bg-red-500/10 text-red-400 border-red-500/20',
 };
 
 export default function ApprovalsClient({ 

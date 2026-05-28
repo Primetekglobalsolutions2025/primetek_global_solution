@@ -85,7 +85,8 @@ export async function checkIn(
   ipAddress?: string,
   userAgent?: string,
   deviceFingerprint?: string,
-  clientTimestamp?: string
+  clientTimestamp?: string,
+  deviceInfo?: { deviceType: string; deviceLabel: string }
 ) {
   try {
     const session = await getSession();
@@ -189,6 +190,10 @@ export async function checkIn(
       ? Math.max(0, Math.floor((now.getTime() - shiftStart.getTime()) / (1000 * 60)))
       : 0;
 
+    const isMobile = deviceInfo?.deviceType === 'mobile' || deviceInfo?.deviceType === 'tablet';
+    const initialStatus = isMobile ? 'AWAITING_DESKTOP' : 'Working';
+    const deadline = isMobile ? new Date(now.getTime() + 10 * 60 * 1000).toISOString() : null;
+
     const { data: attRecord, error } = await supabaseAdmin
       .from('attendance')
       .insert([{
@@ -197,9 +202,12 @@ export async function checkIn(
         check_in: now.toISOString(),
         lat: Number(lat),
         lng: Number(lng),
-        status: 'Working',
+        status: initialStatus,
         is_late: isLate,
         late_minutes: lateMinutes,
+        awaiting_desktop_deadline: deadline,
+        device_type: deviceInfo?.deviceType || 'desktop',
+        device_label: deviceInfo?.deviceLabel || 'Desktop',
       }])
       .select('id')
       .single();
@@ -213,20 +221,28 @@ export async function checkIn(
         .eq('id', risk.riskEventId);
     }
 
-    // Insert CLOCK_IN event
+    const eventType = isMobile ? 'MOBILE_CLOCK_IN' : 'CLOCK_IN';
+
+    // Insert CLOCK_IN or MOBILE_CLOCK_IN event
     await supabaseAdmin
       .from('attendance_events')
       .insert([{
         session_id: attRecord.id,
         employee_id: session.id,
-        event_type: 'CLOCK_IN',
+        event_type: eventType,
         sequence_number: 1,
         idempotency_key: `clk-in-${attRecord.id}`,
         client_ip: ip === 'unknown' ? '0.0.0.0' : ip,
         gps_lat: Number(lat),
         gps_lng: Number(lng),
         gps_accuracy: 10,
-        payload: { is_late: isLate, late_minutes: lateMinutes }
+        payload: { 
+          is_late: isLate, 
+          late_minutes: lateMinutes,
+          device_type: deviceInfo?.deviceType || 'desktop',
+          device_label: deviceInfo?.deviceLabel || 'Desktop',
+          awaiting_desktop_deadline: deadline
+        }
       }]);
 
     revalidatePath('/employee/attendance');
@@ -815,6 +831,8 @@ export async function processHeartbeat(payload: {
   idempotencyKey: string;
   activeWindow: boolean;
   meetingMode: boolean;
+  deviceType?: string;
+  deviceLabel?: string;
   telemetry: {
     clicks: number;
     keypresses: number;
@@ -868,6 +886,92 @@ export async function processHeartbeat(payload: {
     let resolvedEventType: 'HEARTBEAT_RECEIVED' | 'AUTO_BREAK_TRIGGERED' = 'HEARTBEAT_RECEIVED';
     let nextStatus = record.status;
 
+    // Check for grace expiry if we are currently awaiting desktop
+    if (nextStatus === 'AWAITING_DESKTOP' && record.awaiting_desktop_deadline) {
+      const deadline = new Date(record.awaiting_desktop_deadline).getTime();
+      if (Date.now() > deadline) {
+        // Grace window expired! Log DESKTOP_SESSION_MISSING
+        const { data: lastEvent } = await supabaseAdmin
+          .from('attendance_events')
+          .select('sequence_number')
+          .eq('session_id', payload.sessionId)
+          .order('sequence_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+          
+        const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+        await supabaseAdmin
+          .from('attendance_events')
+          .insert([{
+            session_id: payload.sessionId,
+            employee_id: session.id,
+            event_type: 'DESKTOP_SESSION_MISSING',
+            sequence_number: nextSequence,
+            idempotency_key: `desktop-missing-${payload.sessionId}-${nextSequence}`,
+            client_ip: clientIp,
+            gps_lat: Number(payload.telemetry.lat),
+            gps_lng: Number(payload.telemetry.lng),
+            gps_accuracy: Number(payload.telemetry.accuracy),
+            payload: { 
+              device_type: payload.deviceType || 'mobile', 
+              device_label: payload.deviceLabel || 'Mobile' 
+            }
+          }]);
+          
+        // Rebuild projection
+        await supabaseAdmin.rpc('rebuild_attendance_projection', {
+          p_session_id: payload.sessionId
+        });
+        
+        // Fetch updated status
+        const { data: updatedRec } = await supabaseAdmin
+          .from('attendance')
+          .select('status')
+          .eq('id', payload.sessionId)
+          .single();
+        nextStatus = updatedRec?.status || 'PRODUCTIVE_TIMER_PAUSED';
+      }
+    }
+
+    // If device is desktop and we are in awaiting/paused state, verify desktop presence
+    if (payload.deviceType === 'desktop' && (nextStatus === 'AWAITING_DESKTOP' || nextStatus === 'PRODUCTIVE_TIMER_PAUSED')) {
+      const { data: lastEvent } = await supabaseAdmin
+        .from('attendance_events')
+        .select('sequence_number')
+        .eq('session_id', payload.sessionId)
+        .order('sequence_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+        
+      const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+      
+      // Log DESKTOP_SESSION_VERIFIED
+      await supabaseAdmin
+        .from('attendance_events')
+        .insert([{
+          session_id: payload.sessionId,
+          employee_id: session.id,
+          event_type: 'DESKTOP_SESSION_VERIFIED',
+          sequence_number: nextSequence,
+          idempotency_key: `desktop-verified-${payload.sessionId}-${nextSequence}`,
+          client_ip: clientIp,
+          gps_lat: Number(payload.telemetry.lat),
+          gps_lng: Number(payload.telemetry.lng),
+          gps_accuracy: Number(payload.telemetry.accuracy),
+          payload: { 
+            device_type: payload.deviceType, 
+            device_label: payload.deviceLabel 
+          }
+        }]);
+        
+      // Rebuild projection
+      await supabaseAdmin.rpc('rebuild_attendance_projection', {
+        p_session_id: payload.sessionId
+      });
+      
+      nextStatus = 'DESKTOP_ACTIVE';
+    }
+
     // 3. Write transactionally to DB using RPC write_heartbeat_event
     const { error: rpcErr } = await supabaseAdmin.rpc('write_heartbeat_event', {
       p_session_id: payload.sessionId,
@@ -886,7 +990,9 @@ export async function processHeartbeat(payload: {
         clicks: payload.telemetry.clicks,
         keypresses: payload.telemetry.keypresses,
         pointer_moves: payload.telemetry.pointerMoves,
-        distance_meters: Math.round(distance)
+        distance_meters: Math.round(distance),
+        device_type: payload.deviceType || 'desktop',
+        device_label: payload.deviceLabel || 'Desktop'
       }
     });
 
@@ -934,6 +1040,63 @@ export async function getAttendanceSessionState(sessionId: string) {
       return { success: false, error: 'Unauthorized' };
     }
 
+    // Fetch record first to check grace expiry
+    const { data: att, error: attErr } = await supabaseAdmin
+      .from('attendance')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('employee_id', session.id)
+      .maybeSingle();
+
+    if (attErr) throw attErr;
+    if (!att) return { success: false, error: 'Session not found' };
+
+    let currentAttendance = att;
+
+    if (att.status === 'AWAITING_DESKTOP' && att.awaiting_desktop_deadline) {
+      const deadline = new Date(att.awaiting_desktop_deadline).getTime();
+      if (Date.now() > deadline) {
+        // Grace window expired! Log DESKTOP_SESSION_MISSING
+        const { data: lastEvent } = await supabaseAdmin
+          .from('attendance_events')
+          .select('sequence_number')
+          .eq('session_id', sessionId)
+          .order('sequence_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+          
+        const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+        const reqHeaders = await headers();
+        const clientIp = reqHeaders.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
+
+        await supabaseAdmin
+          .from('attendance_events')
+          .insert([{
+            session_id: sessionId,
+            employee_id: session.id,
+            event_type: 'DESKTOP_SESSION_MISSING',
+            sequence_number: nextSequence,
+            idempotency_key: `desktop-missing-pull-${sessionId}-${nextSequence}`,
+            client_ip: clientIp,
+            payload: { device_type: 'mobile', device_label: 'Mobile' }
+          }]);
+
+        await supabaseAdmin.rpc('rebuild_attendance_projection', {
+          p_session_id: sessionId
+        });
+
+        // Re-fetch updated record
+        const { data: updatedAtt } = await supabaseAdmin
+          .from('attendance')
+          .select('*')
+          .eq('id', sessionId)
+          .single();
+        if (updatedAtt) {
+          currentAttendance = updatedAtt;
+        }
+      }
+    }
+
     const { data: projection, error: projErr } = await supabaseAdmin
       .from('attendance_projections')
       .select('*')
@@ -943,19 +1106,10 @@ export async function getAttendanceSessionState(sessionId: string) {
 
     if (projErr) throw projErr;
 
-    const { data: attendance, error: attErr } = await supabaseAdmin
-      .from('attendance')
-      .select('*')
-      .eq('id', sessionId)
-      .eq('employee_id', session.id)
-      .maybeSingle();
-
-    if (attErr) throw attErr;
-
     return {
       success: true,
       projection,
-      attendance
+      attendance: currentAttendance
     };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };

@@ -41,6 +41,9 @@ export default async function EmployeeAttendanceServerWrapper() {
       status: r.status,
       total_break_seconds: r.total_break_seconds,
       current_break_start: r.current_break_start,
+      awaiting_desktop_deadline: r.awaiting_desktop_deadline,
+      device_type: r.device_type,
+      device_label: r.device_label,
     };
   });
 

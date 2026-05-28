@@ -130,6 +130,10 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       permission_approved: record.permission_approved || false,
       shift_override: record.shift_override || false,
       manager_exemption: record.manager_exemption || false,
+      // Device and validation info
+      device_type: record.device_type || 'desktop',
+      device_label: record.device_label || 'Desktop',
+      awaiting_desktop_deadline: record.awaiting_desktop_deadline || null,
     };
   });
 }
@@ -673,6 +677,94 @@ export async function rebuildSessionProjection(sessionId: string) {
   const year = recordDate.getFullYear();
   const month = recordDate.getMonth() + 1;
   await recalculateEmployeeLates(record.employee_id, year, month);
+
+  const { revalidatePath: nextRevalidatePath } = await import('next/cache');
+  nextRevalidatePath('/admin/attendance');
+  nextRevalidatePath('/employee/attendance');
+
+  return { success: true };
+}
+
+export async function overrideDeviceValidation(
+  recordId: string,
+  actionType: 'approve_mobile' | 'resume_timer' | 'field_work',
+  justification: string
+) {
+  if (!justification || justification.trim() === '') {
+    throw new Error('Justification reason is required');
+  }
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data: oldRecord } = await supabaseAdmin
+    .from('attendance')
+    .select('*')
+    .eq('id', recordId)
+    .single();
+  if (!oldRecord) throw new Error('Session not found');
+
+  const { data: lastEvent } = await supabaseAdmin
+    .from('attendance_events')
+    .select('sequence_number')
+    .eq('session_id', recordId)
+    .order('sequence_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+  let targetStatus = 'DESKTOP_ACTIVE';
+  if (actionType === 'approve_mobile') {
+    targetStatus = 'MOBILE_CLOCKED_IN';
+  }
+
+  // Insert ADMIN_OVERRIDE event to change status
+  const { error: insertError } = await supabaseAdmin
+    .from('attendance_events')
+    .insert([{
+      session_id: recordId,
+      employee_id: oldRecord.employee_id,
+      event_type: 'ADMIN_OVERRIDE',
+      sequence_number: nextSequence,
+      idempotency_key: `override-validation-${recordId}-${actionType}-${nextSequence}`,
+      client_ip: '0.0.0.0',
+      payload: {
+        override_field: 'status',
+        old_value: oldRecord.status,
+        new_value: targetStatus,
+        reason: justification,
+        action_type: actionType,
+        admin_id: session.id
+      }
+    }]);
+
+  if (insertError) {
+    console.error('Error logging ADMIN_OVERRIDE event for device validation:', insertError);
+    throw new Error('Database transaction failed to append override');
+  }
+
+  await logAuditAction(
+    'OVERRIDE_DEVICE_VALIDATION',
+    'attendance',
+    recordId,
+    { status: oldRecord.status },
+    { status: targetStatus, justification, actionType }
+  );
+
+  // Trigger projection rebuild to apply the override event
+  const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+    p_session_id: recordId
+  });
+
+  if (rebuildError) {
+    console.error('Error rebuilding projection in overrideDeviceValidation:', rebuildError);
+    throw new Error('Database projection rebuild failed');
+  }
+
+  const recordDate = new Date(oldRecord.date);
+  const year = recordDate.getFullYear();
+  const month = recordDate.getMonth() + 1;
+  await recalculateEmployeeLates(oldRecord.employee_id, year, month);
 
   const { revalidatePath: nextRevalidatePath } = await import('next/cache');
   nextRevalidatePath('/admin/attendance');

@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
-import { useRef } from 'react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
+import { getDeviceInfo } from '@/lib/security/device-detect';
 
 const statusColors: Record<string, string> = {
   present: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -22,6 +22,10 @@ const statusColors: Record<string, string> = {
   working: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'on break': 'bg-primary-50 text-primary-700 border-primary-200 animate-pulse',
   'logged out': 'bg-zinc-50 text-zinc-650 border-zinc-200',
+  mobile_clocked_in: 'bg-violet-50 text-violet-700 border-violet-200',
+  awaiting_desktop: 'bg-amber-50 text-amber-750 border-amber-200 animate-pulse',
+  desktop_active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  productive_timer_paused: 'bg-red-50 text-red-700 border-red-200',
 };
 
 export interface AttendanceRecord {
@@ -34,18 +38,21 @@ export interface AttendanceRecord {
   status: string;
   total_break_seconds?: number;
   current_break_start?: string | null;
+  awaiting_desktop_deadline?: string | null;
+  device_type?: string | null;
+  device_label?: string | null;
 }
 
 function StatusBadge({ status }: { status: string }) {
   const s = status?.toLowerCase();
   const getTheme = () => {
-    if (['approved', 'logged out', 'approved wfh'].includes(s)) {
+    if (['approved', 'logged out', 'approved wfh', 'desktop_active', 'desktop active'].includes(s)) {
       return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' };
     }
-    if (['pending', 'pending wfh', 'working'].includes(s)) {
+    if (['pending', 'pending wfh', 'working', 'awaiting_desktop', 'awaiting desktop', 'mobile_clocked_in', 'mobile clocked in'].includes(s)) {
       return { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' };
     }
-    if (['rejected', 'rejected wfh', 'absent'].includes(s)) {
+    if (['rejected', 'rejected wfh', 'absent', 'productive_timer_paused', 'productive timer paused', 'timer paused'].includes(s)) {
       return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
     }
     if (s === 'on break') {
@@ -55,6 +62,7 @@ function StatusBadge({ status }: { status: string }) {
   };
 
   const theme = getTheme();
+
   return (
     <span className={cn(
       'inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-medium border uppercase tracking-wider',
@@ -173,6 +181,103 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
   const checkInTime = todayRecord && todayRecord.check_in_raw ? new Date(todayRecord.check_in_raw) : null;
   const currentStatus = todayRecord ? todayRecord.status : 'Logged Out';
 
+  const verificationAttempted = useRef(false);
+  const [countdownText, setCountdownText] = useState('10:00');
+
+  const triggerDesktopVerification = async () => {
+    if (!todayRecord || !navigator.geolocation) return;
+    
+    showNotification('Detecting workstation location...', 'info');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const accuracy = position.coords.accuracy || 10;
+        
+        const devInfo = getDeviceInfo();
+        const payload = {
+          sessionId: todayRecord.id,
+          sequenceNumber: sequenceNumber.current,
+          clientTimestamp: new Date().toISOString(),
+          idempotencyKey: `hbeat-verify-${todayRecord.id}-${sequenceNumber.current}-${Date.now()}`,
+          activeWindow: !document.hidden,
+          meetingMode: false,
+          deviceType: devInfo.deviceType,
+          deviceLabel: devInfo.deviceLabel,
+          telemetry: {
+            clicks: 0,
+            keypresses: 0,
+            pointerMoves: 0,
+            lat,
+            lng,
+            accuracy
+          }
+        };
+        
+        sequenceNumber.current++;
+        
+        try {
+          const res = await processHeartbeat(payload);
+          if (res.success) {
+            if (res.status === 'DESKTOP_ACTIVE') {
+              showNotification('Desktop work session verified successfully.', 'success');
+            } else {
+              showNotification('Verification processed. Status: ' + res.status, 'info');
+            }
+            await refreshProjectionState();
+            
+            // Broadcast state refresh to other tabs
+            const bc = new BroadcastChannel('attendance_tabs');
+            bc.postMessage({ type: 'STATE_REFRESH' });
+            bc.close();
+          } else {
+            showNotification(res.error || 'Desktop verification failed.', 'error');
+          }
+        } catch (err) {
+          console.error(err);
+          showNotification('Verification network error.', 'error');
+        }
+      },
+      (error) => {
+        showNotification('GPS access required for desktop verification: ' + error.message, 'error');
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Instant desktop verification trigger when page loads or status updates
+  useEffect(() => {
+    if (checkedIn && !isCheckedOut && (currentStatus === 'AWAITING_DESKTOP' || currentStatus === 'PRODUCTIVE_TIMER_PAUSED')) {
+      const devInfo = getDeviceInfo();
+      if (devInfo.deviceType === 'desktop' && !verificationAttempted.current) {
+        verificationAttempted.current = true;
+        triggerDesktopVerification();
+      }
+    } else {
+      verificationAttempted.current = false;
+    }
+  }, [checkedIn, currentStatus]);
+
+  // Countdown timer hook for Awaiting Desktop state
+  useEffect(() => {
+    if (currentStatus !== 'AWAITING_DESKTOP' || !todayRecord?.awaiting_desktop_deadline) return;
+    const target = new Date(todayRecord.awaiting_desktop_deadline).getTime();
+    
+    const interval = setInterval(() => {
+      const diff = target - Date.now();
+      if (diff <= 0) {
+        setCountdownText('00:00');
+        clearInterval(interval);
+        refreshProjectionState();
+      } else {
+        const m = Math.floor(diff / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setCountdownText(`${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [currentStatus, todayRecord?.awaiting_desktop_deadline]);
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
@@ -235,6 +340,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 status: att.status,
                 total_break_seconds: att.total_break_seconds,
                 current_break_start: att.current_break_start,
+                awaiting_desktop_deadline: att.awaiting_desktop_deadline,
+                device_type: att.device_type,
+                device_label: att.device_label,
               };
             }
             return r;
@@ -594,7 +702,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
   // Periodic Telemetry Heartbeat Loop
   useEffect(() => {
-    if (!checkedIn || isCheckedOut || currentStatus !== 'Working' || !todayRecord) return;
+    const isTimerActive = currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'AWAITING_DESKTOP' || currentStatus === 'PRODUCTIVE_TIMER_PAUSED';
+    if (!checkedIn || isCheckedOut || !isTimerActive || !todayRecord) return;
 
     const sendHeartbeat = () => {
       if (!navigator.geolocation) return;
@@ -606,6 +715,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           const lng = position.coords.longitude;
           const accuracy = position.coords.accuracy || 10;
           
+          const devInfo = getDeviceInfo();
           const payload = {
             sessionId: todayRecord.id,
             sequenceNumber: sequenceNumber.current,
@@ -613,6 +723,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             idempotencyKey: `hbeat-${todayRecord.id}-${sequenceNumber.current}-${Date.now()}`,
             activeWindow: !document.hidden,
             meetingMode: false,
+            deviceType: devInfo.deviceType,
+            deviceLabel: devInfo.deviceLabel,
             telemetry: {
               clicks: clickCount.current,
               keypresses: keypressCount.current,
@@ -640,6 +752,12 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   bc.postMessage({ type: 'STATE_REFRESH' });
                   bc.close();
                 }, 1500);
+              } else if (res.status !== currentStatus) {
+                // If status changed (e.g. verified desktop or expired), sync local state
+                await refreshProjectionState();
+                const bc = new BroadcastChannel('attendance_tabs');
+                bc.postMessage({ type: 'STATE_REFRESH' });
+                bc.close();
               }
             }
           } catch (err) {
@@ -659,7 +777,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
   // Sliding Window Geofence Checker
   useEffect(() => {
-    if (!checkedIn || isCheckedOut || currentStatus !== 'Working') return;
+    const isTimerActive = currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'AWAITING_DESKTOP';
+    if (!checkedIn || isCheckedOut || !isTimerActive) return;
 
     const performGeofenceCheck = () => {
       if (Date.now() < gpsSuppressionUntil.current) {
@@ -692,7 +811,6 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               const outsideCount = results.filter(Boolean).length;
 
               if (outsideCount >= 3) {
-                // Suspicious -> degrade confidence to 60, retry window of 60 seconds
                 setGpsConfidence((prev) => {
                   if (prev === 100) return 60;
                   return prev;
@@ -757,8 +875,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         return;
       }
 
+      const devInfo = getDeviceInfo();
       await executeMutationWithVersionCheck(async () => {
-        const result = await checkIn(lat, lng, undefined, undefined, fingerprint);
+        const result = await checkIn(lat, lng, undefined, undefined, fingerprint, undefined, devInfo);
         return result;
       }, 'Check In');
       setGpsStatus('success');
@@ -1136,6 +1255,112 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
         </motion.div>
       )}
 
+      {/* Workstation Validation Banners */}
+      <AnimatePresence>
+        {currentStatus === 'AWAITING_DESKTOP' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-amber-250 bg-amber-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-amber-50 text-amber-655 border-amber-250 animate-pulse mt-0.5 sm:mt-0">
+                <Clock className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-navy-955 text-left">Awaiting Workstation Verification</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold animate-pulse">
+                    Time Remaining: {countdownText}
+                  </span>
+                </div>
+                <span className="font-medium text-zinc-650 text-xs text-left">
+                  Your attendance has started successfully. To continue productive hours tracking, please open the portal on your laptop or desktop device within 10 minutes.
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+              <button
+                onClick={triggerDesktopVerification}
+                className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                Verify On Laptop
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {currentStatus === 'PRODUCTIVE_TIMER_PAUSED' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-red-250 bg-red-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-red-50 text-red-655 border-red-200 mt-0.5 sm:mt-0">
+                <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="font-bold text-red-800 text-left">Productive Timer Paused</span>
+                <span className="font-medium text-zinc-650 text-xs text-left">
+                  We couldn't detect an active laptop or desktop work session yet. Please continue work from your laptop or desktop device to resume productive hours tracking.
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end mt-2 sm:mt-0">
+              <button
+                onClick={handleStartBreak}
+                className="px-2.5 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Start Break
+              </button>
+              <button
+                onClick={() => {
+                  if (todayRecord) {
+                    setDisputeRecord(todayRecord);
+                    setDisputeReason('Requesting Mobile-Only exception.');
+                  }
+                }}
+                className="px-2.5 py-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              >
+                Request Exception
+              </button>
+              <button
+                onClick={triggerDesktopVerification}
+                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[10px] font-mono font-bold uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer animate-pulse"
+              >
+                Resume On Laptop
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {currentStatus === 'DESKTOP_ACTIVE' && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-emerald-250 bg-emerald-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
+          >
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-emerald-50 text-emerald-650 border-emerald-250">
+              <CheckCircle2 className="w-4.5 h-4.5" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-emerald-800 text-left font-sans">Desktop Session Verified</span>
+              <span className="font-medium text-zinc-650 text-xs text-left font-sans">
+                Desktop work session verified successfully.
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* GPS Weak Signal / Verification Warning Banner */}
       <AnimatePresence>
         {gpsWarningSeconds !== null && (
@@ -1501,10 +1726,10 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                     const getStatusDotColor = (s: string | null, dayNum: number) => {
                       if (s) {
                         const statusLower = s.toLowerCase();
-                        if (statusLower === 'present' || statusLower === 'working' || statusLower === 'logged out' || statusLower === 'on break') return 'bg-[#10B981]';
+                        if (statusLower === 'present' || statusLower === 'working' || statusLower === 'logged out' || statusLower === 'on break' || statusLower === 'desktop_active' || statusLower === 'desktop active') return 'bg-[#10B981]';
                         if (statusLower === 'late') return 'bg-[#F59E0B]';
-                        if (statusLower === 'absent' || statusLower === 'rejected wfh') return 'bg-[#EF4444]';
-                        if (statusLower.includes('wfh') || statusLower === 'half-day') return 'bg-[#3B82F6]';
+                        if (statusLower === 'absent' || statusLower === 'rejected wfh' || statusLower === 'productive_timer_paused' || statusLower === 'productive timer paused' || statusLower === 'timer paused') return 'bg-[#EF4444]';
+                        if (statusLower.includes('wfh') || statusLower === 'half-day' || statusLower === 'awaiting_desktop' || statusLower === 'awaiting desktop' || statusLower === 'mobile_clocked_in' || statusLower === 'mobile clocked in') return 'bg-[#3B82F6]';
                         if (statusLower === 'holiday' || statusLower === 'off' || statusLower === 'weekly off') return 'bg-[#CBD5E1]';
                       }
                       const dateObj = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), dayNum);

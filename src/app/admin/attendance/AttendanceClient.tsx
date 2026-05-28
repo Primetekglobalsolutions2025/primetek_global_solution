@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Download, FileSpreadsheet, Loader2, User, Clock, Calendar, MapPin, Sparkles, AlertTriangle, ShieldCheck } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { exportAttendanceExcel, toggleExemption, getSessionEvents, reverseAutoBreak, correctClockOutTime, rebuildSessionProjection } from './actions';
+import { exportAttendanceExcel, toggleExemption, getSessionEvents, reverseAutoBreak, correctClockOutTime, rebuildSessionProjection, overrideDeviceValidation } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -39,6 +39,9 @@ export interface AttendanceRecord {
   manager_exemption?: boolean;
   check_in_raw?: string | null;
   check_out_raw?: string | null;
+  device_type?: string | null;
+  device_label?: string | null;
+  awaiting_desktop_deadline?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -52,6 +55,10 @@ const statusColors: Record<string, string> = {
   working: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   'on break': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   'logged out': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+  mobile_clocked_in: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  awaiting_desktop: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse',
+  desktop_active: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/25',
+  productive_timer_paused: 'bg-red-500/10 text-red-400 border-red-500/20',
 };
 
 export default function AttendanceClient({
@@ -79,7 +86,8 @@ export default function AttendanceClient({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Override action state
-  const [overrideActionType, setOverrideActionType] = useState<'reverse_autobreak' | 'correct_clockout' | 'rebuild' | null>(null);
+  const [overrideActionType, setOverrideActionType] = useState<'reverse_autobreak' | 'correct_clockout' | 'rebuild' | 'override_validation' | null>(null);
+  const [validationOverrideType, setValidationOverrideType] = useState<'approve_mobile' | 'resume_timer' | 'field_work'>('approve_mobile');
   const [overrideJustification, setOverrideJustification] = useState('');
   const [clockOutTimeCorrection, setClockOutTimeCorrection] = useState('');
   const [isSubmittingOverride, setIsSubmittingOverride] = useState(false);
@@ -142,6 +150,9 @@ export default function AttendanceClient({
         const utcTimestamp = new Date(clockOutTimeCorrection).toISOString();
         await correctClockOutTime(selectedRecord.id, utcTimestamp, overrideJustification);
         toast.success('Clock-out time adjusted successfully.');
+      } else if (overrideActionType === 'override_validation') {
+        await overrideDeviceValidation(selectedRecord.id, validationOverrideType, overrideJustification);
+        toast.success('Device validation override applied successfully.');
       }
       
       // Refresh events and close action form
@@ -359,6 +370,10 @@ export default function AttendanceClient({
                   <option value="Working">WORKING</option>
                   <option value="On Break">ON BREAK</option>
                   <option value="Logged Out">LOGGED OUT</option>
+                  <option value="MOBILE_CLOCKED_IN">MOBILE CLOCKED IN</option>
+                  <option value="AWAITING_DESKTOP">AWAITING DESKTOP</option>
+                  <option value="DESKTOP_ACTIVE">DESKTOP ACTIVE</option>
+                  <option value="PRODUCTIVE_TIMER_PAUSED">TIMER PAUSED</option>
                 </select>
                 <select 
                   value={riskFilter} 
@@ -439,7 +454,12 @@ export default function AttendanceClient({
                       <div className="w-6 h-6 rounded bg-navy-900 flex items-center justify-center text-slate-300">
                         <User className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-xs font-semibold text-slate-200 tracking-tight">{record.employee_name}</span>
+                      <span className="text-xs font-semibold text-slate-200 tracking-tight flex items-center gap-1.5">
+                        {record.employee_name}
+                        <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                          {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+                        </span>
+                      </span>
                     </div>
                     <span className={cn(
                       "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
@@ -521,7 +541,12 @@ export default function AttendanceClient({
                             <div className="w-6 h-6 rounded bg-navy-900 flex items-center justify-center text-slate-300 group-hover:bg-primary-500 group-hover:text-white transition-colors">
                               <User className="w-3.5 h-3.5" />
                             </div>
-                            <span className="text-xs font-semibold text-slate-200 tracking-tight">{record.employee_name}</span>
+                            <span className="text-xs font-semibold text-slate-200 tracking-tight flex items-center gap-1.5">
+                              {record.employee_name}
+                              <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                                {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+                              </span>
+                            </span>
                           </div>
                         </td>
                         <td className="px-4 py-2.5 whitespace-nowrap">
@@ -656,7 +681,12 @@ export default function AttendanceClient({
                           {record.employee_name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
                         </div>
                         <div>
-                          <h4 className="text-xs font-bold text-slate-100">{record.employee_name}</h4>
+                          <h4 className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                            {record.employee_name}
+                            <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                              {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+                            </span>
+                          </h4>
                           <p className="text-[9px] text-slate-400 font-bold tracking-widest mt-0.5 font-mono">
                             IN: {record.check_in || '—'}
                           </p>
@@ -1047,6 +1077,36 @@ export default function AttendanceClient({
                           const keys = evt.payload?.keys_count ?? evt.payload?.telemetry?.keys ?? 0;
                           description = `Heartbeat check secure. Keyboard/Mouse telemetry: ${clicks} clicks, ${keys} keystrokes.`;
                           break;
+                        case 'MOBILE_CLOCK_IN':
+                          dotColor = 'bg-violet-500 ring-4 ring-violet-500/20';
+                          iconColor = 'text-violet-400';
+                          cardBg = 'bg-violet-500/10 border-violet-500/20 text-violet-300';
+                          description = `Mobile Clock-In initiated. Grace period activated.\nDevice: ${evt.payload?.device_label || 'Mobile'}\nIP: ${evt.client_ip || '—'}`;
+                          break;
+                        case 'DESKTOP_SESSION_VERIFIED':
+                          dotColor = 'bg-emerald-500 ring-4 ring-emerald-500/20';
+                          iconColor = 'text-emerald-400';
+                          cardBg = 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300';
+                          description = `Workstation verified. Productive time accumulating.\nDevice: ${evt.payload?.device_label || 'Workstation'}\nIP: ${evt.client_ip || '—'}`;
+                          break;
+                        case 'DESKTOP_SESSION_MISSING':
+                          dotColor = 'bg-red-500 ring-4 ring-red-500/20';
+                          iconColor = 'text-red-400';
+                          cardBg = 'bg-red-500/10 border-red-500/20 text-red-300';
+                          description = `Workstation verification missed. Grace period expired. Productive time paused.`;
+                          break;
+                        case 'PRODUCTIVE_TIMER_PAUSED':
+                          dotColor = 'bg-amber-500 ring-4 ring-amber-500/20';
+                          iconColor = 'text-amber-400';
+                          cardBg = 'bg-amber-500/10 border-amber-500/20 text-amber-350';
+                          description = `Productive work timer paused.`;
+                          break;
+                        case 'PRODUCTIVE_TIMER_RESUMED':
+                          dotColor = 'bg-emerald-450 ring-4 ring-emerald-500/20';
+                          iconColor = 'text-emerald-450';
+                          cardBg = 'bg-emerald-500/10 border-emerald-500/20 text-emerald-350';
+                          description = `Productive work timer resumed.`;
+                          break;
                       }
 
                       return (
@@ -1083,7 +1143,7 @@ export default function AttendanceClient({
                   <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
                     Operational Administrative Controls
                   </h4>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setOverrideActionType('reverse_autobreak')}
                       className="px-2.5 py-2 rounded-lg bg-amber-500 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm shadow-amber-500/10 hover:bg-amber-600 active:scale-95 transition-all text-center cursor-pointer"
@@ -1095,6 +1155,12 @@ export default function AttendanceClient({
                       className="px-2.5 py-2 rounded-lg bg-teal-600 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm shadow-teal-500/10 hover:bg-teal-700 active:scale-95 transition-all text-center cursor-pointer"
                     >
                       Correct Clock-Out
+                    </button>
+                    <button
+                      onClick={() => setOverrideActionType('override_validation')}
+                      className="px-2.5 py-2 rounded-lg bg-violet-600 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm shadow-violet-500/10 hover:bg-violet-700 active:scale-95 transition-all text-center cursor-pointer"
+                    >
+                      Device Override
                     </button>
                     <button
                       onClick={() => setOverrideActionType('rebuild')}
@@ -1111,6 +1177,7 @@ export default function AttendanceClient({
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-200">
                         {overrideActionType === 'reverse_autobreak' && 'Action: Reverse Auto-Break'}
                         {overrideActionType === 'correct_clockout' && 'Action: Correct Clock-Out Time'}
+                        {overrideActionType === 'override_validation' && 'Action: Device validation override'}
                         {overrideActionType === 'rebuild' && 'Action: Force Projection Rebuild'}
                       </span>
                       <button 
@@ -1135,6 +1202,24 @@ export default function AttendanceClient({
                           onChange={(e) => setClockOutTimeCorrection(e.target.value)}
                           className="w-full px-2.5 py-1.5 border border-navy-800 bg-navy-900 rounded text-xs text-slate-200 focus:ring-1 focus:ring-primary-500 focus:outline-none"
                         />
+                      </div>
+                    )}
+
+                    {overrideActionType === 'override_validation' && (
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                          Validation Override Type
+                        </label>
+                        <select
+                          required
+                          value={validationOverrideType}
+                          onChange={(e) => setValidationOverrideType(e.target.value as any)}
+                          className="w-full px-2.5 py-1.5 border border-navy-850 bg-navy-900 rounded text-xs text-slate-200 focus:ring-1 focus:ring-primary-500 focus:outline-none font-semibold uppercase tracking-wider"
+                        >
+                          <option value="approve_mobile">Approve Mobile Only</option>
+                          <option value="resume_timer">Resume Timer (Desktop Active)</option>
+                          <option value="field_work">Field-Work Exception (Desktop Active)</option>
+                        </select>
                       </div>
                     )}
 
@@ -1168,6 +1253,7 @@ export default function AttendanceClient({
                         "w-full text-[10px] uppercase font-bold py-2 rounded-lg text-white shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer",
                         overrideActionType === 'reverse_autobreak' ? 'bg-amber-500 hover:bg-amber-600' :
                         overrideActionType === 'correct_clockout' ? 'bg-teal-600 hover:bg-teal-700' :
+                        overrideActionType === 'override_validation' ? 'bg-violet-600 hover:bg-violet-750' :
                         'bg-primary-500 hover:bg-primary-600'
                       )}
                     >
