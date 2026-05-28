@@ -41,7 +41,7 @@ async function OperationalKPIGrid() {
       supabaseAdmin.from('attendance').select('id', { count: 'exact' }).eq('date', todayIST).is('check_out', null).eq('device_type', 'mobile'),
       supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
       supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
-      supabaseAdmin.from('attendance_disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+      supabaseAdmin.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
     ]);
 
     const activeData = activeRes.data || [];

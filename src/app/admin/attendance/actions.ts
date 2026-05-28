@@ -50,23 +50,27 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       *,
       employees (
         name
-      ),
-      attendance_projections (
-        last_heartbeat_at
       )
     `);
 
   if (startDate) {
     query = query.gte('date', startDate);
   } else {
-    // Default to last 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    query = query.gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+    // Default to last 30 days using IST date — attendance dates are stored as IST shift dates
+    // Using UTC new Date() would miss today's records when server is in UTC and it's before 05:30 UTC
+    const utc = Date.now() + (new Date().getTimezoneOffset() * 60000);
+    const istNow = new Date(utc + (3600000 * 5.5));
+    istNow.setDate(istNow.getDate() - 30);
+    query = query.gte('date', istNow.toISOString().split('T')[0]);
   }
 
   if (endDate) {
     query = query.lte('date', endDate);
+  } else {
+    // Always include today in IST so current-shift records are never excluded
+    const utc = Date.now() + (new Date().getTimezoneOffset() * 60000);
+    const istToday = new Date(utc + (3600000 * 5.5)).toISOString().split('T')[0];
+    query = query.lte('date', istToday);
   }
 
   const { data, error } = await query
@@ -80,14 +84,30 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
 
   const recordIds = (data || []).map(record => record.id);
   let riskEvents: any[] = [];
+  let projectionsMap: Record<string, string> = {};
+
   if (recordIds.length > 0) {
-    const { data: fetchedEvents } = await supabaseAdmin
-      .from('attendance_risk_events')
-      .select('*')
-      .in('attendance_id', recordIds)
-      .order('created_at', { ascending: false });
-    if (fetchedEvents) {
-      riskEvents = fetchedEvents;
+    const [riskRes, projectionsRes] = await Promise.all([
+      supabaseAdmin
+        .from('attendance_risk_events')
+        .select('*')
+        .in('attendance_id', recordIds)
+        .order('created_at', { ascending: false }),
+      supabaseAdmin
+        .from('attendance_projections')
+        .select('session_id, last_heartbeat_at')
+        .in('session_id', recordIds)
+    ]);
+
+    if (riskRes.data) {
+      riskEvents = riskRes.data;
+    }
+    if (projectionsRes.data) {
+      projectionsRes.data.forEach((p) => {
+        if (p.session_id && p.last_heartbeat_at) {
+          projectionsMap[p.session_id] = p.last_heartbeat_at;
+        }
+      });
     }
   }
 
@@ -164,9 +184,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       device_type: record.device_type || 'desktop',
       device_label: record.device_label || 'Desktop',
       awaiting_desktop_deadline: record.awaiting_desktop_deadline || null,
-      last_heartbeat_at: (Array.isArray(record.attendance_projections) 
-        ? record.attendance_projections[0]?.last_heartbeat_at 
-        : record.attendance_projections?.last_heartbeat_at) || null,
+      last_heartbeat_at: projectionsMap[record.id] || null,
     };
   });
 }
@@ -804,16 +822,27 @@ export async function overrideDeviceValidation(
   return { success: true };
 }
 
+function getShiftDate(now: Date = new Date()): string {
+  const offset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + offset);
+  const hours = istNow.getUTCHours();
+  
+  if (hours < 12) {
+    const yesterday = new Date(istNow.getTime() - 24 * 60 * 60 * 1000);
+    return yesterday.toISOString().split('T')[0];
+  }
+  return istNow.toISOString().split('T')[0];
+}
+
 export async function getRealtimeAttendanceUpdates() {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
-  const todayIST = (() => {
-    const d = new Date();
-    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (3600000 * 5.5));
-    return ist.toISOString().split('T')[0];
-  })();
+  const activeShiftDate = getShiftDate();
+  
+  // Shift start in UTC is 13:00 (18:30 IST) of the activeShiftDate
+  const [y, m, d] = activeShiftDate.split('-').map(Number);
+  const shiftStartUTC = new Date(Date.UTC(y, m - 1, d, 13, 0, 0)).toISOString();
 
   let activeWorkforce = 0;
   let activeBreaks = 0;
@@ -835,12 +864,12 @@ export async function getRealtimeAttendanceUpdates() {
       disputesRes,
       staleRes
     ] = await Promise.all([
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).in('status', ['Working', 'Idle']),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).in('status', ['Break', 'Break (Auto)']),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).eq('status', 'Idle'),
-      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'GPS_EXIT').gte('event_timestamp', todayIST + 'T00:00:00'),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).eq('device_type', 'mobile'),
-      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'AUTO_BREAK_TRIGGERED').gte('event_timestamp', todayIST + 'T00:00:00'),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', activeShiftDate).is('check_out', null).in('status', ['Working', 'Idle']),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', activeShiftDate).is('check_out', null).in('status', ['Break', 'Break (Auto)']),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', activeShiftDate).eq('status', 'Idle'),
+      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'GPS_EXIT').gte('event_timestamp', shiftStartUTC),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', activeShiftDate).is('check_out', null).eq('device_type', 'mobile'),
+      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'AUTO_BREAK_TRIGGERED').gte('event_timestamp', shiftStartUTC),
       supabaseAdmin.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
       supabaseAdmin.from('attendance').select('id, check_in').is('check_out', null).neq('status', 'Logged Out').gte('date', (() => {
         const d = new Date();

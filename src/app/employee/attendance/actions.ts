@@ -262,8 +262,14 @@ export async function checkIn(
         }
       }]);
 
+    // Rebuild projection so admin live monitor reflects the new check-in immediately
+    await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: attRecord.id
+    });
+
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
+    revalidatePath('/admin/attendance');
     return { success: true, recordId: attRecord.id };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Internal server error';
@@ -524,8 +530,14 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
         payload: { duration_hours: durationHours, total_break_seconds: totalBreak, productive_hours: productiveHours }
       }]);
 
+    // Rebuild projection so admin live monitor reflects the check-out immediately
+    await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: recordId
+    });
+
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
+    revalidatePath('/admin/attendance');
     return { success: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Internal server error';
@@ -572,8 +584,14 @@ export async function resumeSession(recordId: string) {
 
     if (error) throw error;
 
+    // Rebuild projection so admin live monitor reflects the resumed session immediately
+    await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: recordId
+    });
+
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
+    revalidatePath('/admin/attendance');
     return { success: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Failed to resume session';
@@ -644,8 +662,14 @@ export async function startBreak() {
         payload: { start_time: now.toISOString() }
       }]);
 
+    // Rebuild projection so admin live monitor reflects the break start immediately
+    await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: record.id
+    });
+
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
+    revalidatePath('/admin/attendance');
     return { success: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Internal server error';
@@ -737,8 +761,14 @@ export async function endBreak() {
         payload: { end_time: now.toISOString(), total_break_seconds: newTotalBreak }
       }]);
 
+    // Rebuild projection so admin live monitor reflects the break end immediately
+    await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: record.id
+    });
+
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
+    revalidatePath('/admin/attendance');
     return { success: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Internal server error';

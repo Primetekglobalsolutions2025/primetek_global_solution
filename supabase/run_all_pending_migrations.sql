@@ -11,9 +11,44 @@
 ALTER TABLE public.attendance 
 DROP CONSTRAINT IF EXISTS attendance_status_check;
 
+-- Map any legacy/non-standard statuses to valid values before applying constraint
+UPDATE public.attendance
+SET status = CASE 
+    WHEN LOWER(status) IN ('working', 'active', 'active_desktop', 'desktop_active', 'desktop active', 'mobile_clocked_in', 'mobile_only') THEN 'Working'
+    WHEN LOWER(status) IN ('idle', 'idle_warning') THEN 'Idle'
+    WHEN LOWER(status) IN ('break', 'on break', 'active_break') THEN 'Break'
+    WHEN LOWER(status) IN ('break (auto)', 'auto_break', 'productive_timer_paused', 'productive timer paused') THEN 'Break (Auto)'
+    WHEN LOWER(status) IN ('logged out', 'clocked_out', 'offline', 'force_logged_out') THEN 'Logged Out'
+    WHEN LOWER(status) = 'pending wfh' THEN 'Pending WFH'
+    WHEN LOWER(status) = 'approved wfh' THEN 'Approved WFH'
+    WHEN LOWER(status) = 'rejected wfh' THEN 'Rejected WFH'
+    WHEN LOWER(status) = 'present' THEN 'Present'
+    WHEN LOWER(status) = 'late' THEN 'Late'
+    WHEN LOWER(status) = 'absent' THEN 'Absent'
+    WHEN LOWER(status) = 'half-day' THEN 'Half-day'
+    WHEN LOWER(status) = 'awaiting_desktop' THEN 'Working'
+    WHEN LOWER(status) = 'geo_outside' THEN 'Break (Auto)'
+    ELSE status
+END;
+
+-- Fallback: any remaining non-standard values → 'Logged Out'
+UPDATE public.attendance
+SET status = 'Logged Out'
+WHERE status NOT IN (
+    'Working', 'Idle', 'Break', 'Break (Auto)', 'Logged Out',
+    'Pending WFH', 'Approved WFH', 'Rejected WFH', 
+    'Present', 'Late', 'Absent', 'Half-day',
+    'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP', 'DESKTOP_ACTIVE', 'PRODUCTIVE_TIMER_PAUSED'
+);
+
 ALTER TABLE public.attendance 
 ADD CONSTRAINT attendance_status_check 
-CHECK (status IN ('Present', 'Late', 'Absent', 'Half-day', 'Pending WFH', 'Approved WFH', 'Rejected WFH', 'Working', 'On Break', 'Logged Out'));
+CHECK (status IN (
+    'Working', 'Idle', 'Break', 'Break (Auto)', 'Logged Out',
+    'Pending WFH', 'Approved WFH', 'Rejected WFH', 
+    'Present', 'Late', 'Absent', 'Half-day',
+    'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP', 'DESKTOP_ACTIVE', 'PRODUCTIVE_TIMER_PAUSED'
+));
 
 -- 2. Add break, shift, and penalty columns to public.attendance
 ALTER TABLE public.attendance
@@ -384,6 +419,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 6. Get Session State Function (Event Replay Helper)
+DROP FUNCTION IF EXISTS public.get_session_state(UUID);
 CREATE OR REPLACE FUNCTION public.get_session_state(p_session_id UUID)
 RETURNS TABLE (
     current_state VARCHAR,
@@ -740,7 +776,26 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
+-- ============================================================
+-- MIGRATION 7: Add foreign key constraint to attendance_projections
+-- ============================================================
+
+-- 1. Safely remove orphaned projections to prevent constraint violation
+DELETE FROM public.attendance_projections
+WHERE session_id NOT IN (SELECT id FROM public.attendance);
+
+-- 2. Establish foreign key constraint mapping session_id to attendance.id
+ALTER TABLE public.attendance_projections
+DROP CONSTRAINT IF EXISTS fk_attendance_projections_attendance;
+
+ALTER TABLE public.attendance_projections
+ADD CONSTRAINT fk_attendance_projections_attendance
+FOREIGN KEY (session_id) REFERENCES public.attendance(id)
+ON DELETE CASCADE;
+
+
 -- ====================================================================
 -- DONE — All migrations applied successfully
 -- ====================================================================
 SELECT 'All migrations applied successfully!' AS result;
+
