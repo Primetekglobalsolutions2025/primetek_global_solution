@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getISTShiftDate } from '@/lib/utils';
 
 export async function GET(req: Request) {
   try {
@@ -17,10 +18,8 @@ export async function GET(req: Request) {
     }
 
     // Get current year and month in IST
-    const offset = 5.5 * 60 * 60 * 1000;
-    const istNow = new Date(Date.now() + offset);
-    const year = istNow.getUTCFullYear();
-    const month = istNow.getUTCMonth() + 1; // 1-12
+    const todayIST = getISTShiftDate(new Date());
+    const [year, month] = todayIST.split('-').map(Number);
 
     // Call the PostgreSQL stored procedure via RPC to do batch calculations in a single transaction
     const { error: rpcError } = await supabaseAdmin.rpc('recalculate_all_employee_lates', {

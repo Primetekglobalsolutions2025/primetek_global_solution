@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import EmployeesClientWrapper from './EmployeesClientWrapper';
 import { EmployeesSkeleton } from './skeletons';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminAppEmployeesPage() {
   return (
     <div className="space-y-5">

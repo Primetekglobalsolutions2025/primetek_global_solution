@@ -158,30 +158,54 @@ export async function getLeaveBalances() {
 
   // Initialize balance for current month if missing (default is 1 day, does not carry forward)
   if (data.length === 0) {
-    const defaultCL = 1;
-
-    const defaults = [
+    return [
       { 
         employee_id: session.id, 
         leave_type: 'Casual', 
-        total_days: defaultCL, 
+        total_days: 1, 
         used_days: 0,
         year: currentYear,
         month: currentMonth
       },
     ];
-
-    const { data: newData, error: initError } = await supabaseAdmin
-      .from('leave_balances')
-      .insert(defaults)
-      .select();
-
-    if (initError) {
-      console.error('Error initializing monthly balance:', initError);
-      return [];
-    }
-    return newData;
   }
 
   return data;
+}
+
+export async function initializeLeaveBalance(employeeId: string, year: number, month: number) {
+  try {
+    const { data: existing } = await supabaseAdmin
+      .from('leave_balances')
+      .select('id')
+      .eq('employee_id', employeeId)
+      .eq('year', year)
+      .eq('month', month)
+      .eq('leave_type', 'Casual')
+      .maybeSingle();
+
+    if (!existing) {
+      const defaults = { 
+        employee_id: employeeId, 
+        leave_type: 'Casual', 
+        total_days: 1, 
+        used_days: 0,
+        year,
+        month
+      };
+
+      const { data, error } = await supabaseAdmin
+        .from('leave_balances')
+        .insert([defaults])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return { success: true, balance: data };
+    }
+    return { success: true, message: 'Already initialized' };
+  } catch (err) {
+    console.error('Error initializing leave balance:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Initialization failed' };
+  }
 }

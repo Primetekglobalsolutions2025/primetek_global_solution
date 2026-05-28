@@ -57,7 +57,8 @@ export default async function AuditLogsPage(props: PageProps) {
     .select('*', { count: 'exact' });
 
   if (q) {
-    let orFilter = `action.ilike.%${q}%,user_role.ilike.%${q}%,entity_type.ilike.%${q}%`;
+    const sanitizedQ = `%${q.replace(/[()",.]/g, '')}%`;
+    let orFilter = `action.ilike."${sanitizedQ}",user_role.ilike."${sanitizedQ}",entity_type.ilike."${sanitizedQ}"`;
     if (searchUserIds.length > 0) {
       orFilter += `,user_id.in.(${searchUserIds.join(',')})`;
     }

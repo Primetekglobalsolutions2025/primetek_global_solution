@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession } from './actions';
+import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
@@ -27,6 +27,19 @@ export interface AttendanceRecord {
   device_type?: string | null;
   device_label?: string | null;
   productive_hours?: number;
+}
+
+export interface EmployeeDispute {
+  id: string;
+  attendance_id: string;
+  employee_id: string;
+  category: string;
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  justification?: string | null;
+  resolved_by?: string | null;
+  resolved_at?: string | null;
+  created_at: string;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -66,7 +79,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = false }: { initialRecords: AttendanceRecord[]; wasAutoLoggedOut?: boolean }) {
+export default function AttendanceClient({ employeeId, initialRecords, wasAutoLoggedOut = false }: { employeeId: string; initialRecords: AttendanceRecord[]; wasAutoLoggedOut?: boolean }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -92,7 +105,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   const keypressCount = useRef(0);
   const pointerMovesCount = useRef(0);
   const sequenceNumber = useRef(2);
-  const geofenceHistory = useRef<{ lat: number; lng: number; accuracy: number }[]>([]);
+  const geofenceOutsideHistory = useRef<boolean[]>([]);
 
   // 1. Stateful records array for real-time reconciliation updates without reload
   const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
@@ -103,13 +116,9 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   const [disputeCategory, setDisputeCategory] = useState<string>('LATE_PENALTY');
   const [disputeReason, setDisputeReason] = useState<string>('');
   const [isSubmittingDispute, setIsSubmittingDispute] = useState<boolean>(false);
-  const [myDisputes, setMyDisputes] = useState<any[]>([]);
+  const [myDisputes, setMyDisputes] = useState<EmployeeDispute[]>([]);
 
-  useEffect(() => {
-    getEmployeeDisputes().then((data) => {
-      setMyDisputes(data || []);
-    }).catch(console.error);
-  }, [records]);
+  // Disputes and late login stats are refreshed manually or on mount to avoid heartbeat database query storms
 
   const handleDisputeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +138,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
         // Reload disputes
         const updated = await getEmployeeDisputes();
         setMyDisputes(updated || []);
+        refreshStatsAndDisputes();
       } else {
         showNotification(res.error || 'Failed to submit dispute.', 'error');
       }
@@ -153,8 +163,34 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   const projectionVersion = useRef<number>(1);
   const gpsSuppressionUntil = useRef<number>(0);
-  const LEASE_KEY = 'primetek_attendance_leader_lease';
+  const LEASE_KEY = 'primetek_attendance_leader_lease_' + employeeId;
   const lastRefreshTimeRef = useRef<number>(0);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const refreshStatsAndDisputes = useCallback(() => {
+    getEmployeeDisputes().then((data) => {
+      if (isMountedRef.current) {
+        setMyDisputes(data || []);
+      }
+    }).catch(console.error);
+
+    getLateLoginsStats().then((stats) => {
+      if (isMountedRef.current) {
+        setLateStats(stats);
+      }
+    }).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    refreshStatsAndDisputes();
+  }, [refreshStatsAndDisputes]);
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
@@ -182,32 +218,22 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    getLateLoginsStats().then((stats) => {
-      if (active) {
-        setLateStats(stats);
-      }
-    }).catch(console.error);
-    return () => {
-      active = false;
-    };
-  }, [records]);
+  // Lates stats are refreshed on mount and after successful mutations to avoid loop overloading
 
-  const broadcastStateRefreshAndReload = () => {
+  const broadcastStateRefresh = (sessionId?: string) => {
     try {
       const bc = new BroadcastChannel('attendance_tabs');
-      bc.postMessage({ type: 'STATE_REFRESH' });
+      bc.postMessage({ type: 'STATE_REFRESH', sessionId });
       bc.close();
     } catch (err) {
       console.error('Failed to broadcast state refresh:', err);
     }
-    window.location.reload();
   };
 
   // Lightweight projection reconciliation - pulls latest DB projection state safely
-  const refreshProjectionState = async () => {
-    if (!todayRecord) return;
+  const refreshProjectionState = async (sessionId?: string) => {
+    const targetSessionId = sessionId || todayRecord?.id;
+    if (!targetSessionId) return;
     const now = Date.now();
     if (now - lastRefreshTimeRef.current < 2000) {
       console.log('[Tab Sync]: Throttling duplicate refresh request.');
@@ -215,7 +241,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
     }
     lastRefreshTimeRef.current = now;
     try {
-      const res = await getAttendanceSessionState(todayRecord.id);
+      const res = await getAttendanceSessionState(targetSessionId);
       if (res.success && res.attendance && res.projection) {
         const att = res.attendance;
         const proj = res.projection;
@@ -223,36 +249,39 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
         // Keep local projection version matched
         projectionVersion.current = proj.session_version;
 
-        setRecords((prev) => {
-          return prev.map((r) => {
-            if (r.id === att.id) {
-              const checkIn = att.check_in ? new Date(att.check_in) : null;
-              const checkOut = att.check_out ? new Date(att.check_out) : null;
-              let durationHours = 0;
-              const isValidCheckIn = checkIn && !isNaN(checkIn.getTime());
-              const isValidCheckOut = checkOut && !isNaN(checkOut.getTime());
+        const checkIn = att.check_in ? new Date(att.check_in) : null;
+        const checkOut = att.check_out ? new Date(att.check_out) : null;
+        let durationHours = 0;
+        const isValidCheckIn = checkIn && !isNaN(checkIn.getTime());
+        const isValidCheckOut = checkOut && !isNaN(checkOut.getTime());
 
-              if (isValidCheckIn && isValidCheckOut) {
-                durationHours = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10;
-              }
-              return {
-                id: att.id,
-                date: att.date,
-                check_in_raw: att.check_in,
-                check_in: isValidCheckIn ? checkIn.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
-                check_out: isValidCheckOut ? checkOut.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
-                duration_hours: durationHours,
-                status: att.status,
-                total_break_seconds: att.total_break_seconds,
-                current_break_start: att.current_break_start,
-                awaiting_desktop_deadline: att.awaiting_desktop_deadline,
-                device_type: att.device_type,
-                device_label: att.device_label,
-                productive_hours: att.productive_hours,
-              };
-            }
-            return r;
-          });
+        if (isValidCheckIn && isValidCheckOut) {
+          durationHours = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10;
+        }
+
+        const newRecord: AttendanceRecord = {
+          id: att.id,
+          date: att.date,
+          check_in_raw: att.check_in,
+          check_in: isValidCheckIn ? checkIn.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+          check_out: isValidCheckOut ? checkOut.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+          duration_hours: durationHours,
+          status: att.status,
+          total_break_seconds: att.total_break_seconds,
+          current_break_start: att.current_break_start,
+          awaiting_desktop_deadline: att.awaiting_desktop_deadline,
+          device_type: att.device_type,
+          device_label: att.device_label,
+          productive_hours: att.productive_hours,
+        };
+
+        setRecords((prev) => {
+          const exists = prev.some((r) => r.id === att.id);
+          if (exists) {
+            return prev.map((r) => r.id === att.id ? newRecord : r);
+          } else {
+            return [newRecord, ...prev];
+          }
         });
 
         // Set recovery success banner
@@ -268,14 +297,17 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   // Projection Version Verification wrapper for mutations
   const executeMutationWithVersionCheck = async (
-    mutationFn: () => Promise<{ success: boolean; error?: string; outOfRadius?: boolean; distance?: number; officeName?: string }>,
+    mutationFn: () => Promise<{ success: boolean; error?: string; outOfRadius?: boolean; distance?: number; officeName?: string; recordId?: string; sessionId?: string }>,
     actionName: string
   ) => {
     if (!todayRecord) {
       // If session not created yet, just call directly
       const res = await mutationFn();
       if (res.success) {
-        broadcastStateRefreshAndReload();
+        const sid = res.sessionId || res.recordId;
+        await refreshProjectionState(sid);
+        broadcastStateRefresh(sid);
+        refreshStatsAndDisputes();
       } else {
         if (!res.outOfRadius) {
           showNotification(res.error || `Failed to ${actionName}`, 'error');
@@ -305,9 +337,8 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
         projectionVersion.current++;
         await refreshProjectionState();
         // Notify other tabs to refresh projection dynamically
-        const bc = new BroadcastChannel('attendance_tabs');
-        bc.postMessage({ type: 'STATE_REFRESH' });
-        bc.close();
+        broadcastStateRefresh(todayRecord.id);
+        refreshStatsAndDisputes();
       } else {
         if (!mutationResult.outOfRadius) {
           showNotification(mutationResult.error || `Action failed: ${actionName}`, 'error');
@@ -335,7 +366,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
           if (checkRes.success && checkRes.withinRange) {
             setGpsWarningSeconds(null);
             setGpsConfidence(100);
-            geofenceHistory.current = [];
+            geofenceOutsideHistory.current = [];
             showNotification('Location verified successfully. Active status restored.', 'success');
           } else {
             showNotification('Verification failed. Still outside range.', 'error');
@@ -432,7 +463,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
     bc.onmessage = (e) => {
       if (e.data.type === 'STATE_REFRESH') {
         console.log('[Tab Sync]: Received refresh request. Reconciling projection state...');
-        refreshProjectionState();
+        refreshProjectionState(e.data.sessionId);
       }
     };
 
@@ -467,6 +498,12 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
     };
   }, []);
 
+  // Keep todayRecord ID ref updated to prevent stale closure inside timer intervals
+  const todayRecordIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    todayRecordIdRef.current = todayRecord?.id;
+  }, [todayRecord?.id]);
+
   // 2. Sleep / Suspension Tick Recovery Heuristic (30-60s threshold, lightweight sync)
   useEffect(() => {
     if (!checkedIn || isCheckedOut) return;
@@ -477,7 +514,10 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
       lastTime = now;
       if (delta > 35000) { // 35 seconds threshold
         console.warn(`[Suspension Recovery]: Detected clock drift of ${delta}ms. Syncing projection state...`);
-        refreshProjectionState();
+        const targetSessionId = todayRecordIdRef.current;
+        if (targetSessionId) {
+          refreshProjectionState(targetSessionId);
+        }
       }
     }, 1000);
     return () => clearInterval(tickInterval);
@@ -485,16 +525,35 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   // 3. Visibility Change Auto-Break Listener (transition to Break (Auto) when tab is hidden)
   useEffect(() => {
+    let autoBreakTimeoutId: NodeJS.Timeout | null = null;
+
     const handleVisibility = async () => {
-      if (document.hidden && checkedIn && !isCheckedOut && currentStatus === 'Working' && todayRecord) {
-        await executeMutationWithVersionCheck(async () => {
-          return await logStatusTransitionEvent(todayRecord.id, 'Break (Auto)');
-        }, 'Auto Break (Page Hidden)');
+      if (!isMountedRef.current) return;
+
+      if (document.hidden) {
+        if (checkedIn && !isCheckedOut && currentStatus === 'Working' && todayRecord) {
+          console.log('[Visibility]: Tab hidden. Scheduling auto-break in 60 seconds...');
+          autoBreakTimeoutId = setTimeout(async () => {
+            if (isMountedRef.current && document.hidden) {
+              await executeMutationWithVersionCheck(async () => {
+                return await logStatusTransitionEvent(todayRecord.id, 'Break (Auto)');
+              }, 'Auto Break (Page Hidden)');
+            }
+          }, 60000);
+        }
+      } else {
+        if (autoBreakTimeoutId) {
+          console.log('[Visibility]: Tab visible again. Cancelling scheduled auto-break.');
+          clearTimeout(autoBreakTimeoutId);
+          autoBreakTimeoutId = null;
+        }
       }
     };
+
     window.addEventListener('visibilitychange', handleVisibility);
     return () => {
       window.removeEventListener('visibilitychange', handleVisibility);
+      if (autoBreakTimeoutId) clearTimeout(autoBreakTimeoutId);
     };
   }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
 
@@ -602,8 +661,8 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   // Periodic Telemetry Heartbeat Loop
   useEffect(() => {
-    const isTimerActive = currentStatus === 'Working' || currentStatus === 'Approved WFH';
-    if (!checkedIn || isCheckedOut || !isTimerActive || !todayRecord) return;
+    const isHeartbeatActive = ['Working', 'Approved WFH', 'Break', 'Break (Auto)', 'Idle'].includes(currentStatus);
+    if (!checkedIn || isCheckedOut || !isHeartbeatActive || !todayRecord) return;
 
     const sendHeartbeat = () => {
       if (!navigator.geolocation) return;
@@ -675,7 +734,10 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
       );
     };
 
-    const interval = setInterval(sendHeartbeat, 60000);
+    const isBreakOrIdle = ['Break', 'Break (Auto)', 'Idle'].includes(currentStatus);
+    const heartbeatInterval = isBreakOrIdle ? 300000 : 60000;
+
+    const interval = setInterval(sendHeartbeat, heartbeatInterval);
     return () => clearInterval(interval);
   }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
 
@@ -695,43 +757,42 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
         async (position) => {
           const lat = position.coords.latitude;
           const lng = position.coords.longitude;
-          const accuracy = position.coords.accuracy || 10;
-          
-          geofenceHistory.current.push({ lat, lng, accuracy });
-          if (geofenceHistory.current.length > 5) {
-            geofenceHistory.current.shift();
-          }
 
           try {
             const currentRes = await checkGeofence(lat, lng);
             
-            if (geofenceHistory.current.length >= 3) {
-              const results = await Promise.all(
-                geofenceHistory.current.map(async (check) => {
-                  const checkRes = await checkGeofence(check.lat, check.lng);
-                  return checkRes.success && !checkRes.withinRange;
-                })
-              );
-              const outsideCount = results.filter(Boolean).length;
+            if (currentRes.success) {
+              const outside = !currentRes.withinRange;
+              geofenceOutsideHistory.current.push(outside);
+              if (geofenceOutsideHistory.current.length > 5) {
+                geofenceOutsideHistory.current.shift();
+              }
 
-              if (outsideCount >= 3) {
-                setGpsConfidence((prev) => {
-                  if (prev === 100) return 60;
-                  return prev;
-                });
-                setGpsWarningSeconds((prev) => {
-                  if (prev === null) return 60;
-                  return prev;
-                });
-              } else if (currentRes.success && currentRes.withinRange) {
+              // Check if the last 3 items in the history are all 'outside'
+              const historyLen = geofenceOutsideHistory.current.length;
+              if (historyLen >= 3) {
+                const lastThree = geofenceOutsideHistory.current.slice(-3);
+                const allOutside = lastThree.every(Boolean);
+
+                if (allOutside) {
+                  setGpsConfidence((prev) => {
+                    if (prev === 100) return 60;
+                    return prev;
+                  });
+                  setGpsWarningSeconds((prev) => {
+                    if (prev === null) return 60;
+                    return prev;
+                  });
+                } else if (currentRes.withinRange) {
+                  setGpsWarningSeconds(null);
+                  setGpsConfidence(100);
+                }
+              } else if (outside) {
+                showNotification("We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal.", 'info');
+              } else {
                 setGpsWarningSeconds(null);
                 setGpsConfidence(100);
               }
-            } else if (currentRes.success && !currentRes.withinRange) {
-              showNotification("We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal.", 'info');
-            } else if (currentRes.success && currentRes.withinRange) {
-              setGpsWarningSeconds(null);
-              setGpsConfidence(100);
             }
           } catch (err) {
             console.error('Error in background geofence check:', err);
@@ -1056,24 +1117,39 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   const isPrevDisabled = selectedMonthDate <= minMonthStart;
   const isPastMonth = selectedMonthDate < currentMonthStart;
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setSelectedMonthDate(prev => {
-      const nextDate = new Date(prev.getFullYear(), prev.getMonth() + (direction === 'prev' ? -1 : 1), 1);
-      if (nextDate > currentMonthStart) return prev;
-      if (nextDate < minMonthStart) return prev;
-      
-      setIsCalendarLoading(true);
-      setTimeout(() => {
-        setIsCalendarLoading(false);
-      }, 300);
-      
-      return nextDate;
-    });
+  const navigateMonth = async (direction: 'prev' | 'next') => {
+    const nextDate = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + (direction === 'prev' ? -1 : 1), 1);
+    if (nextDate > currentMonthStart) return;
+    if (nextDate < minMonthStart) return;
+    
+    setIsCalendarLoading(true);
+    try {
+      const res = await getAttendanceForMonth(nextDate.getFullYear(), nextDate.getMonth() + 1);
+      if (res && res.success && res.records) {
+        setRecords(prev => {
+          const merged = [...prev];
+          res.records.forEach((nr: AttendanceRecord) => {
+            const idx = merged.findIndex(r => r.id === nr.id);
+            if (idx > -1) {
+              merged[idx] = nr;
+            } else {
+              merged.push(nr);
+            }
+          });
+          return merged;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch attendance for month:', err);
+    } finally {
+      setSelectedMonthDate(nextDate);
+      setIsCalendarLoading(false);
+    }
   };
 
   const getStatusForDay = (day: number) => {
     const dStr = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const record = initialRecords.find(r => r.date === dStr);
+    const record = records.find(r => r.date === dStr);
     return record?.status?.toLowerCase() || null;
   };
 
@@ -1735,10 +1811,10 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
                 <span className="text-[9px] font-bold uppercase tracking-wider font-mono">
                   {myDisputes.some(d => d.attendance_id === r.id) ? (
                     <span className={cn(
-                      myDisputes.find(d => d.attendance_id === r.id).status === 'APPROVED' ? "text-emerald-600" :
-                      myDisputes.find(d => d.attendance_id === r.id).status === 'REJECTED' ? "text-red-650" : "text-amber-600"
+                      myDisputes.find(d => d.attendance_id === r.id)?.status === 'APPROVED' ? "text-emerald-600" :
+                      myDisputes.find(d => d.attendance_id === r.id)?.status === 'REJECTED' ? "text-red-650" : "text-amber-600"
                     )}>
-                      Dispute: {myDisputes.find(d => d.attendance_id === r.id).status}
+                      Dispute: {myDisputes.find(d => d.attendance_id === r.id)?.status}
                     </span>
                   ) : (
                     <span className="text-zinc-450">No disputes</span>
@@ -1798,10 +1874,10 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
                         {myDisputes.some(d => d.attendance_id === r.id) ? (
                           <span className={cn(
                             "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border font-mono",
-                            myDisputes.find(d => d.attendance_id === r.id).status === 'APPROVED' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
-                            myDisputes.find(d => d.attendance_id === r.id).status === 'REJECTED' ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"
+                            myDisputes.find(d => d.attendance_id === r.id)?.status === 'APPROVED' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                            myDisputes.find(d => d.attendance_id === r.id)?.status === 'REJECTED' ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"
                           )}>
-                            Dispute: {myDisputes.find(d => d.attendance_id === r.id).status}
+                            Dispute: {myDisputes.find(d => d.attendance_id === r.id)?.status}
                           </span>
                         ) : (
                           <button

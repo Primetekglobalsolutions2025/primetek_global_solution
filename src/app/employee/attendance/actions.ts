@@ -1,27 +1,16 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession, verifyActiveSession } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 import { assessAttendanceRisk } from '@/lib/security/risk-engine';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { calculateDistance } from '@/lib/utils';
+import { calculateDistance, getISTShiftDate } from '@/lib/utils';
 
-// Helper to get current shift info based on 6:30 PM (18:30 IST) to 3:30 AM (03:30 IST) night shift
 function getShiftInfo(now: Date = new Date()) {
+  const shiftDateStr = getISTShiftDate(now);
   const offset = 5.5 * 60 * 60 * 1000;
   const istNow = new Date(now.getTime() + offset);
-  const hours = istNow.getUTCHours(); // Represents hour in IST
-  
-  let shiftDateStr: string;
-  if (hours < 12) {
-    // Before noon, the shift belongs to yesterday
-    const yesterday = new Date(istNow.getTime() - 24 * 60 * 60 * 1000);
-    shiftDateStr = yesterday.toISOString().split('T')[0];
-  } else {
-    // Noon or later, the shift belongs to today
-    shiftDateStr = istNow.toISOString().split('T')[0];
-  }
   
   // Shift start in UTC is 13:00 (18:30 IST) on shiftDateStr
   const [y, m, d] = shiftDateStr.split('-').map(Number);
@@ -45,6 +34,19 @@ export async function closeStaleSessionsForEmployee(employeeId: string, currentS
 
     if (stale && stale.length > 0) {
       for (const record of stale) {
+        // Idempotency guard: check if FORCE_LOGOUT already registered for this session ID
+        const { data: existingForceLogout } = await supabaseAdmin
+          .from('attendance_events')
+          .select('id')
+          .eq('session_id', record.id)
+          .eq('event_type', 'FORCE_LOGOUT')
+          .maybeSingle();
+
+        if (existingForceLogout) {
+          console.log(`[Idempotency] FORCE_LOGOUT event already exists for session ${record.id}. Skipping.`);
+          continue;
+        }
+
         const checkInTime = new Date(record.check_in);
         const [y, m, d] = record.date.split('-').map(Number);
         let autoOut = new Date(Date.UTC(y, m - 1, d, 22, 0, 0)); // 3:30 AM IST of next day (22:00 UTC of shift date)
@@ -94,6 +96,10 @@ export async function closeStaleSessionsForEmployee(employeeId: string, currentS
           .eq('id', record.id)
           .eq('status', 'CLOCKED_OUT');
       }
+      
+      revalidatePath('/employee/attendance');
+      revalidatePath('/employee/dashboard');
+      revalidatePath('/admin/attendance');
     }
   } catch (err) {
     console.error('Error closing stale sessions:', err);
@@ -115,14 +121,12 @@ export async function checkIn(
     if (!session || !session.id) {
       return { success: false, error: 'Unauthorized' };
     }
-    await verifyActiveSession(session.id);
-
     let now = new Date();
     if (clientTimestamp) {
       const parsedTime = new Date(clientTimestamp);
-      // Validate that clientTimestamp is not in the future (skew threshold: 5 minutes)
+      // Validate that clientTimestamp is not in the future (skew threshold: 60 seconds)
       const diff = parsedTime.getTime() - Date.now();
-      if (diff > 5 * 60 * 1000) {
+      if (diff > 60 * 1000) {
         throw new Error('Future timestamp detected. Anti-tampering block triggered.');
       }
 
@@ -324,14 +328,12 @@ export async function requestWFH(
     const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
-    await verifyActiveSession(session.id);
-
     let now = new Date();
     if (clientTimestamp) {
       const parsedTime = new Date(clientTimestamp);
-      // Validate that clientTimestamp is not in the future (skew threshold: 5 minutes)
+      // Validate that clientTimestamp is not in the future (skew threshold: 60 seconds)
       const diff = parsedTime.getTime() - Date.now();
-      if (diff > 5 * 60 * 1000) {
+      if (diff > 60 * 1000) {
         throw new Error('Future timestamp detected. Anti-tampering block triggered.');
       }
 
@@ -508,8 +510,6 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
     const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
-    await verifyActiveSession(session.id);
-    
     const risk = await assessAttendanceRisk({
       userId: session.id,
       userRole: session.role ?? 'employee',
@@ -572,29 +572,10 @@ export async function checkOut(recordId: string, lat: number, lng: number, ipAdd
     const productiveHours = Number((productiveSeconds / 3600).toFixed(2));
     const durationHours = Number((totalSeconds / 3600).toFixed(2));
 
-    const { data: attRecord, error } = await supabaseAdmin
-      .from('attendance')
-      .update({
-        check_out: now.toISOString(),
-        duration_hours: durationHours,
-        status: 'Logged Out',
-        current_break_start: null,
-        total_break_seconds: totalBreak,
-        productive_hours: productiveHours,
-        lat: numLat,
-        lng: numLng,
-      })
-      .eq('id', recordId)
-      .eq('employee_id', session.id)
-      .select('id')
-      .single();
-
-    if (error) throw error;
-
-    if (risk && risk.riskEventId && attRecord) {
+    if (risk && risk.riskEventId) {
       await supabaseAdmin
         .from('attendance_risk_events')
-        .update({ attendance_id: attRecord.id })
+        .update({ attendance_id: recordId })
         .eq('id', risk.riskEventId);
     }
 
@@ -650,13 +631,17 @@ export async function resumeSession(recordId: string) {
     // Fetch the checkout record first with coordinates
     const { data: record, error: fetchError } = await supabaseAdmin
       .from('attendance')
-      .select('check_out, lat, lng')
+      .select('date, check_out, lat, lng')
       .eq('id', recordId)
       .eq('employee_id', session.id)
       .single();
 
     if (fetchError || !record || !record.check_out) {
       return { success: false, error: 'Checkout record not found' };
+    }
+
+    if (record.date !== shiftDateStr) {
+      return { success: false, error: 'Only today\'s session can be resumed' };
     }
 
     // Check if the session was auto-logged out by system sweeper
@@ -700,19 +685,7 @@ export async function resumeSession(recordId: string) {
     const restoredStatus = isRemote ? 'Approved WFH' : 'Working';
     const now = new Date();
 
-    const { error } = await supabaseAdmin
-      .from('attendance')
-      .update({ 
-        check_out: null,
-        status: restoredStatus
-      })
-      .eq('id', recordId)
-      .eq('employee_id', session.id)
-      .eq('date', shiftDateStr); // Only allow resuming today's record
-
-    if (error) throw error;
-
-    // Append SESSION_RECOVERED event to keep the event stream consistent
+    // Append SESSION_RECOVERED event to keep the event stream consistent (no direct update to attendance)
     const { data: lastEventRec } = await supabaseAdmin
       .from('attendance_events')
       .select('sequence_number')
@@ -754,8 +727,6 @@ export async function startBreak() {
   try {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
-    await verifyActiveSession(session.id);
-
     const { shiftDateStr } = getShiftInfo();
 
     const { data: record, error: fetchError } = await supabaseAdmin
@@ -825,8 +796,6 @@ export async function endBreak() {
   try {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
-    await verifyActiveSession(session.id);
-
     const { shiftDateStr } = getShiftInfo();
 
     const { data: record, error: fetchError } = await supabaseAdmin
@@ -917,10 +886,8 @@ export async function getLateLoginsStats() {
     const session = await getSession();
     if (!session || !session.id) return { lateCount: 0, deduction: 0.0, warningMessage: '', remainingSafeCount: 3 };
 
-    const offset = 5.5 * 60 * 60 * 1000;
-    const istNow = new Date(Date.now() + offset);
-    const year = istNow.getUTCFullYear();
-    const month = istNow.getUTCMonth() + 1; // 1-12
+    const todayIST = getISTShiftDate(new Date());
+    const [year, month] = todayIST.split('-').map(Number);
 
     const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
     const nextMonth = month === 12 ? 1 : month + 1;
@@ -1235,8 +1202,6 @@ export async function logStatusTransitionEvent(sessionId: string, newStatus: 'Wo
   try {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
-    await verifyActiveSession(session.id);
-
     // Fetch the current record first
     const { data: record, error: fetchError } = await supabaseAdmin
       .from('attendance')
@@ -1400,6 +1365,62 @@ export async function getEmployeeDisputes() {
   } catch (err) {
     console.error('Error fetching employee disputes:', err);
     return [];
+  }
+}
+
+export async function getAttendanceForMonth(year: number, month: number) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const endDate = `${year}-${String(month).padStart(2, '0')}-${new Date(year, month, 0).getDate()}`;
+
+    const { data: records, error } = await supabaseAdmin
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', session.id)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    const empRecords = (records || []).map(r => {
+      const checkIn = r.check_in ? new Date(r.check_in) : null;
+      const checkOut = r.check_out ? new Date(r.check_out) : null;
+      let durationHours = 0;
+      
+      const isValidCheckIn = checkIn && !isNaN(checkIn.getTime());
+      const isValidCheckOut = checkOut && !isNaN(checkOut.getTime());
+
+      if (isValidCheckIn && isValidCheckOut) {
+        durationHours = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10;
+      }
+      
+      return {
+        id: r.id,
+        date: r.date,
+        check_in_raw: r.check_in,
+        check_in: isValidCheckIn ? checkIn.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+        check_out: isValidCheckOut ? checkOut.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+        duration_hours: durationHours,
+        status: r.status,
+        total_break_seconds: r.total_break_seconds,
+        current_break_start: r.current_break_start,
+        awaiting_desktop_deadline: r.awaiting_desktop_deadline,
+        device_type: r.device_type,
+        device_label: r.device_label,
+        productive_hours: r.productive_hours || 0,
+      };
+    });
+
+    return { success: true, records: empRecords };
+  } catch (err) {
+    console.error('Error fetching attendance for month:', err);
+    return { success: false, error: 'Failed to fetch records' };
   }
 }
 

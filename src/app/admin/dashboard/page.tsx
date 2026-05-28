@@ -1,6 +1,6 @@
 import { MessageSquare, Users, Clock, Settings, ArrowRight, CheckSquare, TrendingUp, Zap, FileUser, Activity, Coffee, MapPin, AlertTriangle, ShieldAlert, Smartphone, LogOut as LogOutIcon, Gavel } from 'lucide-react';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { formatDate, cn } from '@/lib/utils';
+import { formatDate, cn, getISTShiftDate } from '@/lib/utils';
 import Link from 'next/link';
 import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import DashboardGreeting from '@/components/admin/DashboardGreeting';
@@ -8,14 +8,11 @@ import { getSession } from '@/lib/auth';
 import { Suspense } from 'react';
 import { StatsCardsSkeleton, ChartsSkeleton, SystemStatusSkeleton, ActivityFeedSkeleton } from './skeletons';
 
+export const dynamic = 'force-dynamic';
+
 // ─── 1. ASYNC OPERATIONAL KPI GRID ───
 async function OperationalKPIGrid() {
-  const todayIST = (() => {
-    const d = new Date();
-    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (3600000 * 5.5));
-    return ist.toISOString().split('T')[0];
-  })();
+  const todayIST = getISTShiftDate(new Date());
 
   let activeEmployees = 0;
   let activeBreaks = 0;
@@ -111,16 +108,21 @@ async function OperationalKPIGrid() {
   );
 }
 
+interface AttendanceEvent {
+  id: string;
+  session_id: string;
+  employee_id: string;
+  event_type: string;
+  event_timestamp: string;
+  payload: any;
+  client_ip: string;
+}
+
 // ─── 2. ASYNC REALTIME ACTIVITY FEED ───
 async function RealtimeActivityFeed() {
-  const todayIST = (() => {
-    const d = new Date();
-    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (3600000 * 5.5));
-    return ist.toISOString().split('T')[0];
-  })();
+  const todayIST = getISTShiftDate(new Date());
 
-  let events: any[] = [];
+  let events: AttendanceEvent[] = [];
   try {
     const { data } = await supabaseAdmin
       .from('attendance_events')
@@ -223,7 +225,7 @@ async function PerformanceChartsSection() {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
+    return getISTShiftDate(d);
   }).reverse();
 
   const last4Weeks = Array.from({ length: 4 }, (_, i) => {
@@ -277,26 +279,54 @@ async function PerformanceChartsSection() {
   );
 }
 
+export interface SystemHealthNode {
+  node_name: string;
+  status: string;
+  color: string;
+  last_check?: string;
+  updated_at?: string;
+}
+
 // ─── 4. ASYNC SYSTEM STATUS SECTION ───
 async function SystemStatusSection() {
-  let systemNodes: any[] = [];
-  try {
-    const { data } = await supabaseAdmin
-      .from('system_status')
-      .select('node_name, status, color')
-      .order('node_name');
-    systemNodes = data || [];
-  } catch (err) {
-    console.error('Failed to load system status:', err);
-  }
-
-  const nodes = systemNodes && systemNodes.length ? systemNodes : [
+  const defaultNodes: SystemHealthNode[] = [
     { node_name: 'Database', status: 'Active', color: 'bg-emerald-500' },
     { node_name: 'API Gateway', status: 'Optimal', color: 'bg-emerald-500' },
     { node_name: 'Auth System', status: 'Active', color: 'bg-emerald-500' },
     { node_name: 'Heartbeat Engine', status: 'Active', color: 'bg-emerald-500' },
     { node_name: 'Mail Server', status: 'Active', color: 'bg-emerald-500' },
   ];
+
+  // Dynamic self-healing seed routine: Upsert default nodes to ensure they are present and updated in the DB
+  try {
+    await supabaseAdmin
+      .from('system_status')
+      .upsert(
+        defaultNodes.map(node => ({
+          node_name: node.node_name,
+          status: node.status,
+          color: node.color,
+          last_check: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })),
+        { onConflict: 'node_name' }
+      );
+  } catch (err) {
+    console.error('Failed to seed system status:', err);
+  }
+
+  let systemNodes: SystemHealthNode[] = [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('system_status')
+      .select('node_name, status, color')
+      .order('node_name');
+    systemNodes = (data as SystemHealthNode[]) || [];
+  } catch (err) {
+    console.error('Failed to load system status:', err);
+  }
+
+  const nodes = systemNodes && systemNodes.length ? systemNodes : defaultNodes;
 
   return (
     <div className="bg-white border border-zinc-200 hover:border-primary-500/50 rounded-xl p-5 relative overflow-hidden transition-all duration-200 shadow-2xs group">

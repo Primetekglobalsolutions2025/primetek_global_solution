@@ -42,8 +42,8 @@ export default function EmployeeLoginPage() {
 
         {/* Support links */}
         <div className="mt-8 flex justify-center gap-6">
-          <a href="#" className="text-[11px] font-bold text-gray-500 hover:text-primary-400 uppercase tracking-wider transition-colors">Help Center</a>
-          <a href="#" className="text-[11px] font-bold text-gray-500 hover:text-primary-400 uppercase tracking-wider transition-colors">IT Support</a>
+          <a href="mailto:it-support@primetekglobal.com?subject=Employee%20Help%20Center%20Request" className="text-[11px] font-bold text-gray-500 hover:text-primary-400 uppercase tracking-wider transition-colors">Help Center</a>
+          <a href="mailto:it-support@primetekglobal.com?subject=Employee%20Portal%20Support" className="text-[11px] font-bold text-gray-500 hover:text-primary-400 uppercase tracking-wider transition-colors">IT Support</a>
         </div>
       </div>
     </div>

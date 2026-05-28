@@ -15,7 +15,7 @@ export async function getAdminEmployees() {
     .from('employees')
     .select('id, employee_id, name, email, role, department, status, join_date, avatar_url, mfa_enabled')
     .order('created_at', { ascending: false })
-    .limit(500);
+    .limit(5000);
 
   if (error) {
     console.error('Error fetching admin employees:', error);
@@ -181,5 +181,71 @@ export async function resetEmployeeMFA(id: string) {
 
   revalidatePath('/admin/employees');
   revalidatePath('/admin/dashboard');
+}
+
+export async function getEmployeeBalances(employeeId: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data: balances, error } = await supabaseAdmin
+    .from('leave_balances')
+    .select('*')
+    .eq('employee_id', employeeId);
+
+  if (error) {
+    console.error('Error fetching employee leave balances:', error);
+    return [];
+  }
+  return balances;
+}
+
+export async function updateEmployeeBalances(employeeId: string, balances: { sick: number; casual: number; earned: number }) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+
+  // We update or insert each type
+  const types = [
+    { type: 'Sick', val: balances.sick },
+    { type: 'Casual', val: balances.casual },
+    { type: 'Earned', val: balances.earned },
+  ];
+
+  for (const t of types) {
+    // Check if balance exists
+    const { data: existing } = await supabaseAdmin
+      .from('leave_balances')
+      .select('id')
+      .eq('employee_id', employeeId)
+      .eq('leave_type', t.type)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await supabaseAdmin
+        .from('leave_balances')
+        .update({ total_days: t.val })
+        .eq('id', existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseAdmin
+        .from('leave_balances')
+        .insert({
+          employee_id: employeeId,
+          leave_type: t.type,
+          total_days: t.val,
+          used_days: 0,
+          year: currentYear,
+          month: t.type === 'Casual' ? currentMonth : null,
+        });
+      if (error) throw error;
+    }
+  }
+
+  await logAuditAction('UPDATE_LEAVE_BALANCES', 'leave_balances', employeeId, null, balances);
+
+  revalidatePath('/admin/employees');
+  return { success: true };
 }
 

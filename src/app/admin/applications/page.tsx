@@ -1,6 +1,8 @@
 import { getAdminApplications } from './actions';
 import ApplicationsClient from './ApplicationsClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminAppApplicationsPage() {
   const applications = await getAdminApplications();
 

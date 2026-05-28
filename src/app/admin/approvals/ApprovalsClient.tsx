@@ -48,20 +48,86 @@ const statusColors: Record<string, string> = {
   productive_timer_paused: 'bg-red-500/10 text-red-400 border-red-500/20',
 };
 
+export interface LeaveRequestApproval {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  employee_email?: string;
+  type: string;
+  start_date: string;
+  end_date: string;
+  reason: string;
+  status: string;
+}
+
+export interface WFHRequestApproval {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  employee_email?: string;
+  date: string;
+  check_in: string | null;
+  lat: number;
+  lng: number;
+  status: string;
+}
+
+export interface DisputeApproval {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  employee_email: string;
+  category: string;
+  reason: string;
+  attendance_id: string;
+  attendance_date: string;
+  attendance_status: string;
+  attendance_check_in: string | null;
+  attendance_check_out: string | null;
+  attendance_is_late: boolean;
+  attendance_late_minutes: number;
+  attendance_deduction: number;
+  attendance_productive_hours: number;
+  attendance_total_break_seconds: number;
+  attendance_duration_hours?: number;
+}
+
+export interface ApprovalHistoryItem {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  employee_email: string;
+  kind: 'leave' | 'wfh';
+  type?: string;
+  start_date?: string;
+  end_date?: string;
+  date?: string;
+  status: string;
+  created_at: string;
+}
+
+export interface DisputeEventTimeline {
+  id: string;
+  event_type: string;
+  event_timestamp: string;
+  payload: any;
+  client_ip?: string | null;
+}
+
 export default function ApprovalsClient({ 
   initialLeaves, 
   initialWFH,
   initialHistory,
   initialDisputes = [],
 }: { 
-  initialLeaves: any[];
-  initialWFH: any[];
-  initialHistory: any[];
-  initialDisputes?: any[];
+  initialLeaves: LeaveRequestApproval[];
+  initialWFH: WFHRequestApproval[];
+  initialHistory: ApprovalHistoryItem[];
+  initialDisputes?: DisputeApproval[];
 }) {
-  const [leaves, setLeaves] = useState(initialLeaves);
-  const [wfh, setWfh] = useState(initialWFH);
-  const [disputes, setDisputes] = useState(initialDisputes);
+  const [leaves, setLeaves] = useState<LeaveRequestApproval[]>(initialLeaves);
+  const [wfh, setWfh] = useState<WFHRequestApproval[]>(initialWFH);
+  const [disputes, setDisputes] = useState<DisputeApproval[]>(initialDisputes);
   const [activeTab, setActiveTab] = useState<Tab>('leaves');
   const [processing, setProcessing] = useState<string | null>(null);
   const { toast } = useToast();
@@ -70,12 +136,12 @@ export default function ApprovalsClient({
   const [resolvingDisputeId, setResolvingDisputeId] = useState<string | null>(null);
   const [resolutionStatus, setResolutionStatus] = useState<'APPROVED' | 'REJECTED' | null>(null);
 
-  const [selectedDispute, setSelectedDispute] = useState<any | null>(null);
-  const [selectedDisputeEvents, setSelectedDisputeEvents] = useState<any[]>([]);
+  const [selectedDispute, setSelectedDispute] = useState<DisputeApproval | null>(null);
+  const [selectedDisputeEvents, setSelectedDisputeEvents] = useState<DisputeEventTimeline[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  const handleOpenDrawer = async (dispute: any) => {
+  const handleOpenDrawer = async (dispute: DisputeApproval) => {
     setSelectedDispute(dispute);
     setIsDrawerOpen(true);
     setIsLoadingEvents(true);
@@ -525,7 +591,7 @@ export default function ApprovalsClient({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-150">
-                        {initialHistory.map((item: any) => (
+                        {initialHistory.map((item: ApprovalHistoryItem) => (
                           <tr key={item.id} className="hover:bg-zinc-50/50 transition-colors group text-zinc-650">
                             <td className="p-4 whitespace-nowrap">
                               <p className="text-xs font-bold text-navy-900 tracking-tight font-sans">{item.employee_name}</p>
@@ -536,8 +602,8 @@ export default function ApprovalsClient({
                             </td>
                             <td className="p-4 whitespace-nowrap text-[10px] text-zinc-500 font-medium font-mono">
                               {item.kind === 'leave'
-                                ? `${formatDate(item.start_date)} — ${formatDate(item.end_date)}`
-                                : formatDate(item.date)}
+                                ? `${formatDate(item.start_date || '')} — ${formatDate(item.end_date || '')}`
+                                : formatDate(item.date || '')}
                             </td>
                             <td className="p-4 whitespace-nowrap">
                               <span className={cn(
@@ -558,7 +624,7 @@ export default function ApprovalsClient({
                     </table>
                   </div>
                   <div className="md:hidden divide-y divide-zinc-150">
-                    {initialHistory.map((item: any) => (
+                    {initialHistory.map((item: ApprovalHistoryItem) => (
                       <div key={item.id} className="p-4 hover:bg-zinc-50/50 transition-colors space-y-2 text-zinc-650">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-bold text-navy-900 tracking-tight">{item.employee_name}</p>
@@ -581,8 +647,8 @@ export default function ApprovalsClient({
                         </div>
                         <div className="text-[10px] text-zinc-600 bg-zinc-50 px-2.5 py-1.5 rounded border border-zinc-200/60 font-semibold font-mono">
                           {item.kind === 'leave'
-                            ? `${formatDate(item.start_date)} to ${formatDate(item.end_date)}`
-                            : `Date: ${formatDate(item.date)}`}
+                            ? `${formatDate(item.start_date || '')} to ${formatDate(item.end_date || '')}`
+                            : `Date: ${formatDate(item.date || '')}`}
                         </div>
                       </div>
                     ))}

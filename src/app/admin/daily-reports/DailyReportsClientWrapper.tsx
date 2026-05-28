@@ -1,9 +1,10 @@
 import { getAllDailyReports, getActiveEmployees, getSubmissionStatus } from './actions';
 import DailyReportsAdminClient from './DailyReportsAdminClient';
+import { getISTShiftDate } from '@/lib/utils';
 
 export default async function DailyReportsClientWrapper() {
-  // Use local timezone shift to align with workforce shifts, default en-CA today string
-  const todayStr = new Date().toLocaleDateString('en-CA');
+  // Use local timezone shift to align with workforce shifts
+  const todayStr = getISTShiftDate();
 
   let initialReports: any[] = [];
   let initialEmployees: any[] = [];

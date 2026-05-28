@@ -7,22 +7,43 @@ import AppHeader from '@/components/pwa/AppHeader';
 import { Loader2 } from 'lucide-react';
 import OfflineSyncBanner from '@/components/pwa/OfflineSyncBanner';
 
-export default function AdminLayoutClient({ children }: { children: React.ReactNode }) {
+export default function AdminLayoutClient({ children, initialPendingCount }: { children: React.ReactNode, initialPendingCount?: number }) {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<{ role: 'admin' | 'employee' | 'hr'; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingCount, setPendingCount] = useState(initialPendingCount || 0);
 
   const isLoginPage = pathname === '/admin/login';
 
   useEffect(() => {
+    if (initialPendingCount !== undefined) {
+      setPendingCount(initialPendingCount);
+    }
+  }, [initialPendingCount]);
+
+  useEffect(() => {
+    if (!session || session.role !== 'admin') return;
+
+    const fetchPendingCount = async () => {
+      try {
+        const { getPendingCountOnly } = await import('@/app/admin/approvals/actions');
+        const count = await getPendingCountOnly();
+        setPendingCount(count);
+      } catch (err) {
+        console.warn('Failed to fetch pending counts for layout', err);
+      }
+    };
+
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 25000);
+    return () => clearInterval(interval);
+  }, [session]);
+
+  useEffect(() => {
     if ('serviceWorker' in navigator) {
-      let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
+        // Let the user continue their session uninterrupted on Service Worker update
       });
 
       navigator.serviceWorker.register('/sw.js', { scope: '/' })
@@ -191,9 +212,16 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
 
   return (
     <div className="admin-portal fixed inset-0 flex bg-zinc-50 text-navy-900 overflow-hidden font-sans">
-      {session && <AppSidebar role={session.role} userName={session.name} />}
+      {session && (
+        <AppSidebar 
+          role={session.role} 
+          userName={session.name} 
+          initialPendingCount={initialPendingCount} 
+          pendingCount={pendingCount} 
+        />
+      )}
       <div className="flex-1 flex flex-col min-w-0 bg-zinc-50">
-        <AppHeader userName={session?.name} role={session?.role} />
+        <AppHeader userName={session?.name} role={session?.role} notificationCount={session?.role === 'admin' ? pendingCount : 0} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
           <div className="max-w-7xl mx-auto space-y-4">
             <OfflineSyncBanner />

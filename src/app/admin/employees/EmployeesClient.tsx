@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, ToggleLeft, ToggleRight, X, Loader2, Trash2, Users, ShieldCheck, Mail, Briefcase, Sparkles, Wallet, AlertTriangle, Copy, Check } from 'lucide-react';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { toggleEmployeeStatus, createEmployee, deleteEmployee, resetEmployeeMFA } from './actions';
+import { toggleEmployeeStatus, createEmployee, deleteEmployee, resetEmployeeMFA, getEmployeeBalances, updateEmployeeBalances } from './actions';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/Toast';
@@ -81,6 +81,21 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     );
     return matchesSearch && matchesDept;
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, departmentFilter]);
+
+  const ITEMS_PER_PAGE = 50;
+  const paginatedItems = useMemo(() => {
+    return filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+  }, [filtered.length]);
 
   const handleToggle = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
@@ -160,10 +175,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     setSelectedEmployee(emp);
     setIsBalanceModalOpen(true);
     try {
-      const res = await fetch(`/api/admin/employees/${emp.id}/balances`);
-      const data = await res.json();
-      if (data.balances) {
-        const b = data.balances;
+      const b = await getEmployeeBalances(emp.id);
+      if (b) {
         setBalances({
           sick: b.find((x: any) => x.leave_type === 'Sick')?.total_days || 0,
           casual: b.find((x: any) => x.leave_type === 'Casual')?.total_days || 0,
@@ -171,7 +184,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
         });
       }
     } catch (err) {
-      console.error('Failed to fetch balances');
+      console.error('Failed to fetch balances:', err);
     }
   };
 
@@ -180,12 +193,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     if (!selectedEmployee) return;
     setIsUpdatingBalance(true);
     try {
-      const res = await fetch(`/api/admin/employees/${selectedEmployee.id}/balances`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(balances),
-      });
-      if (!res.ok) throw new Error('Failed to update');
+      await updateEmployeeBalances(selectedEmployee.id, balances);
       toast.success('Balances updated successfully.');
       setIsBalanceModalOpen(false);
     } catch (err) {
@@ -266,7 +274,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
             <p className="text-xs text-zinc-500 font-semibold">No active personnel matching your query.</p>
           </div>
         ) : (
-          filtered.map((emp) => (
+          paginatedItems.map((emp) => (
             <Card key={emp.id} hover={false} className="p-4 rounded-xl border border-zinc-200 shadow-sm bg-white text-zinc-600">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
@@ -391,7 +399,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                   </td>
                 </tr>
               ) : (
-                filtered.map((emp) => (
+                paginatedItems.map((emp) => (
                   <tr key={emp.id} className="group hover:bg-zinc-50/30 transition-colors">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3">
@@ -489,6 +497,61 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
           </table>
         </div>
       </Card>
+
+      {/* Pagination Widget */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-zinc-200">
+          <div className="text-xs text-zinc-500 font-medium">
+            Showing <span className="font-bold text-navy-900">{Math.min(filtered.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> to{' '}
+            <span className="font-bold text-navy-900">{Math.min(filtered.length, currentPage * ITEMS_PER_PAGE)}</span> of{' '}
+            <span className="font-bold text-navy-900">{filtered.length}</span> entries
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1 text-xs"
+            >
+              Previous
+            </Button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+              let pageNum = currentPage;
+              if (currentPage <= 3) {
+                pageNum = idx + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + idx;
+              } else {
+                pageNum = currentPage - 2 + idx;
+              }
+              
+              if (pageNum < 1 || pageNum > totalPages) return null;
+
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className="w-8 h-8 p-0 text-xs font-bold"
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-2.5 py-1 text-xs"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* 4. Premium Add Employee Modal (Dark first) */}
       <AnimatePresence>

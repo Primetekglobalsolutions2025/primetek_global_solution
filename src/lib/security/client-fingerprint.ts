@@ -4,6 +4,13 @@
  * Generates a persistent fingerprint that helps identify unique browser/device configurations.
  * Stores a random seed in localStorage to maintain persistence across sessions,
  * combined with hardware/browser details.
+ * 
+ * SECURITY NOTE (AUDIT M-7):
+ * Storing device fingerprint values in localStorage without encryption or server-side signatures
+ * makes them susceptible to XSS attacks and manual token cloning/extraction. An attacker who gains
+ * JS execution could steal the fingerprint value to bypass device trust restrictions or spoof session transfers.
+ * To mitigate this in highly secure environments, consider signing the fingerprint using a server-managed
+ * cryptographic key, storing it in HttpOnly cookies, or verifying it alongside client-attestation APIs.
  */
 
 export function getOrCreateFingerprint(): string {

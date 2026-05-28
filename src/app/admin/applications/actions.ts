@@ -19,7 +19,7 @@ export async function getAdminApplications() {
       )
     `)
     .order('created_at', { ascending: false })
-    .limit(500);
+    .limit(5000);
 
   if (error) {
     console.error('Error fetching admin applications:', error);

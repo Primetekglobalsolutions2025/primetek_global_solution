@@ -13,11 +13,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/ui/Logo';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
-import { getPendingApprovals, getPendingDisputes } from '@/app/admin/approvals/actions';
+import { getPendingCountOnly } from '@/app/admin/approvals/actions';
 
 interface AppSidebarProps {
   role: 'admin' | 'employee' | 'hr';
   userName?: string;
+  initialPendingCount?: number;
+  pendingCount?: number;
 }
 
 interface NavItem {
@@ -27,25 +29,34 @@ interface NavItem {
   section: string;
 }
 
-export default function AppSidebar({ role, userName }: AppSidebarProps) {
+export default function AppSidebar({ role, userName, initialPendingCount = 0, pendingCount: propPendingCount }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(initialPendingCount);
 
   useEffect(() => {
+    if (propPendingCount !== undefined) {
+      setPendingCount(propPendingCount);
+    }
+  }, [propPendingCount]);
+
+  useEffect(() => {
+    if (propPendingCount === undefined) {
+      setPendingCount(initialPendingCount);
+    }
+  }, [initialPendingCount, propPendingCount]);
+
+  useEffect(() => {
+    if (propPendingCount !== undefined) return;
     if (role !== 'admin') return;
 
     const fetchPendingCount = async () => {
       try {
-        const [approvals, disputes] = await Promise.all([
-          getPendingApprovals(),
-          getPendingDisputes()
-        ]);
-        const count = (approvals?.leaves?.length || 0) + (approvals?.wfh?.length || 0) + (disputes?.length || 0);
+        const count = await getPendingCountOnly();
         setPendingCount(count);
       } catch (err) {
         console.warn('Failed to fetch pending counts for sidebar', err);
@@ -55,7 +66,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     fetchPendingCount();
     const interval = setInterval(fetchPendingCount, 25000);
     return () => clearInterval(interval);
-  }, [role]);
+  }, [role, propPendingCount]);
 
   const desktopAdminItems: NavItem[] = [
     // ─── Operations ───

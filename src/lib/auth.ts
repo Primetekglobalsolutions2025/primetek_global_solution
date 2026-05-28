@@ -166,8 +166,23 @@ export async function getSession(): Promise<TokenPayload | null> {
   }
 
   const token = cookieStore.get(tokenCookieName)?.value;
-  if (!token) return null;
-  return verifyToken(token);
+  if (token) {
+    const payload = await verifyToken(token);
+    if (payload) return payload;
+  }
+
+  // Fallback: Verify both cookies if the specific one is missing or verification failed
+  const adminToken = cookieStore.get('admin-auth-token')?.value;
+  if (adminToken) {
+    const payload = await verifyToken(adminToken);
+    if (payload && payload.role === 'admin') return payload;
+  }
+  const empToken = cookieStore.get('employee-auth-token')?.value;
+  if (empToken) {
+    const payload = await verifyToken(empToken);
+    if (payload && (payload.role === 'employee' || payload.role === 'hr')) return payload;
+  }
+  return null;
 }
 
 export function getTokenFromRequest(request: NextRequest): string | null {

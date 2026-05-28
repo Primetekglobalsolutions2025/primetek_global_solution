@@ -90,3 +90,21 @@ export function getISTShiftDate(now: Date = new Date()): string {
     return istNow.toISOString().split('T')[0];
   }
 }
+
+export const ATTENDANCE_STATUS = {
+  WORKING: 'Working',
+  IDLE: 'Idle',
+  BREAK: 'Break',
+  BREAK_AUTO: 'Break (Auto)',
+  LOGGED_OUT: 'Logged Out',
+  PENDING_WFH: 'Pending WFH',
+  APPROVED_WFH: 'Approved WFH',
+  REJECTED_WFH: 'Rejected WFH',
+  PRESENT: 'Present',
+  LATE: 'Late',
+  ABSENT: 'Absent',
+  HALF_DAY: 'Half-day'
+} as const;
+
+export type AttendanceStatus = typeof ATTENDANCE_STATUS[keyof typeof ATTENDANCE_STATUS];
+

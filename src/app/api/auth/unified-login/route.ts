@@ -111,16 +111,16 @@ export async function POST(request: NextRequest) {
       if (authData?.user) {
         // Clear rate limit key on success
         await loginRateLimiter.delete(rateLimitKey);
-        // Double check they have admin rights in DB if they weren't found earlier
-        if (!adminRecord) {
-          await supabaseAdmin.from('admin_users').upsert({ id: authData.user.id, email: cleanEmail });
-        }
-
-        const { data: freshAdmin } = await supabaseAdmin
+        // Verify admin is provisioned in admin_users table
+        const { data: freshAdmin, error: freshAdminError } = await supabaseAdmin
           .from('admin_users')
           .select('mfa_enabled')
           .eq('id', authData.user.id)
-          .single();
+          .maybeSingle();
+
+        if (freshAdminError || !freshAdmin) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
 
         if (freshAdmin?.mfa_enabled) {
           const tempToken = await createToken({

@@ -83,6 +83,21 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
     });
   }, [apps, search, statusFilter, jobFilter]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, jobFilter]);
+
+  const ITEMS_PER_PAGE = 50;
+  const paginatedItems = useMemo(() => {
+    return filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+  }, [filtered.length]);
+
   const handleUpdateStatus = async (id: string, status: string) => {
     const oldApps = apps;
     setApps((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
@@ -190,7 +205,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
             <p className="text-xs text-text-muted font-semibold">No applications found.</p>
           </div>
         ) : (
-          filtered.map((app) => (
+          paginatedItems.map((app) => (
             <Card key={app.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
               <div className="flex items-start justify-between mb-3">
                 <div>
@@ -267,7 +282,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
               {filtered.length === 0 ? (
                 <tr><td colSpan={6} className="px-4 py-12 text-center text-text-muted text-xs">No applications found.</td></tr>
               ) : (
-                filtered.map((app) => (
+                paginatedItems.map((app) => (
                   <tr key={app.id} className="hover:bg-surface-alt/30 transition-colors group">
                     <td className="px-4 py-2.5">
                       <p className="text-xs font-semibold text-navy-900 leading-tight">{app.name}</p>
@@ -318,6 +333,61 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
           </table>
         </div>
       </Card>
+
+      {/* Pagination Widget */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t border-zinc-200">
+          <div className="text-xs text-zinc-500 font-medium">
+            Showing <span className="font-bold text-navy-900">{Math.min(filtered.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> to{' '}
+            <span className="font-bold text-navy-900">{Math.min(filtered.length, currentPage * ITEMS_PER_PAGE)}</span> of{' '}
+            <span className="font-bold text-navy-900">{filtered.length}</span> entries
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-2.5 py-1 text-xs"
+            >
+              Previous
+            </Button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+              let pageNum = currentPage;
+              if (currentPage <= 3) {
+                pageNum = idx + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + idx;
+              } else {
+                pageNum = currentPage - 2 + idx;
+              }
+              
+              if (pageNum < 1 || pageNum > totalPages) return null;
+
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className="w-8 h-8 p-0 text-xs font-bold"
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-2.5 py-1 text-xs"
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       <AnimatePresence>

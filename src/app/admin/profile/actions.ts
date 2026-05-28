@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 
 import bcrypt from 'bcryptjs';
 
@@ -12,7 +13,18 @@ export async function changePassword(data: { currentPassword?: string; newPasswo
 
   if (session.role === 'admin') {
     // Admin password change via Supabase Auth
+    if (!data.currentPassword) throw new Error('Current password is required');
     if (!data.newPassword) throw new Error('New password is required');
+
+    // Verify current password by attempting to sign in
+    const { error: verifyError } = await supabaseAdmin.auth.signInWithPassword({
+      email: session.email,
+      password: data.currentPassword,
+    });
+    if (verifyError) {
+      throw new Error('Current password is incorrect');
+    }
+
     const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(session.id, {
       password: data.newPassword,
     });
@@ -56,5 +68,46 @@ export async function changePassword(data: { currentPassword?: string; newPasswo
   }
 
   revalidatePath('/employee/profile');
+  return { success: true };
+}
+
+export async function updateAdminProfile(data: { name: string }) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  if (!data.name || data.name.trim() === '') {
+    throw new Error('Name cannot be empty');
+  }
+
+  // 1. Update full_name in Supabase Auth user metadata
+  const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(session.id, {
+    user_metadata: { full_name: data.name.trim() }
+  });
+
+  if (authError) {
+    console.error('Error updating admin profile metadata:', authError);
+    throw new Error(authError.message);
+  }
+
+  // 2. Generate a new JWT token with the updated name
+  const { createToken } = await import('@/lib/auth');
+  const token = await createToken({
+    id: session.id,
+    email: session.email,
+    role: 'admin',
+    name: data.name.trim(),
+  });
+
+  // 3. Set the updated cookie
+  const cookieStore = await cookies();
+  cookieStore.set('admin-auth-token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+  });
+
+  revalidatePath('/admin/profile');
   return { success: true };
 }

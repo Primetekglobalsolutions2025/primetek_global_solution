@@ -76,7 +76,7 @@ export default async function EmployeeAttendanceServerWrapper() {
         <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">Attendance</h1>
         <p className="text-zinc-550 text-sm">Clock in and out using GPS.</p>
       </div>
-      <AttendanceClient initialRecords={empRecords} wasAutoLoggedOut={wasAutoLoggedOut} />
+      <AttendanceClient employeeId={session.id} initialRecords={empRecords} wasAutoLoggedOut={wasAutoLoggedOut} />
     </div>
   );
 }

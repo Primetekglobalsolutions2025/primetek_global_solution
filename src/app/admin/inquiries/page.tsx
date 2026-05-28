@@ -1,6 +1,8 @@
 import InquiryTable from '@/components/admin/InquiryTable';
 import { getAdminInquiries, updateInquiryStatus, deleteInquiry } from './actions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminAppInquiriesPage() {
   const inquiries = await getAdminInquiries();
 

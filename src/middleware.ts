@@ -30,6 +30,9 @@ async function getCachedEmployeeStatus(employeeId: string): Promise<string | nul
       if (error) throw error;
 
       const status = empData?.status || null;
+      if (statusCache.size >= 500) {
+        statusCache.clear();
+      }
       statusCache.set(employeeId, { status, timestamp: now });
       return status;
     } catch (err) {
@@ -72,6 +75,9 @@ async function getCachedAdminExistence(adminId: string): Promise<boolean> {
       if (error) throw error;
 
       const exists = !!adminData;
+      if (adminCache.size >= 500) {
+        adminCache.clear();
+      }
       adminCache.set(adminId, { exists, timestamp: now });
       return exists;
     } catch (err) {

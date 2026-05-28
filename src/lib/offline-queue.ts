@@ -6,6 +6,8 @@
  * Prevents duplicate submissions using date+employee deduplication.
  */
 
+import { getISTShiftDate } from '@/lib/utils';
+
 export interface OfflineAttendanceEntry {
   id: string;
   action: 'check_in' | 'check_out' | 'wfh_request';
@@ -131,26 +133,9 @@ function generateId(): string {
   return `offline_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-/** Calculate shift date (IST timezone, night shift) for client side deduplication */
 function getClientShiftDate(dateStrOrObj: string | Date = new Date()): string {
   const date = typeof dateStrOrObj === 'string' ? new Date(dateStrOrObj) : dateStrOrObj;
-  // Convert UTC to IST (+5:30)
-  const offset = 5.5 * 60 * 60 * 1000;
-  const istDate = new Date(date.getTime() + offset);
-  
-  // Read hours in IST
-  const hours = istDate.getUTCHours();
-  
-  let shiftDateStr: string;
-  if (hours < 12) {
-    // Before noon IST, it belongs to yesterday's shift
-    const yesterday = new Date(istDate.getTime() - 24 * 60 * 60 * 1000);
-    shiftDateStr = yesterday.toISOString().split('T')[0];
-  } else {
-    // Noon or later IST, it belongs to today's shift
-    shiftDateStr = istDate.toISOString().split('T')[0];
-  }
-  return shiftDateStr;
+  return getISTShiftDate(date);
 }
 
 /** Add an entry to the offline queue */

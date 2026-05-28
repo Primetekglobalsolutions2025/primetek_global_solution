@@ -41,8 +41,8 @@ export default function AdminLoginPage() {
 
         {/* Support links */}
         <div className="mt-8 flex justify-center gap-6">
-          <a href="#" className="text-[11px] font-bold text-zinc-500 hover:text-primary-600 uppercase tracking-wider transition-colors">Forgot Password?</a>
-          <a href="#" className="text-[11px] font-bold text-zinc-500 hover:text-primary-600 uppercase tracking-wider transition-colors">Support</a>
+          <a href="mailto:it-support@primetekglobal.com?subject=Admin%20Password%20Reset%20Request" className="text-[11px] font-bold text-zinc-500 hover:text-primary-600 uppercase tracking-wider transition-colors">Forgot Password?</a>
+          <a href="mailto:it-support@primetekglobal.com?subject=Admin%20Portal%20Support" className="text-[11px] font-bold text-zinc-500 hover:text-primary-600 uppercase tracking-wider transition-colors">Support</a>
         </div>
       </div>
     </div>

@@ -17,12 +17,8 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      let refreshing = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
+        // Let the user continue their session uninterrupted on Service Worker update
       });
 
       navigator.serviceWorker.register('/sw.js', { scope: '/' })

@@ -1,6 +1,8 @@
 import { getPendingApprovals, getApprovalHistory, getPendingDisputes } from './actions';
 import ApprovalsClient from './ApprovalsClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function ApprovalsPage() {
   const [{ leaves, wfh }, history, disputes] = await Promise.all([
     getPendingApprovals(),

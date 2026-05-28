@@ -37,11 +37,32 @@ import {
   correctClockOutTime, 
   rebuildSessionProjection, 
   overrideDeviceValidation,
-  getRealtimeAttendanceUpdates
+  getRealtimeAttendanceUpdates,
+  getSingleAdminAttendanceRecord
 } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn, getISTShiftDate } from '@/lib/utils';
 import { motion } from 'framer-motion';
+
+export interface AttendanceEvent {
+  id: string;
+  session_id: string;
+  employee_id: string;
+  employee_name?: string;
+  event_type: string;
+  event_timestamp: string;
+  payload: any;
+  client_ip?: string | null;
+  sequence_number?: number;
+}
+
+export interface SystemHealthNode {
+  node_name: string;
+  status: string;
+  color?: string;
+  id?: string;
+  last_checked?: string;
+}
 
 export interface AttendanceRecord {
   id: string;
@@ -161,14 +182,13 @@ export default function AttendanceClient({
   const [riskFilter, setRiskFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
-  const [ticks, setTicks] = useState(0);
   const [quickFilter, setQuickFilter] = useState<string>('all');
   const lastActiveTimeRef = useRef<number>(Date.now());
   const isPollingPausedRef = useRef<boolean>(false);
   const { toast } = useToast();
 
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
-  const [selectedRecordEvents, setSelectedRecordEvents] = useState<any[]>([]);
+  const [selectedRecordEvents, setSelectedRecordEvents] = useState<AttendanceEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -182,6 +202,32 @@ export default function AttendanceClient({
   // Expanded rows state
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
 
+  const [records, setRecords] = useState<AttendanceRecord[]>(initialAttendance);
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, employeeFilter, statusFilter, riskFilter, quickFilter]);
+
+  useEffect(() => {
+    setRecords(initialAttendance);
+  }, [initialAttendance]);
+
+  const refreshRecordInState = async (recordId: string) => {
+    try {
+      const updatedRecord = await getSingleAdminAttendanceRecord(recordId);
+      if (updatedRecord) {
+        setRecords((prev) => prev.map((r) => r.id === recordId ? updatedRecord : r));
+        if (selectedRecord && selectedRecord.id === recordId) {
+          setSelectedRecord(updatedRecord);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to reconcile local record state:', err);
+    }
+  };
+
   // Realtime Data state
   const [realtimeData, setRealtimeData] = useState<{
     metrics: {
@@ -194,8 +240,8 @@ export default function AttendanceClient({
       autoBreaks: number;
       pendingDisputes: number;
     };
-    latestEvents: any[];
-    systemHealth: any[];
+    latestEvents: AttendanceEvent[];
+    systemHealth: SystemHealthNode[];
   } | null>(null);
 
   const fetchRealtimeUpdates = useCallback(async () => {
@@ -337,6 +383,8 @@ export default function AttendanceClient({
       
       const updatedEvents = await getSessionEvents(selectedRecord.id);
       setSelectedRecordEvents(updatedEvents);
+      await refreshRecordInState(selectedRecord.id);
+      await fetchRealtimeUpdates();
       setOverrideActionType(null);
       setOverrideJustification('');
       
@@ -362,34 +410,26 @@ export default function AttendanceClient({
     router.push(`/admin/attendance?${params.toString()}`);
   };
 
-  // Tick timer to update live monitors
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTicks((t) => t + 1);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
   const todayISTStr = useMemo(() => {
-    return getISTShiftDate(new Date(ticks > 0 ? Date.now() : Date.now()));
-  }, [ticks]);
+    return getISTShiftDate(new Date());
+  }, []);
 
   const filterCounts = useMemo(() => {
     return {
-      all: initialAttendance.length,
-      active: initialAttendance.filter(r => r.status === 'Working').length,
-      breaks: initialAttendance.filter(r => ['Break', 'Break (Auto)'].includes(r.status)).length,
-      idle: initialAttendance.filter(r => r.status === 'Idle').length,
-      gps: initialAttendance.filter(r => r.risk_reasons?.some(re => re.signal.toLowerCase().includes('gps') || re.detail.toLowerCase().includes('geofence'))).length,
-      mobile: initialAttendance.filter(r => r.device_type === 'mobile' || r.device_type === 'tablet').length,
-      stale: initialAttendance.filter(r => r.status === 'Working' && r.check_out === null && r.duration_hours > 12).length,
-      disputes: initialAttendance.filter(r => r.status === 'pending wfh' || r.status === 'Pending WFH').length,
-      autobreaks: initialAttendance.filter(r => r.status === 'Break (Auto)').length,
+      all: records.length,
+      active: records.filter(r => r.status === 'Working').length,
+      breaks: records.filter(r => ['Break', 'Break (Auto)'].includes(r.status)).length,
+      idle: records.filter(r => r.status === 'Idle').length,
+      gps: records.filter(r => r.risk_reasons?.some(re => re.signal.toLowerCase().includes('gps') || re.detail.toLowerCase().includes('geofence'))).length,
+      mobile: records.filter(r => r.device_type === 'mobile' || r.device_type === 'tablet').length,
+      stale: records.filter(r => r.status === 'Working' && r.check_out === null && r.duration_hours > 12).length,
+      disputes: records.filter(r => r.status === 'pending wfh' || r.status === 'Pending WFH').length,
+      autobreaks: records.filter(r => r.status === 'Break (Auto)').length,
     };
-  }, [initialAttendance]);
+  }, [records]);
 
   const filtered = useMemo(() => {
-    return initialAttendance.filter((r) => {
+    return records.filter((r) => {
       const matchesSearch = !search || (r.employee_name || '').toLowerCase().includes(search.toLowerCase());
       const matchesEmployee = employeeFilter === 'all' || r.employee_id === employeeFilter;
       const matchesStatus = statusFilter === 'all' || (r.status || '').toLowerCase() === statusFilter.toLowerCase();
@@ -417,19 +457,28 @@ export default function AttendanceClient({
       
       return matchesSearch && matchesEmployee && matchesStatus && matchesRisk && matchesQuick;
     });
-  }, [initialAttendance, search, employeeFilter, statusFilter, riskFilter, quickFilter]);
+  }, [records, search, employeeFilter, statusFilter, riskFilter, quickFilter]);
+
+  const ITEMS_PER_PAGE = 50;
+  const paginatedItems = useMemo(() => {
+    return filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
+  const totalPages = useMemo(() => {
+    return Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
+  }, [filtered.length]);
 
   const liveRecords = useMemo(() => {
-    return initialAttendance.filter((r) => {
+    return records.filter((r) => {
       const isToday = r.date === todayISTStr;
       const isActive = ['Working', 'Idle', 'Break', 'Break (Auto)'].includes(r.status) && r.check_out === null;
       return isToday || isActive;
     });
-  }, [initialAttendance, todayISTStr]);
+  }, [records, todayISTStr]);
 
   const lateRecords = useMemo(() => {
-    return initialAttendance.filter((r) => r.is_late);
-  }, [initialAttendance]);
+    return records.filter((r) => r.is_late);
+  }, [records]);
 
   const employeeLatesTrend = useMemo(() => {
     const counts: Record<string, { total: number; unexempted: number; employee_name: string }> = {};
@@ -519,6 +568,7 @@ export default function AttendanceClient({
     setLoadingRows((prev) => ({ ...prev, [key]: true }));
     try {
       await toggleExemption(recordId, fieldName, !currentVal);
+      await refreshRecordInState(recordId);
       toast.success('Exemption status updated successfully.');
     } catch (err) {
       console.error(err);
@@ -633,7 +683,7 @@ export default function AttendanceClient({
                 badgeColor = 'bg-zinc-50 text-zinc-650 border-zinc-200';
             }
             
-            const matchRecord = initialAttendance.find(r => r.id === evt.session_id);
+            const matchRecord = records.find(r => r.id === evt.session_id);
             
             return (
               <div 
@@ -894,7 +944,7 @@ export default function AttendanceClient({
                     <p className="text-xs text-zinc-500 font-bold">No logs found.</p>
                   </Card>
                 ) : (
-                  filtered.map((record) => (
+                  paginatedItems.map((record) => (
                     <Card 
                       key={record.id} 
                       hover={true} 
@@ -984,7 +1034,7 @@ export default function AttendanceClient({
                           </td>
                         </tr>
                       ) : (
-                        filtered.map((record) => {
+                        paginatedItems.map((record) => {
                           const times = getRealtimeDurations(record);
                           return (
                             <Fragment key={record.id}>
@@ -1138,6 +1188,61 @@ export default function AttendanceClient({
                 </table>
                 </div>
               </Card>
+
+              {/* Pagination Widget */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-zinc-200">
+                  <div className="text-xs text-zinc-500 font-medium">
+                    Showing <span className="font-bold text-navy-900">{Math.min(filtered.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> to{' '}
+                    <span className="font-bold text-navy-900">{Math.min(filtered.length, currentPage * ITEMS_PER_PAGE)}</span> of{' '}
+                    <span className="font-bold text-navy-900">{filtered.length}</span> entries
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-2.5 py-1 text-xs"
+                    >
+                      Previous
+                    </Button>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+                      let pageNum = currentPage;
+                      if (currentPage <= 3) {
+                        pageNum = idx + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + idx;
+                      } else {
+                        pageNum = currentPage - 2 + idx;
+                      }
+                      
+                      if (pageNum < 1 || pageNum > totalPages) return null;
+
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'primary' : 'outline'}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className="w-8 h-8 p-0 text-xs font-bold"
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-2.5 py-1 text-xs"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right Column: Live Activity Feed (lg:col-span-2) */}

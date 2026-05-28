@@ -124,6 +124,38 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
     const requestYear = start.getFullYear();
     const requestMonth = start.getMonth() + 1;
 
+    // Ensure the leave balance record exists so that the stored procedure UPDATE can match and increment it.
+    const { data: existingBalance } = await supabaseAdmin
+      .from('leave_balances')
+      .select('id')
+      .eq('employee_id', request.employee_id)
+      .eq('year', requestYear)
+      .eq('month', requestMonth)
+      .eq('leave_type', request.type)
+      .maybeSingle();
+
+    if (!existingBalance) {
+      const { error: initError } = await supabaseAdmin
+        .from('leave_balances')
+        .insert([{
+          employee_id: request.employee_id,
+          leave_type: request.type,
+          total_days: request.type === 'Casual' ? 1 : 0,
+          used_days: 0,
+          year: requestYear,
+          month: requestMonth
+        }]);
+      if (initError) {
+        console.error('Failed to initialize leave balance during approval:', initError.message);
+        // Revert status update
+        await supabaseAdmin
+          .from('leave_requests')
+          .update({ status: 'Pending' })
+          .eq('id', id);
+        throw new Error(`Failed to initialize leave balance row: ${initError.message}`);
+      }
+    }
+
     // Atomic update to used_days via stored procedure to prevent race conditions
     const { error: rpcError } = await supabaseAdmin.rpc('increment_used_days', {
       p_employee_id: request.employee_id,
@@ -134,29 +166,13 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
     });
 
     if (rpcError) {
-      console.warn('RPC increment_used_days failed, falling back to manual update:', rpcError);
-      // Fallback to manual update if RPC is not yet deployed in this environment
-      const { data: balance } = await supabaseAdmin
-        .from('leave_balances')
-        .select('used_days')
-        .eq('employee_id', request.employee_id)
-        .eq('leave_type', request.type)
-        .eq('year', requestYear)
-        .eq('month', requestMonth)
-        .single();
-
-      if (balance) {
-        const newUsed = (balance.used_days || 0) + days;
-        await supabaseAdmin
-          .from('leave_balances')
-          .update({ 
-            used_days: newUsed
-          })
-          .eq('employee_id', request.employee_id)
-          .eq('leave_type', request.type)
-          .eq('year', requestYear)
-          .eq('month', requestMonth);
-      }
+      console.error('RPC increment_used_days failed:', rpcError.message);
+      // Revert the status update for consistency
+      await supabaseAdmin
+        .from('leave_requests')
+        .update({ status: 'Pending' })
+        .eq('id', id);
+      throw new Error(`Failed to update leave balance atomically: ${rpcError.message}`);
     }
   }
 
@@ -379,6 +395,35 @@ export async function getApprovalHistory() {
   }
 }
 
+export async function getPendingCountOnly() {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') {
+    return 0;
+  }
+
+  try {
+    const [leavesCount, wfhCount, disputesCount] = await Promise.all([
+      supabaseAdmin
+        .from('leave_requests')
+        .select('*', { count: 'exact', head: true })
+        .ilike('status', 'Pending'),
+      supabaseAdmin
+        .from('attendance')
+        .select('*', { count: 'exact', head: true })
+        .ilike('status', 'Pending WFH'),
+      supabaseAdmin
+        .from('disputes')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'PENDING')
+    ]);
+
+    return (leavesCount.count || 0) + (wfhCount.count || 0) + (disputesCount.count || 0);
+  } catch (err) {
+    console.error('Error fetching pending counts:', err);
+    return 0;
+  }
+}
+
 export async function getPendingDisputes() {
   const session = await getSession();
   if (!session || session.role !== 'admin') return [];
@@ -399,7 +444,9 @@ export async function getPendingDisputes() {
           status,
           is_late,
           late_minutes,
-          deduction_applied
+          deduction_applied,
+          productive_hours,
+          total_break_seconds
         )
       `)
       .eq('status', 'PENDING')
@@ -416,7 +463,9 @@ export async function getPendingDisputes() {
       attendance_status: d.attendance?.status || '',
       attendance_is_late: d.attendance?.is_late || false,
       attendance_late_minutes: d.attendance?.late_minutes || 0,
-      attendance_deduction: d.attendance?.deduction_applied || 0
+      attendance_deduction: d.attendance?.deduction_applied || 0,
+      attendance_productive_hours: d.attendance?.productive_hours || 0,
+      attendance_total_break_seconds: d.attendance?.total_break_seconds || 0
     }));
   } catch (err) {
     console.error('Error fetching pending disputes:', err);

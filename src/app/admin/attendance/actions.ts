@@ -43,7 +43,11 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
   // Proactively sweep stale sessions before fetching — guarantees live monitor accuracy
-  await sweepGlobalStaleSessions();
+  const todayIST = getISTShiftDate();
+  const includesToday = (!startDate || startDate <= todayIST) && (!endDate || endDate >= todayIST);
+  if (includesToday) {
+    await sweepGlobalStaleSessions();
+  }
 
   let query = supabaseAdmin
     .from('attendance')
@@ -72,7 +76,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
 
   const { data, error } = await query
     .order('check_in', { ascending: false })
-    .limit(500);
+    .limit(5000);
 
   if (error) {
     console.error('Error fetching admin attendance:', error);
@@ -389,10 +393,13 @@ export async function exportAttendanceExcel(year: number) {
         if (empAtt) {
           const dateStr = `${year}-${String(monthIndex).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
           const status = empAtt[dateStr];
-          if (status === 'Present') statusCode = 'P';
-          else if (status === 'Late') statusCode = 'P';
-          else if (status === 'Absent') statusCode = 'A';
-          else if (status === 'Half-day') statusCode = 'HD';
+          if (['Present', 'Late', 'Working', 'Idle', 'Break', 'Break (Auto)', 'Approved WFH'].includes(status)) {
+            statusCode = 'P';
+          } else if (status === 'Absent' || status === 'Rejected WFH') {
+            statusCode = 'A';
+          } else if (status === 'Half-day') {
+            statusCode = 'HD';
+          }
         }
 
         if (dayOfWeek === 0 || dayOfWeek === 6) {
@@ -531,6 +538,21 @@ export async function toggleExemption(recordId: string, fieldName: string, value
   if (rebuildError) {
     console.error('Error rebuilding projection in toggleExemption:', rebuildError);
     throw new Error('Database projection rebuild failed');
+  }
+
+  // Fallback direct check & update to guarantee boolean exemption values are persisted (M-15)
+  const { data: rebuiltRecord, error: checkError } = await supabaseAdmin
+    .from('attendance')
+    .select(fieldName)
+    .eq('id', recordId)
+    .single();
+
+  if (!checkError && rebuiltRecord && (rebuiltRecord as any)[fieldName] !== value) {
+    console.warn(`[Exemption Fallback]: Projection did not set ${fieldName} to ${value}. Writing directly.`);
+    await supabaseAdmin
+      .from('attendance')
+      .update({ [fieldName]: value })
+      .eq('id', recordId);
   }
   
   await recalculateEmployeeLates(oldRecord.employee_id, year, month);
@@ -958,3 +980,100 @@ export async function getRealtimeAttendanceUpdates() {
   };
 }
 
+export async function getSingleAdminAttendanceRecord(sessionId: string) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const { data: record, error } = await supabaseAdmin
+    .from('attendance')
+    .select(`
+      *,
+      employees (
+        name
+      )
+    `)
+    .eq('id', sessionId)
+    .single();
+
+  if (error || !record) {
+    console.error('Error fetching single admin attendance record:', error);
+    return null;
+  }
+
+  const [riskRes, projectionsRes] = await Promise.all([
+    supabaseAdmin
+      .from('attendance_risk_events')
+      .select('*')
+      .eq('attendance_id', sessionId)
+      .order('created_at', { ascending: false }),
+    supabaseAdmin
+      .from('attendance_projections')
+      .select('session_id, last_heartbeat_at, productive_seconds, break_seconds')
+      .eq('session_id', sessionId)
+      .maybeSingle()
+  ]);
+
+  const recordRisks = riskRes.data || [];
+  let riskLevel: 'low' | 'medium' | 'high' = 'low';
+  let riskScore = 0;
+  let riskReasons: any[] = [];
+  
+  recordRisks.forEach((r) => {
+    if (r.risk_score > riskScore) {
+      riskScore = r.risk_score;
+      riskLevel = r.risk_level as 'low' | 'medium' | 'high';
+    }
+    if (r.risk_reasons) {
+      riskReasons = [...riskReasons, ...(Array.isArray(r.risk_reasons) ? r.risk_reasons : [])];
+    }
+  });
+
+  const proj = projectionsRes.data || null;
+
+  const checkIn = record.check_in ? new Date(record.check_in) : null;
+  const checkOut = record.check_out ? new Date(record.check_out) : null;
+  let durationHours = 0;
+  
+  if (checkIn && checkOut) {
+    durationHours = Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) * 10) / 10;
+  }
+
+  return {
+    id: record.id,
+    employee_id: record.employee_id,
+    employee_name: record.employees?.name || 'Unknown',
+    date: record.date || (record.check_in ? record.check_in.split('T')[0] : ''),
+    check_in: checkIn && !isNaN(checkIn.getTime()) ? checkIn.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : '—',
+    check_out: checkOut && !isNaN(checkOut.getTime()) ? checkOut.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : null,
+    check_in_raw: record.check_in,
+    check_out_raw: record.check_out,
+    duration_hours: durationHours,
+    status: record.status,
+    lat: record.lat || 0,
+    lng: record.lng || 0,
+    risk_level: riskLevel,
+    risk_score: riskScore,
+    risk_reasons: riskReasons,
+    risk_events: recordRisks,
+    // Break monitoring
+    current_break_start: record.current_break_start,
+    total_break_seconds: proj?.break_seconds ?? (record.total_break_seconds || 0),
+    productive_hours: proj ? (proj.productive_seconds / 3600.0) : (record.productive_hours || 0.0),
+    productive_seconds: proj?.productive_seconds ?? null,
+    break_seconds: proj?.break_seconds ?? null,
+    // Late login penalty
+    is_late: record.is_late || false,
+    late_minutes: record.late_minutes || 0,
+    deduction_applied: record.deduction_applied || 0.0,
+    // Exemptions
+    late_approved: record.late_approved || false,
+    permission_approved: record.permission_approved || false,
+    shift_override: record.shift_override || false,
+    manager_exemption: record.manager_exemption || false,
+    // Device and validation info
+    device_type: record.device_type || 'desktop',
+    device_label: record.device_label || 'Desktop',
+    awaiting_desktop_deadline: record.awaiting_desktop_deadline || null,
+    last_heartbeat_at: proj?.last_heartbeat_at || null,
+  };
+}
