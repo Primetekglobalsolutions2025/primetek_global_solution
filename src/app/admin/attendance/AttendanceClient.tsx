@@ -40,7 +40,7 @@ import {
   getRealtimeAttendanceUpdates
 } from './actions';
 import { useToast } from '@/components/ui/Toast';
-import { cn } from '@/lib/utils';
+import { cn, getISTShiftDate } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 export interface AttendanceRecord {
@@ -210,34 +210,6 @@ export default function AttendanceClient({
     let updatesInterval: NodeJS.Timeout | null = null;
     let routerRefreshInterval: NodeJS.Timeout | null = null;
 
-    const startIntervals = () => {
-      if (updatesInterval) clearInterval(updatesInterval);
-      if (routerRefreshInterval) clearInterval(routerRefreshInterval);
-
-      updatesInterval = setInterval(() => {
-        const isHidden = document.hidden;
-        const isInactive = Date.now() - lastActiveTimeRef.current > 5 * 60 * 1000;
-
-        if (isHidden || isInactive) {
-          if (!isPollingPausedRef.current) {
-            console.log(`[Admin Polling]: Paused due to ${isHidden ? 'hidden tab' : 'inactivity'}`);
-            isPollingPausedRef.current = true;
-          }
-          return;
-        }
-
-        fetchRealtimeUpdates();
-      }, 30000); // 30s polling interval
-
-      routerRefreshInterval = setInterval(() => {
-        const isHidden = document.hidden;
-        const isInactive = Date.now() - lastActiveTimeRef.current > 5 * 60 * 1000;
-        if (!isHidden && !isInactive) {
-          router.refresh();
-        }
-      }, 30000); // 30s revalidation interval
-    };
-
     const handleResume = () => {
       lastActiveTimeRef.current = Date.now();
       if (isPollingPausedRef.current) {
@@ -247,7 +219,6 @@ export default function AttendanceClient({
         router.refresh();
       }
     };
-
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         handleResume();
@@ -264,13 +235,38 @@ export default function AttendanceClient({
     const activityEvents = ['mousemove', 'keydown', 'click', 'scroll'];
     activityEvents.forEach((ev) => window.addEventListener(ev, handleActivity, { passive: true }));
 
-    // Initial fetch and start
+    // Initial fetch and start intervals.
+    // The router refresh is delayed by 15s so it is staggered against the KPI poll,
+    // preventing a double-fetch burst every 30 seconds.
     fetchRealtimeUpdates();
-    startIntervals();
+    updatesInterval = setInterval(() => {
+      const isHidden = document.hidden;
+      const isInactive = Date.now() - lastActiveTimeRef.current > 5 * 60 * 1000;
+      if (isHidden || isInactive) {
+        if (!isPollingPausedRef.current) {
+          console.log(`[Admin Polling]: Paused due to ${isHidden ? 'hidden tab' : 'inactivity'}`);
+          isPollingPausedRef.current = true;
+        }
+        return;
+      }
+      fetchRealtimeUpdates();
+    }, 30000);
+
+    // Start router refresh 15s after mount so it fires at t=15, 45, 75… while KPI fires at t=0, 30, 60…
+    const staggerTimeout = setTimeout(() => {
+      routerRefreshInterval = setInterval(() => {
+        const isHidden = document.hidden;
+        const isInactive = Date.now() - lastActiveTimeRef.current > 5 * 60 * 1000;
+        if (!isHidden && !isInactive) {
+          router.refresh();
+        }
+      }, 30000);
+    }, 15000);
 
     return () => {
       if (updatesInterval) clearInterval(updatesInterval);
       if (routerRefreshInterval) clearInterval(routerRefreshInterval);
+      clearTimeout(staggerTimeout);
       window.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleResume);
       activityEvents.forEach((ev) => window.removeEventListener(ev, handleActivity));
@@ -373,10 +369,7 @@ export default function AttendanceClient({
   }, []);
 
   const todayISTStr = useMemo(() => {
-    const d = new Date();
-    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-    const ist = new Date(utc + (3600000 * 5.5));
-    return ist.toISOString().split('T')[0];
+    return getISTShiftDate(new Date(ticks > 0 ? Date.now() : Date.now()));
   }, [ticks]);
 
   const filterCounts = useMemo(() => {

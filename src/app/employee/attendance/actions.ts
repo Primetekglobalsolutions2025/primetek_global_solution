@@ -390,6 +390,7 @@ export async function requestWFH(
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
+    revalidatePath('/admin/attendance');
     return { success: true, recordId: attRecord.id };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Failed to request WFH';
@@ -584,6 +585,28 @@ export async function resumeSession(recordId: string) {
 
     if (error) throw error;
 
+    // Append SESSION_RECOVERED event to keep the event stream consistent
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('sequence_number')
+      .eq('session_id', recordId)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+    await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: recordId,
+        employee_id: session.id,
+        event_type: 'SESSION_RECOVERED',
+        sequence_number: nextSequence,
+        idempotency_key: `resume-${recordId}-${nextSequence}`,
+        client_ip: '0.0.0.0',
+        payload: { resumed_at: now.toISOString() }
+      }]);
+
     // Rebuild projection so admin live monitor reflects the resumed session immediately
     await supabaseAdmin.rpc('rebuild_attendance_projection', {
       p_session_id: recordId
@@ -625,17 +648,8 @@ export async function startBreak() {
     }
 
     const now = new Date();
-    const { error } = await supabaseAdmin
-      .from('attendance')
-      .update({
-        status: 'Break',
-        current_break_start: now.toISOString()
-      })
-      .eq('id', record.id);
 
-    if (error) throw error;
-
-    // Get sequence
+    // Get sequence number first
     const { data: lastEvent } = await supabaseAdmin
       .from('attendance_events')
       .select('sequence_number')
@@ -643,11 +657,12 @@ export async function startBreak() {
       .order('sequence_number', { ascending: false })
       .limit(1)
       .maybeSingle();
-      
+
     const nextSequence = (lastEvent?.sequence_number || 1) + 1;
 
-    // Insert event
-    await supabaseAdmin
+    // Insert BREAK_STARTED event — projection rebuild will apply the status change.
+    // Do NOT directly update the attendance row here; the rebuild is the single source of truth.
+    const { error: insertError } = await supabaseAdmin
       .from('attendance_events')
       .insert([{
         session_id: record.id,
@@ -662,7 +677,9 @@ export async function startBreak() {
         payload: { start_time: now.toISOString() }
       }]);
 
-    // Rebuild projection so admin live monitor reflects the break start immediately
+    if (insertError) throw insertError;
+
+    // Rebuild projection — this applies the BREAK_STARTED event and updates status + current_break_start
     await supabaseAdmin.rpc('rebuild_attendance_projection', {
       p_session_id: record.id
     });
@@ -723,18 +740,7 @@ export async function endBreak() {
       : false;
     const nextStatus = isRemote ? 'Approved WFH' : 'Working';
 
-    const { error } = await supabaseAdmin
-      .from('attendance')
-      .update({
-        status: nextStatus,
-        current_break_start: null,
-        total_break_seconds: newTotalBreak
-      })
-      .eq('id', record.id);
-
-    if (error) throw error;
-
-    // Get sequence
+    // Get sequence number first
     const { data: lastEvent } = await supabaseAdmin
       .from('attendance_events')
       .select('sequence_number')
@@ -742,11 +748,12 @@ export async function endBreak() {
       .order('sequence_number', { ascending: false })
       .limit(1)
       .maybeSingle();
-      
+
     const nextSequence = (lastEvent?.sequence_number || 1) + 1;
 
-    // Insert event
-    await supabaseAdmin
+    // Insert BREAK_ENDED event — projection rebuild will apply the status change and accumulate break seconds.
+    // Do NOT directly update the attendance row here; the rebuild is the single source of truth.
+    const { error: insertError } = await supabaseAdmin
       .from('attendance_events')
       .insert([{
         session_id: record.id,
@@ -758,10 +765,12 @@ export async function endBreak() {
         gps_lat: record.lat ? Number(record.lat) : null,
         gps_lng: record.lng ? Number(record.lng) : null,
         gps_accuracy: 10,
-        payload: { end_time: now.toISOString(), total_break_seconds: newTotalBreak }
+        payload: { end_time: now.toISOString(), total_break_seconds: newTotalBreak, next_status: nextStatus }
       }]);
 
-    // Rebuild projection so admin live monitor reflects the break end immediately
+    if (insertError) throw insertError;
+
+    // Rebuild projection — this applies the BREAK_ENDED event and updates status + total_break_seconds
     await supabaseAdmin.rpc('rebuild_attendance_projection', {
       p_session_id: record.id
     });
@@ -1164,10 +1173,14 @@ export async function logStatusTransitionEvent(sessionId: string, newStatus: 'Wo
 
     if (insertErr) throw insertErr;
 
-
+    // Rebuild projection so admin live monitor reflects the status transition immediately
+    await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: sessionId
+    });
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
+    revalidatePath('/admin/attendance');
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Failed to log transition' };

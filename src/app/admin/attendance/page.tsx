@@ -2,6 +2,8 @@ import { Suspense } from 'react';
 import AttendanceClientWrapper from './AttendanceClientWrapper';
 import { AttendanceSkeleton } from './skeletons';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   searchParams: Promise<{ startDate?: string; endDate?: string }>;
 }

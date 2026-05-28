@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import ExcelJS from 'exceljs';
 import { logAuditAction } from '@/lib/audit';
+import { getISTShiftDate } from '@/lib/utils';
 
 declare module 'exceljs' {
   interface Worksheet {
@@ -57,9 +58,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
     query = query.gte('date', startDate);
   } else {
     // Default to last 30 days using IST date — attendance dates are stored as IST shift dates
-    // Using UTC new Date() would miss today's records when server is in UTC and it's before 05:30 UTC
-    const utc = Date.now() + (new Date().getTimezoneOffset() * 60000);
-    const istNow = new Date(utc + (3600000 * 5.5));
+    const istNow = new Date(getISTShiftDate());
     istNow.setDate(istNow.getDate() - 30);
     query = query.gte('date', istNow.toISOString().split('T')[0]);
   }
@@ -68,9 +67,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
     query = query.lte('date', endDate);
   } else {
     // Always include today in IST so current-shift records are never excluded
-    const utc = Date.now() + (new Date().getTimezoneOffset() * 60000);
-    const istToday = new Date(utc + (3600000 * 5.5)).toISOString().split('T')[0];
-    query = query.lte('date', istToday);
+    query = query.lte('date', getISTShiftDate());
   }
 
   const { data, error } = await query
@@ -822,23 +819,11 @@ export async function overrideDeviceValidation(
   return { success: true };
 }
 
-function getShiftDate(now: Date = new Date()): string {
-  const offset = 5.5 * 60 * 60 * 1000;
-  const istNow = new Date(now.getTime() + offset);
-  const hours = istNow.getUTCHours();
-  
-  if (hours < 12) {
-    const yesterday = new Date(istNow.getTime() - 24 * 60 * 60 * 1000);
-    return yesterday.toISOString().split('T')[0];
-  }
-  return istNow.toISOString().split('T')[0];
-}
-
 export async function getRealtimeAttendanceUpdates() {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
-  const activeShiftDate = getShiftDate();
+  const activeShiftDate = getISTShiftDate();
   
   // Shift start in UTC is 13:00 (18:30 IST) of the activeShiftDate
   const [y, m, d] = activeShiftDate.split('-').map(Number);
