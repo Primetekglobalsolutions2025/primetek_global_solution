@@ -168,7 +168,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-8 pb-12">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-navy-900 p-8 text-white shadow-xl shadow-navy-900/10">
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-white p-8 text-white shadow-xl shadow-navy-900/10">
         <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[100%] bg-primary-500/10 rounded-full blur-[80px]" />
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-2">
@@ -280,7 +280,7 @@ export default function AdminSettingsPage() {
               <Button 
                 onClick={handleSave} 
                 disabled={saving}
-                className="bg-navy-900 hover:bg-navy-800 text-white rounded-2xl px-8 py-4 font-black shadow-xl shadow-navy-900/10 active:scale-95 transition-all text-sm"
+                className="bg-navy-900 hover:bg-navy-950 text-white rounded-2xl px-8 py-4 font-black shadow-xl shadow-navy-900/10 active:scale-95 transition-all text-sm"
               >
                 {saving ? (
                   <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Saving...</>
@@ -367,7 +367,7 @@ export default function AdminSettingsPage() {
           </Card>
 
           {/* Guidelines */}
-          <Card hover={false} className="p-10 rounded-[2.5rem] border-border/60 shadow-sm bg-navy-900 text-white overflow-hidden relative">
+          <Card hover={false} className="p-10 rounded-[2.5rem] border-border/60 shadow-sm bg-white text-white overflow-hidden relative">
             <div className="absolute top-0 right-0 p-10 opacity-[0.05] pointer-events-none">
               <HelpCircle className="w-48 h-48 text-white" />
             </div>
@@ -396,7 +396,7 @@ export default function AdminSettingsPage() {
                 }
               ].map((step, idx) => (
                 <div key={idx} className="flex gap-4 group">
-                  <div className="shrink-0 w-8 h-8 rounded-xl bg-white/10 text-primary-400 flex items-center justify-center text-xs font-black group-hover:bg-primary-500 group-hover:text-white transition-all">
+                  <div className="shrink-0 w-8 h-8 rounded-xl bg-white/10 text-primary-400 flex items-center justify-center text-xs font-black group-hover:bg-primary-500 group-hover:text-navy-900 transition-all">
                     {idx + 1}
                   </div>
                   <div>
@@ -407,7 +407,7 @@ export default function AdminSettingsPage() {
               ))}
             </div>
 
-            <div className="mt-10 pt-8 border-t border-white/10 space-y-2">
+            <div className="mt-10 pt-8 border-t border-zinc-200 space-y-2">
               <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">System Integrations:</p>
               {systemNodes.map((node, i) => (
                 <p key={i} className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center justify-between">

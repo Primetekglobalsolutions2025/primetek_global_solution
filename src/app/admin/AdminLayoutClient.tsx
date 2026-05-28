@@ -175,12 +175,12 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
 
   if (isLoading) {
     return (
-      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-navy-900 gap-3">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center bg-zinc-50 gap-3">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-xl shadow-primary-500/30">
           <span className="text-white font-bold text-lg">P</span>
         </div>
-        <Loader2 className="w-5 h-5 text-primary-400 animate-spin" />
-        <p className="text-gray-500 text-xs uppercase tracking-widest font-bold">Loading Portal</p>
+        <Loader2 className="w-5 h-5 text-primary-500 animate-spin" />
+        <p className="text-zinc-500 text-xs uppercase tracking-widest font-bold">Loading Portal</p>
       </div>
     );
   }
@@ -190,9 +190,9 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="admin-portal flex h-[100dvh] bg-navy-950 text-slate-100 overflow-hidden font-sans">
+    <div className="admin-portal flex h-[100dvh] bg-zinc-50 text-navy-900 overflow-hidden font-sans">
       {session && <AppSidebar role={session.role} userName={session.name} />}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#090e17]">
+      <div className="flex-1 flex flex-col min-w-0 bg-zinc-50">
         <AppHeader userName={session?.name} role={session?.role} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
           <div className="max-w-7xl mx-auto space-y-4">

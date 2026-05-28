@@ -110,9 +110,9 @@ export default async function AuditLogsPage(props: PageProps) {
   });
 
   return (
-    <div className="space-y-6 pb-8 text-slate-350">
+    <div className="space-y-6 pb-8 text-zinc-600">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-xl bg-navy-950 border border-navy-800 p-6 text-white shadow-md">
+      <div className="relative overflow-hidden rounded-xl bg-zinc-50 border border-zinc-200 p-6 text-white shadow-md">
         <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[100%] bg-primary-500/10 rounded-full blur-[80px]" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -121,16 +121,16 @@ export default async function AuditLogsPage(props: PageProps) {
               <span className="text-[9px] font-bold uppercase tracking-wider text-primary-200">Security Ledger</span>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-white">System Audit Logs</h1>
-            <p className="text-slate-400 text-xs mt-1 font-medium">Immutable record of all critical administrative actions.</p>
+            <p className="text-zinc-500 text-xs mt-1 font-medium">Immutable record of all critical administrative actions.</p>
           </div>
           <form method="GET" action="/admin/audit" className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary-400 transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
             <input 
               type="text" 
               name="q"
               defaultValue={q}
               placeholder="Search logs..." 
-              className="pl-9 pr-3 py-2 rounded-lg bg-navy-900 border border-navy-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30 w-full md:w-64 text-slate-200 placeholder:text-slate-550"
+              className="pl-9 pr-3 py-2 rounded-lg bg-white border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30 w-full md:w-64 text-navy-900 placeholder:text-zinc-400"
             />
           </form>
         </div>
@@ -138,30 +138,30 @@ export default async function AuditLogsPage(props: PageProps) {
 
       {/* Activity Monitoring Section */}
       <div id="activity" className="scroll-mt-20">
-        <Card hover={false} className="overflow-hidden border border-navy-850 shadow-sm rounded-xl p-0 bg-[#0c1424]/40">
-          <div className="flex items-center justify-between px-5 py-3.5 bg-[#090e17]/40 border-b border-navy-800/60">
+        <Card hover={false} className="overflow-hidden border border-zinc-200 shadow-sm rounded-xl p-0 bg-white">
+          <div className="flex items-center justify-between px-5 py-3.5 bg-zinc-50/50 border-b border-zinc-200/60">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center border border-primary-500/20">
                 <Activity className="w-4 h-4 text-primary-455" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-100 tracking-tight">Activity Monitoring</h2>
-                <p className="text-[10px] text-slate-450 font-medium">Last 24 hours — employee check-ins, check-outs &amp; remote work</p>
+                <h2 className="text-sm font-bold text-navy-900 tracking-tight">Activity Monitoring</h2>
+                <p className="text-[10px] text-zinc-500 font-medium">Last 24 hours — employee check-ins, check-outs &amp; remote work</p>
               </div>
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-350 bg-navy-900 px-2.5 py-1 rounded-full border border-navy-800">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-600 bg-white px-2.5 py-1 rounded-full border border-zinc-200">
               {recentActivity?.length || 0} events
             </span>
           </div>
           {(!recentActivity || recentActivity.length === 0) ? (
             <div className="p-10 text-center">
-              <div className="w-10 h-10 rounded-full bg-navy-900 border border-navy-850 flex items-center justify-center mx-auto mb-2">
+              <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center mx-auto mb-2">
                 <Activity className="w-5 h-5 text-slate-650" />
               </div>
-              <p className="text-xs text-slate-400 font-bold">No activity in the last 24 hours.</p>
+              <p className="text-xs text-zinc-500 font-bold">No activity in the last 24 hours.</p>
             </div>
           ) : (
-            <div className="divide-y divide-navy-800/40 max-h-[320px] overflow-y-auto">
+            <div className="divide-y divide-zinc-100/40 max-h-[320px] overflow-y-auto">
               {recentActivity.map((act) => {
                 const name = actorMap[act.employee_id]?.name || 'Unknown';
                 const isWFH = act.status?.includes('WFH');
@@ -175,13 +175,13 @@ export default async function AuditLogsPage(props: PageProps) {
                   : hasCheckOut ? 'Checked Out' : 'Checked In';
                 const time = formatSafeTimeOnly(act.check_in);
                 return (
-                  <div key={act.id} className="flex items-center gap-3.5 px-5 py-3 hover:bg-navy-900/20 transition-colors">
-                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-navy-800/30', iconBg)}>
+                  <div key={act.id} className="flex items-center gap-3.5 px-5 py-3 hover:bg-white/20 transition-colors">
+                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-zinc-200/30', iconBg)}>
                       <Icon className={cn('w-4 h-4', iconColor)} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-200 truncate">{name}</p>
-                      <p className="text-[10px] text-slate-450 font-medium">
+                      <p className="text-xs font-semibold text-navy-900 truncate">{name}</p>
+                      <p className="text-[10px] text-zinc-500 font-medium">
                         {label}{time ? ` · ${time}` : ''} · {act.date}
                       </p>
                     </div>
@@ -202,11 +202,11 @@ export default async function AuditLogsPage(props: PageProps) {
       {/* Mobile view */}
       <div className="block md:hidden space-y-3">
         {(!logs || logs.length === 0) ? (
-          <div className="p-8 text-center bg-[#0c1424]/40 rounded-xl border border-navy-800">
-            <div className="w-10 h-10 rounded-full bg-navy-900 border border-navy-850 flex items-center justify-center mx-auto mb-2">
+          <div className="p-8 text-center bg-white rounded-xl border border-zinc-200">
+            <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center mx-auto mb-2">
               <History className="w-5 h-5 text-slate-650" />
             </div>
-            <p className="text-xs text-slate-400 font-semibold">No audit logs matching query.</p>
+            <p className="text-xs text-zinc-500 font-semibold">No audit logs matching query.</p>
           </div>
         ) : (
           logs.map((log) => {
@@ -215,9 +215,9 @@ export default async function AuditLogsPage(props: PageProps) {
             const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
             
             return (
-              <Card key={log.id} hover={false} className="p-4 rounded-xl border border-navy-850 shadow-sm bg-[#0c1424]/40 text-slate-350">
+              <Card key={log.id} hover={false} className="p-4 rounded-xl border border-zinc-200 shadow-sm bg-white text-zinc-600">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-450">
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-500">
                     <Clock className="w-3.5 h-3.5 text-primary-500/50" />
                     <span>{formatSafeDateTime(log.created_at)}</span>
                   </div>
@@ -230,34 +230,34 @@ export default async function AuditLogsPage(props: PageProps) {
                     {log.action}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 bg-navy-950/40 border border-navy-850 p-2.5 rounded-lg text-[10px]">
+                <div className="grid grid-cols-2 gap-2 bg-zinc-50/40 border border-zinc-200 p-2.5 rounded-lg text-[10px]">
                   <div>
-                    <span className="text-slate-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Actor</span>
-                    <span className="font-bold text-slate-200">
+                    <span className="text-zinc-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Actor</span>
+                    <span className="font-bold text-navy-900">
                       {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
                     </span>
                     {actorMap[log.user_id]?.email && (
-                      <span className="text-slate-450 block text-[9px] lowercase truncate">
+                      <span className="text-zinc-500 block text-[9px] lowercase truncate">
                         {actorMap[log.user_id].email}
                       </span>
                     )}
                   </div>
                   <div>
-                    <span className="text-slate-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Module / Entity</span>
-                    <span className="font-bold text-slate-200 uppercase">{log.entity_type} {log.entity_id ? `(${log.entity_id.substring(0, 8)})` : ''}</span>
+                    <span className="text-zinc-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Module / Entity</span>
+                    <span className="font-bold text-navy-900 uppercase">{log.entity_type} {log.entity_id ? `(${log.entity_id.substring(0, 8)})` : ''}</span>
                   </div>
                 </div>
 
                 {/* Grouping visualization for session replays / details */}
                 {log.entity_type === 'attendance' && log.entity_id && (
-                  <div className="mt-2.5 pt-2 border-t border-navy-800/40 flex items-center gap-1.5 justify-between">
+                  <div className="mt-2.5 pt-2 border-t border-zinc-200/40 flex items-center gap-1.5 justify-between">
                     <div className="flex items-center gap-1">
                       <Layers className="w-3.5 h-3.5 text-violet-400" />
                       <span className="text-[9px] font-black text-violet-300 font-mono uppercase">
                         Traceable Replay Stream
                       </span>
                     </div>
-                    <span className="text-[9px] font-black text-slate-400 font-mono bg-navy-900 border border-navy-850 px-1.5 py-0.5 rounded">
+                    <span className="text-[9px] font-black text-zinc-500 font-mono bg-white border border-zinc-200 px-1.5 py-0.5 rounded">
                       Session: #{log.entity_id.substring(0, 8).toUpperCase()}
                     </span>
                   </div>
@@ -269,44 +269,44 @@ export default async function AuditLogsPage(props: PageProps) {
       </div>
 
       {/* Desktop view */}
-      <Card hover={false} className="overflow-hidden border border-navy-850 shadow-sm rounded-xl p-0 hidden md:block bg-[#0c1424]/40">
+      <Card hover={false} className="overflow-hidden border border-zinc-200 shadow-sm rounded-xl p-0 hidden md:block bg-white">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-[#090e17]/40 border-b border-navy-800/60">
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Event Timeline</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Actor</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Operation</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Module</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Entity Context</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">Trace Replay</th>
+              <tr className="bg-zinc-50/50 border-b border-zinc-200/60">
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Event Timeline</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Actor</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Operation</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Module</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Entity Context</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 text-center">Trace Replay</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-navy-800/60">
+            <tbody className="divide-y divide-zinc-100/60">
               {logs?.map((log) => {
                 const isDelete = log.action.includes('DELETE');
                 const isCreate = log.action.includes('CREATE') || log.action.includes('ONBOARD');
                 const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
                 
                 return (
-                  <tr key={log.id} className="hover:bg-navy-900/30 transition-colors group text-slate-350">
+                  <tr key={log.id} className="hover:bg-zinc-50/30 transition-colors group text-zinc-600">
                     <td className="px-4 py-2.5 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-500">
                         <Clock className="w-3.5 h-3.5 text-primary-500/50" />
                         {formatSafeDateTime(log.created_at)}
                       </div>
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-navy-900 border border-navy-850 flex items-center justify-center text-slate-300 group-hover:bg-primary-500 group-hover:text-white transition-colors">
+                        <div className="w-6 h-6 rounded bg-white border border-zinc-200 flex items-center justify-center text-zinc-700 group-hover:bg-primary-500 group-hover:text-navy-900 transition-colors">
                           <User className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-slate-200 tracking-tight">
+                          <span className="text-xs font-semibold text-navy-900 tracking-tight">
                             {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
                           </span>
                           {actorMap[log.user_id]?.email && (
-                            <span className="text-[9px] text-slate-450">
+                            <span className="text-[9px] text-zinc-500">
                               {actorMap[log.user_id].email}
                             </span>
                           )}
@@ -323,10 +323,10 @@ export default async function AuditLogsPage(props: PageProps) {
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <td className="px-4 py-2.5 whitespace-nowrap text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
                       {log.entity_type}
                     </td>
-                    <td className="px-4 py-2.5 text-[10px] text-slate-500 font-medium font-mono">
+                    <td className="px-4 py-2.5 text-[10px] text-zinc-400 font-medium font-mono">
                       {log.entity_id ? `${log.entity_id.substring(0, 8)}...` : 'N/A'}
                     </td>
                     <td className="px-4 py-2.5 text-center">
@@ -345,10 +345,10 @@ export default async function AuditLogsPage(props: PageProps) {
               {(!logs || logs.length === 0) && (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
-                    <div className="w-10 h-10 rounded-full bg-navy-900 border border-navy-850 flex items-center justify-center mx-auto mb-3">
-                      <History className="w-5 h-5 text-slate-655" />
+                    <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center mx-auto mb-3">
+                      <History className="w-5 h-5 text-zinc-450" />
                     </div>
-                    <p className="text-xs text-slate-450 font-bold">No audit logs matching query.</p>
+                    <p className="text-xs text-zinc-500 font-bold">No audit logs matching query.</p>
                   </td>
                 </tr>
               )}
@@ -359,36 +359,36 @@ export default async function AuditLogsPage(props: PageProps) {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-[#0c1424]/40 border border-navy-800 rounded-xl shadow-sm">
-          <div className="text-xs text-slate-400">
-            Showing <span className="font-semibold text-slate-200">{offset + 1}</span> to{' '}
-            <span className="font-semibold text-slate-200">
+        <div className="flex items-center justify-between px-4 py-3 bg-white border border-zinc-200 rounded-xl shadow-sm">
+          <div className="text-xs text-zinc-500">
+            Showing <span className="font-semibold text-navy-900">{offset + 1}</span> to{' '}
+            <span className="font-semibold text-navy-900">
               {Math.min(offset + limit, totalCount)}
             </span>{' '}
-            of <span className="font-semibold text-slate-200">{totalCount}</span> entries
+            of <span className="font-semibold text-navy-900">{totalCount}</span> entries
           </div>
           <div className="flex items-center gap-2">
             <a
               href={page > 1 ? `/admin/audit?page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
-                "px-3 py-1.5 rounded-lg border border-navy-800 text-xs font-semibold transition-all",
+                "px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-semibold transition-all",
                 page <= 1
-                  ? "pointer-events-none opacity-40 bg-navy-950 text-slate-550"
-                  : "bg-navy-900 text-slate-350 hover:bg-navy-850 hover:text-white active:scale-95"
+                  ? "pointer-events-none opacity-40 bg-zinc-50 text-zinc-400"
+                  : "bg-white text-zinc-600 hover:bg-zinc-50 hover:text-navy-950 active:scale-95"
               )}
             >
               Previous
             </a>
-            <span className="text-xs font-semibold text-slate-200 px-2 font-mono">
+            <span className="text-xs font-semibold text-navy-900 px-2 font-mono">
               Page {page} of {totalPages}
             </span>
             <a
               href={page < totalPages ? `/admin/audit?page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
-                "px-3 py-1.5 rounded-lg border border-navy-800 text-xs font-semibold transition-all",
+                "px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-semibold transition-all",
                 page >= totalPages
-                  ? "pointer-events-none opacity-40 bg-navy-950 text-slate-550"
-                  : "bg-navy-900 text-slate-350 hover:bg-navy-850 hover:text-white active:scale-95"
+                  ? "pointer-events-none opacity-40 bg-zinc-50 text-zinc-400"
+                  : "bg-white text-zinc-600 hover:bg-zinc-50 hover:text-navy-950 active:scale-95"
               )}
             >
               Next

@@ -21,18 +21,18 @@ export default function AnalyticsCharts({ attendanceData, applicationData }: Ana
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Attendance Trends */}
-      <Card hover={false} className="p-5 rounded-xl border border-navy-800/80 bg-[#0c1424]/40 backdrop-blur-md shadow-sm overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-6 opacity-[0.05] -mr-6 -mt-6">
-          <Calendar className="w-24 h-24 text-slate-300" />
+      <Card hover={false} className="p-5 rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-6 opacity-[0.03] -mr-6 -mt-6 pointer-events-none">
+          <Calendar className="w-24 h-24 text-navy-900" />
         </div>
         
         <div className="relative">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="font-semibold text-slate-100 text-sm tracking-tight">Attendance Consistency</h3>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">Average daily check-in percentage</p>
+              <h3 className="font-bold text-navy-900 text-sm tracking-tight">Attendance Consistency</h3>
+              <p className="text-[11px] text-zinc-500 font-medium mt-0.5">Average daily check-in percentage</p>
             </div>
-            <div className="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary-600 border border-primary-100 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
@@ -49,11 +49,11 @@ export default function AnalyticsCharts({ attendanceData, applicationData }: Ana
                   >
                     <div className="absolute top-0 inset-x-0 h-px bg-white/25" />
                   </motion.div>
-                  <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-navy-950 text-slate-100 text-[9px] px-1.5 py-0.5 rounded font-bold border border-navy-800 whitespace-nowrap pointer-events-none z-10">
+                  <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-navy-900 text-white text-[9px] px-1.5 py-0.5 rounded font-bold border border-navy-950 whitespace-nowrap pointer-events-none z-10">
                     {point.value}%
                   </div>
                 </div>
-                <span className="text-[9px] font-semibold text-slate-400 mt-2 uppercase tracking-wider truncate w-full text-center">
+                <span className="text-[9px] font-semibold text-zinc-500 mt-2 uppercase tracking-wider truncate w-full text-center">
                   {point.label}
                 </span>
               </div>
@@ -63,18 +63,18 @@ export default function AnalyticsCharts({ attendanceData, applicationData }: Ana
       </Card>
  
       {/* Recruitment Velocity */}
-      <Card hover={false} className="p-5 rounded-xl border border-navy-800/80 bg-[#0c1424]/40 backdrop-blur-md shadow-sm overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-6 opacity-[0.05] -mr-6 -mt-6">
-          <Briefcase className="w-24 h-24 text-slate-300" />
+      <Card hover={false} className="p-5 rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-6 opacity-[0.03] -mr-6 -mt-6 pointer-events-none">
+          <Briefcase className="w-24 h-24 text-navy-900" />
         </div>
  
         <div className="relative">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="font-semibold text-slate-100 text-sm tracking-tight">Recruitment Velocity</h3>
-              <p className="text-[11px] text-slate-400 font-medium mt-0.5">Applications received per week</p>
+              <h3 className="font-bold text-navy-900 text-sm tracking-tight">Recruitment Velocity</h3>
+              <p className="text-[11px] text-zinc-500 font-medium mt-0.5">Applications received per week</p>
             </div>
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -91,11 +91,11 @@ export default function AnalyticsCharts({ attendanceData, applicationData }: Ana
                   >
                     <div className="absolute top-0 inset-x-0 h-px bg-white/25" />
                   </motion.div>
-                  <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-navy-950 text-slate-100 text-[9px] px-1.5 py-0.5 rounded font-bold border border-navy-800 whitespace-nowrap pointer-events-none z-10">
+                  <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-navy-900 text-white text-[9px] px-1.5 py-0.5 rounded font-bold border border-navy-950 whitespace-nowrap pointer-events-none z-10">
                     {point.value}
                   </div>
                 </div>
-                <span className="text-[9px] font-semibold text-slate-400 mt-2 uppercase tracking-wider truncate w-full text-center">
+                <span className="text-[9px] font-semibold text-zinc-500 mt-2 uppercase tracking-wider truncate w-full text-center">
                   {point.label}
                 </span>
               </div>

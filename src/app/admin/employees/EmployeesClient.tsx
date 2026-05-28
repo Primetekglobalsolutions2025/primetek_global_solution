@@ -190,21 +190,21 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
   const isModalCloseLocked = successMessage !== null && !credentialsSaved;
 
   return (
-    <div className="space-y-6 text-slate-300">
+    <div className="space-y-6 text-zinc-700">
       {/* 1. Stats Summary */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total Staff', value: stats.total, icon: Users, color: 'text-slate-200', bg: 'bg-[#0c1424]/40 border-navy-800' },
+          { label: 'Total Staff', value: stats.total, icon: Users, color: 'text-navy-900', bg: 'bg-white border-zinc-200' },
           { label: 'Active', value: stats.active, icon: ShieldCheck, color: 'text-emerald-450', bg: 'bg-emerald-500/[0.03] border-emerald-500/20' },
           { label: 'Inactive', value: stats.inactive, icon: X, color: 'text-red-400', bg: 'bg-red-500/[0.03] border-red-500/20' },
         ].map((s) => (
-          <div key={s.label} className={cn("rounded-xl p-4 border shadow-sm flex items-center gap-3 bg-[#0c1424]/40 border-navy-800", s.bg)}>
-            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center bg-navy-900 border border-navy-800 shadow-sm", s.color)}>
+          <div key={s.label} className={cn("rounded-xl p-4 border shadow-sm flex items-center gap-3 bg-white border-zinc-200", s.bg)}>
+            <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center bg-white border border-zinc-200 shadow-sm", s.color)}>
               <s.icon className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xl font-bold text-slate-100 leading-none">{s.value}</p>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-1">{s.label}</p>
+              <p className="text-xl font-bold text-navy-900 leading-none">{s.value}</p>
+              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1">{s.label}</p>
             </div>
           </div>
         ))}
@@ -213,13 +213,13 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       {/* 2. Search & Actions */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <div className="relative w-full sm:max-w-sm group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary-400 transition-colors" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
           <input 
             type="text" 
             placeholder="Search by ID, name, email..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-navy-800 bg-[#0c1424]/40 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-sm font-medium" 
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-sm font-medium" 
           />
         </div>
         <Button 
@@ -239,24 +239,24 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       {/* 3. Employees Mobile Cards & Desktop Table */}
       <div className="block md:hidden space-y-3">
         {filtered.length === 0 ? (
-          <div className="p-8 text-center bg-[#0c1424]/40 rounded-xl border border-navy-800">
-            <div className="w-10 h-10 rounded-full bg-navy-900 flex items-center justify-center mx-auto mb-2 border border-navy-800">
+          <div className="p-8 text-center bg-white rounded-xl border border-zinc-200">
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-2 border border-zinc-200">
               <Users className="w-5 h-5 text-slate-650" />
             </div>
-            <p className="text-xs text-slate-450 font-semibold">No active personnel matching your query.</p>
+            <p className="text-xs text-zinc-500 font-semibold">No active personnel matching your query.</p>
           </div>
         ) : (
           filtered.map((emp) => (
-            <Card key={emp.id} hover={false} className="p-4 rounded-xl border border-navy-800 shadow-sm bg-[#0c1424]/40 text-slate-350">
+            <Card key={emp.id} hover={false} className="p-4 rounded-xl border border-zinc-200 shadow-sm bg-white text-zinc-600">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
                   <div className="relative shrink-0">
                     {emp.avatar_url ? (
-                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-navy-800 relative">
+                      <div className="w-8 h-8 rounded-lg overflow-hidden border border-zinc-200 relative">
                         <Image src={emp.avatar_url} alt={emp.name} fill className="object-cover" />
                       </div>
                     ) : (
-                      <div className="w-8 h-8 rounded-lg bg-navy-900 border border-navy-800 flex items-center justify-center text-slate-300 text-[10px] font-bold">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-zinc-700 text-[10px] font-bold">
                         {emp.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
                       </div>
                     )}
@@ -266,23 +266,23 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                     )} />
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-slate-100">{emp.name}</h4>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">{emp.email}</p>
+                    <h4 className="text-xs font-bold text-navy-900">{emp.name}</h4>
+                    <p className="text-[10px] text-zinc-500 font-medium mt-0.5">{emp.email}</p>
                   </div>
                 </div>
-                <span className="text-[9px] font-bold text-slate-300 bg-navy-900 px-1.5 py-0.5 rounded border border-navy-800 uppercase tracking-wider">
+                <span className="text-[9px] font-bold text-zinc-700 bg-white px-1.5 py-0.5 rounded border border-zinc-200 uppercase tracking-wider">
                   {emp.employee_id}
                 </span>
               </div>
               
-              <div className="grid grid-cols-2 gap-2 bg-[#0c1424]/20 p-2.5 rounded-lg text-[10px] mb-3 border border-navy-850">
+              <div className="grid grid-cols-2 gap-2 bg-zinc-50/30 p-2.5 rounded-lg text-[10px] mb-3 border border-zinc-200">
                 <div>
-                  <span className="text-slate-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Role</span>
-                  <span className="font-bold text-slate-300 uppercase tracking-wider">{emp.role}</span>
+                  <span className="text-zinc-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Role</span>
+                  <span className="font-bold text-zinc-700 uppercase tracking-wider">{emp.role}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Department</span>
-                  <span className="font-bold text-slate-300">{emp.department || 'General'}</span>
+                  <span className="text-zinc-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Department</span>
+                  <span className="font-bold text-zinc-700">{emp.department || 'General'}</span>
                 </div>
               </div>
 
@@ -301,8 +301,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                 )}
               </div>
 
-              <div className="flex items-center justify-between border-t border-navy-800/40 pt-3">
-                <button onClick={() => handleToggle(emp.id, emp.status)} className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-400 active:scale-95 transition-transform cursor-pointer">
+              <div className="flex items-center justify-between border-t border-zinc-200/40 pt-3">
+                <button onClick={() => handleToggle(emp.id, emp.status)} className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500 active:scale-95 transition-transform cursor-pointer">
                   <div className={cn(
                     "w-7 h-4 rounded-full relative transition-colors duration-300",
                     emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-800"
@@ -312,7 +312,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       emp.status === 'Active' ? "left-3.5" : "left-0.5"
                     )} />
                   </div>
-                  <span className={emp.status === 'Active' ? 'text-emerald-455' : 'text-slate-500'}>
+                  <span className={emp.status === 'Active' ? 'text-emerald-455' : 'text-zinc-400'}>
                     {emp.status}
                   </span>
                 </button>
@@ -347,41 +347,41 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
         )}
       </div>
 
-      <Card hover={false} className="p-0 overflow-hidden border border-navy-800 rounded-xl shadow-sm bg-[#0c1424]/40 hidden md:block">
+      <Card hover={false} className="p-0 overflow-hidden border border-zinc-200 rounded-xl shadow-sm bg-white hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-navy-800 bg-[#090e17]/40">
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Identity</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Staff ID</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Function</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">MFA verification</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-right">Access</th>
+              <tr className="border-b border-zinc-200 bg-zinc-50/50">
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Identity</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Staff ID</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Function</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">MFA verification</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Status</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 text-right">Access</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-navy-800/60">
+            <tbody className="divide-y divide-zinc-100/60">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
-                    <div className="w-10 h-10 rounded-full bg-navy-900 flex items-center justify-center mx-auto mb-3 border border-navy-800">
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-3 border border-zinc-200">
                       <Users className="w-5 h-5 text-slate-650" />
                     </div>
-                    <p className="text-xs text-slate-400 font-bold">No active personnel matching your query.</p>
+                    <p className="text-xs text-zinc-500 font-bold">No active personnel matching your query.</p>
                   </td>
                 </tr>
               ) : (
                 filtered.map((emp) => (
-                  <tr key={emp.id} className="group hover:bg-navy-900/30 transition-colors">
+                  <tr key={emp.id} className="group hover:bg-zinc-50/30 transition-colors">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-3">
                         <div className="relative shrink-0">
                           {emp.avatar_url ? (
-                            <div className="w-7 h-7 rounded-lg overflow-hidden shadow-sm border border-navy-850">
+                            <div className="w-7 h-7 rounded-lg overflow-hidden shadow-sm border border-zinc-200">
                               <Image src={emp.avatar_url} alt={emp.name} fill className="object-cover" sizes="28px" />
                             </div>
                           ) : (
-                            <div className="w-7 h-7 rounded-lg bg-navy-900 border border-navy-800 flex items-center justify-center text-slate-300 text-[9px] font-bold shadow-sm">
+                            <div className="w-7 h-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-zinc-700 text-[9px] font-bold shadow-sm">
                               {emp.name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()}
                             </div>
                           )}
@@ -391,20 +391,20 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                           )} />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-slate-200 leading-tight group-hover:text-primary-400 transition-colors">{emp.name}</p>
-                          <p className="text-[10px] text-slate-450 font-medium mt-0.5">{emp.email}</p>
+                          <p className="text-xs font-semibold text-navy-900 leading-tight group-hover:text-primary-400 transition-colors">{emp.name}</p>
+                          <p className="text-[10px] text-zinc-500 font-medium mt-0.5">{emp.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
-                      <span className="text-[10px] font-bold text-slate-200 bg-navy-900 px-1.5 py-0.5 rounded border border-navy-850 uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-navy-900 bg-white px-1.5 py-0.5 rounded border border-zinc-200 uppercase tracking-wider">
                         {emp.employee_id}
                       </span>
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="space-y-0.5">
-                        <p className="text-[10px] font-semibold text-slate-200 uppercase tracking-wider">{emp.role}</p>
-                        <p className="text-[9px] text-slate-450 font-medium">{emp.department || 'General'}</p>
+                        <p className="text-[10px] font-semibold text-navy-900 uppercase tracking-wider">{emp.role}</p>
+                        <p className="text-[9px] text-zinc-500 font-medium">{emp.department || 'General'}</p>
                       </div>
                     </td>
                     <td className="px-4 py-2.5">
@@ -433,7 +433,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         </div>
                         <span className={cn(
                           "text-[9px] font-bold uppercase tracking-wider",
-                          emp.status === 'Active' ? "text-emerald-450" : "text-slate-500"
+                          emp.status === 'Active' ? "text-emerald-450" : "text-zinc-400"
                         )}>{emp.status}</span>
                       </button>
                     </td>
@@ -441,21 +441,21 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       <div className="flex items-center justify-end gap-1.5">
                         <button 
                           onClick={() => handleOpenBalanceModal(emp)}
-                          className="w-7 h-7 rounded text-slate-400 hover:text-primary-400 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/20 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
+                          className="w-7 h-7 rounded text-zinc-500 hover:text-primary-400 hover:bg-primary-500/10 border border-transparent hover:border-primary-500/20 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
                           title="Manage Balances"
                         >
                           <Wallet className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleResetMFA(emp.id, emp.name)}
-                          className="w-7 h-7 rounded text-slate-400 hover:text-amber-500 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/20 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
+                          className="w-7 h-7 rounded text-zinc-500 hover:text-amber-500 hover:bg-amber-500/10 border border-transparent hover:border-amber-500/20 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
                           title="Reset Employee MFA"
                         >
                           <ShieldCheck className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleDelete(emp.id, emp.name)}
-                          className="w-7 h-7 rounded text-slate-400 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
+                          className="w-7 h-7 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all flex items-center justify-center active:scale-90 cursor-pointer"
                           title="Delete Employee"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -478,18 +478,18 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-[#0c1424] rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-navy-800 relative text-slate-350"
+              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-zinc-200 relative text-zinc-600"
             >
               <div className="absolute top-0 right-0 p-10 opacity-[0.02] pointer-events-none">
-                <Users className="w-48 h-48 text-slate-100" />
+                <Users className="w-48 h-48 text-navy-900" />
               </div>
 
-              <div className="flex items-center justify-between px-10 py-8 border-b border-navy-800 bg-navy-950/40">
+              <div className="flex items-center justify-between px-10 py-8 border-b border-zinc-200 bg-zinc-50/40">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-455">Staff Registry</span>
                   </div>
-                  <h3 className="font-heading font-black text-xl text-slate-100 tracking-tight">Onboard New Employee</h3>
+                  <h3 className="font-heading font-black text-xl text-navy-900 tracking-tight">Onboard New Employee</h3>
                 </div>
                 <button 
                   onClick={() => { 
@@ -505,7 +505,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                   }} 
                   disabled={isModalCloseLocked}
                   className={cn(
-                    "w-10 h-10 rounded-2xl bg-navy-900 border border-navy-850 flex items-center justify-center text-slate-400 hover:text-white transition-colors",
+                    "w-10 h-10 rounded-2xl bg-white border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-navy-900 transition-colors",
                     isModalCloseLocked && "opacity-40 cursor-not-allowed"
                   )}
                 >
@@ -524,40 +524,40 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       <ShieldCheck className="w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="font-heading font-black text-slate-100 text-lg tracking-tight">Credentials Generated Successfully</h4>
-                      <p className="text-xs text-slate-450 mt-2 font-medium">For security compliance, these temporary credentials must be copied now. They are hashed in the database and cannot be read after closing.</p>
+                      <h4 className="font-heading font-black text-navy-900 text-lg tracking-tight">Credentials Generated Successfully</h4>
+                      <p className="text-xs text-zinc-500 mt-2 font-medium">For security compliance, these temporary credentials must be copied now. They are hashed in the database and cannot be read after closing.</p>
                     </div>
                     
-                    <div className="bg-navy-950/80 p-5 rounded-2xl border border-navy-805 text-left space-y-3.5">
+                    <div className="bg-zinc-50/80 p-5 rounded-2xl border border-zinc-200 text-left space-y-3.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Employee Login ID</span>
-                        <span className="text-xs font-black text-slate-200 font-mono bg-navy-900 border border-navy-800 px-3 py-1 rounded">{successMessage.id}</span>
+                        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Employee Login ID</span>
+                        <span className="text-xs font-black text-navy-900 font-mono bg-white border border-zinc-200 px-3 py-1 rounded">{successMessage.id}</span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Temporary Password</span>
-                        <span className="text-xs font-black text-primary-400 font-mono bg-navy-900 border border-navy-800 px-3 py-1 rounded">{successMessage.pass}</span>
+                        <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Temporary Password</span>
+                        <span className="text-xs font-black text-primary-400 font-mono bg-white border border-zinc-200 px-3 py-1 rounded">{successMessage.pass}</span>
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-3">
                       <Button
                         onClick={handleCopyCredentials}
-                        className="w-full bg-navy-900 hover:bg-navy-850 text-slate-200 border border-navy-800 hover:text-white py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold active:scale-98 transition-all"
+                        className="w-full bg-white hover:bg-zinc-50 text-navy-900 border border-zinc-200 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold active:scale-98 transition-all"
                       >
                         {copied ? <Check className="w-4 h-4 text-emerald-450" /> : <Copy className="w-4 h-4" />}
                         {copied ? 'Credentials Copied!' : 'Copy Credentials to Clipboard'}
                       </Button>
 
                       {/* Modal closure checkbox validation lock */}
-                      <div className="flex items-start gap-2.5 text-left p-3.5 bg-navy-950/40 rounded-xl border border-navy-800/60 mt-2">
+                      <div className="flex items-start gap-2.5 text-left p-3.5 bg-zinc-50/40 rounded-xl border border-zinc-200/60 mt-2">
                         <input 
                           type="checkbox" 
                           id="confirm-credentials-saved" 
                           checked={credentialsSaved} 
                           onChange={(e) => setCredentialsSaved(e.target.checked)} 
-                          className="mt-0.5 rounded border-navy-800 bg-navy-900 text-primary-500 focus:ring-primary-500/20 cursor-pointer w-4 h-4 shrink-0" 
+                          className="mt-0.5 rounded border-zinc-200 bg-white text-primary-500 focus:ring-primary-500/20 cursor-pointer w-4 h-4 shrink-0" 
                         />
-                        <label htmlFor="confirm-credentials-saved" className="text-[10px] font-bold text-slate-400 leading-normal cursor-pointer select-none uppercase tracking-wider">
+                        <label htmlFor="confirm-credentials-saved" className="text-[10px] font-bold text-zinc-500 leading-normal cursor-pointer select-none uppercase tracking-wider">
                           ⚠️ I confirm that I have safely copied/saved the generated credentials for the employee.
                         </label>
                       </div>
@@ -575,7 +575,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         "w-full py-3.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all",
                         credentialsSaved 
                           ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/10 active:scale-95" 
-                          : "bg-navy-900 text-slate-550 border border-navy-850 cursor-not-allowed"
+                          : "bg-white text-zinc-400 border border-zinc-200 cursor-not-allowed"
                       )}
                     >
                       Complete Onboarding
@@ -586,23 +586,23 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                     <div className="space-y-2">
                       <label className="block text-[10px] font-black text-slate-455 uppercase tracking-[0.2em] ml-1">Full Name</label>
                       <div className="relative group">
-                        <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary-400 transition-colors" />
-                        <input required type="text" placeholder="John Doe" value={newEmployeeData.name} onChange={(e) => setNewEmployeeData({...newEmployeeData, name: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-navy-800 bg-navy-900/60 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-slate-200 placeholder:text-slate-655" />
+                        <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
+                        <input required type="text" placeholder="John Doe" value={newEmployeeData.name} onChange={(e) => setNewEmployeeData({...newEmployeeData, name: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <label className="block text-[10px] font-black text-slate-455 uppercase tracking-[0.2em] ml-1">Email Address</label>
                       <div className="relative group">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary-400 transition-colors" />
-                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => setNewEmployeeData({...newEmployeeData, email: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-navy-800 bg-navy-900/60 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-slate-200 placeholder:text-slate-655" />
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
+                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => setNewEmployeeData({...newEmployeeData, email: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="block text-[10px] font-black text-slate-455 uppercase tracking-[0.2em] ml-1">User Role</label>
-                        <select value={newEmployeeData.role} onChange={(e) => setNewEmployeeData({...newEmployeeData, role: e.target.value})} className="w-full px-4 py-3.5 rounded-2xl border border-navy-800 bg-navy-900 text-sm font-black text-slate-300 focus:ring-2 focus:ring-primary-500/20 focus:outline-none uppercase cursor-pointer appearance-none">
+                        <select value={newEmployeeData.role} onChange={(e) => setNewEmployeeData({...newEmployeeData, role: e.target.value})} className="w-full px-4 py-3.5 rounded-2xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 focus:ring-2 focus:ring-primary-500/20 focus:outline-none uppercase cursor-pointer appearance-none">
                           <option value="employee">Employee</option>
                           <option value="admin">Admin</option>
                           <option value="hr">HR Specialist</option>
@@ -611,7 +611,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       <div className="space-y-2">
                         <label className="block text-[10px] font-black text-slate-455 uppercase tracking-[0.2em] ml-1">Role / Department</label>
                         <div className="relative group">
-                          <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary-400 transition-colors z-10" />
+                          <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors z-10" />
                           <select 
                             required 
                             value={newEmployeeData.department} 
@@ -627,7 +627,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                                 role: autoRole
                               });
                             }} 
-                            className="w-full pl-11 pr-10 py-3.5 rounded-2xl border border-navy-800 bg-navy-900 text-sm font-medium text-slate-300 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer appearance-none"
+                            className="w-full pl-11 pr-10 py-3.5 rounded-2xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer appearance-none"
                           >
                             <option value="" disabled>Select Role...</option>
                             <option value="Talent Acquisition Specialist">Talent Acquisition Specialist</option>
@@ -636,7 +636,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                             <option value="Marketing Executive">Marketing Executive</option>
                             <option value="Team Lead">Team Lead</option>
                           </select>
-                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-550 text-[10px]">
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400 text-[10px]">
                             ▼
                           </div>
                         </div>
@@ -675,16 +675,16 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-[#0c1424] rounded-[2rem] border border-navy-800 shadow-2xl w-full max-w-md overflow-hidden relative text-slate-350"
+              className="bg-white rounded-[2rem] border border-zinc-200 shadow-2xl w-full max-w-md overflow-hidden relative text-zinc-600"
             >
-              <div className="flex items-center justify-between px-10 py-6 border-b border-navy-800 bg-navy-950/40">
+              <div className="flex items-center justify-between px-10 py-6 border-b border-zinc-200 bg-zinc-50/40">
                 <div>
-                  <h3 className="font-heading font-black text-lg text-slate-100 tracking-tight">Leave Balance</h3>
-                  <p className="text-[10px] text-slate-450 font-bold uppercase tracking-widest mt-1">{selectedEmployee.name}</p>
+                  <h3 className="font-heading font-black text-lg text-navy-900 tracking-tight">Leave Balance</h3>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">{selectedEmployee.name}</p>
                 </div>
                 <button 
                   onClick={() => setIsBalanceModalOpen(false)} 
-                  className="w-8 h-8 rounded-full bg-navy-900 border border-navy-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+                  className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-zinc-500 hover:text-navy-900 transition-colors"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -703,7 +703,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         max={10}
                         value={(balances as any)[field.key]} 
                         onChange={(e) => setBalances({...balances, [field.key]: parseInt(e.target.value) || 0})}
-                        className="w-full px-5 py-3.5 rounded-xl border border-navy-800 bg-navy-900 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-black text-slate-200"
+                        className="w-full px-5 py-3.5 rounded-xl border border-zinc-200 bg-white focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-black text-navy-900"
                       />
                     </div>
                   ))}

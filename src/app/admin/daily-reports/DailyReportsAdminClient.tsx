@@ -389,7 +389,7 @@ export default function DailyReportsAdminClient({
         {/* Sidebar tracker: submission status */}
         <div className="xl:col-span-1 space-y-4">
           <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-            <div className="p-4 bg-navy-900 text-white border-b border-navy-800 flex items-center justify-between">
+            <div className="p-4 bg-zinc-50 text-navy-900 border-b border-zinc-200 flex items-center justify-between">
               <h3 className="font-bold text-xs tracking-wider uppercase">Submission Tracker</h3>
               <span className="text-[10px] bg-amber-400 text-navy-950 font-extrabold px-2 py-0.5 rounded-full">
                 {submissionStatus.filter(s => s.submitted).length} / {submissionStatus.length}

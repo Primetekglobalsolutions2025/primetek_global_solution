@@ -252,12 +252,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
       </aside>
 
       {/* ─── Mobile Bottom Navigation Bar ─── */}
-      <nav className={cn(
-        "md:hidden fixed bottom-0 left-0 right-0 z-50",
-        role === 'admin' 
-          ? "bg-[#090e17] border-t border-navy-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]" 
-          : "bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
-      )}>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around h-16 px-2 pb-[env(safe-area-inset-bottom)] flex-row">
           {bottomBarItems.map((item) => {
             const isActive = pathname === item.href.split('#')[0];
@@ -268,20 +263,17 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
                 className={cn(
                   'flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 rounded-xl transition-all',
                   isActive 
-                    ? (role === 'admin' ? 'text-primary-400' : 'text-primary-500') 
-                    : (role === 'admin' ? 'text-slate-400 active:text-slate-200' : 'text-gray-400 active:text-gray-600')
+                    ? 'text-primary-505 text-primary-500' 
+                    : 'text-gray-400 active:text-gray-600'
                 )}
               >
                 <div className={cn(
                   'p-1.5 rounded-xl transition-all relative',
-                  isActive && (role === 'admin' ? 'bg-primary-500/10' : 'bg-primary-50')
+                  isActive && 'bg-primary-50'
                 )}>
                   <item.icon className="w-5 h-5" />
                   {item.label === 'Approvals' && pendingCount > 0 && (
-                    <span className={cn(
-                      "absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full",
-                      role === 'admin' ? "ring-2 ring-[#090e17]" : "ring-2 ring-white"
-                    )} />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
                   )}
                 </div>
                 <span className={cn(
@@ -301,14 +293,14 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 transition-all',
                 isOverflowActive 
-                  ? (role === 'admin' ? 'text-primary-400' : 'text-primary-500') 
-                  : (role === 'admin' ? 'text-slate-400 active:text-slate-200' : 'text-gray-400 active:text-gray-600')
+                  ? 'text-primary-500' 
+                  : 'text-gray-400 active:text-gray-600'
               )}
               aria-label="More navigation options"
             >
               <div className={cn(
                 'p-1.5 rounded-xl transition-all relative',
-                isOverflowActive && (role === 'admin' ? 'bg-primary-500/10' : 'bg-primary-50')
+                isOverflowActive && 'bg-primary-50'
               )}>
                 <MoreHorizontal className="w-5 h-5" />
               </div>
@@ -322,10 +314,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
           ) : (
             <button 
               onClick={handleLogout}
-              className={cn(
-                "flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 transition-all",
-                role === 'admin' ? "text-slate-400 active:text-red-400" : "text-gray-400 active:text-red-500"
-              )}
+              className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 transition-all text-gray-400 active:text-red-500"
             >
               <div className="p-1.5 rounded-xl">
                 <LogOut className="w-5 h-5" />
@@ -335,7 +324,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
           )}
         </div>
       </nav>
-
+ 
       {/* ─── Mobile "More" Bottom Sheet Drawer ─── */}
       <AnimatePresence>
         {isMoreOpen && (
@@ -349,42 +338,32 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
               className="md:hidden fixed inset-0 z-[60] bg-navy-900/60 backdrop-blur-sm"
               onClick={() => setIsMoreOpen(false)}
             />
-
+ 
             {/* Sheet */}
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className={cn(
-                "md:hidden fixed bottom-0 left-0 right-0 z-[70] pb-[env(safe-area-inset-bottom)] rounded-t-[2rem] shadow-2xl",
-                role === 'admin' 
-                  ? "bg-[#0c1424] text-slate-100 border-t border-navy-800" 
-                  : "bg-white text-navy-900"
-              )}
+              className="md:hidden fixed bottom-0 left-0 right-0 z-[70] pb-[env(safe-area-inset-bottom)] rounded-t-[2rem] shadow-2xl bg-white text-navy-900 border-t border-border"
             >
               {/* Drag Handle */}
               <div className="flex justify-center pt-3 pb-2">
-                <div className={cn("w-10 h-1 rounded-full", role === 'admin' ? "bg-navy-800" : "bg-gray-200")} />
+                <div className="w-10 h-1 rounded-full bg-gray-200" />
               </div>
-
+ 
               {/* Header */}
               <div className="flex items-center justify-between px-6 pb-4">
-                <h3 className={cn("text-sm font-black uppercase tracking-wider", role === 'admin' ? "text-slate-200" : "text-navy-900")}>Portal Menu</h3>
+                <h3 className="text-sm font-black uppercase tracking-wider text-navy-900">Portal Menu</h3>
                 <button
                   onClick={() => setIsMoreOpen(false)}
-                  className={cn(
-                    "p-2 rounded-xl transition-colors",
-                    role === 'admin' 
-                      ? "bg-navy-900 text-slate-400 hover:text-white" 
-                      : "bg-surface-alt text-gray-400 hover:text-navy-900"
-                  )}
+                  className="p-2 rounded-xl transition-colors bg-surface-alt text-gray-400 hover:text-navy-900"
                   aria-label="Close menu"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
+ 
               {/* Overflow Nav Items */}
               <div className="px-5 pb-3">
                 <div className="grid grid-cols-3 gap-3">
@@ -398,8 +377,8 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
                         className={cn(
                           'flex flex-col items-center justify-center p-3 rounded-2xl gap-1.5 transition-all active:scale-95 border',
                           isActive
-                            ? (role === 'admin' ? 'bg-primary-500/20 border-primary-500/30 text-primary-400' : 'bg-primary-50 border-primary-100 text-primary-600')
-                            : (role === 'admin' ? 'bg-[#090e17]/80 border-transparent text-slate-300 hover:bg-navy-900' : 'bg-surface-alt/60 border-transparent text-gray-600 hover:bg-surface-alt')
+                            ? 'bg-primary-50 border-primary-100 text-primary-600'
+                            : 'bg-surface-alt/60 border-transparent text-gray-600 hover:bg-surface-alt'
                         )}
                       >
                         <item.icon className="w-5 h-5" />
@@ -409,16 +388,13 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
                   })}
                 </div>
               </div>
-
+ 
               {/* User Info + Sign Out */}
-              <div className={cn(
-                "mx-5 mt-2 mb-4 p-4 rounded-2xl border",
-                role === 'admin' ? "bg-[#090e17]/80 border-navy-800/80" : "bg-surface-alt/60 border-border/40"
-              )}>
+              <div className="mx-5 mt-2 mb-4 p-4 rounded-2xl border bg-surface-alt/60 border-border/40">
                 {userName && (
-                  <div className={cn("mb-3 pb-3 border-b", role === 'admin' ? "border-navy-800/60" : "border-border/40")}>
+                  <div className="mb-3 pb-3 border-b border-border/40">
                     <p className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-bold mb-0.5">Signed in as</p>
-                    <p className={cn("text-xs font-semibold truncate", role === 'admin' ? "text-slate-200" : "text-navy-900")}>{userName}</p>
+                    <p className="text-xs font-semibold truncate text-navy-900">{userName}</p>
                   </div>
                 )}
                 <button

@@ -92,8 +92,8 @@ export default function LoginForm() {
           <div className="w-16 h-16 rounded-3xl bg-primary-500/10 text-primary-500 flex items-center justify-center mx-auto mb-4 border border-primary-500/20">
             <ShieldCheck className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-black text-white mb-2">Two-Step Verification</h2>
-          <p className="text-xs text-gray-400 font-medium">Please enter the security code from your device.</p>
+          <h2 className="text-xl font-black text-navy-900 mb-2">Two-Step Verification</h2>
+          <p className="text-xs text-zinc-500 font-medium">Please enter the security code from your device.</p>
         </div>
 
         <input
@@ -101,13 +101,13 @@ export default function LoginForm() {
           value={mfaCode}
           onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').substring(0, 6))}
           placeholder="000 000"
-          className="w-full px-5 py-5 rounded-2xl bg-white/5 border border-white/10 text-white text-center font-mono text-3xl font-black tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+          className="w-full px-5 py-5 rounded-2xl bg-zinc-50 border border-zinc-200 text-navy-900 text-center font-mono text-3xl font-black tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:bg-white transition-all shadow-sm"
           required
           autoFocus
         />
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold text-center">
+          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold text-center animate-in fade-in duration-200">
             {error}
           </div>
         )}
@@ -115,7 +115,7 @@ export default function LoginForm() {
         <Button 
           type="submit" 
           size="lg" 
-          className="w-full bg-primary-500 hover:bg-primary-600 text-white font-black rounded-2xl py-5" 
+          className="w-full bg-primary-500 hover:bg-primary-600 text-white font-black rounded-2xl py-5 shadow-xl shadow-primary-500/20 border-0 active:scale-[0.98] transition-all" 
           disabled={verifying || mfaCode.length !== 6}
         >
           {verifying ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Verify Code'}
@@ -124,7 +124,7 @@ export default function LoginForm() {
         <button 
           type="button" 
           onClick={() => setShowMFA(false)} 
-          className="w-full text-[10px] font-black text-gray-500 hover:text-white uppercase tracking-widest transition-colors"
+          className="w-full text-[10px] font-black text-zinc-500 hover:text-primary-650 uppercase tracking-widest transition-colors cursor-pointer"
         >
           Back to Login
         </button>
@@ -135,21 +135,21 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 relative z-10">
       {lockout && (
-        <div className="p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-center space-y-2 mb-6 animate-in slide-in-from-top-4">
-          <p className="text-xs font-black text-red-400 uppercase tracking-widest">Account Locked</p>
-          <p className="text-[11px] text-red-400/70 font-medium leading-relaxed">Too many failed login attempts. Your access is temporarily locked for 15 minutes.</p>
+        <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200 text-center space-y-2 mb-6 animate-in slide-in-from-top-4">
+          <p className="text-xs font-black text-rose-600 uppercase tracking-widest">Account Locked</p>
+          <p className="text-[11px] text-rose-500 font-medium leading-relaxed">Too many failed login attempts. Your access is temporarily locked for 15 minutes.</p>
         </div>
       )}
 
       {error && !lockout && (
-        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold text-center animate-in fade-in zoom-in duration-300">
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold text-center animate-in fade-in zoom-in duration-300">
           {error}
         </div>
       )}
 
       {/* Email */}
       <div className="space-y-2">
-        <label htmlFor="login-email" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+        <label htmlFor="login-email" className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 font-display">
           Email Address
         </label>
         <div className="relative group">
@@ -161,17 +161,17 @@ export default function LoginForm() {
             disabled={lockout}
             {...register('email')}
             className={cn(
-              "w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all text-sm font-medium disabled:opacity-50",
-              errors.email && "border-red-500/50 focus:ring-red-500/50"
+              "w-full px-5 py-4 rounded-2xl bg-zinc-50 border border-zinc-200 text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50 focus:bg-white transition-all text-sm font-medium disabled:opacity-50 shadow-sm",
+              errors.email && "border-rose-400 focus:ring-rose-500/30"
             )}
           />
         </div>
-        {errors.email && <p className="text-red-400 text-[10px] font-bold ml-1">{errors.email.message}</p>}
+        {errors.email && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.email.message}</p>}
       </div>
 
       {/* Password */}
       <div className="space-y-2">
-        <label htmlFor="login-password" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+        <label htmlFor="login-password" className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 font-display">
           Password
         </label>
         <div className="relative">
@@ -183,23 +183,23 @@ export default function LoginForm() {
             disabled={lockout}
             {...register('password')}
             className={cn(
-              "w-full px-5 py-4 pr-14 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all text-sm font-medium disabled:opacity-50",
-              errors.password && "border-red-500/50 focus:ring-red-500/50"
+              "w-full px-5 py-4 pr-14 rounded-2xl bg-zinc-50 border border-zinc-200 text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50 focus:bg-white transition-all text-sm font-medium disabled:opacity-50 shadow-sm",
+              errors.password && "border-rose-400 focus:ring-rose-500/30"
             )}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-1"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-navy-900 transition-colors p-1 cursor-pointer"
           >
             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </button>
         </div>
-        {errors.password && <p className="text-red-400 text-[10px] font-bold ml-1">{errors.password.message}</p>}
+        {errors.password && <p className="text-rose-500 text-[10px] font-bold ml-1">{errors.password.message}</p>}
       </div>
 
       {showCaptcha && !lockout && (
-        <div className="p-3 bg-primary-500/5 border border-primary-500/20 rounded-xl text-primary-200 text-[10px] font-bold uppercase tracking-widest text-center">
+        <div className="p-3 bg-primary-50 border border-primary-100 rounded-xl text-primary-800 text-[10px] font-bold uppercase tracking-widest text-center shadow-sm">
           Security Verification Required
         </div>
       )}

@@ -147,7 +147,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
             {uniqueJobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
           </select>
         </div>
-        <Button onClick={() => setIsAdding(true)} className="w-full md:w-auto bg-navy-900 hover:bg-navy-800 text-white rounded-lg px-4 py-2.5 text-xs font-semibold shadow-sm active:scale-95 transition-all shrink-0">
+        <Button onClick={() => setIsAdding(true)} className="w-full md:w-auto bg-navy-900 hover:bg-navy-950 text-white rounded-lg px-4 py-2.5 text-xs font-semibold shadow-sm active:scale-95 transition-all shrink-0">
           <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Application
         </Button>
       </div>

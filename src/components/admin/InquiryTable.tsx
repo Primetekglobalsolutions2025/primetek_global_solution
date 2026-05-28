@@ -234,7 +234,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
             <Card key={inquiry.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-navy-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-white text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
                     {inquiry.name.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
@@ -344,7 +344,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
                   <tr key={inquiry.id} className="group hover:bg-surface-alt/20 transition-colors">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded bg-navy-900 text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
+                        <div className="w-7 h-7 rounded bg-white text-white flex items-center justify-center text-[10px] font-semibold shrink-0">
                           {inquiry.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
@@ -431,7 +431,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[100] bg-navy-900/40 backdrop-blur-md" 
+              className="fixed inset-0 z-[100] bg-zinc-50 backdrop-blur-md" 
               onClick={() => setSelectedInquiry(null)} 
             />
             <motion.div 
@@ -518,7 +518,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
                         className={cn(
                           "px-4 py-2.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all border text-center cursor-pointer",
                           selectedInquiry.status === s
-                            ? "bg-navy-900 text-white border-navy-900 shadow-sm scale-[1.01]"
+                            ? "bg-white text-white border-navy-900 shadow-sm scale-[1.01]"
                             : "bg-white text-gray-500 border-border hover:border-navy-200"
                         )}
                       >
