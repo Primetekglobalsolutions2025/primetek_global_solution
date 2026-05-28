@@ -55,6 +55,7 @@ const statusColors: Record<string, string> = {
   working: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   'on break': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   'logged out': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
+  'clocked_out': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
   mobile_clocked_in: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   awaiting_desktop: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse',
   desktop_active: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/25',
@@ -696,7 +697,7 @@ export default function AttendanceClient({
                 
                 let totalWorkSecs = 0;
                 if (checkInTime) {
-                  if (currentStatus === 'Logged Out' && record.check_out_raw) {
+                  if (record.check_out_raw) {
                     const checkOutTime = new Date(record.check_out_raw);
                     totalWorkSecs = Math.floor((checkOutTime.getTime() - checkInTime.getTime()) / 1000);
                   } else {
@@ -744,13 +745,13 @@ export default function AttendanceClient({
 
                       <span className={cn(
                         "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border",
-                        currentStatus === 'Working' ? "bg-emerald-500/10 text-emerald-450 border-emerald-500/25" :
+                        (currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'MOBILE_CLOCKED_IN' || currentStatus === 'AWAITING_DESKTOP') ? "bg-emerald-500/10 text-emerald-450 border-emerald-500/25" :
                         currentStatus === 'On Break' ? "bg-amber-500/10 text-amber-450 border-amber-500/25" :
                         "bg-slate-800/40 text-zinc-500 border-slate-700/50"
                       )}>
                         <span className={cn(
                           "w-1.5 h-1.5 rounded-full",
-                          currentStatus === 'Working' ? "bg-emerald-500 animate-pulse" :
+                          (currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'MOBILE_CLOCKED_IN' || currentStatus === 'AWAITING_DESKTOP') ? "bg-emerald-500 animate-pulse" :
                           currentStatus === 'On Break' ? "bg-amber-500 animate-ping" :
                           "bg-slate-500"
                         )} />

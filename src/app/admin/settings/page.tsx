@@ -197,87 +197,125 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
-          <div className="space-y-6">
-            {/* Office Name */}
-            <div className="space-y-1.5">
-              <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5">Office Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Primetek HQ, Hyderabad"
-                className={inputClasses}
-              />
-            </div>
-
-            {/* Lat / Lng */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5">Latitude</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 17.448294"
-                  value={lat}
-                  onChange={(e) => {
-                    setLat(e.target.value);
-                    setMapError(false);
-                  }}
-                  className={inputClasses}
-                />
+          {/* Responsive Layout: List View on Desktop, Stacked View on Mobile */}
+          <div className="divide-y divide-zinc-100 lg:divide-y lg:divide-zinc-100">
+            {/* Row 1: Office Name */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-4 first:pt-0 gap-2 lg:gap-6">
+              <div className="space-y-0.5">
+                <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5 lg:text-[10px] lg:text-navy-900 lg:font-semibold lg:normal-case">
+                  Office Name
+                </label>
+                <p className="hidden lg:block text-[10px] text-zinc-455 leading-relaxed max-w-sm">
+                  Display name of the office facility used for employee greetings and reports.
+                </p>
               </div>
-              <div className="space-y-1.5">
-                <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5">Longitude</label>
+              <div className="w-full lg:w-[400px]">
                 <input
                   type="text"
-                  placeholder="e.g. 78.374182"
-                  value={lng}
-                  onChange={(e) => {
-                    setLng(e.target.value);
-                    setMapError(false);
-                  }}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Primetek HQ, Hyderabad"
                   className={inputClasses}
                 />
               </div>
             </div>
 
-            {/* Auto-detect button */}
-            <button
-              type="button"
-              onClick={detectCurrentLocation}
-              disabled={detectingLocation}
-              className="flex items-center gap-1.5 text-[10px] font-bold text-primary-700 hover:text-primary-800 uppercase tracking-wider transition-all disabled:opacity-50 group cursor-pointer"
-            >
-              {detectingLocation ? (
-                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Locating...</>
-              ) : (
-                <><Crosshair className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> Sync with Current Position</>
+            {/* Row 2: GPS Coordinates */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-4 gap-2 lg:gap-6">
+              <div className="space-y-0.5">
+                <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5 lg:text-[10px] lg:text-navy-900 lg:font-semibold lg:normal-case">
+                  GPS Coordinates
+                </label>
+                <p className="hidden lg:block text-[10px] text-zinc-455 leading-relaxed max-w-sm">
+                  Center point coordinates (latitude & longitude) for geofence validation.
+                </p>
+              </div>
+              <div className="w-full lg:w-[400px] flex flex-col gap-2.5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 lg:space-y-0">
+                    <label className="block text-[8px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5 lg:hidden">Latitude</label>
+                    <input
+                      type="text"
+                      placeholder="Latitude"
+                      value={lat}
+                      onChange={(e) => {
+                        setLat(e.target.value);
+                        setMapError(false);
+                      }}
+                      className={inputClasses}
+                    />
+                  </div>
+                  <div className="space-y-1.5 lg:space-y-0">
+                    <label className="block text-[8px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5 lg:hidden">Longitude</label>
+                    <input
+                      type="text"
+                      placeholder="Longitude"
+                      value={lng}
+                      onChange={(e) => {
+                        setLng(e.target.value);
+                        setMapError(false);
+                      }}
+                      className={inputClasses}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-start">
+                  <button
+                    type="button"
+                    onClick={detectCurrentLocation}
+                    disabled={detectingLocation}
+                    className="flex items-center gap-1.5 text-[10px] font-bold text-primary-700 hover:text-primary-800 uppercase tracking-wider transition-all disabled:opacity-50 group cursor-pointer"
+                  >
+                    {detectingLocation ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Locating...</>
+                    ) : (
+                      <><Crosshair className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" /> Sync with Current Position</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3: Radius */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between py-4 gap-2 lg:gap-6">
+              <div className="space-y-0.5">
+                <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5 lg:text-[10px] lg:text-navy-900 lg:font-semibold lg:normal-case">
+                  Geofence Radius
+                </label>
+                <p className="hidden lg:block text-[10px] text-zinc-455 leading-relaxed max-w-sm">
+                  Allowable distance in meters from center coordinates. Recommended: 300 meters.
+                </p>
+              </div>
+              <div className="w-full lg:w-[400px]">
+                <div className="relative group">
+                  <input
+                    type="number"
+                    min={50}
+                    max={5000}
+                    step={50}
+                    value={radius}
+                    onChange={(e) => setRadius(e.target.value)}
+                    className={inputClasses}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400">METERS</div>
+                </div>
+                <p className="text-[10px] text-zinc-450 mt-1.5 font-medium leading-normal lg:hidden">
+                  Allowable distance from the office coordinate for check-in validation. Recommended: 300 meters.
+                </p>
+              </div>
+            </div>
+
+            {/* Row 4: Actions & Save */}
+            <div className="flex items-center justify-between lg:justify-end gap-3.5 pt-4">
+              {saved && (
+                <motion.div 
+                  initial={{ opacity: 0, x: -10 }} 
+                  animate={{ opacity: 1, x: 0 }} 
+                  className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase tracking-wider"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Settings Saved
+                </motion.div>
               )}
-            </button>
-
-            {/* Radius */}
-            <div className="space-y-1.5">
-              <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-wider ml-0.5">
-                Geofence Radius (Meters)
-              </label>
-              <div className="relative group">
-                <input
-                  type="number"
-                  min={50}
-                  max={5000}
-                  step={50}
-                  value={radius}
-                  onChange={(e) => setRadius(e.target.value)}
-                  className={inputClasses}
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-bold text-zinc-400">METERS</div>
-              </div>
-              <p className="text-[10px] text-zinc-450 mt-1.5 font-medium leading-normal">
-                Allowable distance from the office coordinate for check-in validation. Recommended: 300 meters.
-              </p>
-            </div>
-
-            {/* Save */}
-            <div className="flex items-center gap-3.5 pt-2">
               <Button 
                 onClick={handleSave} 
                 disabled={saving}
@@ -289,15 +327,6 @@ export default function AdminSettingsPage() {
                   <><Save className="w-4 h-4 mr-2" /> Save Settings</>
                 )}
               </Button>
-              {saved && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }} 
-                  animate={{ opacity: 1, x: 0 }} 
-                  className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase tracking-wider"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Settings Saved
-                </motion.div>
-              )}
             </div>
           </div>
         </Card>
@@ -427,7 +456,7 @@ export default function AdminSettingsPage() {
       </div>
 
     {/* 3. Notification Settings */}
-    <div id="notifications" className="scroll-mt-20 mt-6">
+    <div id="notifications" className="scroll-mt-20">
       <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white overflow-hidden relative">
         <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
           <Save className="w-48 h-48 text-navy-900" />
