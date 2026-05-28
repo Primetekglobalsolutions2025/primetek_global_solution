@@ -23,6 +23,7 @@ export function useOfflineSync() {
   const syncQueue = useCallback(async () => {
     if (!navigator.onLine) return;
 
+    // getOfflineQueue automatically filters out and archives entries exceeding TTL, retry caps, or checkout orphans
     const queue = getOfflineQueue();
     const pending = queue.filter((e) => e.status === 'pending' || e.status === 'failed');
 

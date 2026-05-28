@@ -20,13 +20,98 @@ export interface OfflineAttendanceEntry {
 }
 
 const QUEUE_KEY = 'primetek_offline_attendance_queue';
+const ARCHIVE_KEY = 'primetek_failed_attendance_history';
 
-/** Read the full queue from localStorage */
+export interface ArchivedOfflineEntry {
+  entry: OfflineAttendanceEntry;
+  archivedAt: string;
+  reason: string;
+}
+
+/** Get the archived failed history queue */
+export function getArchivedOfflineQueue(): ArchivedOfflineEntry[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(ARCHIVE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Archive failed entries in localStorage */
+function archiveEntries(items: { entry: OfflineAttendanceEntry; reason: string }[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(ARCHIVE_KEY);
+    const archive: ArchivedOfflineEntry[] = raw ? JSON.parse(raw) : [];
+    
+    items.forEach(({ entry, reason }) => {
+      if (!archive.some(a => a.entry.id === entry.id)) {
+        archive.push({
+          entry: { ...entry, status: 'failed' },
+          archivedAt: new Date().toISOString(),
+          reason
+        });
+      }
+    });
+
+    if (archive.length > 100) {
+      archive.splice(0, archive.length - 100);
+    }
+    localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+  } catch (err) {
+    console.error('Failed to write to archive bucket:', err);
+  }
+}
+
+/** Read the full queue from localStorage, filtering out and archiving expired/failed/orphaned entries */
 export function getOfflineQueue(): OfflineAttendanceEntry[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(QUEUE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const queue: OfflineAttendanceEntry[] = JSON.parse(raw);
+
+    const now = Date.now();
+    const TTL = 24 * 60 * 60 * 1000; // 24 hours
+    const maxRetries = 3;
+
+    const activeEntries: OfflineAttendanceEntry[] = [];
+    const entriesToArchive: { entry: OfflineAttendanceEntry; reason: string }[] = [];
+
+    // First pass: basic TTL & retry count checks
+    const activeSet = new Set<string>();
+    for (const entry of queue) {
+      const age = now - new Date(entry.timestamp).getTime();
+      if (age > TTL) {
+        entriesToArchive.push({ entry, reason: 'TTL_EXPIRED_24H' });
+      } else if (entry.retryCount >= maxRetries) {
+        entriesToArchive.push({ entry, reason: 'MAX_RETRIES_EXCEEDED' });
+      } else {
+        activeEntries.push(entry);
+        activeSet.add(entry.id);
+      }
+    }
+
+    // Second pass: orphan checkouts whose parent check-in failed or is missing
+    const finalEntries: OfflineAttendanceEntry[] = [];
+    for (const entry of activeEntries) {
+      if (entry.action === 'check_out' && entry.recordId && entry.recordId.startsWith('offline_')) {
+        if (!activeSet.has(entry.recordId)) {
+          entriesToArchive.push({ entry, reason: 'ORPHANED_CHECKOUT_NO_PARENT' });
+          continue;
+        }
+      }
+      finalEntries.push(entry);
+    }
+
+    if (entriesToArchive.length > 0) {
+      archiveEntries(entriesToArchive);
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(finalEntries));
+    }
+
+    return finalEntries;
   } catch {
     return [];
   }

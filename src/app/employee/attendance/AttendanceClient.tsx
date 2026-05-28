@@ -11,22 +11,7 @@ import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
 import { getDeviceInfo } from '@/lib/security/device-detect';
 
-const statusColors: Record<string, string> = {
-  working: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  idle: 'bg-amber-50 text-amber-700 border-amber-200',
-  break: 'bg-primary-50 text-primary-700 border-primary-200 animate-pulse',
-  'break (auto)': 'bg-red-50 text-red-700 border-red-200 animate-pulse',
-  'logged out': 'bg-zinc-55 text-zinc-600 border-zinc-200',
-  
-  // Historical / compatibility states
-  present: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  late: 'bg-amber-50 text-amber-700 border-amber-200',
-  absent: 'bg-red-50 text-red-700 border-red-200',
-  'half-day': 'bg-blue-50 text-blue-700 border-blue-200',
-  'pending wfh': 'bg-violet-50 text-violet-700 border-violet-200',
-  'approved wfh': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'rejected wfh': 'bg-red-50 text-red-700 border-red-200',
-};
+
 
 export interface AttendanceRecord {
   id: string;
@@ -168,6 +153,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   const projectionVersion = useRef<number>(1);
   const gpsSuppressionUntil = useRef<number>(0);
   const LEASE_KEY = 'primetek_attendance_leader_lease';
+  const lastRefreshTimeRef = useRef<number>(0);
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotification({ message, type });
@@ -221,6 +207,12 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   // Lightweight projection reconciliation - pulls latest DB projection state safely
   const refreshProjectionState = async () => {
     if (!todayRecord) return;
+    const now = Date.now();
+    if (now - lastRefreshTimeRef.current < 2000) {
+      console.log('[Tab Sync]: Throttling duplicate refresh request.');
+      return;
+    }
+    lastRefreshTimeRef.current = now;
     try {
       const res = await getAttendanceSessionState(todayRecord.id);
       if (res.success && res.attendance && res.projection) {
@@ -384,6 +376,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   // 1. Lease-based Leader Election
   useEffect(() => {
     const bc = new BroadcastChannel('attendance_tabs');
+    let leaseTimeoutId: NodeJS.Timeout | null = null;
     
     const checkLease = () => {
       const now = Date.now();
@@ -398,10 +391,29 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
       if (!lease || now > lease.expiresAt || lease.tabId === tabId) {
         const expiresAt = now + 4000; // lease valid for 4 seconds
         localStorage.setItem(LEASE_KEY, JSON.stringify({ tabId, expiresAt }));
-        if (!isLeaderRef.current) {
-          isLeaderRef.current = true;
-          setIsLeader(true);
-          console.log(`[Lease Election]: Tab ${tabId} acquired leadership lease.`);
+        
+        // Double check read-after-write to guarantee exclusive leadership
+        const checkAcquired = localStorage.getItem(LEASE_KEY);
+        try {
+          const parsed = checkAcquired ? JSON.parse(checkAcquired) : null;
+          if (parsed && parsed.tabId === tabId) {
+            if (!isLeaderRef.current) {
+              isLeaderRef.current = true;
+              setIsLeader(true);
+              console.log(`[Lease Election]: Tab ${tabId} acquired leadership lease.`);
+            }
+          } else {
+            if (isLeaderRef.current) {
+              isLeaderRef.current = false;
+              setIsLeader(false);
+              console.log(`[Lease Election]: Tab ${tabId} lost write race for leadership.`);
+            }
+          }
+        } catch (err) {
+          if (isLeaderRef.current) {
+            isLeaderRef.current = false;
+            setIsLeader(false);
+          }
         }
       } else {
         if (isLeaderRef.current) {
@@ -419,8 +431,14 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
       }
     };
 
+    const checkLeaseWithJitter = () => {
+      checkLease();
+      const jitter = Math.floor(Math.random() * 300);
+      leaseTimeoutId = setTimeout(checkLeaseWithJitter, 1500 + jitter);
+    };
+
     checkLease();
-    const leaseInterval = setInterval(checkLease, 1500);
+    leaseTimeoutId = setTimeout(checkLeaseWithJitter, 1500);
 
     const handleUnload = () => {
       try {
@@ -438,7 +456,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
     window.addEventListener('beforeunload', handleUnload);
 
     return () => {
-      clearInterval(leaseInterval);
+      if (leaseTimeoutId) clearTimeout(leaseTimeoutId);
       window.removeEventListener('beforeunload', handleUnload);
       handleUnload();
     };

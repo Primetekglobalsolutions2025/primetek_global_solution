@@ -37,7 +37,7 @@ async function OperationalKPIGrid() {
       disputesRes,
     ] = await Promise.all([
       supabaseAdmin.from('attendance').select('id, status, device_type', { count: 'exact' }).eq('date', todayIST).is('check_out', null),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact' }).eq('date', todayIST).eq('status', 'On Break'),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact' }).eq('date', todayIST).in('status', ['Break', 'Break (Auto)']),
       supabaseAdmin.from('attendance').select('id', { count: 'exact' }).eq('date', todayIST).is('check_out', null).eq('device_type', 'mobile'),
       supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
       supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),

@@ -94,7 +94,7 @@ function StatusBadge({ status }: { status: string }) {
     if (['rejected', 'rejected wfh', 'absent'].includes(s)) {
       return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
     }
-    if (s === 'on break') {
+    if (['on break', 'break', 'break (auto)'].includes(s)) {
       return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
     }
     return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };

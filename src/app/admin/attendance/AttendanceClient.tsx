@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback, Fragment } from 'react';
+import { useState, useMemo, useEffect, useCallback, Fragment, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Search, 
@@ -78,31 +78,7 @@ export interface AttendanceRecord {
   last_heartbeat_at?: string | null;
 }
 
-const statusColors: Record<string, string> = {
-  present: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  late: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  absent: 'bg-red-500/10 text-red-600 border-red-500/20',
-  'half-day': 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  'pending wfh': 'bg-violet-500/10 text-violet-600 border-violet-500/20',
-  'approved wfh': 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30',
-  'rejected wfh': 'bg-red-500/10 text-red-700 border-red-500/30',
-  working: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  'on break': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  'logged out': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-  'clocked_out': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-  mobile_clocked_in: 'bg-violet-500/10 text-violet-450 border-violet-500/20',
-  awaiting_desktop: 'bg-amber-500/10 text-amber-450 border-amber-500/20 animate-pulse',
-  desktop_active: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/25',
-  productive_timer_paused: 'bg-red-500/10 text-red-400 border-red-500/20',
-  active_desktop: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/25',
-  mobile_only: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  active_break: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-  idle_warning: 'bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse',
-  gps_unstable: 'bg-amber-500/10 text-amber-650 border-amber-500/20 animate-pulse',
-  stale_session: 'bg-red-500/10 text-red-650 border-red-500/20 animate-pulse',
-  auto_break: 'bg-red-500/10 text-red-600 border-red-500/20',
-  force_logged_out: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
-};
+
 
 function StatusBadge({ status }: { status: string }) {
   const s = status?.toLowerCase() || '';
@@ -185,6 +161,8 @@ export default function AttendanceClient({
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
   const [ticks, setTicks] = useState(0);
   const [quickFilter, setQuickFilter] = useState<string>('all');
+  const lastActiveTimeRef = useRef<number>(Date.now());
+  const isPollingPausedRef = useRef<boolean>(false);
   const { toast } = useToast();
 
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
@@ -227,18 +205,75 @@ export default function AttendanceClient({
     }
   }, []);
 
-  // Set up polling and synchronization loop
+  // Set up polling and synchronization loop with visibility & inactivity checks
   useEffect(() => {
-    fetchRealtimeUpdates();
+    let updatesInterval: NodeJS.Timeout | null = null;
+    let routerRefreshInterval: NodeJS.Timeout | null = null;
 
-    const updatesInterval = setInterval(fetchRealtimeUpdates, 5000);
-    const routerRefreshInterval = setInterval(() => {
-      router.refresh();
-    }, 10000); // refresh layout server components data every 10s
+    const startIntervals = () => {
+      if (updatesInterval) clearInterval(updatesInterval);
+      if (routerRefreshInterval) clearInterval(routerRefreshInterval);
+
+      updatesInterval = setInterval(() => {
+        const isHidden = document.hidden;
+        const isInactive = Date.now() - lastActiveTimeRef.current > 5 * 60 * 1000;
+
+        if (isHidden || isInactive) {
+          if (!isPollingPausedRef.current) {
+            console.log(`[Admin Polling]: Paused due to ${isHidden ? 'hidden tab' : 'inactivity'}`);
+            isPollingPausedRef.current = true;
+          }
+          return;
+        }
+
+        fetchRealtimeUpdates();
+      }, 30000); // 30s polling interval
+
+      routerRefreshInterval = setInterval(() => {
+        const isHidden = document.hidden;
+        const isInactive = Date.now() - lastActiveTimeRef.current > 5 * 60 * 1000;
+        if (!isHidden && !isInactive) {
+          router.refresh();
+        }
+      }, 30000); // 30s revalidation interval
+    };
+
+    const handleResume = () => {
+      lastActiveTimeRef.current = Date.now();
+      if (isPollingPausedRef.current) {
+        console.log('[Admin Polling]: Resumed polling.');
+        isPollingPausedRef.current = false;
+        fetchRealtimeUpdates();
+        router.refresh();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        handleResume();
+      }
+    };
+
+    const handleActivity = () => {
+      handleResume();
+    };
+
+    // Register listeners
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleResume);
+    const activityEvents = ['mousemove', 'keydown', 'click', 'scroll'];
+    activityEvents.forEach((ev) => window.addEventListener(ev, handleActivity, { passive: true }));
+
+    // Initial fetch and start
+    fetchRealtimeUpdates();
+    startIntervals();
 
     return () => {
-      clearInterval(updatesInterval);
-      clearInterval(routerRefreshInterval);
+      if (updatesInterval) clearInterval(updatesInterval);
+      if (routerRefreshInterval) clearInterval(routerRefreshInterval);
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleResume);
+      activityEvents.forEach((ev) => window.removeEventListener(ev, handleActivity));
     };
   }, [fetchRealtimeUpdates, router]);
 
@@ -477,85 +512,7 @@ export default function AttendanceClient({
     };
   };
 
-  const renderTelemetry = (record: AttendanceRecord) => {
-    const isClockedOut = !!record.check_out_raw || record.status === 'Logged Out' || record.status === 'clocked_out';
-    
-    // GPS Indicator
-    let gpsColor = 'text-zinc-300';
-    let gpsTitle = 'GPS Telemetry Inactive';
-    if (!isClockedOut) {
-      if (record.lat !== 0 && record.lng !== 0) {
-        if (record.status === 'GPS_UNSTABLE') {
-          gpsColor = 'text-amber-500 animate-pulse';
-          gpsTitle = 'GPS Coordinate Unstable';
-        } else if (record.risk_reasons?.some(r => r.signal.toLowerCase().includes('gps') || r.detail.toLowerCase().includes('geofence'))) {
-          gpsColor = 'text-red-500';
-          gpsTitle = 'Geofence Violation Detected';
-        } else {
-          gpsColor = 'text-emerald-500';
-          gpsTitle = 'GPS Locked: Within Geofence';
-        }
-      } else {
-        gpsColor = 'text-red-400';
-        gpsTitle = 'No GPS Location Data';
-      }
-    }
 
-    // Desktop Indicator
-    let desktopColor = 'text-zinc-300';
-    let desktopTitle = 'Desktop Telemetry Inactive';
-    if (!isClockedOut) {
-      if (record.status === 'DESKTOP_ACTIVE' || record.status === 'Working') {
-        desktopColor = 'text-emerald-500';
-        desktopTitle = 'Desktop Application Active';
-      } else if (record.status === 'AWAITING_DESKTOP') {
-        desktopColor = 'text-amber-500 animate-pulse';
-        desktopTitle = 'Awaiting Desktop Link (Grace Period)';
-      } else if (record.device_type === 'mobile' || record.status === 'MOBILE_CLOCKED_IN') {
-        desktopColor = 'text-violet-400';
-        desktopTitle = 'Mobile Only Verification';
-      } else {
-        desktopColor = 'text-red-500';
-        desktopTitle = 'Desktop Agent Inactive';
-      }
-    }
-
-    // Heartbeat Indicator / Pulse
-    let pulseColor = 'bg-zinc-300';
-    let pulseTitle = 'No Heartbeat (Inactive)';
-    let latencyText = '';
-    if (!isClockedOut) {
-      if (record.status === 'On Break') {
-        pulseColor = 'bg-amber-400 animate-pulse';
-        pulseTitle = 'Heartbeat Paused (On Break)';
-      } else if (record.status === 'PRODUCTIVE_TIMER_PAUSED' || record.status === 'IDLE_WARNING') {
-        pulseColor = 'bg-red-500 animate-ping';
-        pulseTitle = 'Idle Warning (Telemetry Missed)';
-      } else {
-        pulseColor = 'bg-emerald-500 animate-pulse';
-        pulseTitle = 'Heartbeat Live & Synchronized';
-        latencyText = ' <5s';
-      }
-    }
-
-    return (
-      <div className="flex items-center gap-2">
-        <span title={gpsTitle}>
-          <MapPin className={cn("w-3.5 h-3.5", gpsColor)} />
-        </span>
-        <span title={desktopTitle}>
-          <Monitor className={cn("w-3.5 h-3.5", desktopColor)} />
-        </span>
-        <div className="flex items-center gap-1">
-          <span className={cn("w-2 h-2 rounded-full", pulseColor)} title={pulseTitle} />
-          {latencyText && <span className="text-[8px] font-mono text-zinc-400 font-bold">{latencyText}</span>}
-        </div>
-        <span title={!isClockedOut ? "Signal strength: High" : "Offline"}>
-          <Signal className={cn("w-3.5 h-3.5", !isClockedOut ? "text-emerald-500" : "text-zinc-300")} />
-        </span>
-      </div>
-    );
-  };
 
   const toggleRow = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();

@@ -40,6 +40,8 @@ const statusColors: Record<string, string> = {
   'rejected wfh': 'bg-red-500/10 text-red-400 border-red-500/30',
   working: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20',
   'on break': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
+  break: 'bg-amber-500/10 text-amber-450 border-amber-500/20',
+  'break (auto)': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
   'logged out': 'bg-slate-500/10 text-zinc-500 border-slate-700/30',
   mobile_clocked_in: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   awaiting_desktop: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse',

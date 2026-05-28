@@ -610,7 +610,7 @@ export async function startBreak() {
     const { error } = await supabaseAdmin
       .from('attendance')
       .update({
-        status: 'On Break',
+        status: 'Break',
         current_break_start: now.toISOString()
       })
       .eq('id', record.id);
@@ -673,7 +673,7 @@ export async function endBreak() {
       return { success: false, error: 'No active attendance record found for today.' };
     }
 
-    if (record.status !== 'On Break' || !record.current_break_start) {
+    if (record.status !== 'Break' || !record.current_break_start) {
       return { success: false, error: 'You are not currently on a break.' };
     }
 
@@ -1134,12 +1134,7 @@ export async function logStatusTransitionEvent(sessionId: string, newStatus: 'Wo
 
     if (insertErr) throw insertErr;
 
-    // Rebuild projection to update public.attendance status and stats
-    const { error: rebuildErr } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
-      p_session_id: sessionId
-    });
 
-    if (rebuildErr) throw rebuildErr;
 
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');

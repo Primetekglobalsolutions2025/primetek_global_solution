@@ -31,7 +31,7 @@ export async function getAttendanceSummary() {
   const all = records || [];
 
   const present = all.filter(r =>
-    ['Working', 'Logged Out', 'On Break', 'Approved WFH'].includes(r.status)
+    ['Working', 'Logged Out', 'On Break', 'Break', 'Break (Auto)', 'Approved WFH'].includes(r.status)
   ).length;
 
   const late = all.filter(r =>
