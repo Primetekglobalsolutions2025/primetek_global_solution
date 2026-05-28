@@ -81,7 +81,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
 
   const recordIds = (data || []).map(record => record.id);
   let riskEvents: any[] = [];
-  let projectionsMap: Record<string, string> = {};
+  let projectionsMap: Record<string, { last_heartbeat_at: string | null; productive_seconds: number; break_seconds: number }> = {};
 
   if (recordIds.length > 0) {
     const [riskRes, projectionsRes] = await Promise.all([
@@ -92,7 +92,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
         .order('created_at', { ascending: false }),
       supabaseAdmin
         .from('attendance_projections')
-        .select('session_id, last_heartbeat_at')
+        .select('session_id, last_heartbeat_at, productive_seconds, break_seconds')
         .in('session_id', recordIds)
     ]);
 
@@ -101,8 +101,12 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
     }
     if (projectionsRes.data) {
       projectionsRes.data.forEach((p) => {
-        if (p.session_id && p.last_heartbeat_at) {
-          projectionsMap[p.session_id] = p.last_heartbeat_at;
+        if (p.session_id) {
+          projectionsMap[p.session_id] = {
+            last_heartbeat_at: p.last_heartbeat_at || null,
+            productive_seconds: p.productive_seconds || 0,
+            break_seconds: p.break_seconds || 0
+          };
         }
       });
     }
@@ -166,8 +170,10 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       risk_events: recordRisks,
       // Break monitoring
       current_break_start: record.current_break_start,
-      total_break_seconds: record.total_break_seconds || 0,
-      productive_hours: record.productive_hours || 0.0,
+      total_break_seconds: projectionsMap[record.id]?.break_seconds ?? (record.total_break_seconds || 0),
+      productive_hours: projectionsMap[record.id] ? (projectionsMap[record.id].productive_seconds / 3600.0) : (record.productive_hours || 0.0),
+      productive_seconds: projectionsMap[record.id]?.productive_seconds ?? null,
+      break_seconds: projectionsMap[record.id]?.break_seconds ?? null,
       // Late login penalty
       is_late: record.is_late || false,
       late_minutes: record.late_minutes || 0,
@@ -181,7 +187,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       device_type: record.device_type || 'desktop',
       device_label: record.device_label || 'Desktop',
       awaiting_desktop_deadline: record.awaiting_desktop_deadline || null,
-      last_heartbeat_at: projectionsMap[record.id] || null,
+      last_heartbeat_at: projectionsMap[record.id]?.last_heartbeat_at || null,
     };
   });
 }

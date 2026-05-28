@@ -44,6 +44,7 @@ export default async function EmployeeAttendanceServerWrapper() {
       awaiting_desktop_deadline: r.awaiting_desktop_deadline,
       device_type: r.device_type,
       device_label: r.device_label,
+      productive_hours: r.productive_hours || 0,
     };
   });
 

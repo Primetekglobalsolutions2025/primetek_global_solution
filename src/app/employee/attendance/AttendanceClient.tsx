@@ -26,6 +26,7 @@ export interface AttendanceRecord {
   awaiting_desktop_deadline?: string | null;
   device_type?: string | null;
   device_label?: string | null;
+  productive_hours?: number;
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -247,6 +248,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
                 awaiting_desktop_deadline: att.awaiting_desktop_deadline,
                 device_type: att.device_type,
                 device_label: att.device_label,
+                productive_hours: att.productive_hours,
               };
             }
             return r;
@@ -967,10 +969,10 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   const runningHrsDecimal = (productiveSeconds / 3600).toFixed(1);
   const displayHrs = !isCheckedOut 
     ? `${runningHrsDecimal}h / 9h` 
-    : `${todayRecord?.duration_hours || 0}h / 9h`;
+    : `${todayRecord?.productive_hours || 0}h / 9h`;
   const completedPercentage = !isCheckedOut
     ? Math.min(Math.round((productiveSeconds / (9 * 3600)) * 100), 100)
-    : Math.min(Math.round(((todayRecord?.duration_hours || 0) / 9) * 100), 100);
+    : Math.min(Math.round(((todayRecord?.productive_hours || 0) / 9) * 100), 100);
 
   const monthStart = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
   const daysInMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0).getDate();
@@ -1690,9 +1692,9 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-10 h-1 bg-zinc-100 rounded-full overflow-hidden border border-zinc-150">
-                    <div className="h-full bg-primary-500 rounded-full" style={{ width: `${Math.min((r.duration_hours / 9) * 100, 100)}%` }} />
+                    <div className="h-full bg-primary-500 rounded-full" style={{ width: `${Math.min(((r.productive_hours || 0) / 9) * 100, 100)}%` }} />
                   </div>
-                  <span className="text-[11px] font-bold text-navy-900 font-mono">{r.duration_hours}h</span>
+                  <span className="text-[11px] font-bold text-navy-900 font-mono">{r.productive_hours || 0}h</span>
                 </div>
               </div>
               <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-zinc-100">
@@ -1751,10 +1753,10 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
                         <div className="w-12 h-1 bg-zinc-100 rounded-full overflow-hidden border border-zinc-150">
                           <div 
                             className="h-full bg-primary-500 rounded-full" 
-                            style={{ width: `${Math.min((r.duration_hours / 9) * 100, 100)}%` }} 
+                            style={{ width: `${Math.min(((r.productive_hours || 0) / 9) * 100, 100)}%` }} 
                           />
                         </div>
-                        <span className="text-[11px] font-semibold text-navy-900 font-mono">{r.duration_hours}h</span>
+                        <span className="text-[11px] font-semibold text-navy-900 font-mono">{r.productive_hours || 0}h</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-right">

@@ -76,6 +76,8 @@ export interface AttendanceRecord {
   device_label?: string | null;
   awaiting_desktop_deadline?: string | null;
   last_heartbeat_at?: string | null;
+  productive_seconds?: number | null;
+  break_seconds?: number | null;
 }
 
 
@@ -462,8 +464,8 @@ export default function AttendanceClient({
     let sessionSecs = 0;
 
     if (isClockedOut) {
-      productiveSecs = (record.productive_hours ?? record.duration_hours) * 3600;
-      breakSecs = record.total_break_seconds ?? 0;
+      productiveSecs = record.productive_seconds ?? ((record.productive_hours ?? record.duration_hours) * 3600);
+      breakSecs = record.break_seconds ?? (record.total_break_seconds ?? 0);
       if (record.check_in_raw && record.check_out_raw) {
         sessionSecs = Math.floor((new Date(record.check_out_raw).getTime() - new Date(record.check_in_raw).getTime()) / 1000);
       } else {
@@ -473,7 +475,7 @@ export default function AttendanceClient({
       const checkInMs = record.check_in_raw ? new Date(record.check_in_raw).getTime() : now;
       sessionSecs = Math.max(0, Math.floor((now - checkInMs) / 1000));
       
-      const accumulatedBreak = record.total_break_seconds ?? 0;
+      const accumulatedBreak = record.break_seconds ?? (record.total_break_seconds ?? 0);
       if (['Break', 'Break (Auto)'].includes(record.status) && record.current_break_start) {
         const breakStartMs = new Date(record.current_break_start).getTime();
         breakSecs = accumulatedBreak + Math.max(0, Math.floor((now - breakStartMs) / 1000));
@@ -482,13 +484,13 @@ export default function AttendanceClient({
       }
       
       if (record.status === 'Idle') {
-        idleSecs = Math.max(0, sessionSecs - breakSecs - ((record.productive_hours ?? 0) * 3600));
+        idleSecs = Math.max(0, sessionSecs - breakSecs - (record.productive_seconds ?? ((record.productive_hours ?? 0) * 3600)));
       }
       
       if (record.status === 'Working' || record.status === 'Idle') {
         productiveSecs = Math.max(0, sessionSecs - breakSecs);
       } else {
-        productiveSecs = (record.productive_hours ?? 0) * 3600;
+        productiveSecs = record.productive_seconds ?? ((record.productive_hours ?? 0) * 3600);
       }
     }
 
@@ -527,10 +529,11 @@ export default function AttendanceClient({
   };
 
   const exportCsv = () => {
-    const headers = 'Employee,Date,Check In,Check Out,Hours,Status,Latitude,Longitude';
-    const rows = filtered.map((r) =>
-      `"${r.employee_name}","${r.date}","${r.check_in || ''}","${r.check_out || ''}",${r.duration_hours},"${r.status}",${r.lat},${r.lng}`
-    );
+    const headers = 'Employee,Date,Check In,Check Out,Total Hours,Break Time,Status,Latitude,Longitude';
+    const rows = filtered.map((r) => {
+      const times = getRealtimeDurations(r);
+      return `"${r.employee_name}","${r.date}","${r.check_in || ''}","${r.check_out || ''}","${times.productive}","${times.break}","${r.status}",${r.lat},${r.lng}`;
+    });
     const csv = [headers, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
