@@ -69,7 +69,7 @@ function RiskBadge({ level }: { level: string }) {
       'inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-medium border uppercase tracking-wider',
       level === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
       level === 'medium' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-      'bg-emerald-50 text-emerald-700 border-emerald-250'
+      'bg-emerald-50 text-emerald-700 border-emerald-200'
     )}>
       <span className={cn(
         'w-1.5 h-1.5 rounded-full mr-1.5 shrink-0',
@@ -172,7 +172,7 @@ function AttendanceReport({ data }: { data: any }) {
         
         <div className="rounded-lg border border-zinc-200 bg-white p-5 space-y-3 hover:border-primary-500/50 transition-all duration-200 shadow-2xs">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 leading-none font-sans">Attendance Deductions</p>
-          <p className={cn('text-2xl font-bold leading-none font-sans tracking-tight', data.deductionTotal > 0 ? 'text-red-650' : 'text-navy-900')}>
+          <p className={cn('text-2xl font-bold leading-none font-sans tracking-tight', data.deductionTotal > 0 ? 'text-red-600' : 'text-navy-900')}>
             {data.deductionTotal}
             <span className="text-xs font-semibold text-zinc-400 ml-1">days</span>
           </p>
@@ -213,7 +213,7 @@ function AttendanceReport({ data }: { data: any }) {
                         <div className="flex items-center gap-3 mt-1 text-[10px] text-zinc-400 font-mono">
                           <span className="flex items-center gap-1"><LogIn className="w-3 h-3 text-emerald-500" />{checkIn}</span>
                           <span className="flex items-center gap-1"><LogOut className="w-3 h-3 text-red-400" />{checkOut}</span>
-                          {r.productive_hours > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-zinc-455" />{r.productive_hours}h productive</span>}
+                          {r.productive_hours > 0 && <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-zinc-500" />{r.productive_hours}h productive</span>}
                         </div>
                       </div>
                       <div className="shrink-0 text-zinc-400 transition-transform duration-200">
@@ -240,7 +240,7 @@ function AttendanceReport({ data }: { data: any }) {
                             </div>
                             <div className="bg-white p-3 rounded border border-zinc-200">
                               <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Deduction</p>
-                              <p className={cn('font-semibold text-sm mt-1 font-mono', r.deduction_applied > 0 ? 'text-red-650' : 'text-navy-900')}>{r.deduction_applied > 0 ? `${r.deduction_applied} day` : 'None'}</p>
+                              <p className={cn('font-semibold text-sm mt-1 font-mono', r.deduction_applied > 0 ? 'text-red-600' : 'text-navy-900')}>{r.deduction_applied > 0 ? `${r.deduction_applied} day` : 'None'}</p>
                             </div>
                             <div className="bg-white p-3 rounded border border-zinc-200">
                               <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-0.5 font-sans">Exemption</p>
@@ -298,7 +298,7 @@ function LeavesReport({ data }: { data: any }) {
 
       {/* Casual Leave Balance */}
       <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-2xs">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-450 mb-3 font-sans">Casual Leave Balance — This Month</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-3 font-sans">Casual Leave Balance — This Month</p>
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="shrink-0">
             <p className="text-2xl font-bold text-navy-900 font-sans tracking-tight">
@@ -374,19 +374,19 @@ function DailyReportsReport({ data }: { data: any }) {
           label="Total Applications" 
           value={data.totalApplications} 
           icon={FileText} 
-          color="text-primary-650" 
+          color="text-primary-600" 
         />
         <StatCard 
           label="Interviews Scheduled" 
           value={data.totalInterviews} 
           icon={User} 
-          color="text-violet-650" 
+          color="text-violet-600" 
         />
         <StatCard 
           label="Assessments" 
           value={data.totalAssessments} 
           icon={Activity} 
-          color="text-emerald-650" 
+          color="text-emerald-600" 
         />
       </div>
 
@@ -494,13 +494,13 @@ function SecurityReport({ data }: { data: any }) {
           label="High Risk" 
           value={data.highRisk} 
           icon={AlertTriangle} 
-          color="text-red-650" 
+          color="text-red-600" 
         />
         <StatCard 
           label="Medium Risk" 
           value={data.mediumRisk} 
           icon={Info} 
-          color="text-amber-650" 
+          color="text-amber-600" 
         />
         <StatCard 
           label="Avg Risk Score" 
@@ -529,7 +529,7 @@ function SecurityReport({ data }: { data: any }) {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-navy-900">{d.device_label || 'Unknown Device'}</p>
-                      <p className="text-[10px] text-zinc-450 font-mono mt-0.5">First seen: {formatDate(d.first_seen)} · Last used: {formatDate(d.last_used)}</p>
+                      <p className="text-[10px] text-zinc-500 font-mono mt-0.5">First seen: {formatDate(d.first_seen)} · Last used: {formatDate(d.last_used)}</p>
                     </div>
                   </div>
                   <span className={cn(
@@ -599,9 +599,9 @@ function SecurityReport({ data }: { data: any }) {
                     >
                       <div className={cn(
                         'w-9 h-9 rounded flex items-center justify-center border shrink-0 transition-colors group-hover/row:border-zinc-350',
-                        e.risk_level === 'high' ? 'bg-red-50 border-red-150 text-red-650' :
-                        e.risk_level === 'medium' ? 'bg-amber-50 border-amber-150 text-amber-650' :
-                        'bg-emerald-50 border-emerald-150 text-emerald-650'
+                        e.risk_level === 'high' ? 'bg-red-50 border-red-150 text-red-600' :
+                        e.risk_level === 'medium' ? 'bg-amber-50 border-amber-150 text-amber-600' :
+                        'bg-emerald-50 border-emerald-150 text-emerald-600'
                       )}>
                         <ShieldCheck className="w-4 h-4" />
                       </div>
@@ -609,7 +609,7 @@ function SecurityReport({ data }: { data: any }) {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-xs font-semibold text-navy-900 capitalize">{e.action.replace('_', ' ')}</span>
                           <RiskBadge level={e.risk_level} />
-                          <span className="text-[9px] font-mono text-zinc-450 font-semibold">{e.risk_score} pts</span>
+                          <span className="text-[9px] font-mono text-zinc-500 font-semibold">{e.risk_score} pts</span>
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-[10px] text-zinc-400 font-mono">
                           <span>{e.ip_address || 'Unknown IP'}</span>
@@ -619,7 +619,7 @@ function SecurityReport({ data }: { data: any }) {
                       </div>
                       <div className="shrink-0 text-right flex items-center gap-2">
                         <div>
-                          <p className="text-[9px] text-zinc-455 font-mono font-semibold">{new Date(e.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</p>
+                          <p className="text-[9px] text-zinc-500 font-mono font-semibold">{new Date(e.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}</p>
                         </div>
                         <ChevronDown className={cn("w-4 h-4 text-zinc-400 transition-transform duration-200", isExpanded && "rotate-180")} />
                       </div>
@@ -633,10 +633,10 @@ function SecurityReport({ data }: { data: any }) {
                           transition={{ duration: 0.15 }}
                           className="overflow-hidden"
                         >
-                          <div className="px-5 pb-4 pt-1 bg-zinc-50/40 border-t border-zinc-150 space-y-1.5">
+                          <div className="px-5 pb-4 pt-1 bg-zinc-50/40 border-t border-zinc-100 space-y-1.5">
                             <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-semibold mb-2 leading-none font-sans">Signal Breakdown</p>
                             {e.risk_reasons.map((sig: any, i: number) => (
-                              <div key={i} className="flex items-center justify-between text-[10px] bg-white rounded p-2.5 border border-zinc-200 shadow-3xs">
+                              <div key={i} className="flex items-center justify-between text-[10px] bg-white rounded p-2.5 border border-zinc-200 shadow-sm">
                                 <span className="font-semibold text-navy-900 font-sans">{sig.detail}</span>
                                 <span className={cn('font-bold font-mono', sig.weight > 0 ? 'text-red-500' : 'text-emerald-600')}>
                                   {sig.weight > 0 ? `+${sig.weight} pts` : '✓ Safe'}
@@ -697,7 +697,7 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
 
       {/* Quick Overview Strip - Vercel layout + Primetek Teal Color */}
       {activeTab === 'attendance' && attendance && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-3xs text-zinc-650 text-xs font-medium overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-sm text-zinc-600 text-xs font-medium overflow-x-auto scrollbar-none">
           <div className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse shrink-0" />
           <span className="text-[10px] font-mono font-medium text-primary-600 uppercase tracking-wider shrink-0">Summary</span>
           <div className="h-3 w-px bg-zinc-200" />
@@ -707,28 +707,28 @@ export default function ReportsClient({ attendance, leaves, dailyReports, securi
           <span className="text-zinc-300">·</span>
           <span className="shrink-0 font-semibold text-navy-900">{attendance.totalProductiveHours}h productive</span>
           <span className="text-zinc-300">·</span>
-          <span className="shrink-0 flex items-center gap-1"><Coffee className="w-3.5 h-3.5 text-zinc-450" />{formatSeconds(attendance.totalBreakSeconds)} break</span>
+          <span className="shrink-0 flex items-center gap-1"><Coffee className="w-3.5 h-3.5 text-zinc-500" />{formatSeconds(attendance.totalBreakSeconds)} break</span>
           {attendance.deductionTotal > 0 && (
             <>
               <span className="text-zinc-300">·</span>
-              <span className="shrink-0 text-red-650 font-bold">{attendance.deductionTotal}d deducted</span>
+              <span className="shrink-0 text-red-600 font-bold">{attendance.deductionTotal}d deducted</span>
             </>
           )}
         </div>
       )}
 
       {activeTab === 'security' && security && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-3xs text-zinc-650 text-xs font-medium overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-zinc-200 bg-white shadow-sm text-zinc-600 text-xs font-medium overflow-x-auto scrollbar-none">
           <div className={cn("w-1.5 h-1.5 rounded-full shrink-0 animate-pulse", security.highRisk > 0 ? "bg-red-500" : "bg-primary-500")} />
           <span className="text-[10px] font-mono font-medium text-primary-600 uppercase tracking-wider shrink-0">Security Status</span>
           <div className="h-3 w-px bg-zinc-200" />
-          <span className="shrink-0 font-semibold text-navy-950">{security.totalEvents} events</span>
-          <span className="opacity-30">·</span>
-          <span className="shrink-0 text-red-650 font-bold">{security.highRisk} high risk</span>
-          <span className="opacity-30">·</span>
+          <span className="shrink-0 font-semibold text-navy-900">{security.totalEvents} events</span>
+          <span className="text-zinc-300">·</span>
+          <span className="shrink-0 text-red-600 font-bold">{security.highRisk} high risk</span>
+          <span className="text-zinc-300">·</span>
           <span className="shrink-0">{security.trustedDevices} trusted device{security.trustedDevices !== 1 ? 's' : ''}</span>
-          <span className="opacity-30">·</span>
-          <span className="shrink-0 font-bold text-navy-950">Avg score: {security.avgScore}/100</span>
+          <span className="text-zinc-300">·</span>
+          <span className="shrink-0 font-bold text-navy-900">Avg score: {security.avgScore}/100</span>
         </div>
       )}
 

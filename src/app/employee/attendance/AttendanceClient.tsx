@@ -16,14 +16,14 @@ const statusColors: Record<string, string> = {
   late: 'bg-amber-50 text-amber-700 border-amber-200',
   absent: 'bg-red-50 text-red-700 border-red-200',
   'half-day': 'bg-blue-50 text-blue-700 border-blue-200',
-  'pending wfh': 'bg-violet-50 text-violet-750 border-violet-200',
-  'approved wfh': 'bg-emerald-50 text-emerald-750 border-emerald-250',
-  'rejected wfh': 'bg-red-50 text-red-750 border-red-200',
+  'pending wfh': 'bg-violet-50 text-violet-700 border-violet-200',
+  'approved wfh': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'rejected wfh': 'bg-red-50 text-red-700 border-red-200',
   working: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'on break': 'bg-primary-50 text-primary-700 border-primary-200 animate-pulse',
-  'logged out': 'bg-zinc-50 text-zinc-650 border-zinc-200',
+  'logged out': 'bg-zinc-50 text-zinc-600 border-zinc-200',
   mobile_clocked_in: 'bg-violet-50 text-violet-700 border-violet-200',
-  awaiting_desktop: 'bg-amber-50 text-amber-750 border-amber-200 animate-pulse',
+  awaiting_desktop: 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse',
   desktop_active: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   productive_timer_paused: 'bg-red-50 text-red-700 border-red-200',
 };
@@ -1145,7 +1145,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 <AlertTriangle className="w-8 h-8" />
                 <h3 className="text-lg font-bold text-navy-900 font-sans">Are you still working?</h3>
               </div>
-              <p className="text-xs text-zinc-650 leading-relaxed font-sans">
+              <p className="text-xs text-zinc-600 leading-relaxed font-sans">
                 We haven't detected activity for a few minutes. Confirm you're still working to keep your session active.
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between font-sans">
@@ -1166,7 +1166,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   
                   setSessionState('ACTIVE');
                 }}
-                className="w-full py-3 rounded-xl bg-primary-600 hover:bg-primary-750 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer font-sans"
+                className="w-full py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer font-sans"
               >
                 I am still working
               </button>
@@ -1215,7 +1215,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-250 bg-emerald-50/40 text-emerald-705 text-xs font-semibold font-sans shadow-2xs bg-white"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl border border-emerald-200 bg-emerald-50/40 text-emerald-700 text-xs font-semibold font-sans shadow-2xs bg-white"
           >
             <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>Session synchronized successfully.</span>
@@ -1237,15 +1237,15 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           <div className="flex items-center gap-3">
             <div className={cn(
               "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border",
-              lateStats.lateCount >= 6 ? "bg-red-50 text-red-650 border-red-200" :
-              lateStats.lateCount >= 3 ? "bg-amber-50 text-amber-650 border-amber-200" :
-              "bg-primary-50 text-primary-650 border-primary-200"
+              lateStats.lateCount >= 6 ? "bg-red-50 text-red-600 border-red-200" :
+              lateStats.lateCount >= 3 ? "bg-amber-50 text-amber-600 border-amber-200" :
+              "bg-primary-50 text-primary-600 border-primary-200"
             )}>
               <ShieldAlert className="w-4.5 h-4.5" />
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-              <span className="font-bold text-navy-955">Late Penalty Warning:</span>
-              <span className="font-medium text-zinc-650 text-xs">{lateStats.warningMessage}</span>
+              <span className="font-bold text-navy-900">Late Penalty Warning:</span>
+              <span className="font-medium text-zinc-600 text-xs">{lateStats.warningMessage}</span>
               <span className="hidden sm:inline text-zinc-300">|</span>
               <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
                 Lates: <span className="text-zinc-900">{lateStats.lateCount}</span> • Deductions: <span className="text-red-600">{lateStats.deduction} Day</span>
@@ -1262,20 +1262,20 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-amber-250 bg-amber-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
           >
             <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-amber-50 text-amber-655 border-amber-250 animate-pulse mt-0.5 sm:mt-0">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-amber-50 text-amber-600 border-amber-200 animate-pulse mt-0.5 sm:mt-0">
                 <Clock className="w-4.5 h-4.5" />
               </div>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-navy-955 text-left">Awaiting Workstation Verification</span>
+                  <span className="font-bold text-navy-900 text-left">Awaiting Workstation Verification</span>
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold animate-pulse">
                     Time Remaining: {countdownText}
                   </span>
                 </div>
-                <span className="font-medium text-zinc-650 text-xs text-left">
+                <span className="font-medium text-zinc-600 text-xs text-left">
                   Your attendance has started successfully. To continue productive hours tracking, please open the portal on your laptop or desktop device within 10 minutes.
                 </span>
               </div>
@@ -1298,15 +1298,15 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-red-250 bg-red-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-red-200 bg-red-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
           >
             <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-red-50 text-red-655 border-red-200 mt-0.5 sm:mt-0">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-red-50 text-red-600 border-red-200 mt-0.5 sm:mt-0">
                 <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
               </div>
               <div className="flex flex-col gap-1">
                 <span className="font-bold text-red-800 text-left">Productive Timer Paused</span>
-                <span className="font-medium text-zinc-650 text-xs text-left">
+                <span className="font-medium text-zinc-600 text-xs text-left font-sans">
                   We couldn't detect an active laptop or desktop work session yet. Please continue work from your laptop or desktop device to resume productive hours tracking.
                 </span>
               </div>
@@ -1346,14 +1346,14 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-emerald-250 bg-emerald-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
+            className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
           >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-emerald-50 text-emerald-650 border-emerald-250">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-emerald-50 text-emerald-600 border-emerald-200">
               <CheckCircle2 className="w-4.5 h-4.5" />
             </div>
             <div className="flex flex-col gap-1">
               <span className="font-bold text-emerald-800 text-left font-sans">Desktop Session Verified</span>
-              <span className="font-medium text-zinc-650 text-xs text-left font-sans">
+              <span className="font-medium text-zinc-600 text-xs text-left font-sans">
                 Desktop work session verified successfully.
               </span>
             </div>
@@ -1368,15 +1368,15 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-amber-250 bg-amber-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
+            className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-amber-200 bg-amber-50/30 text-xs font-semibold font-sans shadow-2xs bg-white"
           >
             <div className="flex items-start gap-3">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-amber-50 text-amber-650 border-amber-250 animate-pulse mt-0.5 sm:mt-0">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border bg-amber-50 text-amber-600 border-amber-200 animate-pulse mt-0.5 sm:mt-0">
                 <AlertTriangle className="w-4.5 h-4.5" />
               </div>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-navy-955">
+                  <span className="font-bold text-navy-900">
                     {gpsConfidence === 30 ? 'Location Verification Required' : 'GPS Signal Weak'}
                   </span>
                   <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold">
@@ -1388,7 +1388,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                     </span>
                   )}
                 </div>
-                <span className="font-medium text-zinc-650 text-xs text-left">
+                <span className="font-medium text-zinc-600 text-xs text-left">
                   {gpsConfidence === 30
                     ? 'GPS accuracy degraded. Verification retry in progress. Please move to an open location.'
                     : "We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal."}
@@ -1437,9 +1437,9 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               <div>
                 <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-1">Standard Work Hours</span>
                 <h3 className="font-bold text-navy-900 text-sm tracking-tight">Shift: Night Shift</h3>
-                <p className="text-xs text-zinc-555 mt-1">Your shift: 06:30 PM - 03:30 AM</p>
+                <p className="text-xs text-zinc-500 mt-1">Your shift: 06:30 PM - 03:30 AM</p>
               </div>
-              <div className="px-2.5 py-1 rounded bg-primary-50 border border-primary-250 text-primary-750 text-[9px] font-mono font-bold uppercase tracking-wider">
+              <div className="px-2.5 py-1 rounded bg-primary-50 border border-primary-200 text-primary-700 text-[9px] font-mono font-bold uppercase tracking-wider">
                 Active Shift
               </div>
             </div>
@@ -1449,7 +1449,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
           <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs flex flex-col items-center justify-between flex-1 space-y-6">
             
             {/* Subtle, sleek Raycast-style clock widget */}
-            <div className="w-full bg-slate-955 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-slate-900 shadow-inner">
+            <div className="w-full bg-slate-900 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-slate-900 shadow-inner">
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">Live System Time</span>
@@ -1488,8 +1488,8 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   )}
                 </button>
               ) : (
-                <div className="bg-emerald-50/50 border border-emerald-250 rounded-xl p-5 text-center font-sans shadow-2xs relative overflow-hidden">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-505 mx-auto mb-2" />
+                <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-5 text-center font-sans shadow-2xs relative overflow-hidden">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                   <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Clock Out Complete</p>
                   <p className="text-[10px] text-emerald-600 mt-1 font-medium">Your attendance has been recorded successfully.</p>
                 </div>
@@ -1498,15 +1498,15 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
               {/* GPS status indicator badge */}
               <div className="flex items-center justify-center">
                 {gpsStatus === 'loading' ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-250 shadow-3xs">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200 shadow-3xs">
                     <Loader2 className="w-3 h-3 mr-1.5 animate-spin text-amber-500" /> Locating
                   </span>
                 ) : coords ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-250 shadow-3xs">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-3xs">
                     GPS Verified ✓
                   </span>
                 ) : gpsStatus === 'error' ? (
-                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-red-50 text-red-755 border border-red-250 shadow-3xs">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 shadow-3xs">
                     GPS Error ✗
                   </span>
                 ) : (
@@ -1549,7 +1549,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   <div className="text-center pt-1">
                     <button 
                       onClick={handleResume} 
-                      className="text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider cursor-pointer"
+                      className="text-[9px] font-mono font-semibold text-primary-700 hover:text-primary-800 uppercase tracking-wider cursor-pointer"
                     >
                       Undo Clock Out
                     </button>
@@ -1564,7 +1564,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
             <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs overflow-hidden relative flex flex-col justify-between min-h-[300px]">
               <div className="space-y-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-555 shadow-3xs">
+                  <div className="w-8 h-8 rounded-xl bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-500 shadow-3xs">
                     <Coffee className="w-4.5 h-4.5" />
                   </div>
                   <div>
@@ -1578,7 +1578,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                   <motion.div
                     animate={{ scale: [1, 1.01, 1] }}
                     transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-755 flex items-center gap-2 text-xs font-semibold font-sans"
+                    className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-700 flex items-center gap-2 text-xs font-semibold font-sans"
                   >
                     <ShieldAlert className="w-4.5 h-4.5 shrink-0 text-red-500" />
                     <span>Break Limit Exceeded! Please return to work immediately.</span>
@@ -1596,7 +1596,7 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                     <span>Break Usage</span>
                     <span>{Math.round((breakUsedSeconds / 3600) * 100)}% ({Math.round(breakUsedSeconds / 60)}m / 60m)</span>
                   </div>
-                  <div className="w-full h-2 bg-zinc-100 rounded-full border border-zinc-250 overflow-hidden shadow-inner">
+                  <div className="w-full h-2 bg-zinc-100 rounded-full border border-zinc-200 overflow-hidden shadow-inner">
                     <div 
                       className={cn(
                         "h-full rounded-full transition-all duration-500",
@@ -1611,22 +1611,22 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
                 {/* Timers Grid */}
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
-                    <span className="text-[8px] font-mono font-bold text-zinc-455 uppercase tracking-wider block mb-1">Productive Work</span>
+                    <span className="text-[8px] font-mono font-bold text-zinc-500 uppercase tracking-wider block mb-1">Productive Work</span>
                     <span className="font-mono text-base font-black text-navy-900">{formatSeconds(productiveSeconds)}</span>
                   </div>
                   <div className={cn(
                     "rounded-xl p-3 border text-center shadow-3xs",
                     breakUsedSeconds >= 3600 ? "bg-red-50/50 border-red-200" : "bg-zinc-50 border-zinc-200"
                   )}>
-                    <span className="text-[8px] font-mono font-bold text-zinc-455 uppercase tracking-wider block mb-1">Break Used</span>
+                    <span className="text-[8px] font-mono font-bold text-zinc-500 uppercase tracking-wider block mb-1">Break Used</span>
                     <span className={cn(
                       "font-mono text-base font-black",
                       breakUsedSeconds >= 3600 ? "text-red-500" :
                       breakUsedSeconds >= 2700 ? "text-amber-600" : "text-navy-900"
                     )}>{formatSeconds(breakUsedSeconds)}</span>
                   </div>
-                  <div className="rounded-xl bg-zinc-55 border border-zinc-200 p-3 text-center shadow-3xs">
-                    <span className="text-[8px] font-mono font-bold text-zinc-450 uppercase tracking-wider block mb-1">Remaining Allowed</span>
+                  <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 text-center shadow-3xs">
+                    <span className="text-[8px] font-mono font-bold text-zinc-500 uppercase tracking-wider block mb-1">Remaining Allowed</span>
                     <span className="font-mono text-base font-black text-navy-900">{formatSeconds(remainingBreakSeconds)}</span>
                   </div>
                 </div>

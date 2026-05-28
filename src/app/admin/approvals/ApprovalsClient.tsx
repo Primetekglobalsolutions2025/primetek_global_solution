@@ -20,7 +20,7 @@ const formatSafeTime = (timeStr: any) => {
   if (!timeStr) return '--:--';
   const d = new Date(timeStr);
   if (isNaN(d.getTime())) return '--:--';
-  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
 };
 
 const formatSafeDate = (dateStr: any) => {
@@ -231,7 +231,7 @@ export default function ApprovalsClient({
                             size="sm" 
                             onClick={() => handleLeaveAction(leave.id, 'Rejected')} 
                             disabled={processing === leave.id} 
-                            className="border-red-205 text-red-655 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                            className="border-red-200 text-red-600 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
                           >
                             Deny
                           </Button>
@@ -290,7 +290,7 @@ export default function ApprovalsClient({
                             size="sm" 
                             onClick={() => handleWFHAction(request.id, 'Rejected WFH')} 
                             disabled={processing === request.id} 
-                            className="border-red-205 text-red-655 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                            className="border-red-200 text-red-600 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
                           >
                             Reject
                           </Button>
@@ -381,16 +381,16 @@ export default function ApprovalsClient({
                             </div>
                             <div>
                               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wider block">Clock In</span>
-                              <span className="font-semibold text-navy-900 font-mono">{dispute.attendance_check_in || '—'}</span>
+                              <span className="font-semibold text-navy-900 font-mono">{dispute.attendance_check_in ? formatSafeTime(dispute.attendance_check_in) : '—'}</span>
                             </div>
                             <div>
                               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wider block">Clock Out</span>
-                              <span className="font-semibold text-navy-900 font-mono">{dispute.attendance_check_out || '—'}</span>
+                              <span className="font-semibold text-navy-900 font-mono">{dispute.attendance_check_out ? formatSafeTime(dispute.attendance_check_out) : '—'}</span>
                             </div>
                           </div>
 
                           <div className="pt-1.5 border-t border-zinc-200/60 flex justify-between items-center text-[9px] font-mono">
-                            <div className="flex flex-col text-zinc-455 font-semibold">
+                            <div className="flex flex-col text-zinc-550 font-semibold">
                               <span>Late Penalty:</span>
                               <span>Deduction:</span>
                             </div>
@@ -422,7 +422,7 @@ export default function ApprovalsClient({
                                   setResolutionStatus('REJECTED');
                                   setDisputeResolutionText('');
                                 }} 
-                                className="border-red-205 text-red-655 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                                className="border-red-200 text-red-600 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
                               >
                                 Deny
                               </Button>
@@ -445,7 +445,7 @@ export default function ApprovalsClient({
                       {resolvingDisputeId === dispute.id && resolutionStatus && (
                         <div className="bg-zinc-50/60 p-3 rounded-md border border-zinc-200 space-y-3 mt-3 text-xs">
                           <div className="space-y-1">
-                            <label className="text-[8px] font-bold uppercase tracking-widest text-zinc-505 block font-mono">
+                            <label className="text-[8px] font-bold uppercase tracking-widest text-zinc-500 block font-mono">
                               Compliance Justification Reason for {resolutionStatus === 'APPROVED' ? 'Approval' : 'Rejection'} (Audit Required)
                             </label>
                             <textarea
@@ -642,11 +642,11 @@ export default function ApprovalsClient({
                   </div>
                   <div>
                     <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">Clock-In Time</span>
-                    <span className="font-semibold text-navy-900">{selectedDispute.attendance_check_in || '—'}</span>
+                    <span className="font-semibold text-navy-900">{selectedDispute.attendance_check_in ? formatSafeTime(selectedDispute.attendance_check_in) : '—'}</span>
                   </div>
                   <div>
                     <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">Clock-Out Time</span>
-                    <span className="font-semibold text-navy-900">{selectedDispute.attendance_check_out || '—'}</span>
+                    <span className="font-semibold text-navy-900">{selectedDispute.attendance_check_out ? formatSafeTime(selectedDispute.attendance_check_out) : '—'}</span>
                   </div>
                 </div>
 
@@ -678,7 +678,7 @@ export default function ApprovalsClient({
                   </div>
                 ) : selectedDisputeEvents.length === 0 ? (
                   <div className="py-8 text-center text-xs text-zinc-500 font-bold border border-dashed border-zinc-200 rounded-md p-4 bg-zinc-50/40">
-                    <AlertTriangle className="w-5 h-5 text-amber-555 mx-auto mb-2" />
+                    <AlertTriangle className="w-5 h-5 text-amber-500 mx-auto mb-2" />
                     <p>No telemetry logs found for this session.</p>
                   </div>
                 ) : (
@@ -700,7 +700,7 @@ export default function ApprovalsClient({
                         case 'CLOCK_OUT':
                         case 'FORCE_LOGOUT':
                           dotColor = 'bg-red-500 ring-4 ring-red-500/20';
-                          cardBg = 'bg-red-50 border-red-100 text-red-850';
+                          cardBg = 'bg-red-50 border-red-100 text-red-800';
                           description = `${evt.event_type === 'FORCE_LOGOUT' ? 'Admin Force Logout' : 'Self Clock Out'}\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
                           break;
                         case 'BREAK_STARTED':
@@ -713,7 +713,7 @@ export default function ApprovalsClient({
                           break;
                         case 'AUTO_BREAK_TRIGGERED':
                           dotColor = 'bg-red-500 animate-pulse ring-4 ring-red-500/10';
-                          cardBg = 'bg-red-50 border-red-100 text-red-850';
+                          cardBg = 'bg-red-50 border-red-100 text-red-800';
                           description = `Automatic break enforcement (No heartbeat activity detected for 5 minutes)`;
                           break;
                         case 'IDLE_WARNING':
@@ -730,7 +730,7 @@ export default function ApprovalsClient({
                           break;
                         case 'ADMIN_OVERRIDE':
                           dotColor = 'bg-violet-500 ring-4 ring-violet-500/20';
-                          cardBg = 'bg-violet-50 border-violet-100 text-violet-850';
+                          cardBg = 'bg-violet-50 border-violet-100 text-violet-800';
                           description = `Override: ${evt.payload?.override_field}\nFrom: ${String(evt.payload?.old_value)} → To: ${String(evt.payload?.new_value)}\nReason: ${evt.payload?.reason || '—'}`;
                           break;
                         case 'HEARTBEAT_RECEIVED':

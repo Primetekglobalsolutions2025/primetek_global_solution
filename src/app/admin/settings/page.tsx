@@ -174,21 +174,21 @@ export default function AdminSettingsPage() {
             <MapPin className="w-5 h-5 text-primary-500" />
             <h1 className="text-xl font-bold text-navy-900 tracking-tight">System Settings</h1>
           </div>
-          <p className="text-xs text-zinc-450">
+          <p className="text-xs text-zinc-500">
             Define the office geofence and radius boundaries for employee attendance validation.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Location Configuration */}
+      {/* 1. Location Configuration (Full Width on desktop) */}
+      <div className="w-full">
         <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white overflow-hidden relative">
           <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
             <MapPin className="w-48 h-48 text-navy-900" />
           </div>
 
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-md bg-primary-500/10 text-primary-650 border border-primary-500/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-md bg-primary-500/10 text-primary-600 border border-primary-500/20 flex items-center justify-center">
               <Building className="w-4.5 h-4.5" />
             </div>
             <div>
@@ -245,7 +245,7 @@ export default function AdminSettingsPage() {
               type="button"
               onClick={detectCurrentLocation}
               disabled={detectingLocation}
-              className="flex items-center gap-1.5 text-[10px] font-bold text-primary-750 hover:text-primary-850 uppercase tracking-wider transition-all disabled:opacity-50 group cursor-pointer"
+              className="flex items-center gap-1.5 text-[10px] font-bold text-primary-700 hover:text-primary-800 uppercase tracking-wider transition-all disabled:opacity-50 group cursor-pointer"
             >
               {detectingLocation ? (
                 <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Locating...</>
@@ -301,143 +301,142 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </Card>
-
-
-        {/* 2. Visual Preview & Documentation */}
-        <div className="space-y-6">
-          {/* Map Preview */}
-          <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white overflow-hidden">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-sm font-semibold text-navy-900 tracking-tight">Office Location Preview</h2>
-              <div className="px-2.5 py-0.5 rounded-full bg-zinc-50 border border-zinc-200 text-[8px] font-bold text-zinc-400 uppercase tracking-wider">
-                Google Maps Coordinates
-              </div>
-            </div>
-            
-            <div className="relative w-full h-64 bg-zinc-50 rounded-lg overflow-hidden border border-zinc-200 group shadow-inner-xs">
-              {!mapError ? (
-                <Image
-                  key={`${lat}-${lng}`}
-                  src={`https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=800&height=400&center=lonlat:${(lng || '').trim()},${(lat || '').trim()}&zoom=15.5&marker=lonlat:${(lng || '').trim()},${(lat || '').trim()};color:%230d9488;size:large&apiKey=${env.NEXT_PUBLIC_GEOAPIFY_API_KEY || 'demo'}`}
-                  alt="Office location map preview"
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
-                  onError={() => setMapError(true)}
-                  unoptimized
-                />
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-zinc-50">
-                  <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
-                    <AlertCircle className="w-6 h-6" />
-                  </div>
-                  <p className="text-xs font-bold text-navy-900 uppercase tracking-tight">Preview Unavailable</p>
-                  <p className="text-[11px] text-zinc-450 mt-1 font-medium">Please enter valid latitude and longitude coordinates to view the map.</p>
-                </div>
-              )}
-              
-              <a
-                href={googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute inset-0 bg-transparent z-10"
-                aria-label="View on Google Maps"
-              />
-              
-              <div className="absolute bottom-4 right-4 z-20">
-                <div className="px-3 py-1.5 rounded-md bg-white/95 backdrop-blur-xs border border-zinc-200 shadow-sm flex items-center gap-1.5 text-[9px] font-bold text-navy-900 uppercase tracking-wider">
-                  <MapPin className="w-3.5 h-3.5 text-red-500" />
-                  Office Coordinate
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between mt-4 px-1">
-              <div className="space-y-0.5">
-                <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Coordinates</p>
-                <p className="text-xs font-semibold text-navy-900 font-mono">{lat}, {lng}</p>
-              </div>
-              <a
-                href={googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-1 text-[9px] font-bold text-primary-750 hover:text-primary-850 uppercase tracking-wider transition-all"
-              >
-                Google Maps <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </a>
-            </div>
-          </Card>
-
-          {/* Guidelines */}
-          <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-zinc-50 text-navy-900 overflow-hidden relative">
-            <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
-              <HelpCircle className="w-48 h-48 text-navy-900" />
-            </div>
-            
-            <h2 className="text-sm font-semibold mb-6 tracking-tight flex items-center gap-2 text-navy-900">
-              <HelpCircle className="w-5 h-5 text-primary-500" />
-              Geofence Guide
-            </h2>
-            
-            <div className="space-y-4">
-              {[
-                { 
-                  title: 'Mobile Check-in', 
-                  desc: 'Stand at the center of the office facility using a mobile device for maximum GPS precision.', 
-                  icon: Crosshair 
-                },
-                { 
-                  title: 'Google Maps Coordinates', 
-                  desc: 'Right-click on Google Maps to extract raw coordinate strings for manual injection.', 
-                  icon: MapPin 
-                },
-                { 
-                  title: 'Geofence Radius', 
-                  desc: 'A geofence radius of 300m ensures a balance between accurate validation and mobile GPS fluctuations.', 
-                  icon: Building 
-                }
-              ].map((step, idx) => (
-                <div key={idx} className="flex gap-3.5 group">
-                  <div className="shrink-0 w-6 h-6 rounded-md bg-primary-500/10 text-primary-650 border border-primary-500/20 flex items-center justify-center text-[10px] font-bold">
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider mb-0.5 group-hover:text-primary-700 transition-colors">{step.title}</h4>
-                    <p className="text-[11px] text-zinc-550 leading-relaxed font-medium">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-zinc-200/60 space-y-1.5">
-              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">System Integrations:</p>
-              {systemNodes.map((node, i) => (
-                <p key={i} className="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center justify-between">
-                  {node.node_name}: <span className={cn(
-                    node.status === 'Active' || node.status === 'Optimal' ? "text-emerald-600" : "text-amber-600"
-                  )}>{node.status}</span>
-                </p>
-              ))}
-              {systemNodes.length === 0 && (
-                <p className="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
-                  System Status: <span className="text-emerald-600 font-bold">Operational</span>
-                </p>
-              )}
-            </div>
-          </Card>
-        </div>
       </div>
 
-      {/* 3. Notification Settings */}
-      <div id="notifications" className="scroll-mt-20">
-        <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white overflow-hidden relative">
+      {/* 2. Visual Preview & Documentation (Side-by-side on desktop, stacked on mobile) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+        {/* Map Preview */}
+        <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white overflow-hidden h-full flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-sm font-semibold text-navy-900 tracking-tight">Office Location Preview</h2>
+            <div className="px-2.5 py-0.5 rounded-full bg-zinc-50 border border-zinc-200 text-[8px] font-bold text-zinc-400 uppercase tracking-wider">
+              Google Maps Coordinates
+            </div>
+          </div>
+          
+          <div className="relative w-full h-64 bg-zinc-50 rounded-lg overflow-hidden border border-zinc-200 group shadow-inner-xs flex-1">
+            {!mapError ? (
+              <Image
+                key={`${lat}-${lng}`}
+                src={`https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=800&height=400&center=lonlat:${(lng || '').trim()},${(lat || '').trim()}&zoom=15.5&marker=lonlat:${(lng || '').trim()},${(lat || '').trim()};color:%230d9488;size:large&apiKey=${env.NEXT_PUBLIC_GEOAPIFY_API_KEY || 'demo'}`}
+                alt="Office location map preview"
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
+                onError={() => setMapError(true)}
+                unoptimized
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-zinc-50">
+                <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <p className="text-xs font-bold text-navy-900 uppercase tracking-tight">Preview Unavailable</p>
+                <p className="text-[11px] text-zinc-450 mt-1 font-medium">Please enter valid latitude and longitude coordinates to view the map.</p>
+              </div>
+            )}
+            
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute inset-0 bg-transparent z-10"
+              aria-label="View on Google Maps"
+            />
+            
+            <div className="absolute bottom-4 right-4 z-20">
+              <div className="px-3 py-1.5 rounded-md bg-white/95 backdrop-blur-xs border border-zinc-200 shadow-sm flex items-center gap-1.5 text-[9px] font-bold text-navy-900 uppercase tracking-wider">
+                <MapPin className="w-3.5 h-3.5 text-red-500" />
+                Office Coordinate
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between mt-4 px-1">
+            <div className="space-y-0.5">
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider">Coordinates</p>
+              <p className="text-xs font-semibold text-navy-900 font-mono">{lat}, {lng}</p>
+            </div>
+            <a
+              href={googleMapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-1 text-[9px] font-bold text-primary-700 hover:text-primary-800 uppercase tracking-wider transition-all"
+            >
+              Google Maps <ExternalLink className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </a>
+          </div>
+        </Card>
+
+        {/* Guidelines */}
+        <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-zinc-50 text-navy-900 overflow-hidden relative h-full flex flex-col justify-between">
           <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
-            <Save className="w-48 h-48 text-navy-900" />
+            <HelpCircle className="w-48 h-48 text-navy-900" />
+          </div>
+          
+          <h2 className="text-sm font-semibold mb-6 tracking-tight flex items-center gap-2 text-navy-900">
+            <HelpCircle className="w-5 h-5 text-primary-500" />
+            Geofence Guide
+          </h2>
+          
+          <div className="space-y-4 flex-1">
+            {[
+              { 
+                title: 'Mobile Check-in', 
+                desc: 'Stand at the center of the office facility using a mobile device for maximum GPS precision.', 
+                icon: Crosshair 
+              },
+              { 
+                title: 'Google Maps Coordinates', 
+                desc: 'Right-click on Google Maps to extract raw coordinate strings for manual injection.', 
+                icon: MapPin 
+              },
+              { 
+                title: 'Geofence Radius', 
+                desc: 'A geofence radius of 300m ensures a balance between accurate validation and mobile GPS fluctuations.', 
+                icon: Building 
+              }
+            ].map((step, idx) => (
+              <div key={idx} className="flex gap-3.5 group">
+                <div className="shrink-0 w-6 h-6 rounded-md bg-primary-500/10 text-primary-600 border border-primary-500/20 flex items-center justify-center text-[10px] font-bold">
+                  {idx + 1}
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider mb-0.5 group-hover:text-primary-700 transition-colors">{step.title}</h4>
+                  <p className="text-[11px] text-zinc-550 leading-relaxed font-medium">{step.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 rounded-md bg-violet-500/10 text-violet-750 border border-violet-500/20 flex items-center justify-center">
-              <Save className="w-4.5 h-4.5" />
-            </div>
+          <div className="mt-8 pt-6 border-t border-zinc-200/60 space-y-1.5">
+            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">System Integrations:</p>
+            {systemNodes.map((node, i) => (
+              <p key={i} className="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center justify-between">
+                {node.node_name}: <span className={cn(
+                  node.status === 'Active' || node.status === 'Optimal' ? "text-emerald-600" : "text-amber-600"
+                )}>{node.status}</span>
+              </p>
+            ))}
+            {systemNodes.length === 0 && (
+              <p className="text-[9px] font-semibold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                System Status: <span className="text-emerald-600 font-bold">Operational</span>
+              </p>
+            )}
+          </div>
+        </Card>
+      </div>
+
+    {/* 3. Notification Settings */}
+    <div id="notifications" className="scroll-mt-20 mt-6">
+      <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
+          <Save className="w-48 h-48 text-navy-900" />
+        </div>
+
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-8 rounded-md bg-violet-500/10 text-violet-700 border border-violet-500/20 flex items-center justify-center">
+            <Save className="w-4.5 h-4.5" />
+          </div>
             <div>
               <h2 className="text-sm font-semibold text-navy-900 tracking-tight">Notification Settings</h2>
               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Alerts & Preferences</p>

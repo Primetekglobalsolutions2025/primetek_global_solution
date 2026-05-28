@@ -299,25 +299,25 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
 
                     <div className="grid grid-cols-2 gap-3 bg-zinc-50/50 p-2.5 rounded border border-zinc-200/60 text-[10px]">
                       <div>
-                        <span className="text-zinc-455 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Client / Platform</span>
+                        <span className="text-zinc-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Client / Platform</span>
                         <span className="font-semibold text-navy-900 block truncate">{req.client_company} · {req.interview_platform}</span>
                       </div>
                       <div>
-                        <span className="text-zinc-455 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">DateTime (EST)</span>
+                        <span className="text-zinc-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">DateTime (EST)</span>
                         <span className="font-semibold text-navy-900 block font-mono">{formattedEstTime}</span>
                       </div>
                       <div>
-                        <span className="text-zinc-455 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Employee</span>
+                        <span className="text-zinc-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Employee</span>
                         <span className="font-semibold text-navy-900 block truncate">{req.employee?.name || 'Unknown'}</span>
                       </div>
                       <div className="flex flex-col gap-1 justify-end">
                         {resumeUrl && (
-                          <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-755 hover:text-primary-850 uppercase tracking-wider">
+                          <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-700 hover:text-primary-800 uppercase tracking-wider">
                             <Download className="w-3 h-3" /> Resume
                           </a>
                         )}
                         {req.jd_url && (
-                          <a href={req.jd_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-755 hover:text-primary-850 uppercase tracking-wider">
+                          <a href={req.jd_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-700 hover:text-primary-800 uppercase tracking-wider">
                             <Download className="w-3 h-3" /> JD Attached
                           </a>
                         )}

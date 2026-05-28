@@ -1030,7 +1030,7 @@ export default function AttendanceClient({
                         case 'FORCE_LOGOUT':
                           dotColor = 'bg-red-500 ring-4 ring-red-500/20';
                           iconColor = 'text-red-600';
-                          cardBg = 'bg-red-50 border-red-100 text-red-850';
+                          cardBg = 'bg-red-50 border-red-100 text-red-800';
                           description = `${evt.event_type === 'FORCE_LOGOUT' ? 'Admin Force Logout' : 'Self Clock Out'}\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
                           break;
                         case 'BREAK_STARTED':
@@ -1045,8 +1045,8 @@ export default function AttendanceClient({
                           break;
                         case 'AUTO_BREAK_TRIGGERED':
                           dotColor = 'bg-red-500 animate-pulse ring-4 ring-red-500/10';
-                          iconColor = 'text-red-605';
-                          cardBg = 'bg-red-50 border-red-100 text-red-850';
+                          iconColor = 'text-red-600';
+                          cardBg = 'bg-red-50 border-red-100 text-red-800';
                           description = `Automatic break enforcement (No heartbeat activity detected for 5 minutes)`;
                           break;
                         case 'IDLE_WARNING':
@@ -1067,7 +1067,7 @@ export default function AttendanceClient({
                         case 'ADMIN_OVERRIDE':
                           dotColor = 'bg-violet-500 ring-4 ring-violet-500/20';
                           iconColor = 'text-violet-600';
-                          cardBg = 'bg-violet-50 border-violet-100 text-violet-850';
+                          cardBg = 'bg-violet-50 border-violet-100 text-violet-800';
                           description = `Override: ${evt.payload?.override_field}\nFrom: ${String(evt.payload?.old_value)} → To: ${String(evt.payload?.new_value)}\nReason: ${evt.payload?.reason || '—'}`;
                           break;
                         case 'HEARTBEAT_RECEIVED':
@@ -1080,19 +1080,19 @@ export default function AttendanceClient({
                         case 'MOBILE_CLOCK_IN':
                           dotColor = 'bg-violet-500 ring-4 ring-violet-500/20';
                           iconColor = 'text-violet-600';
-                          cardBg = 'bg-violet-50 border-violet-100 text-violet-850';
+                          cardBg = 'bg-violet-50 border-violet-100 text-violet-800';
                           description = `Mobile Clock-In initiated. Grace period activated.\nDevice: ${evt.payload?.device_label || 'Mobile'}\nIP: ${evt.client_ip || '—'}`;
                           break;
                         case 'DESKTOP_SESSION_VERIFIED':
                           dotColor = 'bg-emerald-500 ring-4 ring-emerald-500/20';
                           iconColor = 'text-emerald-600';
-                          cardBg = 'bg-emerald-50 border-emerald-100 text-emerald-805';
+                          cardBg = 'bg-emerald-50 border-emerald-100 text-emerald-800';
                           description = `Workstation verified. Productive time accumulating.\nDevice: ${evt.payload?.device_label || 'Workstation'}\nIP: ${evt.client_ip || '—'}`;
                           break;
                         case 'DESKTOP_SESSION_MISSING':
                           dotColor = 'bg-red-500 ring-4 ring-red-500/20';
                           iconColor = 'text-red-600';
-                          cardBg = 'bg-red-50 border-red-100 text-red-850';
+                          cardBg = 'bg-red-50 border-red-100 text-red-800';
                           description = `Workstation verification missed. Grace period expired. Productive time paused.`;
                           break;
                         case 'PRODUCTIVE_TIMER_PAUSED':

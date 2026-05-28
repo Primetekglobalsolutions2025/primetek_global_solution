@@ -195,7 +195,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: 'Total Staff', value: stats.total, icon: Users, color: 'text-navy-900', bg: 'bg-white border-zinc-200' },
-          { label: 'Active', value: stats.active, icon: ShieldCheck, color: 'text-emerald-450', bg: 'bg-emerald-500/[0.03] border-emerald-500/20' },
+          { label: 'Active', value: stats.active, icon: ShieldCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/[0.03] border-emerald-500/20' },
           { label: 'Inactive', value: stats.inactive, icon: X, color: 'text-red-400', bg: 'bg-red-500/[0.03] border-red-500/20' },
         ].map((s) => (
           <div key={s.label} className={cn("rounded-xl p-4 border shadow-sm flex items-center gap-3 bg-white border-zinc-200", s.bg)}>
@@ -261,8 +261,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       </div>
                     )}
                     <div className={cn(
-                      "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-navy-955 shadow-sm",
-                      emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-650"
+                      "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-navy-900 shadow-sm",
+                      emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-600"
                     )} />
                   </div>
                   <div>
@@ -289,8 +289,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
               {/* MFA Status bar/indicator (Mobile Card) */}
               <div className="mb-3">
                 {emp.mfa_enabled ? (
-                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-450 font-bold bg-emerald-500/5 border border-emerald-500/15 px-2.5 py-1 rounded-lg w-full">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-455 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-500 font-bold bg-emerald-500/5 border border-emerald-500/15 px-2.5 py-1 rounded-lg w-full">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                     <span>MFA Verified & Secure</span>
                   </div>
                 ) : (
@@ -312,7 +312,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       emp.status === 'Active' ? "left-3.5" : "left-0.5"
                     )} />
                   </div>
-                  <span className={emp.status === 'Active' ? 'text-emerald-455' : 'text-zinc-400'}>
+                  <span className={emp.status === 'Active' ? 'text-emerald-500' : 'text-zinc-400'}>
                     {emp.status}
                   </span>
                 </button>
@@ -409,8 +409,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                     </td>
                     <td className="px-4 py-2.5">
                       {emp.mfa_enabled ? (
-                        <div className="flex items-center gap-1 text-[10px] text-emerald-450 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg w-fit">
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-450" />
+                        <div className="flex items-center gap-1 text-[10px] text-emerald-500 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-lg w-fit">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
                           <span>ACTIVE</span>
                         </div>
                       ) : (
@@ -433,7 +433,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         </div>
                         <span className={cn(
                           "text-[9px] font-bold uppercase tracking-wider",
-                          emp.status === 'Active' ? "text-emerald-450" : "text-zinc-400"
+                          emp.status === 'Active' ? "text-emerald-500" : "text-zinc-400"
                         )}>{emp.status}</span>
                       </button>
                     </td>
@@ -487,7 +487,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
               <div className="flex items-center justify-between px-10 py-8 border-b border-zinc-200 bg-zinc-50/40">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-455">Staff Registry</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">Staff Registry</span>
                   </div>
                   <h3 className="font-heading font-black text-xl text-navy-900 tracking-tight">Onboard New Employee</h3>
                 </div>
@@ -584,7 +584,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                 ) : (
                   <form onSubmit={handleAddEmployee} className="space-y-6">
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-black text-slate-455 uppercase tracking-[0.2em] ml-1">Full Name</label>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
                       <div className="relative group">
                         <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
                         <input required type="text" placeholder="John Doe" value={newEmployeeData.name} onChange={(e) => setNewEmployeeData({...newEmployeeData, name: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
@@ -592,16 +592,16 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-black text-slate-455 uppercase tracking-[0.2em] ml-1">Email Address</label>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
                       <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
-                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => setNewEmployeeData({...newEmployeeData, email: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
+                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => setNewEmployeeData({...newEmployeeData, email: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-400" />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-slate-455 uppercase tracking-[0.2em] ml-1">User Role</label>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">User Role</label>
                         <select value={newEmployeeData.role} onChange={(e) => setNewEmployeeData({...newEmployeeData, role: e.target.value})} className="w-full px-4 py-3.5 rounded-2xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 focus:ring-2 focus:ring-primary-500/20 focus:outline-none uppercase cursor-pointer appearance-none">
                           <option value="employee">Employee</option>
                           <option value="admin">Admin</option>
@@ -609,7 +609,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-slate-455 uppercase tracking-[0.2em] ml-1">Role / Department</label>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Role / Department</label>
                         <div className="relative group">
                           <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors z-10" />
                           <select 
@@ -696,7 +696,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                     { key: 'casual', label: 'Casual Leave Allocation (Current Month)' },
                   ].map((field) => (
                     <div key={field.key} className="space-y-2">
-                      <label className="block text-[10px] font-black text-slate-455 uppercase tracking-widest ml-1">{field.label}</label>
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{field.label}</label>
                       <input 
                         type="number" 
                         min={0}
