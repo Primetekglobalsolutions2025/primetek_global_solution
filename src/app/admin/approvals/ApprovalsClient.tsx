@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 import { 
   Calendar, Home, CheckCircle2, XCircle, 
   Clock, MapPin, User, Loader2, 
@@ -140,6 +141,11 @@ export default function ApprovalsClient({
   const [selectedDisputeEvents, setSelectedDisputeEvents] = useState<DisputeEventTimeline[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap(drawerRef, isDrawerOpen, () => {
+    setIsDrawerOpen(false);
+    setSelectedDispute(null);
+  });
 
   const handleOpenDrawer = async (dispute: DisputeApproval) => {
     setSelectedDispute(dispute);
@@ -671,6 +677,7 @@ export default function ApprovalsClient({
           />
           
           <motion.div
+            ref={drawerRef}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}

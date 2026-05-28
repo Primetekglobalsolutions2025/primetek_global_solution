@@ -10,6 +10,7 @@ import {
   FileText, User, MapPin, Activity,
 } from 'lucide-react';
 import { cn, formatDate } from '@/lib/utils';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 type Tab = 'attendance' | 'leaves' | 'daily' | 'security';
 
@@ -82,35 +83,7 @@ function RiskBadge({ level }: { level: string }) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const s = status?.toLowerCase();
-  const getTheme = () => {
-    if (['approved', 'logged out', 'approved wfh'].includes(s)) {
-      return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' };
-    }
-    if (['pending', 'pending wfh', 'working'].includes(s)) {
-      return { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' };
-    }
-    if (['rejected', 'rejected wfh', 'absent'].includes(s)) {
-      return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
-    }
-    if (['break', 'break (auto)'].includes(s)) {
-      return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
-    }
-    return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };
-  };
-
-  const theme = getTheme();
-  return (
-    <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-medium border uppercase tracking-wider',
-      theme.bg
-    )}>
-      <span className={cn('w-1.5 h-1.5 rounded-full mr-1.5 shrink-0', theme.dot)} />
-      {status}
-    </span>
-  );
-}
+// StatusBadge inline function removed in favor of shared component import
 
 // ─── Attendance Tab ───────────────────────────────────────────────────────────
 

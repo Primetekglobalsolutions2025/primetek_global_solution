@@ -6,36 +6,9 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import Link from 'next/link';
 import { cn, getISTShiftDate } from '@/lib/utils';
 import { closeStaleSessionsForEmployee } from '../attendance/actions';
+import StatusBadge from '@/components/ui/StatusBadge';
 
-function StatusBadge({ status }: { status: string }) {
-  const s = status?.toLowerCase();
-  const getTheme = () => {
-    if (['approved', 'logged out', 'approved wfh'].includes(s)) {
-      return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' };
-    }
-    if (['pending', 'pending wfh', 'working'].includes(s)) {
-      return { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' };
-    }
-    if (['rejected', 'rejected wfh', 'absent'].includes(s)) {
-      return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
-    }
-    if (['break', 'break (auto)'].includes(s)) {
-      return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
-    }
-    return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };
-  };
-
-  const theme = getTheme();
-  return (
-    <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-medium border uppercase tracking-wider',
-      theme.bg
-    )}>
-      <span className={cn('w-1.5 h-1.5 rounded-full mr-1.5 shrink-0', theme.dot)} />
-      {status}
-    </span>
-  );
-}
+// StatusBadge inline function removed in favor of shared component import
 
 export default async function EmployeeDashboardServerWrapper() {
   const session = await getSession();
@@ -138,7 +111,7 @@ export default async function EmployeeDashboardServerWrapper() {
   const firstName = employee?.name?.split(' ')[0] || 'Employee';
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-6">
       {/* Vercel layout Hero panel + Brand Navy Background */}
       <div className="relative overflow-hidden rounded-lg bg-navy-900 p-6 md:p-8 text-white shadow-md shadow-navy-900/15">
         {/* Subtle Decorative mesh highlights */}
@@ -320,13 +293,7 @@ export default async function EmployeeDashboardServerWrapper() {
                     
                     <div className="text-right shrink-0">
                       <div className="text-xs font-semibold text-navy-900 mb-1.5 font-mono">{record.duration_hours > 0 ? `${record.duration_hours}h` : 'Clocked In'}</div>
-                      <span className={cn(
-                        "inline-flex px-2 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider",
-                        statusColors[record.status?.toLowerCase()] || 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      )}>
-                        <span className={cn("w-1 h-1 rounded-full mr-1 shrink-0", record.status?.toLowerCase()?.includes('late') ? 'bg-amber-500' : 'bg-emerald-500')} />
-                        {record.status}
-                      </span>
+                      <StatusBadge status={record.status} />
                     </div>
                   </div>
                 ))

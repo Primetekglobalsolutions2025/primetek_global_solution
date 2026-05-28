@@ -160,6 +160,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
   const [gpsWarningSuspended, setGpsWarningSuspended] = useState(false);
   const [isVerifyingLocation, setIsVerifyingLocation] = useState(false);
   const [syncBannerVisible, setSyncBannerVisible] = useState(false);
+  const [heartbeatPulse, setHeartbeatPulse] = useState(false);
 
   const projectionVersion = useRef<number>(1);
   const gpsSuppressionUntil = useRef<number>(0);
@@ -703,6 +704,12 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
           sequenceNumber.current++;
 
           try {
+            setHeartbeatPulse(true);
+            setTimeout(() => {
+              if (isMountedRef.current) {
+                setHeartbeatPulse(false);
+              }
+            }, 1500);
             const res = await processHeartbeat(payload);
             if (res.success) {
               if (res.status !== currentStatus) {
@@ -1387,8 +1394,22 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
             {/* Subtle, sleek Raycast-style clock widget */}
             <div className="w-full bg-slate-900 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-slate-900 shadow-inner">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500">Live System Time</span>
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                  heartbeatPulse 
+                    ? "bg-cyan-400 scale-150 shadow-[0_0_8px_#22d3ee]" 
+                    : isLeader 
+                      ? "bg-emerald-500 animate-pulse" 
+                      : "bg-slate-600 animate-none"
+                )} />
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 select-none">
+                  Live System Time
+                  {isLeader && (
+                    <span className="text-[8px] font-mono font-semibold text-emerald-500/80 lowercase tracking-tight normal-case">
+                      (active sync{heartbeatPulse && "ping..."})
+                    </span>
+                  )}
+                </span>
               </div>
               <div className="font-mono text-sm font-black tracking-widest text-slate-200">
                 {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}

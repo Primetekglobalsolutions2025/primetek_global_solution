@@ -1,6 +1,6 @@
 export function EmployeeDashboardSkeleton() {
   return (
-    <div className="space-y-6 pb-24 animate-pulse">
+    <div className="space-y-6 pb-6 animate-pulse">
       {/* Hero Skeleton */}
       <div className="relative overflow-hidden rounded-xl bg-navy-900 p-6 md:p-8 text-white shadow-xl shadow-navy-900/20">
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'Employee Login' };
 
 export default function EmployeeLoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#020617] px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-navy-950 px-4 relative overflow-hidden">
       {/* Dynamic Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-500/20 rounded-full blur-[120px] animate-pulse" />

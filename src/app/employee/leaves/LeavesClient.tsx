@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Calendar, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Sparkles, Coffee, Hourglass, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '@/components/ui/Card';
@@ -8,6 +8,8 @@ import Button from '@/components/ui/Button';
 import LeaveRequestForm from '@/components/employee/LeaveRequestForm';
 import { formatDate, cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 export interface LeaveRecord {
   id: string;
@@ -34,6 +36,9 @@ export default function LeavesClient({
   const [leaves, setLeaves] = useState<LeaveRecord[]>(initialLeaves);
   const [balances, setBalances] = useState<LeaveBalance[]>(initialBalances);
   const [isApplying, setIsApplying] = useState(false);
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap(modalRef, isApplying, () => setIsApplying(false));
 
   // Sync props to state inline to avoid useEffect set-state-in-effect warning
   const [prevInitialLeaves, setPrevInitialLeaves] = useState(initialLeaves);
@@ -142,19 +147,7 @@ export default function LeavesClient({
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-navy-900 tracking-tight">{leave.type} Leave</p>
-                        <span className={cn(
-                          "inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider",
-                          leaveStatus === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          leaveStatus === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
-                          'bg-amber-50 text-amber-700 border-amber-200'
-                        )}>
-                          <span className={cn("w-1 h-1 rounded-full mr-1 shrink-0", 
-                            leaveStatus === 'approved' ? 'bg-emerald-500' :
-                            leaveStatus === 'rejected' ? 'bg-red-500' :
-                            'bg-amber-500'
-                          )} />
-                          {leave.status || 'Pending'}
-                        </span>
+                        <StatusBadge status={leave.status || 'Pending'} />
                       </div>
                       <p className="text-[10px] font-mono font-medium text-zinc-400 uppercase tracking-wider">
                         {formatDate(leave.start_date)} — {formatDate(leave.end_date)}
@@ -188,6 +181,7 @@ export default function LeavesClient({
         {isApplying && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-sm cursor-pointer" onClick={() => setIsApplying(false)}>
             <motion.div 
+              ref={modalRef}
               initial={{ opacity: 0, scale: 0.96, y: 10 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               exit={{ opacity: 0, scale: 0.96, y: 10 }} 

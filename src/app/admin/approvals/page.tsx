@@ -1,9 +1,11 @@
+import { Suspense } from 'react';
 import { getPendingApprovals, getApprovalHistory, getPendingDisputes } from './actions';
 import ApprovalsClient from './ApprovalsClient';
+import { Loader2 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ApprovalsPage() {
+async function ApprovalsLoader() {
   const [{ leaves, wfh }, history, disputes] = await Promise.all([
     getPendingApprovals(),
     getApprovalHistory(),
@@ -11,18 +13,35 @@ export default async function ApprovalsPage() {
   ]);
 
   return (
+    <ApprovalsClient 
+      initialLeaves={leaves} 
+      initialWFH={wfh} 
+      initialHistory={history} 
+      initialDisputes={disputes} 
+    />
+  );
+}
+
+function ApprovalsLoadingFallback() {
+  return (
+    <div className="bg-white rounded-xl border border-zinc-200 p-8 shadow-sm flex flex-col items-center justify-center min-h-[300px] text-zinc-500 gap-2">
+      <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Loading approvals queue...</p>
+    </div>
+  );
+}
+
+export default function ApprovalsPage() {
+  return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-heading font-bold text-navy-900">Approvals Hub</h1>
         <p className="text-sm text-text-secondary mt-1">Manage employee leave, WFH, and attendance disputes.</p>
       </div>
 
-      <ApprovalsClient 
-        initialLeaves={leaves} 
-        initialWFH={wfh} 
-        initialHistory={history} 
-        initialDisputes={disputes} 
-      />
+      <Suspense fallback={<ApprovalsLoadingFallback />}>
+        <ApprovalsLoader />
+      </Suspense>
     </div>
   );
 }

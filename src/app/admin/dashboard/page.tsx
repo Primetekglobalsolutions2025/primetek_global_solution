@@ -1,4 +1,4 @@
-import { MessageSquare, Users, Clock, Settings, ArrowRight, CheckSquare, TrendingUp, Zap, FileUser, Activity, Coffee, MapPin, AlertTriangle, ShieldAlert, Smartphone, LogOut as LogOutIcon, Gavel } from 'lucide-react';
+import { MessageSquare, Users, Clock, Settings, ArrowRight, CheckSquare, TrendingUp, Zap, FileUser, Activity, Coffee, MapPin, AlertTriangle, ShieldAlert, Smartphone, LogOut as LogOutIcon, Gavel, LogIn } from 'lucide-react';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { formatDate, cn, getISTShiftDate } from '@/lib/utils';
 import Link from 'next/link';
@@ -81,7 +81,7 @@ async function OperationalKPIGrid() {
   ];
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-9 gap-3">
+    <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
       {kpis.map((kpi) => (
         <Link 
           key={kpi.label} 
@@ -145,18 +145,18 @@ async function RealtimeActivityFeed() {
     }
   }
 
-  const eventConfig: Record<string, { color: string; bg: string; label: string }> = {
-    'CLOCK_IN': { color: 'text-emerald-600', bg: 'bg-emerald-500/10', label: 'Clocked In' },
-    'CLOCK_OUT': { color: 'text-red-600', bg: 'bg-red-500/10', label: 'Clocked Out' },
-    'FORCE_LOGOUT': { color: 'text-red-700', bg: 'bg-red-500/15', label: 'Force Logout' },
-    'BREAK_STARTED': { color: 'text-amber-600', bg: 'bg-amber-500/10', label: 'Break Started' },
-    'BREAK_ENDED': { color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'Break Ended' },
-    'AUTO_BREAK_TRIGGERED': { color: 'text-rose-600', bg: 'bg-rose-500/10', label: 'Auto-Break' },
-    'GPS_EXIT': { color: 'text-orange-600', bg: 'bg-orange-500/10', label: 'GPS Exit' },
-    'GPS_REENTRY': { color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'GPS Reentry' },
-    'IDLE_WARNING': { color: 'text-amber-500', bg: 'bg-amber-500/10', label: 'Idle Warning' },
-    'ADMIN_OVERRIDE': { color: 'text-violet-600', bg: 'bg-violet-500/10', label: 'Admin Override' },
-    'HEARTBEAT': { color: 'text-zinc-400', bg: 'bg-zinc-500/5', label: 'Heartbeat' },
+  const eventConfig: Record<string, { color: string; bg: string; label: string; icon: any }> = {
+    'CLOCK_IN': { color: 'text-emerald-600', bg: 'bg-emerald-500/10', label: 'Clocked In', icon: LogIn },
+    'CLOCK_OUT': { color: 'text-red-600', bg: 'bg-red-500/10', label: 'Clocked Out', icon: LogOutIcon },
+    'FORCE_LOGOUT': { color: 'text-red-700', bg: 'bg-red-500/15', label: 'Force Logout', icon: LogOutIcon },
+    'BREAK_STARTED': { color: 'text-amber-600', bg: 'bg-amber-500/10', label: 'Break Started', icon: Coffee },
+    'BREAK_ENDED': { color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'Break Ended', icon: Clock },
+    'AUTO_BREAK_TRIGGERED': { color: 'text-rose-600', bg: 'bg-rose-500/10', label: 'Auto-Break', icon: ShieldAlert },
+    'GPS_EXIT': { color: 'text-orange-600', bg: 'bg-orange-500/10', label: 'GPS Exit', icon: MapPin },
+    'GPS_REENTRY': { color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'GPS Reentry', icon: MapPin },
+    'IDLE_WARNING': { color: 'text-amber-500', bg: 'bg-amber-500/10', label: 'Idle Warning', icon: AlertTriangle },
+    'ADMIN_OVERRIDE': { color: 'text-violet-600', bg: 'bg-violet-500/10', label: 'Admin Override', icon: Settings },
+    'HEARTBEAT': { color: 'text-zinc-400', bg: 'bg-zinc-500/5', label: 'Heartbeat', icon: Activity },
   };
 
   const formatRelativeTime = (ts: string) => {
@@ -195,12 +195,13 @@ async function RealtimeActivityFeed() {
           </div>
         ) : (
           filteredEvents.slice(0, 12).map((evt) => {
-            const config = eventConfig[evt.event_type] || { color: 'text-zinc-500', bg: 'bg-zinc-500/5', label: evt.event_type };
+            const config = eventConfig[evt.event_type] || { color: 'text-zinc-500', bg: 'bg-zinc-500/5', label: evt.event_type, icon: Activity };
             const empName = empMap[evt.employee_id] || 'Unknown';
+            const EvtIcon = config.icon || Activity;
             return (
               <div key={evt.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-zinc-50/50 transition-colors">
                 <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', config.bg)}>
-                  <Activity className={cn('w-3.5 h-3.5', config.color)} />
+                  <EvtIcon className={cn('w-3.5 h-3.5', config.color)} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">

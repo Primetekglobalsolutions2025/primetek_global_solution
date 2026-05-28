@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import { History, User, Clock, ShieldCheck, Search, Activity, LogIn, LogOut, Home, AlertTriangle, RefreshCw, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -365,24 +366,24 @@ export default async function AuditLogsPage(props: PageProps) {
             of <span className="font-bold text-navy-900">{totalCount}</span> entries
           </div>
           <div className="flex items-center gap-1.5">
-            <a
+            <Link
               href={page > 1 ? `/admin/audit?page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
                 "px-3 py-1.5 rounded border border-zinc-200 text-xs font-semibold transition-all active:scale-95",
                 page <= 1
                   ? "pointer-events-none opacity-40 bg-zinc-50 text-zinc-400"
-                  : "bg-white text-zinc-650 hover:bg-zinc-50 hover:text-navy-900"
+                  : "bg-white text-zinc-655 hover:bg-zinc-50 hover:text-navy-900"
               )}
             >
               Prev
-            </a>
+            </Link>
             {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
               const pageNum = totalPages <= 7 ? i + 1 : 
                 page <= 4 ? i + 1 : 
                 page >= totalPages - 3 ? totalPages - 6 + i : 
                 page - 3 + i;
               return (
-                <a
+                <Link
                   key={pageNum}
                   href={`/admin/audit?page=${pageNum}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
                   className={cn(
@@ -393,20 +394,20 @@ export default async function AuditLogsPage(props: PageProps) {
                   )}
                 >
                   {pageNum}
-                </a>
+                </Link>
               );
             })}
-            <a
+            <Link
               href={page < totalPages ? `/admin/audit?page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
                 "px-3 py-1.5 rounded border border-zinc-200 text-xs font-semibold transition-all active:scale-95",
                 page >= totalPages
                   ? "pointer-events-none opacity-40 bg-zinc-50 text-zinc-400"
-                  : "bg-white text-zinc-650 hover:bg-zinc-50 hover:text-navy-900"
+                  : "bg-white text-zinc-655 hover:bg-zinc-50 hover:text-navy-900"
               )}
             >
               Next
-            </a>
+            </Link>
           </div>
         </div>
       )}

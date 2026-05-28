@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 import { 
   Search, Plus, UserPlus, Edit, 
   Trash2, Download, X, Mail, 
@@ -74,10 +75,20 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
     setPrevInitialProfiles(initialProfiles);
     setProfiles(initialProfiles);
   }
+  const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchValue);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [searchValue]);
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [roleCategory, setRoleCategory] = useState<'all' | 'IT' | 'Non-IT'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap(modalRef, isModalOpen, () => setIsModalOpen(false));
   const [editingProfile, setEditingProfile] = useState<ClientProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -280,8 +291,8 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
           <input 
             type="text" 
             placeholder="Search name, email, role, or employee..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
+            value={searchValue} 
+            onChange={(e) => setSearchValue(e.target.value)} 
             className="w-full pl-9 pr-4 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold text-navy-900 placeholder:text-zinc-450 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all shadow-2xs"
           />
         </div>
@@ -478,7 +489,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
       {/* Profile Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90dvh] overflow-y-auto shadow-xl border border-zinc-200 animate-in zoom-in-95 duration-200">
+          <div ref={modalRef} className="bg-white rounded-lg w-full max-w-2xl max-h-[90dvh] overflow-y-auto shadow-xl border border-zinc-200 animate-in zoom-in-95 duration-200">
             <div className="sticky top-0 bg-white border-b border-zinc-200 px-5 py-3.5 flex justify-between items-center z-10">
               <h2 className="text-sm font-semibold text-navy-900">
                 {editingProfile ? 'Edit Profile' : 'New Client Profile'}

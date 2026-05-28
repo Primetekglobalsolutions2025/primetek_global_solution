@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { 
   Eye, Download, Mail, Globe, 
   Phone, MapPin, Briefcase, GraduationCap, 
@@ -12,6 +12,7 @@ import { updateProfileStatus } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import InterviewRequestModal from './InterviewRequestModal';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 
 interface ClientProfile {
   id: string;
@@ -33,6 +34,9 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
   const [requestProfile, setRequestProfile] = useState<ClientProfile | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap(modalRef, !!selectedProfile, () => setSelectedProfile(null));
 
   const { toast } = useToast();
 
@@ -248,7 +252,7 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
       {/* Detail View Modal */}
       {selectedProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4 cursor-pointer" onClick={() => setSelectedProfile(null)}>
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90dvh] overflow-y-auto shadow-xl border border-zinc-200 cursor-default" onClick={(e) => e.stopPropagation()}>
+          <div ref={modalRef} className="bg-white rounded-lg w-full max-w-3xl max-h-[90dvh] overflow-y-auto shadow-xl border border-zinc-200 cursor-default" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-white border-b border-zinc-200 px-4 py-3 flex justify-between items-center z-10">
               <h2 className="text-base font-bold text-navy-900">Client Profile View</h2>
               <button onClick={() => setSelectedProfile(null)} className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 text-zinc-400 cursor-pointer transition-colors">

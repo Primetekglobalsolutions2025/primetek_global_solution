@@ -2,6 +2,7 @@
 
 import { Bell } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
+import { useToast } from '@/components/ui/Toast';
 
 interface AppHeaderProps {
   userName?: string;
@@ -10,6 +11,8 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ userName, role, notificationCount }: AppHeaderProps) {
+  const { toast } = useToast();
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
@@ -20,6 +23,14 @@ export default function AppHeader({ userName, role, notificationCount }: AppHead
   const initials = userName 
     ? userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) 
     : 'PG';
+
+  const handleNotificationClick = () => {
+    if (notificationCount && notificationCount > 0) {
+      toast.info(`You have ${notificationCount} pending approval${notificationCount > 1 ? 's' : ''} requiring attention.`);
+    } else {
+      toast.info('No new notifications at this time.');
+    }
+  };
 
   return (
     <header className="h-14 md:h-16 border-b flex items-center px-4 md:px-6 shrink-0 sticky top-0 z-30 bg-white border-border">
@@ -37,7 +48,11 @@ export default function AppHeader({ userName, role, notificationCount }: AppHead
       </div>
 
       <div className="flex items-center gap-3">
-        <button className="relative p-2 rounded-xl transition-colors text-gray-455 hover:text-navy-900 hover:bg-surface-alt" aria-label="Notifications">
+        <button 
+          onClick={handleNotificationClick}
+          className="relative p-2 rounded-xl transition-colors text-gray-455 hover:text-navy-900 hover:bg-surface-alt" 
+          aria-label="Notifications"
+        >
           <Bell className="w-5 h-5" />
           {notificationCount !== undefined && notificationCount > 0 && (
             <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white flex items-center justify-center text-[7px] text-white font-bold">

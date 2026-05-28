@@ -43,6 +43,8 @@ import {
 import { useToast } from '@/components/ui/Toast';
 import { cn, getISTShiftDate } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import StatusBadge from '@/components/ui/StatusBadge';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 
 export interface AttendanceEvent {
   id: string;
@@ -103,42 +105,7 @@ export interface AttendanceRecord {
 
 
 
-function StatusBadge({ status }: { status: string }) {
-  const s = status?.toLowerCase() || '';
-  const getTheme = () => {
-    if (['working', 'present', 'approved wfh'].includes(s)) {
-      return { bg: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', dot: 'bg-emerald-500' };
-    }
-    if (['idle', 'late', 'pending wfh'].includes(s)) {
-      return { bg: 'bg-amber-500/10 text-amber-605 border-amber-500/20', dot: 'bg-amber-500' };
-    }
-    if (['break (auto)', 'rejected wfh', 'absent'].includes(s)) {
-      return { bg: 'bg-orange-500/10 text-orange-600 border-orange-500/20', dot: 'bg-orange-500' };
-    }
-    if (['break'].includes(s)) {
-      return { bg: 'bg-sky-500/10 text-sky-600 border-sky-500/20', dot: 'bg-sky-500' };
-    }
-    if (['logged out', 'clocked_out', 'logged_out', 'force_logged_out', 'force_logout'].includes(s)) {
-      return { bg: 'bg-zinc-500/10 text-zinc-650 border-zinc-500/20', dot: 'bg-zinc-550' };
-    }
-    if (s === 'half-day') {
-      return { bg: 'bg-blue-500/10 text-blue-650 border-blue-500/20', dot: 'bg-blue-500' };
-    }
-    return { bg: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20', dot: 'bg-zinc-400' };
-  };
-
-  const theme = getTheme();
-
-  return (
-    <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider',
-      theme.bg
-    )}>
-      <span className={cn('w-1.5 h-1.5 rounded-full mr-1.5 shrink-0', theme.dot)} />
-      {status}
-    </span>
-  );
-}
+// StatusBadge inline function removed in favor of shared component import
 
 const getRowHighlightClass = (record: AttendanceRecord, breakSecs: number) => {
   const status = record.status;
@@ -176,7 +143,16 @@ export default function AttendanceClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<'logs' | 'live' | 'lates'>('logs');
+  const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchValue);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [searchValue]);
+
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [riskFilter, setRiskFilter] = useState('all');
@@ -191,6 +167,13 @@ export default function AttendanceClient({
   const [selectedRecordEvents, setSelectedRecordEvents] = useState<AttendanceEvent[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap(drawerRef, isDrawerOpen, () => {
+    if (!isSubmittingOverride) {
+      setIsDrawerOpen(false);
+      setSelectedRecord(null);
+    }
+  });
 
   // Override action state
   const [overrideActionType, setOverrideActionType] = useState<'reverse_autobreak' | 'correct_clockout' | 'rebuild' | 'override_validation' | null>(null);
@@ -804,8 +787,8 @@ export default function AttendanceClient({
                 <input 
                   type="text" 
                   placeholder="Filter by name..." 
-                  value={search} 
-                  onChange={(e) => setSearch(e.target.value)} 
+                  value={searchValue} 
+                  onChange={(e) => setSearchValue(e.target.value)} 
                   className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 bg-zinc-50 text-xs text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-sm font-medium" 
                 />
               </div>
@@ -1019,7 +1002,7 @@ export default function AttendanceClient({
                         <th className="px-4 py-2.5">Clock In</th>
                         <th className="px-4 py-2.5">Clock Out</th>
                         <th className="px-4 py-2.5">Total Hours</th>
-                        <th className="px-4 py-2.5">Break Time</th>
+                        <th className="px-4 py-2.5 hidden xl:table-cell">Break Time</th>
                         <th className="px-4 py-2.5">Final Status</th>
                       </tr>
                     </thead>
@@ -1086,7 +1069,7 @@ export default function AttendanceClient({
                                 <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-bold text-navy-900">
                                   {times.productive}
                                 </td>
-                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-bold text-navy-900">
+                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-bold text-navy-900 hidden xl:table-cell">
                                   {times.break}
                                 </td>
                                 <td className="px-4 py-2.5 whitespace-nowrap">
@@ -1542,6 +1525,7 @@ export default function AttendanceClient({
           />
           
           <motion.div
+            ref={drawerRef}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}

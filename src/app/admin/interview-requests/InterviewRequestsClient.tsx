@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Search, Download, Calendar, Phone, 
   Briefcase, Clock, CheckCircle2, XCircle, 
@@ -40,7 +40,15 @@ const statusColors: Record<string, string> = {
 
 export default function InterviewRequestsClient({ initialRequests }: { initialRequests: InterviewRequest[] }) {
   const [requests, setRequests] = useState<InterviewRequest[]>(initialRequests);
+  const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchValue);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [searchValue]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -97,8 +105,8 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
           <input 
             type="text" 
             placeholder="Search by consultant, employee, or company..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
+            value={searchValue} 
+            onChange={(e) => setSearchValue(e.target.value)} 
             className="w-full pl-9 pr-4 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold text-navy-900 placeholder:text-zinc-450 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all shadow-2xs"
           />
         </div>

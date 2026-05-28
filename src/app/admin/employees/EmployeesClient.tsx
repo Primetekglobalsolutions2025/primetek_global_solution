@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Search, ToggleLeft, ToggleRight, X, Loader2, Trash2, Users, ShieldCheck, Mail, Briefcase, Sparkles, Wallet, AlertTriangle, Copy, Check } from 'lucide-react';
 import Image from 'next/image';
@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/Toast';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
+import { useSafeReducedMotion } from '@/hooks/useSafeReducedMotion';
 
 export interface EmployeeRecord {
   id: string;
@@ -33,9 +35,17 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     setPrevInitialEmployees(initialEmployees);
     setEmployees(initialEmployees);
   }
+  const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchValue);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [searchValue]);
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,6 +53,10 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
   const [newEmployeeData, setNewEmployeeData] = useState({ name: '', email: '', role: 'employee', department: '' });
   const [successMessage, setSuccessMessage] = useState<{ id: string; pass: string } | null>(null);
   
+  const [formErrors, setFormErrors] = useState({ name: '', email: '', department: '' });
+  const addEmployeeModalRef = useRef<HTMLDivElement>(null);
+  const balanceModalRef = useRef<HTMLDivElement>(null);
+
   // Credentials copy & lock safety check states
   const [credentialsSaved, setCredentialsSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -51,6 +65,20 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRecord | null>(null);
   const [isUpdatingBalance, setIsUpdatingBalance] = useState(false);
   const [balances, setBalances] = useState({ sick: 0, casual: 0, earned: 0 });
+
+  useModalFocusTrap(addEmployeeModalRef, isModalOpen, () => {
+    const isLocked = successMessage !== null && !credentialsSaved;
+    if (!isLocked) {
+      setIsModalOpen(false);
+      if (successMessage) {
+        setSuccessMessage(null);
+        setCredentialsSaved(false);
+        router.refresh();
+      }
+    }
+  });
+
+  useModalFocusTrap(balanceModalRef, isBalanceModalOpen, () => setIsBalanceModalOpen(false));
   const [confirmAction, setConfirmAction] = useState<{ 
     message: string; 
     onConfirm: () => void;
@@ -124,6 +152,30 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     setIsSubmitting(true);
     setSuccessMessage(null);
     setCredentialsSaved(false);
+
+    let valid = true;
+    const errors = { name: '', email: '', department: '' };
+
+    if (!newEmployeeData.name || newEmployeeData.name.trim().length < 3) {
+      errors.name = 'Name must be at least 3 characters.';
+      valid = false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!newEmployeeData.email || !emailRegex.test(newEmployeeData.email)) {
+      errors.email = 'Please enter a valid email address.';
+      valid = false;
+    }
+    if (!newEmployeeData.department) {
+      errors.department = 'Please select a role/department.';
+      valid = false;
+    }
+
+    setFormErrors(errors);
+    if (!valid) {
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const res = await createEmployee(newEmployeeData);
       setSuccessMessage({ id: res.employee_id, pass: res.password });
@@ -234,8 +286,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
             <input 
               type="text" 
               placeholder="Search by ID, name, email..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
+              value={searchValue} 
+              onChange={(e) => setSearchValue(e.target.value)} 
               className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-sm font-medium" 
             />
           </div>
@@ -255,6 +307,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
             setSuccessMessage(null);
             setCredentialsSaved(false);
             setNewEmployeeData({ name: '', email: '', role: 'employee', department: '' });
+            setFormErrors({ name: '', email: '', department: '' });
             setIsSubmitting(false);
             setIsModalOpen(true);
           }} 
@@ -330,7 +383,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
               </div>
 
               <div className="flex items-center justify-between border-t border-zinc-200/40 pt-3">
-                <button onClick={() => handleToggle(emp.id, emp.status)} className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500 active:scale-95 transition-transform cursor-pointer">
+                <button onClick={() => handleToggle(emp.id, emp.status)} aria-label={emp.status === 'Active' ? 'Deactivate employee' : 'Activate employee'} className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500 active:scale-95 transition-transform cursor-pointer">
                   <div className={cn(
                     "w-7 h-4 rounded-full relative transition-colors duration-300",
                     emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-800"
@@ -449,7 +502,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       )}
                     </td>
                     <td className="px-4 py-2.5">
-                      <button onClick={() => handleToggle(emp.id, emp.status)} className="flex items-center gap-2 active:scale-95 transition-transform group/toggle cursor-pointer">
+                      <button onClick={() => handleToggle(emp.id, emp.status)} aria-label={emp.status === 'Active' ? 'Deactivate employee' : 'Activate employee'} className="flex items-center gap-2 active:scale-95 transition-transform group/toggle cursor-pointer">
                         <div className={cn(
                           "w-8 h-4.5 rounded-full relative transition-colors duration-300",
                           emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-800"
@@ -670,16 +723,22 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                       <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
                       <div className="relative group">
                         <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
-                        <input required type="text" placeholder="John Doe" value={newEmployeeData.name} onChange={(e) => setNewEmployeeData({...newEmployeeData, name: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
+                        <input required type="text" placeholder="John Doe" value={newEmployeeData.name} onChange={(e) => { setNewEmployeeData({...newEmployeeData, name: e.target.value}); setFormErrors({...formErrors, name: ''}); }} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
                       </div>
+                      {formErrors.name && (
+                        <p className="text-[10px] text-red-500 font-semibold mt-1 ml-1">{formErrors.name}</p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
                       <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
                       <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
-                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => setNewEmployeeData({...newEmployeeData, email: e.target.value})} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-400" />
+                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => { setNewEmployeeData({...newEmployeeData, email: e.target.value}); setFormErrors({...formErrors, email: ''}); }} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-400" />
                       </div>
+                      {formErrors.email && (
+                        <p className="text-[10px] text-red-500 font-semibold mt-1 ml-1">{formErrors.email}</p>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -709,6 +768,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                                 department: dept,
                                 role: autoRole
                               });
+                              setFormErrors({...formErrors, department: ''});
                             }} 
                             className="w-full pl-11 pr-10 py-3.5 rounded-2xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer appearance-none"
                           >
@@ -723,6 +783,9 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
                             ▼
                           </div>
                         </div>
+                        {formErrors.department && (
+                          <p className="text-[10px] text-red-500 font-semibold mt-1 ml-1">{formErrors.department}</p>
+                        )}
                       </div>
                     </div>
 

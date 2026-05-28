@@ -189,7 +189,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-hidden bg-white rounded-lg border border-zinc-200 shadow-2xs">
+          <div className="hidden lg:block overflow-hidden bg-white rounded-lg border border-zinc-200 shadow-2xs relative">
+            <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+              <span>Metric Entry Matrix</span>
+              <span className="flex items-center gap-1 text-primary-500 font-semibold tracking-wider normal-case animate-pulse">
+                ↔ Swipe horizontally to view all columns
+              </span>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
@@ -231,7 +237,8 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'applications_count')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Decrease applications count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -240,12 +247,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                               min="0"
                               value={values.applications_count}
                               onChange={(e) => handleInputChange(profile.id, 'applications_count', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'applications_count')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Increase applications count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -257,7 +265,8 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'interviews_count')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Decrease interviews count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -266,12 +275,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                               min="0"
                               value={values.interviews_count}
                               onChange={(e) => handleInputChange(profile.id, 'interviews_count', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'interviews_count')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Increase interviews count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -283,7 +293,8 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'assessments')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Decrease assessments count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -292,12 +303,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                               min="0"
                               value={values.assessments}
                               onChange={(e) => handleInputChange(profile.id, 'assessments', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'assessments')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Increase assessments count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -309,7 +321,8 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'technical_rounds')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Decrease technical rounds count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -318,12 +331,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                               min="0"
                               value={values.technical_rounds}
                               onChange={(e) => handleInputChange(profile.id, 'technical_rounds', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'technical_rounds')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Increase technical rounds count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -335,7 +349,8 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'non_technical')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Decrease non-technical rounds count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -344,12 +359,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                               min="0"
                               value={values.non_technical}
                               onChange={(e) => handleInputChange(profile.id, 'non_technical', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'non_technical')}
-                              className="p-1 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+                              aria-label={`Increase non-technical rounds count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -361,7 +377,8 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'self_submissions')}
-                              className="p-1 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700"
+                              aria-label={`Decrease self submissions count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -370,12 +387,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                               min="0"
                               value={values.self_submissions}
                               onChange={(e) => handleInputChange(profile.id, 'self_submissions', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white"
+                              className="w-14 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'self_submissions')}
-                              className="p-1 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700"
+                              aria-label={`Increase self submissions count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -387,7 +405,8 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                             <button
                               type="button"
                               onClick={() => handleDecrement(profile.id, 'support_submissions')}
-                              className="p-1 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700"
+                              aria-label={`Decrease support submissions count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
@@ -396,12 +415,13 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                               min="0"
                               value={values.support_submissions}
                               onChange={(e) => handleInputChange(profile.id, 'support_submissions', parseInt(e.target.value))}
-                              className="w-12 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white"
+                              className="w-14 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white"
                             />
                             <button
                               type="button"
                               onClick={() => handleIncrement(profile.id, 'support_submissions')}
-                              className="p-1 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700"
+                              aria-label={`Increase support submissions count for ${profile.client_name}`}
+                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer"
                             >
                               <Plus className="w-3 h-3" />
                             </button>

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 import { Search, Download, Eye, X, UserPlus, Loader2, Plus, Users, CheckCircle2, Clock, XCircle, FileUser } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDate } from '@/lib/utils';
@@ -45,7 +46,16 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
     setPrevInitialApps(initialApps);
     setApps(initialApps);
   }
+  const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearch(searchValue);
+    }, 150);
+    return () => clearTimeout(handler);
+  }, [searchValue]);
+
   const [statusFilter, setStatusFilter] = useState('all');
   const [jobFilter, setJobFilter] = useState('all');
   const [selectedApp, setSelectedApp] = useState<ApplicationRecord | null>(null);
@@ -53,6 +63,11 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
   const [assigning, setAssigning] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const { toast } = useToast();
+
+  const addModalRef = useRef<HTMLDivElement>(null);
+  const detailModalRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap(addModalRef, isAdding, () => setIsAdding(false));
+  useModalFocusTrap(detailModalRef, !!selectedApp, () => setSelectedApp(null));
 
   useEffect(() => {
     getAllEmployees().then(setEmployees);
@@ -152,7 +167,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto md:flex md:flex-row flex-1">
           <div className="relative w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-            <input type="text" placeholder="Search by name or email..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400" />
+            <input type="text" placeholder="Search by name or email..." value={searchValue} onChange={(e) => setSearchValue(e.target.value)} className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400" />
           </div>
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full md:w-auto px-3 py-2 rounded-lg border border-border bg-white text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-400 cursor-pointer">
             {statusOptions.map((s) => <option key={s} value={s}>{s === 'all' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
@@ -172,6 +187,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
         {isAdding && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <motion.div 
+              ref={addModalRef}
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -394,6 +410,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
         {selectedApp && (
           <div className="fixed inset-0 z-50 flex items-center justify-end bg-black/30 backdrop-blur-sm" onClick={() => setSelectedApp(null)}>
             <motion.div
+              ref={detailModalRef}
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}

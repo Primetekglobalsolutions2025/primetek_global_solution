@@ -93,13 +93,13 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
   ];
 
   const desktopEmployeeItems: NavItem[] = [
-    { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'MAIN' },
-    { href: '/employee/attendance', icon: Clock, label: 'Attendance', section: 'WORKFORCE' },
-    { href: '/employee/leaves', icon: Calendar, label: 'Leaves', section: 'WORKFORCE' },
-    { href: '/employee/daily-report', icon: ClipboardList, label: 'Daily Report', section: 'WORKFORCE' },
-    { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles', section: 'WORKFORCE' },
-    { href: '/employee/reports', icon: BarChart2, label: 'My Reports', section: 'REPORTS' },
-    { href: '/employee/profile', icon: UserCircle, label: 'My Profile', section: 'SYSTEM' },
+    { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'Operations' },
+    { href: '/employee/attendance', icon: Clock, label: 'Attendance', section: 'Workforce' },
+    { href: '/employee/leaves', icon: Calendar, label: 'Leaves', section: 'Workforce' },
+    { href: '/employee/daily-report', icon: ClipboardList, label: 'Daily Report', section: 'Workforce' },
+    { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles', section: 'Workforce' },
+    { href: '/employee/reports', icon: BarChart2, label: 'My Reports', section: 'Reports' },
+    { href: '/employee/profile', icon: UserCircle, label: 'My Profile', section: 'System Management' },
   ];
 
   const navItems = role === 'admin' ? desktopAdminItems : desktopEmployeeItems;
@@ -113,14 +113,14 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
   ];
 
   const mobileAdminMore = [
-    { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports' },
-    { href: '/admin/client-profiles', icon: Building2, label: 'Clients' },
-    { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews' },
-    { href: '/admin/applications', icon: FileText, label: 'Pipeline' },
-    { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
-    { href: '/admin/audit', icon: Shield, label: 'Audit Logs' },
-    { href: '/admin/settings', icon: Settings, label: 'Settings' },
-    { href: '/admin/profile', icon: UserCircle, label: 'Profile' },
+    { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'Workforce' },
+    { href: '/admin/client-profiles', icon: Building2, label: 'Clients', section: 'Recruitment & Clients' },
+    { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews', section: 'Recruitment & Clients' },
+    { href: '/admin/applications', icon: FileText, label: 'Pipeline', section: 'Recruitment & Clients' },
+    { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries', section: 'Recruitment & Clients' },
+    { href: '/admin/audit', icon: Shield, label: 'Audit Logs', section: 'Security & Compliance' },
+    { href: '/admin/settings', icon: Settings, label: 'Settings', section: 'System Management' },
+    { href: '/admin/profile', icon: UserCircle, label: 'Profile', section: 'System Management' },
   ];
 
   const mobileEmployeeBottom = [
@@ -131,9 +131,9 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
   ];
 
   const mobileEmployeeMore = [
-    { href: '/employee/leaves', icon: Calendar, label: 'Leaves' },
-    { href: '/employee/reports', icon: BarChart2, label: 'My Reports' },
-    { href: '/employee/profile', icon: UserCircle, label: 'My Profile' },
+    { href: '/employee/leaves', icon: Calendar, label: 'Leaves', section: 'Workforce' },
+    { href: '/employee/reports', icon: BarChart2, label: 'My Reports', section: 'Reports' },
+    { href: '/employee/profile', icon: UserCircle, label: 'My Profile', section: 'System Management' },
   ];
 
   const bottomBarItems = role === 'admin' ? mobileAdminBottom : mobileEmployeeBottom;
@@ -384,28 +384,39 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
               </div>
  
               {/* Overflow Nav Items */}
-              <div className="px-5 pb-3">
-                <div className="grid grid-cols-3 gap-3">
-                  {overflowItems.map((item) => {
-                    const isActive = pathname === item.href.split('#')[0];
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsMoreOpen(false)}
-                        className={cn(
-                          'flex flex-col items-center justify-center p-3 rounded-2xl gap-1.5 transition-all active:scale-95 border',
-                          isActive
-                            ? 'bg-primary-50 border-primary-100 text-primary-600'
-                            : 'bg-surface-alt/60 border-transparent text-gray-600 hover:bg-surface-alt'
-                        )}
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="text-[10px] font-semibold text-center truncate w-full">{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
+              <div className="px-5 pb-3 max-h-[60vh] overflow-y-auto">
+                {Array.from(new Set(overflowItems.map(item => item.section))).map((sec) => {
+                  const sectionItems = overflowItems.filter(item => item.section === sec);
+                  if (sectionItems.length === 0) return null;
+                  return (
+                    <div key={sec} className="mb-4">
+                      <h4 className="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 border-b border-zinc-100 pb-1 mb-2">
+                        {sec}
+                      </h4>
+                      <div className="grid grid-cols-3 gap-3">
+                        {sectionItems.map((item) => {
+                          const isActive = pathname === item.href.split('#')[0];
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setIsMoreOpen(false)}
+                              className={cn(
+                                'flex flex-col items-center justify-center p-3 rounded-2xl gap-1.5 transition-all active:scale-95 border',
+                                isActive
+                                  ? 'bg-primary-50 border-primary-100 text-primary-600'
+                                  : 'bg-surface-alt/60 border-transparent text-gray-600 hover:bg-surface-alt'
+                              )}
+                            >
+                              <item.icon className="w-5 h-5" />
+                              <span className="text-[10px] font-semibold text-center truncate w-full">{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
  
               {/* User Info + Sign Out */}

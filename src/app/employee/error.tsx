@@ -1,10 +1,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import Card from '@/components/ui/Card';
+import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { AlertTriangle, RefreshCw, LayoutDashboard } from 'lucide-react';
-import Link from 'next/link';
 
 export default function EmployeeError({
   error,
@@ -14,51 +12,46 @@ export default function EmployeeError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('Employee Portal Error:', error);
+    console.error('Employee portal route error captured:', error);
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[70dvh] px-6">
-      <Card hover={false} className="max-w-md w-full p-8 text-center rounded-[2.5rem] border-0 shadow-2xl shadow-navy-900/10 relative overflow-hidden bg-white">
-        <div className="absolute -top-12 -left-12 w-32 h-32 bg-primary-50 rounded-full blur-3xl opacity-60" />
-        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-red-50 rounded-full blur-3xl opacity-60" />
+    <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mb-6 shadow-sm shadow-amber-500/5">
+        <AlertCircle className="w-8 h-8" />
+      </div>
 
-        <div className="relative">
-          <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-500/30">
-            <AlertTriangle className="w-8 h-8" />
-          </div>
-          
-          <h2 className="text-xl font-sans font-black text-navy-900 mb-2">Portal Error</h2>
-          <p className="text-zinc-500 text-xs mb-8 leading-relaxed px-4">
-            We had trouble loading this section. Your data is safe, but we need to restart the session.
-          </p>
+      <h1 className="font-heading font-black text-2xl text-navy-900 tracking-tight mb-2">
+        Something Went Wrong
+      </h1>
+      
+      <p className="text-sm text-zinc-550 max-w-md mb-8 leading-relaxed">
+        The employee portal encountered an unexpected issue. Please try refreshing the page or contact support if the problem persists.
+      </p>
 
-          <div className="space-y-3">
-            <Button 
-              variant="primary" 
-              fullWidth 
-              onClick={reset}
-              className="rounded-xl h-11"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" /> Refresh Section
-            </Button>
-            
-            <Link href="/employee/dashboard" className="w-full block">
-              <Button 
-                variant="outline" 
-                fullWidth 
-                className="rounded-xl h-11 border-border/60"
-              >
-                <LayoutDashboard className="w-4 h-4 mr-2" /> My Dashboard
-              </Button>
-            </Link>
-          </div>
-          
-          <p className="mt-8 text-[9px] font-bold text-text-muted uppercase tracking-[0.2em]">
-            SYSTEM_ERROR_LOGGED
-          </p>
+      {error.message && (
+        <div className="bg-red-50/50 border border-red-200/50 text-[11px] font-mono text-red-700/80 px-4 py-2.5 rounded-lg mb-8 max-w-lg overflow-x-auto text-left leading-relaxed">
+          Error: {error.message}
         </div>
-      </Card>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+        <Button
+          onClick={() => reset()}
+          className="w-full sm:w-auto bg-primary-500 hover:bg-primary-600 text-white font-bold px-5 py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs shadow-md shadow-primary-500/10 active:scale-95 transition-all"
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>Reload Page</span>
+        </Button>
+        <Button
+          onClick={() => window.location.href = '/employee/dashboard'}
+          variant="outline"
+          className="w-full sm:w-auto px-5 py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs text-navy-900 border border-zinc-200 bg-white hover:bg-zinc-50 active:scale-95 transition-all"
+        >
+          <Home className="w-4 h-4" />
+          <span>Back to Home</span>
+        </Button>
+      </div>
     </div>
   );
 }

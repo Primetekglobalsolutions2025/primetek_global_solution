@@ -4,14 +4,19 @@
 @theme inline {
   /* Brand Colors - Deep Navy + Electric Teal + Gold Accent */
   --color-primary-50: #e6f7fa;
+  --color-primary-55: #e1f5f9;
   --color-primary-100: #b3e8f2;
+  --color-primary-105: #addce6;
   --color-primary-200: #80d9ea;
   --color-primary-300: #4dcae2;
   --color-primary-400: #1abbda;
   --color-primary-500: #097d95;
   --color-primary-600: #0b7189;
+  --color-primary-650: #096379;
   --color-primary-700: #08536a;
+  --color-primary-750: #064457;
   --color-primary-800: #05354b;
+  --color-primary-850: #03243a;
   --color-primary-900: #021a2e;
 
   --color-navy-50: #e8ecf3;
@@ -24,11 +29,26 @@
   --color-navy-700: #162d49;
   --color-navy-800: #0f2137;
   --color-navy-900: #0a1628;
+  --color-navy-950: #020617;
+  --color-navy-955: #050b14;
 
   --color-gold-300: #f5d98a;
   --color-gold-400: #f0c75e;
   --color-gold-500: #d4a843;
   --color-gold-600: #b08a2e;
+
+  --color-zinc-150: #efeff1;
+  --color-zinc-250: #dadade;
+  --color-zinc-450: #8e8e93;
+  --color-zinc-550: #5e5e66;
+  --color-zinc-650: #48484a;
+
+  --color-violet-650: #7429e3;
+  --color-emerald-150: #bbf7d0;
+  --color-emerald-650: #058f65;
+  --color-amber-150: #fef08a;
+  --color-amber-605: #ca8a04;
+  --color-slate-655: #384252;
 
   --color-surface: #ffffff;
   --color-surface-alt: #f8fafc;
@@ -88,6 +108,13 @@
   .employee-portal .font-mono,
   .admin-portal .font-mono {
     font-family: var(--font-mono) !important;
+  }
+
+  /* Standardized Global Focus Styling */
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: none !important;
+    border-color: var(--color-primary-500) !important;
+    box-shadow: 0 0 0 2px rgba(9, 125, 149, 0.2) !important;
   }
 }
 
@@ -177,4 +204,16 @@
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
+
+/* Accessibility Typography Overrides (8px/9px/10px -> 11px readability threshold) */
+.text-\[8px\] {
+  font-size: 11px !important;
+}
+.text-\[9px\] {
+  font-size: 11px !important;
+}
+.text-\[10px\] {
+  font-size: 11px !important;
+}
+
 

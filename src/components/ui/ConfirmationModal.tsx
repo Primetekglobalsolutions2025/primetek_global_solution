@@ -1,10 +1,12 @@
 'use client';
 
+import { useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, HelpCircle } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
 import { cn } from '@/lib/utils';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -29,6 +31,9 @@ export default function ConfirmationModal({
   variant = 'primary',
   isLoading = false,
 }: ConfirmationModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap(modalRef, isOpen, onClose);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -37,6 +42,7 @@ export default function ConfirmationModal({
           className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md animate-in fade-in duration-200 cursor-pointer text-navy-900"
         >
           <motion.div
+            ref={modalRef}
             onClick={(e) => e.stopPropagation()}
             initial={{ opacity: 0, scale: 0.95, y: 15 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
