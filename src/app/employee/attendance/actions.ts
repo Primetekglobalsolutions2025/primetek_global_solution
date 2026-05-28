@@ -38,7 +38,7 @@ export async function closeStaleSessionsForEmployee(employeeId: string, currentS
   try {
     const { data: stale } = await supabaseAdmin
       .from('attendance')
-      .select('id, employee_id, check_in, status, current_break_start, total_break_seconds')
+      .select('id, employee_id, date, check_in, status, current_break_start, total_break_seconds')
       .eq('employee_id', employeeId)
       .is('check_out', null)
       .neq('date', currentShiftDateStr);
@@ -46,7 +46,11 @@ export async function closeStaleSessionsForEmployee(employeeId: string, currentS
     if (stale && stale.length > 0) {
       for (const record of stale) {
         const checkInTime = new Date(record.check_in);
-        const autoOut = new Date(checkInTime.getTime() + 9 * 60 * 60 * 1000);
+        const [y, m, d] = record.date.split('-').map(Number);
+        let autoOut = new Date(Date.UTC(y, m - 1, d, 22, 0, 0)); // 3:30 AM IST of next day (22:00 UTC of shift date)
+        if (autoOut.getTime() <= checkInTime.getTime()) {
+          autoOut = new Date(checkInTime.getTime() + 60 * 1000); // safety fallback: 1 min after check-in
+        }
 
         // Get next sequence number for the event stream
         const { data: lastEvent } = await supabaseAdmin
@@ -193,6 +197,35 @@ export async function checkIn(
 
     if (existing) {
       if (existing.check_out || existing.status === 'Logged Out') {
+        // Query the latest event to check if it was a system forced logout
+        const { data: lastEvent } = await supabaseAdmin
+          .from('attendance_events')
+          .select('event_type')
+          .eq('session_id', existing.id)
+          .order('sequence_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const isSystemForced = lastEvent?.event_type === 'FORCE_LOGOUT';
+        let canResume = isSystemForced;
+
+        if (!canResume && existing.check_out) {
+          const checkoutTime = new Date(existing.check_out);
+          const minutesSinceCheckout = (now.getTime() - checkoutTime.getTime()) / (1000 * 60);
+          if (minutesSinceCheckout <= 15) {
+            canResume = true;
+          }
+        }
+
+        if (canResume) {
+          const resumeResult = await resumeSession(existing.id);
+          if (resumeResult.success) {
+            return { success: true, recordId: existing.id, resumed: true };
+          } else {
+            return { success: false, error: resumeResult.error || 'Failed to resume session' };
+          }
+        }
+
         return { success: false, error: 'Completed for today' };
       }
       return { success: false, error: `Already clocked in` };
@@ -334,12 +367,43 @@ export async function requestWFH(
 
     const { data: existing } = await supabaseAdmin
       .from('attendance')
-      .select('id')
+      .select('id, check_out, status')
       .eq('employee_id', session.id)
       .eq('date', shiftDateStr)
       .maybeSingle();
 
-    if (existing) return { success: false, error: 'Already exists for today' };
+    if (existing) {
+      if (existing.check_out || existing.status === 'Logged Out') {
+        const { data: lastEvent } = await supabaseAdmin
+          .from('attendance_events')
+          .select('event_type')
+          .eq('session_id', existing.id)
+          .order('sequence_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const isSystemForced = lastEvent?.event_type === 'FORCE_LOGOUT';
+        let canResume = isSystemForced;
+
+        if (!canResume && existing.check_out) {
+          const checkoutTime = new Date(existing.check_out);
+          const minutesSinceCheckout = (now.getTime() - checkoutTime.getTime()) / (1000 * 60);
+          if (minutesSinceCheckout <= 15) {
+            canResume = true;
+          }
+        }
+
+        if (canResume) {
+          const resumeResult = await resumeSession(existing.id);
+          if (resumeResult.success) {
+            return { success: true, recordId: existing.id, resumed: true };
+          } else {
+            return { success: false, error: resumeResult.error || 'Failed to resume session' };
+          }
+        }
+      }
+      return { success: false, error: 'Already exists for today' };
+    }
 
     // Record WFH request & Lateness
     const lateThreshold = new Date(shiftStart.getTime() + 15 * 60 * 1000);
