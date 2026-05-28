@@ -40,7 +40,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(signedData.signedUrl, 307);
   } catch (err) {
     console.error('[Resume Download] Error:', err);
-    const message = err instanceof Error ? err.message : 'Internal server error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'An internal error occurred. Please try again.' },
+      { status: 500 }
+    );
   }
 }

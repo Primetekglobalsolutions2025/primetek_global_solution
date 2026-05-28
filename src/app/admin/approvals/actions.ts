@@ -71,159 +71,187 @@ export async function getPendingApprovals() {
 }
 
 export async function updateLeaveStatus(id: string, status: 'Approved' | 'Rejected') {
-  const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
-  await verifyActiveAdmin(session.id);
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') return { success: false, error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
 
-  // 1. Get request details first for email and balance
-  const { data: request, error: fetchError } = await supabaseAdmin
-    .from('leave_requests')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (fetchError || !request) throw new Error('Request not found');
-
-  // MED-11: Idempotency Check
-  if (request.status !== 'Pending') {
-    if (request.status === status) {
-      return { success: true, message: `Leave request was already ${status.toLowerCase()}` };
-    }
-    return { success: false, error: `Leave request has already been ${request.status.toLowerCase()}` };
-  }
-
-  // Fetch employee details separately for email notifications
-  const { data: employee } = await supabaseAdmin
-    .from('employees')
-    .select('name, email')
-    .eq('id', request.employee_id)
-    .single();
-
-  // 2. Process Approval or Rejection atomically
-  if (status === 'Approved') {
-    const start = new Date(request.start_date);
-    const end = new Date(request.end_date);
-    const days = calculateWorkingDays(start, end);
-
-    const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('approve_leave_request_atomic', {
-      p_request_id: id,
-      p_days: days
-    });
-
-    if (rpcErr || (rpcRes && !rpcRes.success)) {
-      console.error('RPC approve_leave_request_atomic failed:', rpcErr || rpcRes?.error);
-      throw new Error(`Failed to approve leave request: ${rpcErr?.message || rpcRes?.error || 'Unknown error'}`);
-    }
-  } else {
-    // Rejection: Update status atomically only if it is still Pending
-    const { data: updatedRequest, error } = await supabaseAdmin
+    // 1. Get request details first for email and balance
+    const { data: request, error: fetchError } = await supabaseAdmin
       .from('leave_requests')
-      .update({ status })
-      .eq('id', id)
-      .eq('status', 'Pending')
       .select('*')
-      .maybeSingle();
+      .eq('id', id)
+      .single();
 
-    if (error) {
-      console.error('Database update error during rejection:', error);
-      throw new Error('Database update failed');
+    if (fetchError || !request) return { success: false, error: 'Request not found' };
+
+    // MED-11: Idempotency Check
+    if (request.status !== 'Pending') {
+      if (request.status === status) {
+        return { success: true, message: `Leave request was already ${status.toLowerCase()}` };
+      }
+      return { success: false, error: `Leave request has already been ${request.status.toLowerCase()}` };
     }
 
-    if (!updatedRequest) {
-      return { success: false, error: 'Leave request has already been processed.' };
+    // Fetch employee details separately for email notifications
+    const { data: employee } = await supabaseAdmin
+      .from('employees')
+      .select('name, email')
+      .eq('id', request.employee_id)
+      .single();
+
+    // 2. Process Approval or Rejection atomically
+    if (status === 'Approved') {
+      const start = new Date(request.start_date);
+      const end = new Date(request.end_date);
+      const days = calculateWorkingDays(start, end);
+
+      const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('approve_leave_request_atomic', {
+        p_request_id: id,
+        p_days: days
+      });
+
+      if (rpcErr || (rpcRes && !rpcRes.success)) {
+        console.error('RPC approve_leave_request_atomic failed:', rpcErr || rpcRes?.error);
+        return { success: false, error: `Failed to approve leave request: ${rpcErr?.message || rpcRes?.error || 'Unknown error'}` };
+      }
+    } else {
+      // Rejection: Update status atomically only if it is still Pending
+      const { data: updatedRequest, error } = await supabaseAdmin
+        .from('leave_requests')
+        .update({ status })
+        .eq('id', id)
+        .eq('status', 'Pending')
+        .select('*')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Database update error during rejection:', error);
+        return { success: false, error: 'Database update failed' };
+      }
+
+      if (!updatedRequest) {
+        return { success: false, error: 'Leave request has already been processed.' };
+      }
     }
-  }
 
-  // Log action to audit ledger
-  await logAuditAction(
-    status === 'Approved' ? 'APPROVE_LEAVE' : 'REJECT_LEAVE',
-    'leave_requests',
-    id,
-    { status: request.status, employee_name: employee?.name || 'Unknown' },
-    { status }
-  );
-
-  // 4. Send Email
-  if (employee?.email) {
-    const html = getLeaveStatusTemplate(
-      employee.name,
-      request.type,
-      status,
-      request.start_date,
-      request.end_date
+    // Log action to audit ledger
+    await logAuditAction(
+      status === 'Approved' ? 'APPROVE_LEAVE' : 'REJECT_LEAVE',
+      'leave_requests',
+      id,
+      { status: request.status, employee_name: employee?.name || 'Unknown' },
+      { status }
     );
-    await sendNotificationEmail(employee.email, `Leave Request ${status}`, html);
-  }
 
-  revalidatePath('/admin/approvals');
-  revalidatePath('/employee/leaves');
-  return { success: true };
+    // 4. Send Email
+    if (employee?.email) {
+      const html = getLeaveStatusTemplate(
+        employee.name,
+        request.type,
+        status,
+        request.start_date,
+        request.end_date
+      );
+      const emailRes = await sendNotificationEmail(employee.email, `Leave Request ${status}`, html);
+      const emailResAsAny = emailRes as any;
+      if (!emailResAsAny.success) {
+        console.warn(`[Email Delivery Failed] action: updateLeaveStatus, error: ${emailResAsAny.error || emailResAsAny.reason}`);
+        await logAuditAction('EMAIL_DELIVERY_FAILED', 'leave_requests', id, null, {
+          recipient: employee.email,
+          subject: `Leave Request ${status}`,
+          error: emailResAsAny.error || emailResAsAny.reason
+        });
+      }
+    }
+
+    revalidatePath('/admin/approvals');
+    revalidatePath('/employee/leaves');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error in updateLeaveStatus:', err);
+    return { success: false, error: err.message || 'Failed to update leave status' };
+  }
 }
 
 export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Rejected WFH') {
-  const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
-  await verifyActiveAdmin(session.id);
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') return { success: false, error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
 
-  // 1. Get request details
-  const { data: request, error: fetchError } = await supabaseAdmin
-    .from('attendance')
-    .select('*')
-    .eq('id', id)
-    .single();
+    // 1. Get request details
+    const { data: request, error: fetchError } = await supabaseAdmin
+      .from('attendance')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-  if (fetchError || !request) throw new Error('Request not found');
+    if (fetchError || !request) return { success: false, error: 'Request not found' };
 
-  // MED-11: Idempotency Check
-  if (request.status !== 'Pending WFH') {
-    if (request.status === status) {
-      return { success: true, message: `WFH request was already ${status.toLowerCase()}` };
+    // MED-11: Idempotency Check
+    if (request.status !== 'Pending WFH') {
+      if (request.status === status) {
+        return { success: true, message: `WFH request was already ${status.toLowerCase()}` };
+      }
+      return { success: false, error: `WFH request has already been processed with status: ${request.status}` };
     }
-    return { success: false, error: `WFH request has already been processed with status: ${request.status}` };
-  }
 
-  // Fetch employee details separately
-  const { data: employee } = await supabaseAdmin
-    .from('employees')
-    .select('name, email')
-    .eq('id', request.employee_id)
-    .single();
+    // Fetch employee details separately
+    const { data: employee } = await supabaseAdmin
+      .from('employees')
+      .select('name, email')
+      .eq('id', request.employee_id)
+      .single();
 
-  // 2. Call RPC to update WFH status, append event, rebuild projection, and recalculate lates atomically
-  const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('update_wfh_status_atomic', {
-    p_session_id: id,
-    p_status: status,
-    p_admin_id: session.id
-  });
+    // 2. Call RPC to update WFH status, append event, rebuild projection, and recalculate lates atomically
+    const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('update_wfh_status_atomic', {
+      p_session_id: id,
+      p_status: status,
+      p_admin_id: session.id
+    });
 
-  if (rpcErr || (rpcRes && !rpcRes.success)) {
-    console.error('RPC update_wfh_status_atomic failed:', rpcErr || rpcRes?.error);
-    throw new Error(`Failed to update WFH status atomically: ${rpcErr?.message || rpcRes?.error || 'Unknown error'}`);
-  }
+    if (rpcErr || (rpcRes && !rpcRes.success)) {
+      console.error('RPC update_wfh_status_atomic failed:', rpcErr || rpcRes?.error);
+      return { success: false, error: `Failed to update WFH status atomically: ${rpcErr?.message || rpcRes?.error || 'Unknown error'}` };
+    }
 
-  // Log action to audit ledger
-  await logAuditAction(
-    status === 'Approved WFH' ? 'APPROVE_WFH' : 'REJECT_WFH',
-    'attendance',
-    id,
-    { status: request.status, employee_name: employee?.name || 'Unknown' },
-    { status }
-  );
-
-  // 3. Send Email
-  if (employee?.email) {
-    const html = getWFHStatusTemplate(
-      employee.name,
-      request.date,
-      status
+    // Log action to audit ledger
+    await logAuditAction(
+      status === 'Approved WFH' ? 'APPROVE_WFH' : 'REJECT_WFH',
+      'attendance',
+      id,
+      { status: request.status, employee_name: employee?.name || 'Unknown' },
+      { status }
     );
-    await sendNotificationEmail(employee.email, `WFH Request ${status.includes('Approved') ? 'Approved' : 'Rejected'}`, html);
-  }
 
-  revalidatePath('/admin/approvals');
-  revalidatePath('/admin/attendance');
-  revalidatePath('/employee/attendance');
-  return { success: true };
+    // 3. Send Email
+    if (employee?.email) {
+      const html = getWFHStatusTemplate(
+        employee.name,
+        request.date,
+        status
+      );
+      const emailRes = await sendNotificationEmail(employee.email, `WFH Request ${status.includes('Approved') ? 'Approved' : 'Rejected'}`, html);
+      const emailResAsAny = emailRes as any;
+      if (!emailResAsAny.success) {
+        console.warn(`[Email Delivery Failed] action: updateWFHStatus, error: ${emailResAsAny.error || emailResAsAny.reason}`);
+        await logAuditAction('EMAIL_DELIVERY_FAILED', 'attendance', id, null, {
+          recipient: employee.email,
+          subject: `WFH Request ${status.includes('Approved') ? 'Approved' : 'Rejected'}`,
+          error: emailResAsAny.error || emailResAsAny.reason
+        });
+      }
+    }
+
+    revalidatePath('/admin/approvals');
+    revalidatePath('/admin/attendance');
+    revalidatePath('/employee/attendance');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error in updateWFHStatus:', err);
+    return { success: false, error: err.message || 'Failed to update WFH status' };
+  }
 }
 
 // Module-level helper function to calculate working days (excludes weekends)
@@ -392,130 +420,135 @@ export async function resolveDispute(
   status: 'APPROVED' | 'REJECTED', 
   justification: string
 ) {
-  const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
-  await verifyActiveAdmin(session.id);
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') return { success: false, error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
 
-  if (!justification || justification.trim() === '') {
-    throw new Error('A justification is required to resolve a dispute.');
-  }
-
-  // 1. Get dispute details
-  const { data: dispute, error: fetchError } = await supabaseAdmin
-    .from('disputes')
-    .select('*')
-    .eq('id', disputeId)
-    .single();
-
-  if (fetchError || !dispute) throw new Error('Dispute not found');
-
-  if (dispute.status !== 'PENDING') {
-    throw new Error('Dispute has already been resolved.');
-  }
-
-  // 2. If APPROVED, append the ADMIN_OVERRIDE event
-  if (status === 'APPROVED') {
-    let overrideField = 'manager_exemption';
-    if (dispute.category === 'LATE_PENALTY') {
-      overrideField = 'late_approved';
-    } else if (dispute.category === 'GPS_AUTO_BREAK') {
-      overrideField = 'manager_exemption';
-    } else if (dispute.category === 'IDLE_WARNING') {
-      overrideField = 'manager_exemption';
-    } else if (dispute.category === 'MISSING_TIME') {
-      overrideField = 'shift_override';
+    if (!justification || justification.trim() === '') {
+      return { success: false, error: 'A justification is required to resolve a dispute.' };
     }
 
-    const { data: lastEvent } = await supabaseAdmin
-      .from('attendance_events')
-      .select('sequence_number')
-      .eq('session_id', dispute.attendance_id)
-      .order('sequence_number', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
-
-    const { error: insertError } = await supabaseAdmin
-      .from('attendance_events')
-      .insert([{
-        session_id: dispute.attendance_id,
-        employee_id: dispute.employee_id,
-        event_type: 'ADMIN_OVERRIDE',
-        sequence_number: nextSequence,
-        idempotency_key: `dispute-override-${disputeId}-${nextSequence}`,
-        client_ip: '0.0.0.0',
-        payload: {
-          override_field: overrideField,
-          old_value: false,
-          new_value: true,
-          reason: `Dispute approved: ${justification}`,
-          admin_id: session.id,
-          dispute_id: disputeId
-        }
-      }]);
-
-    if (insertError) {
-      console.error('Error logging override event for dispute:', insertError);
-      throw new Error('Failed to append override event for dispute approval');
-    }
-
-    const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
-      p_session_id: dispute.attendance_id
-    });
-    if (rebuildError) {
-      console.error('Error rebuilding projection in resolveDispute:', rebuildError);
-      throw new Error('Projection rebuild failed');
-    }
-
-    const { data: attendanceRecord } = await supabaseAdmin
-      .from('attendance')
-      .select('date')
-      .eq('id', dispute.attendance_id)
+    // 1. Get dispute details
+    const { data: dispute, error: fetchError } = await supabaseAdmin
+      .from('disputes')
+      .select('*')
+      .eq('id', disputeId)
       .single();
 
-    if (attendanceRecord && attendanceRecord.date) {
-      const recordDate = new Date(attendanceRecord.date);
-      const year = recordDate.getFullYear();
-      const month = recordDate.getMonth() + 1;
-      const { error: rpcError } = await supabaseAdmin.rpc('recalculate_employee_lates_safe', {
-        p_employee_id: dispute.employee_id,
-        p_year: year,
-        p_month: month
+    if (fetchError || !dispute) return { success: false, error: 'Dispute not found' };
+
+    if (dispute.status !== 'PENDING') {
+      return { success: false, error: 'Dispute has already been resolved.' };
+    }
+
+    // 2. If APPROVED, append the ADMIN_OVERRIDE event
+    if (status === 'APPROVED') {
+      let overrideField = 'manager_exemption';
+      if (dispute.category === 'LATE_PENALTY') {
+        overrideField = 'late_approved';
+      } else if (dispute.category === 'GPS_AUTO_BREAK') {
+        overrideField = 'manager_exemption';
+      } else if (dispute.category === 'IDLE_WARNING') {
+        overrideField = 'manager_exemption';
+      } else if (dispute.category === 'MISSING_TIME') {
+        overrideField = 'shift_override';
+      }
+
+      const { data: lastEvent } = await supabaseAdmin
+        .from('attendance_events')
+        .select('sequence_number')
+        .eq('session_id', dispute.attendance_id)
+        .order('sequence_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+      const { error: insertError } = await supabaseAdmin
+        .from('attendance_events')
+        .insert([{
+          session_id: dispute.attendance_id,
+          employee_id: dispute.employee_id,
+          event_type: 'ADMIN_OVERRIDE',
+          sequence_number: nextSequence,
+          idempotency_key: `dispute-override-${disputeId}-${nextSequence}`,
+          client_ip: '0.0.0.0',
+          payload: {
+            override_field: overrideField,
+            old_value: false,
+            new_value: true,
+            reason: `Dispute approved: ${justification}`,
+            admin_id: session.id,
+            dispute_id: disputeId
+          }
+        }]);
+
+      if (insertError) {
+        console.error('Error logging override event for dispute:', insertError);
+        return { success: false, error: 'Failed to append override event for dispute approval' };
+      }
+
+      const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
+        p_session_id: dispute.attendance_id
       });
-      if (rpcError) {
-        console.error('Error recalculating lates in resolveDispute:', rpcError);
+      if (rebuildError) {
+        console.error('Error rebuilding projection in resolveDispute:', rebuildError);
+        return { success: false, error: 'Projection rebuild failed' };
+      }
+
+      const { data: attendanceRecord } = await supabaseAdmin
+        .from('attendance')
+        .select('date')
+        .eq('id', dispute.attendance_id)
+        .single();
+
+      if (attendanceRecord && attendanceRecord.date) {
+        const recordDate = new Date(attendanceRecord.date);
+        const year = recordDate.getFullYear();
+        const month = recordDate.getMonth() + 1;
+        const { error: rpcError } = await supabaseAdmin.rpc('recalculate_employee_lates_safe', {
+          p_employee_id: dispute.employee_id,
+          p_year: year,
+          p_month: month
+        });
+        if (rpcError) {
+          console.error('Error recalculating lates in resolveDispute:', rpcError);
+        }
       }
     }
+
+    // 3. Update dispute row
+    const { error: updateError } = await supabaseAdmin
+      .from('disputes')
+      .update({
+        status,
+        admin_justification: justification,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', disputeId);
+
+    if (updateError) {
+      console.error('Error updating dispute status:', updateError);
+      return { success: false, error: 'Failed to update dispute resolution status' };
+    }
+
+    // 4. Log Audit
+    await logAuditAction(
+      status === 'APPROVED' ? 'APPROVE_DISPUTE' : 'REJECT_DISPUTE',
+      'disputes',
+      disputeId,
+      { status: 'PENDING' },
+      { status, justification }
+    );
+
+    revalidatePath('/admin/approvals');
+    revalidatePath('/admin/attendance');
+    revalidatePath('/employee/attendance');
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error in resolveDispute:', err);
+    return { success: false, error: err.message || 'Failed to resolve dispute' };
   }
-
-  // 3. Update dispute row
-  const { error: updateError } = await supabaseAdmin
-    .from('disputes')
-    .update({
-      status,
-      admin_justification: justification,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', disputeId);
-
-  if (updateError) {
-    console.error('Error updating dispute status:', updateError);
-    throw new Error('Failed to update dispute resolution status');
-  }
-
-  // 4. Log Audit
-  await logAuditAction(
-    status === 'APPROVED' ? 'APPROVE_DISPUTE' : 'REJECT_DISPUTE',
-    'disputes',
-    disputeId,
-    { status: 'PENDING' },
-    { status, justification }
-  );
-
-  revalidatePath('/admin/approvals');
-  revalidatePath('/admin/attendance');
-  revalidatePath('/employee/attendance');
-
-  return { success: true };
 }

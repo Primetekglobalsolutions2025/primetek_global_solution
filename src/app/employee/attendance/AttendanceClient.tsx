@@ -5,7 +5,7 @@ import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, H
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, checkGeofence, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth } from './actions';
+import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
@@ -363,6 +363,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
         try {
+          const { checkGeofence } = await import('./actions');
           const checkRes = await checkGeofence(lat, lng);
           if (checkRes.success && checkRes.withinRange) {
             setGpsWarningSeconds(null);
@@ -712,6 +713,41 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
             }, 1500);
             const res = await processHeartbeat(payload);
             if (res.success) {
+              // Perform geofence verification dynamically based on heartbeat response
+              const isTimerActive = currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'AWAITING_DESKTOP';
+              if (isTimerActive && Date.now() >= gpsSuppressionUntil.current && res.withinRange !== undefined) {
+                const outside = !res.withinRange;
+                geofenceOutsideHistory.current.push(outside);
+                if (geofenceOutsideHistory.current.length > 5) {
+                  geofenceOutsideHistory.current.shift();
+                }
+
+                const historyLen = geofenceOutsideHistory.current.length;
+                if (historyLen >= 3) {
+                  const lastThree = geofenceOutsideHistory.current.slice(-3);
+                  const allOutside = lastThree.every(Boolean);
+
+                  if (allOutside) {
+                    setGpsConfidence((prev) => {
+                      if (prev === 100) return 60;
+                      return prev;
+                    });
+                    setGpsWarningSeconds((prev) => {
+                      if (prev === null) return 60;
+                      return prev;
+                    });
+                  } else if (res.withinRange) {
+                    setGpsWarningSeconds(null);
+                    setGpsConfidence(100);
+                  }
+                } else if (outside) {
+                  showNotification("We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal.", 'info');
+                } else {
+                  setGpsWarningSeconds(null);
+                  setGpsConfidence(100);
+                }
+              }
+
               if (res.status !== currentStatus) {
                 // If status changed, sync local state
                 await refreshProjectionState();
@@ -747,76 +783,6 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
     const interval = setInterval(sendHeartbeat, heartbeatInterval);
     return () => clearInterval(interval);
   }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
-
-  // Sliding Window Geofence Checker
-  useEffect(() => {
-    const isTimerActive = currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'AWAITING_DESKTOP';
-    if (!checkedIn || isCheckedOut || !isTimerActive) return;
-
-    const performGeofenceCheck = () => {
-      if (Date.now() < gpsSuppressionUntil.current) {
-        return; // Geofence check suppressed for dismiss duration
-      }
-      if (!navigator.geolocation) return;
-      if (!isLeaderRef.current) return; // Only leader checks geofence
-
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-
-          try {
-            const currentRes = await checkGeofence(lat, lng);
-            
-            if (currentRes.success) {
-              const outside = !currentRes.withinRange;
-              geofenceOutsideHistory.current.push(outside);
-              if (geofenceOutsideHistory.current.length > 5) {
-                geofenceOutsideHistory.current.shift();
-              }
-
-              // Check if the last 3 items in the history are all 'outside'
-              const historyLen = geofenceOutsideHistory.current.length;
-              if (historyLen >= 3) {
-                const lastThree = geofenceOutsideHistory.current.slice(-3);
-                const allOutside = lastThree.every(Boolean);
-
-                if (allOutside) {
-                  setGpsConfidence((prev) => {
-                    if (prev === 100) return 60;
-                    return prev;
-                  });
-                  setGpsWarningSeconds((prev) => {
-                    if (prev === null) return 60;
-                    return prev;
-                  });
-                } else if (currentRes.withinRange) {
-                  setGpsWarningSeconds(null);
-                  setGpsConfidence(100);
-                }
-              } else if (outside) {
-                showNotification("We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal.", 'info');
-              } else {
-                setGpsWarningSeconds(null);
-                setGpsConfidence(100);
-              }
-            }
-          } catch (err) {
-            console.error('Error in background geofence check:', err);
-          }
-        },
-        (error) => {
-          console.warn('Background geofencing geolocation error:', error);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    };
-
-    performGeofenceCheck();
-    const interval = setInterval(performGeofenceCheck, 60000);
-
-    return () => clearInterval(interval);
-  }, [checkedIn, isCheckedOut, currentStatus]);
 
   const handleCheckIn = async () => {
     setGpsStatus('loading');
@@ -998,6 +964,44 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
   const handleStartBreak = async () => {
     setIsBreakActionLoading(true);
     try {
+      if (!navigator.onLine) {
+        let lat = coords?.lat || 0;
+        let lng = coords?.lng || 0;
+        if (!coords) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+              });
+            });
+            lat = position.coords.latitude;
+            lng = position.coords.longitude;
+            setCoords({ lat, lng });
+          } catch {
+            showNotification('Could not retrieve your GPS location. Location access is required to start break.', 'error');
+            return;
+          }
+        }
+        const fingerprint = getOrCreateFingerprint();
+        try {
+          enqueueOfflineAction('break_start', lat, lng, fingerprint);
+          refreshPendingCount();
+          if (todayRecord) {
+            setRecords(prev => prev.map(r => r.id === todayRecord.id ? {
+              ...r,
+              status: 'Break',
+              current_break_start: new Date().toISOString()
+            } : r));
+          }
+          showNotification('Break start queued — will sync when online.', 'info');
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Failed to queue break start';
+          showNotification(errorMsg, 'error');
+        }
+        return;
+      }
+
       await executeMutationWithVersionCheck(async () => {
         const res = await startBreak();
         return res;
@@ -1010,6 +1014,46 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
   const handleEndBreak = async () => {
     setIsBreakActionLoading(true);
     try {
+      if (!navigator.onLine) {
+        let lat = coords?.lat || 0;
+        let lng = coords?.lng || 0;
+        if (!coords) {
+          try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+              });
+            });
+            lat = position.coords.latitude;
+            lng = position.coords.longitude;
+            setCoords({ lat, lng });
+          } catch {
+            showNotification('Could not retrieve your GPS location. Location access is required to end break.', 'error');
+            return;
+          }
+        }
+        const fingerprint = getOrCreateFingerprint();
+        const isBreakStartSynced = todayRecord?.status === 'Break' || todayRecord?.status === 'Break (Auto)' || !!todayRecord?.current_break_start;
+        try {
+          enqueueOfflineAction('break_end', lat, lng, fingerprint, undefined, isBreakStartSynced);
+          refreshPendingCount();
+          if (todayRecord) {
+            setRecords(prev => prev.map(r => r.id === todayRecord.id ? {
+              ...r,
+              status: 'Working',
+              total_break_seconds: (r.total_break_seconds || 0) + (r.current_break_start ? Math.max(0, Math.floor((Date.now() - new Date(r.current_break_start).getTime()) / 1000)) : 0),
+              current_break_start: null
+            } : r));
+          }
+          showNotification('Break end queued — will sync when online.', 'info');
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Failed to queue break end';
+          showNotification(errorMsg, 'error');
+        }
+        return;
+      }
+
       await executeMutationWithVersionCheck(async () => {
         const res = await endBreak();
         return res;
@@ -1024,13 +1068,19 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
     setIsBreakActionLoading(true);
     try {
       if (currentStatus === 'Idle') {
+        if (!navigator.onLine) {
+          setRecords(prev => prev.map(r => r.id === todayRecord.id ? {
+            ...r,
+            status: 'Working'
+          } : r));
+          showNotification('Offline mode — resumed work.', 'info');
+          return;
+        }
         await executeMutationWithVersionCheck(async () => {
           return await logStatusTransitionEvent(todayRecord.id, 'Working');
         }, 'Resume Work');
       } else {
-        await executeMutationWithVersionCheck(async () => {
-          return await endBreak();
-        }, 'End Break');
+        await handleEndBreak();
       }
     } finally {
       setIsBreakActionLoading(false);

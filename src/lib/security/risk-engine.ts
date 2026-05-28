@@ -16,6 +16,7 @@ import { isOfficeNetwork } from './network-trust';
 import { checkAndRegisterDevice } from './device-trust';
 import { getActiveSession, createActiveSession, touchSession } from './session-tracker';
 import { haversineDistance } from '@/lib/location';
+import { getCachedActiveOfficeLocation } from '@/lib/cache/office-location';
 import type { AttendanceRequestContext, RiskAssessment, RiskSignal, RiskLevel } from './types';
 import { logAuditAction } from '@/lib/audit';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -86,25 +87,20 @@ export async function assessAttendanceRisk(ctx: AttendanceRequestContext): Promi
   // 4️⃣ GPS / Location Signal (if coordinates supplied)
   // -------------------------------------------------------------------
   if (typeof ctx.latitude === 'number' && typeof ctx.longitude === 'number') {
-    // Fetch active office location from DB dynamically to sync with checkIn decision
+    // Fetch active office location from cache dynamically to sync with checkIn decision
     let officeLat = 17.3850;
     let officeLng = 78.4867;
     let radius = 500;
     
     try {
-      const { data: officeList } = await supabaseAdmin
-        .from('office_locations')
-        .select('lat, lng, radius_meters')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      if (officeList && officeList.length > 0) {
-        officeLat = Number(officeList[0].lat);
-        officeLng = Number(officeList[0].lng);
-        radius = Number(officeList[0].radius_meters);
+      const office = await getCachedActiveOfficeLocation();
+      if (office) {
+        officeLat = Number(office.lat);
+        officeLng = Number(office.lng);
+        radius = Number(office.radius_meters);
       }
     } catch (e) {
-      console.warn('[RiskEngine] Error fetching office locations from DB, falling back to defaults:', e);
+      console.warn('[RiskEngine] Error fetching office locations from cache, falling back to defaults:', e);
     }
 
     const distance = haversineDistance(ctx.latitude, ctx.longitude, officeLat, officeLng);

@@ -1,8 +1,8 @@
 'use server';
 
+import type ExcelJS from 'exceljs';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession, verifyActiveAdmin } from '@/lib/auth';
-import ExcelJS from 'exceljs';
 import { logAuditAction } from '@/lib/audit';
 
 export async function getAllDailyReports(date: string, employeeId?: string) {
@@ -94,6 +94,7 @@ export async function getSubmissionStatus(date: string) {
 }
 
 export async function exportDailyReportsExcel(date: string, employeeId?: string) {
+  const ExcelJS = (await import('exceljs')).default;
   const session = await getSession();
   if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
   await verifyActiveAdmin(session.id);

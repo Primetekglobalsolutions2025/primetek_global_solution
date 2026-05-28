@@ -20,27 +20,8 @@ export default function PWAStandaloneGuard() {
       const isPortalRoute = pathname.startsWith('/admin') || pathname.startsWith('/employee');
       
       if (!isPortalRoute) {
-        let role = 'admin';
-        try {
-          const savedEmployee = sessionStorage.getItem('primetek-employee-session') || localStorage.getItem('primetek-employee-session');
-          const savedAdmin = sessionStorage.getItem('primetek-admin-session') || localStorage.getItem('primetek-admin-session');
-          const savedLegacy = localStorage.getItem('primetek-session');
-          
-          if (savedEmployee) {
-            const user = JSON.parse(savedEmployee);
-            if (user?.role === 'employee' || user?.role === 'hr') {
-              role = 'employee';
-            }
-          } else if (savedLegacy) {
-            const user = JSON.parse(savedLegacy);
-            if (user?.role === 'employee' || user?.role === 'hr') {
-              role = 'employee';
-            }
-          } else if (savedAdmin) {
-            role = 'admin';
-          }
-        } catch {}
-        router.replace(role === 'admin' ? '/admin/login' : '/employee/login');
+        const isUrlAdmin = window.location.pathname.startsWith('/admin');
+        router.replace(isUrlAdmin ? '/admin/login' : '/employee/login');
       }
     } else {
       document.body.classList.remove('pwa-standalone');

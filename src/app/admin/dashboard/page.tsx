@@ -32,6 +32,10 @@ async function OperationalKPIGrid() {
       pendingLeavesRes,
       pendingWFHRes,
       disputesRes,
+      idleRes,
+      gpsRes,
+      autoBreakRes,
+      forceLogoutRes,
     ] = await Promise.all([
       supabaseAdmin.from('attendance').select('id, status, device_type', { count: 'exact' }).eq('date', todayIST).is('check_out', null),
       supabaseAdmin.from('attendance').select('id', { count: 'exact' }).eq('date', todayIST).in('status', ['Break', 'Break (Auto)']),
@@ -39,6 +43,10 @@ async function OperationalKPIGrid() {
       supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
       supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
       supabaseAdmin.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).eq('status', 'PRODUCTIVE_TIMER_PAUSED'),
+      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'GPS_EXIT').gte('event_timestamp', todayIST + 'T00:00:00'),
+      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'AUTO_BREAK_TRIGGERED').gte('event_timestamp', todayIST + 'T00:00:00'),
+      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'FORCE_LOGOUT').gte('event_timestamp', todayIST + 'T00:00:00'),
     ]);
 
     const activeData = activeRes.data || [];
@@ -47,22 +55,10 @@ async function OperationalKPIGrid() {
     mobileSessions = mobileRes.count || 0;
     pendingApprovals = (pendingLeavesRes.count || 0) + (pendingWFHRes.count || 0);
     pendingDisputes = disputesRes.count || 0;
-
-    // Count idle sessions (status = PRODUCTIVE_TIMER_PAUSED)
-    const { count: idleCount } = await supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).eq('status', 'PRODUCTIVE_TIMER_PAUSED');
-    idleSessions = idleCount || 0;
-
-    // Count GPS alerts (attendance_events of type GPS_EXIT today)
-    const { count: gpsCount } = await supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'GPS_EXIT').gte('event_timestamp', todayIST + 'T00:00:00');
-    gpsAlerts = gpsCount || 0;
-
-    // Count auto-breaks today
-    const { count: autoBreakCount } = await supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'AUTO_BREAK_TRIGGERED').gte('event_timestamp', todayIST + 'T00:00:00');
-    autoBreaks = autoBreakCount || 0;
-
-    // Count force logouts today
-    const { count: forceLogoutCount } = await supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'FORCE_LOGOUT').gte('event_timestamp', todayIST + 'T00:00:00');
-    autoLogouts = forceLogoutCount || 0;
+    idleSessions = idleRes.count || 0;
+    gpsAlerts = gpsRes.count || 0;
+    autoBreaks = autoBreakRes.count || 0;
+    autoLogouts = forceLogoutRes.count || 0;
 
   } catch (err) {
     console.error('Failed to load operational KPIs:', err);
@@ -297,24 +293,6 @@ async function SystemStatusSection() {
     { node_name: 'Heartbeat Engine', status: 'Active', color: 'bg-emerald-500' },
     { node_name: 'Mail Server', status: 'Active', color: 'bg-emerald-500' },
   ];
-
-  // Dynamic self-healing seed routine: Upsert default nodes to ensure they are present and updated in the DB
-  try {
-    await supabaseAdmin
-      .from('system_status')
-      .upsert(
-        defaultNodes.map(node => ({
-          node_name: node.node_name,
-          status: node.status,
-          color: node.color,
-          last_check: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })),
-        { onConflict: 'node_name' }
-      );
-  } catch (err) {
-    console.error('Failed to seed system status:', err);
-  }
 
   let systemNodes: SystemHealthNode[] = [];
   try {

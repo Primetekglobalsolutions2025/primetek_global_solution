@@ -1,5 +1,6 @@
 import { supabaseAdmin } from './supabase-admin';
 import { getSession } from './auth';
+import { headers } from 'next/headers';
 
 /**
  * Logs a system action to the audit_logs table.
@@ -20,6 +21,23 @@ export async function logAuditAction(
     const userId = overrideUser?.id || session?.id || NIL_UUID;
     const userRole = overrideUser?.role || session?.role || 'system';
  
+    let correlationId: string | null = null;
+    try {
+      const reqHeaders = await headers();
+      correlationId = reqHeaders.get('x-correlation-id');
+    } catch {
+      // headers() can throw when invoked outside request context
+    }
+
+    let finalNewData = newData;
+    if (correlationId) {
+      if (typeof finalNewData === 'object' && finalNewData !== null) {
+        finalNewData = { ...finalNewData, _correlation_id: correlationId };
+      } else if (finalNewData === undefined || finalNewData === null) {
+        finalNewData = { _correlation_id: correlationId };
+      }
+    }
+
     const { error } = await supabaseAdmin.rpc('log_action', {
       p_user_id: userId,
       p_user_role: userRole,
@@ -27,7 +45,7 @@ export async function logAuditAction(
       p_entity_type: entityType,
       p_entity_id: entityId,
       p_old_data: oldData,
-      p_new_data: newData
+      p_new_data: finalNewData
     });
  
     if (error) {

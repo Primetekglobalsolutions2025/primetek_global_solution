@@ -66,61 +66,66 @@ export async function submitDailyMetrics(entries: Array<{
   self_submissions: number;
   support_submissions: number;
 }>) {
-  const session = await getSession();
-  if (!session || !session.id) throw new Error('Unauthorized');
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
 
-  // Verify that all profiles belong to the logged-in employee
-  const { data: userProfiles, error: pError } = await supabaseAdmin
-    .from('application_profiles')
-    .select('id')
-    .eq('assigned_to', session.id);
+    // Verify that all profiles belong to the logged-in employee
+    const { data: userProfiles, error: pError } = await supabaseAdmin
+      .from('application_profiles')
+      .select('id')
+      .eq('assigned_to', session.id);
 
-  if (pError || !userProfiles) {
-    throw new Error('Failed to verify profile ownership');
-  }
-
-  const userProfileIds = new Set(userProfiles.map(p => p.id));
-
-  // Validate each entry
-  for (const entry of entries) {
-    const parsed = metricEntrySchema.safeParse(entry);
-    if (!parsed.success) {
-      throw new Error(`Validation failed for profile metrics: ${parsed.error.message}`);
+    if (pError || !userProfiles) {
+      return { success: false, error: 'Failed to verify profile ownership' };
     }
-    if (!userProfileIds.has(entry.profile_id)) {
-      throw new Error(`Access denied: Profile is not assigned to you.`);
+
+    const userProfileIds = new Set(userProfiles.map(p => p.id));
+
+    // Validate each entry
+    for (const entry of entries) {
+      const parsed = metricEntrySchema.safeParse(entry);
+      if (!parsed.success) {
+        return { success: false, error: `Validation failed for profile metrics: ${parsed.error.message}` };
+      }
+      if (!userProfileIds.has(entry.profile_id)) {
+        return { success: false, error: `Access denied: Profile is not assigned to you.` };
+      }
     }
+
+    const todayStr = getISTShiftDate();
+
+    const records = entries.map(entry => ({
+      employee_id: session.id,
+      profile_id: entry.profile_id,
+      report_date: todayStr,
+      applications_count: entry.applications_count,
+      interviews_count: entry.interviews_count,
+      assessments: entry.assessments,
+      technical_rounds: entry.technical_rounds,
+      non_technical: entry.non_technical,
+      self_submissions: entry.self_submissions,
+      support_submissions: entry.support_submissions,
+    }));
+
+    if (records.length === 0) return { success: true };
+
+    const { error } = await supabaseAdmin
+      .from('profile_daily_metrics')
+      .upsert(records, { onConflict: 'profile_id,report_date' });
+
+    if (error) {
+      console.error('Submit Metrics Error:', error);
+      return { success: false, error: error.message || 'Database error occurred' };
+    }
+
+    revalidatePath('/employee/daily-report');
+    revalidatePath('/employee/dashboard');
+    return { success: true };
+  } catch (err: any) {
+    console.error('submitDailyMetrics crashed:', err);
+    return { success: false, error: err.message || 'Failed to submit metrics' };
   }
-
-  const todayStr = getISTShiftDate();
-
-  const records = entries.map(entry => ({
-    employee_id: session.id,
-    profile_id: entry.profile_id,
-    report_date: todayStr,
-    applications_count: entry.applications_count,
-    interviews_count: entry.interviews_count,
-    assessments: entry.assessments,
-    technical_rounds: entry.technical_rounds,
-    non_technical: entry.non_technical,
-    self_submissions: entry.self_submissions,
-    support_submissions: entry.support_submissions,
-  }));
-
-  if (records.length === 0) return { success: true };
-
-  const { error } = await supabaseAdmin
-    .from('profile_daily_metrics')
-    .upsert(records, { onConflict: 'profile_id,report_date' });
-
-  if (error) {
-    console.error('Submit Metrics Error:', error);
-    throw error;
-  }
-
-  revalidatePath('/employee/daily-report');
-  revalidatePath('/employee/dashboard');
-  return { success: true };
 }
 
 

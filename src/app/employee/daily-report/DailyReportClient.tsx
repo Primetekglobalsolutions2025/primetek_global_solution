@@ -113,9 +113,11 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
       }));
 
       const res = await submitDailyMetrics(entries);
-      if (res.success) {
+      if (res && res.success) {
         toast.success(todayMetrics.length > 0 ? 'Daily report updated successfully!' : 'Daily report submitted successfully!');
         router.refresh();
+      } else {
+        toast.error(res?.error || 'Failed to submit daily report. Please try again.');
       }
     } catch (err) {
       console.error(err);

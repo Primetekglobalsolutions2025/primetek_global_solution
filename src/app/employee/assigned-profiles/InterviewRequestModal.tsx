@@ -112,10 +112,12 @@ export default function InterviewRequestModal({
       }
 
       const result = await submitInterviewRequest(formData);
-      if (result.success) {
+      if (result && result.success) {
         toast.success('Interview request sent to Admin successfully!');
         if (onSubmitSuccess) onSubmitSuccess();
         onClose();
+      } else {
+        toast.error(result?.error || 'Failed to submit interview request.');
       }
     } catch (err: any) {
       console.error(err);

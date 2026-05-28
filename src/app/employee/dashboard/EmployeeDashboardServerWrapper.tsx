@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { cn, getISTShiftDate } from '@/lib/utils';
 import { closeStaleSessions } from '../attendance/actions';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { getCachedPortalConfig } from '@/lib/cache/portal-config';
 
 // StatusBadge inline function removed in favor of shared component import
 
@@ -26,7 +27,7 @@ export default async function EmployeeDashboardServerWrapper() {
     { data: employee },
     { data: records },
     { data: balances },
-    { data: configData },
+    configData,
     { data: dailyReportData }
   ] = await Promise.all([
     supabaseAdmin.from('employees').select('name, employee_id, role, department').eq('id', session.id).single(),
@@ -42,7 +43,7 @@ export default async function EmployeeDashboardServerWrapper() {
         .order('date', { ascending: false });
     })(),
     supabaseAdmin.from('leave_balances').select('*').eq('employee_id', session.id),
-    supabaseAdmin.from('portal_config').select('config_key, config_value'),
+    getCachedPortalConfig(),
     supabaseAdmin.from('profile_daily_metrics').select('id').eq('employee_id', session.id).eq('report_date', todayStr).limit(1)
   ]);
 

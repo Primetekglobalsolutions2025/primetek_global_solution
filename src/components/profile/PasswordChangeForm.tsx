@@ -25,9 +25,14 @@ export default function PasswordChangeForm() {
     setStatus('loading');
     setErrorMsg('');
     try {
-      await changePassword(data);
-      setStatus('success');
-      reset();
+      const res = await changePassword(data);
+      if (res && res.success) {
+        setStatus('success');
+        reset();
+      } else {
+        setStatus('error');
+        setErrorMsg(res?.error || 'Failed to update password');
+      }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setStatus('error');

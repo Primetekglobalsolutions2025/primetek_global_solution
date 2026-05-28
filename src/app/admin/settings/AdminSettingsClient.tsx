@@ -41,21 +41,25 @@ export default function AdminSettingsClient() {
   const handleSaveNotifs = async () => {
     setSavingNotifs(true);
     try {
-      await saveNotificationPreferences({
+      const res = await saveNotificationPreferences({
         notifLeave,
         notifWFH,
         notifInquiry,
         notifDigest,
         audioAlerts
       });
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('primetek-notif-leave', String(notifLeave));
-        localStorage.setItem('primetek-notif-wfh', String(notifWFH));
-        localStorage.setItem('primetek-notif-inquiry', String(notifInquiry));
-        localStorage.setItem('primetek-notif-digest', String(notifDigest));
-        localStorage.setItem('primetek-notif-audio', String(audioAlerts));
+      if (res && res.success) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('primetek-notif-leave', String(notifLeave));
+          localStorage.setItem('primetek-notif-wfh', String(notifWFH));
+          localStorage.setItem('primetek-notif-inquiry', String(notifInquiry));
+          localStorage.setItem('primetek-notif-digest', String(notifDigest));
+          localStorage.setItem('primetek-notif-audio', String(audioAlerts));
+        }
+        showNotification('Notification preferences saved successfully.', 'success');
+      } else {
+        showNotification(res?.error || 'Failed to save notification preferences.', 'error');
       }
-      showNotification('Notification preferences saved successfully.', 'success');
     } catch (err) {
       showNotification('Failed to save notification preferences.', 'error');
     } finally {
@@ -126,15 +130,19 @@ export default function AdminSettingsClient() {
 
     setSaving(true);
     try {
-      await saveOfficeLocation({
+      const res = await saveOfficeLocation({
         name,
         lat: parsedLat,
         lng: parsedLng,
         radius_meters: parsedRadius
       });
-      setSaved(true);
-      showNotification('Settings saved successfully.', 'success');
-      setTimeout(() => setSaved(false), 4000);
+      if (res && res.success) {
+        setSaved(true);
+        showNotification('Settings saved successfully.', 'success');
+        setTimeout(() => setSaved(false), 4000);
+      } else {
+        showNotification(res?.error || 'Failed to save settings', 'error');
+      }
     } catch (err: any) {
       console.error('Failed to save settings:', err);
       showNotification(err instanceof Error ? err.message : 'Failed to save settings', 'error');

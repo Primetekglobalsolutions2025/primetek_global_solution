@@ -1,8 +1,8 @@
 'use server';
 
+import type ExcelJS from 'exceljs';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession, verifyActiveAdmin } from '@/lib/auth';
-import ExcelJS from 'exceljs';
 import { logAuditAction } from '@/lib/audit';
 import { getISTShiftDate } from '@/lib/utils';
 
@@ -38,7 +38,7 @@ async function sweepGlobalStaleSessions(): Promise<{ closed: number; errors: num
   }
 }
 
-export async function getAdminAttendance(startDate?: string, endDate?: string) {
+export async function getAdminAttendance(startDate?: string, endDate?: string, page: number = 1, pageSize: number = 100) {
   const session = await getSession();
   if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
   await verifyActiveAdmin(session.id);
@@ -57,7 +57,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       employees (
         name
       )
-    `);
+    `, { count: 'exact' });
 
   if (startDate) {
     query = query.gte('date', startDate);
@@ -75,16 +75,18 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
     query = query.lte('date', getISTShiftDate());
   }
 
-  const { data, error } = await query
+  const { data, error, count } = await query
     .order('check_in', { ascending: false })
-    .limit(5000);
+    .range((page - 1) * pageSize, page * pageSize - 1);
 
   if (error) {
     console.error('Error fetching admin attendance:', error);
-    return [];
+    return { data: [], count: 0, totalPages: 0, currentPage: page };
   }
 
-  const recordIds = (data || []).map(record => record.id);
+  if (!data) return { data: [], count: 0, totalPages: 0, currentPage: page };
+
+  const recordIds = data.map(record => record.id);
   let riskEvents: any[] = [];
   let projectionsMap: Record<string, { last_heartbeat_at: string | null; productive_seconds: number; break_seconds: number }> = {};
 
@@ -128,11 +130,8 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       }
     });
   }
-  if (!data) return [];
 
-  
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return data.map((record: Record<string, any>) => {
+  const mappedData = data.map((record: Record<string, any>) => {
     const checkIn = record.check_in ? new Date(record.check_in) : null;
     const checkOut = record.check_out ? new Date(record.check_out) : null;
     let durationHours = 0;
@@ -190,11 +189,21 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
       manager_exemption: record.manager_exemption || false,
       // Device and validation info
       device_type: record.device_type || 'desktop',
-      device_label: record.device_label || 'Desktop',
+      device_label: record.device_label || 'Default Workstation',
       awaiting_desktop_deadline: record.awaiting_desktop_deadline || null,
       last_heartbeat_at: projectionsMap[record.id]?.last_heartbeat_at || null,
     };
   });
+
+  const totalCount = count || 0;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
+
+  return {
+    data: mappedData,
+    count: totalCount,
+    totalPages,
+    currentPage: page
+  };
 }
 
 export async function getEmployeesList() {
@@ -212,6 +221,7 @@ export async function getEmployeesList() {
 }
 
 export async function exportAttendanceExcel(year: number) {
+  const ExcelJS = (await import('exceljs')).default;
   const session = await getSession();
   if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
   await verifyActiveAdmin(session.id);
@@ -881,48 +891,24 @@ export async function getRealtimeAttendanceUpdates() {
   let pendingDisputes = 0;
 
   try {
-    const [
-      activeRes,
-      breakRes,
-      idleRes,
-      gpsRes,
-      mobileRes,
-      autoBreakRes,
-      disputesRes,
-      staleRes
-    ] = await Promise.all([
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', activeShiftDate).is('check_out', null).in('status', ['Working', 'Idle']),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', activeShiftDate).is('check_out', null).in('status', ['Break', 'Break (Auto)']),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', activeShiftDate).eq('status', 'Idle'),
-      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'GPS_EXIT').gte('event_timestamp', shiftStartUTC),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', activeShiftDate).is('check_out', null).eq('device_type', 'mobile'),
-      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'AUTO_BREAK_TRIGGERED').gte('event_timestamp', shiftStartUTC),
-      supabaseAdmin.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
-      supabaseAdmin.from('attendance').select('id, check_in').is('check_out', null).neq('status', 'Logged Out').gte('date', (() => {
-        const d = new Date();
-        d.setDate(d.getDate() - 2);
-        return d.toISOString().split('T')[0];
-      })())
-    ]);
-
-    activeWorkforce = activeRes.count || 0;
-    activeBreaks = breakRes.count || 0;
-    idleWarnings = idleRes.count || 0;
-    gpsAlerts = gpsRes.count || 0;
-    mobileSessions = mobileRes.count || 0;
-    autoBreaks = autoBreakRes.count || 0;
-    pendingDisputes = disputesRes.count || 0;
-
-    // Calculate stale count: check_in older than 12 hours
-    const nowMs = Date.now();
-    (staleRes.data || []).forEach((r) => {
-      const checkInTime = new Date(r.check_in).getTime();
-      const diffHrs = (nowMs - checkInTime) / (1000 * 60 * 60);
-      if (diffHrs > 12) {
-        staleSessions++;
-      }
+    const { data: metricsData, error: metricsError } = await supabaseAdmin.rpc('get_realtime_attendance_metrics', {
+      p_shift_date: activeShiftDate,
+      p_shift_start_utc: shiftStartUTC
     });
 
+    if (metricsError) {
+      console.error('Error invoking get_realtime_attendance_metrics RPC:', metricsError);
+    } else if (metricsData && metricsData.length > 0) {
+      const metrics = metricsData[0];
+      activeWorkforce = Number(metrics.active_workforce || 0);
+      activeBreaks = Number(metrics.active_breaks || 0);
+      idleWarnings = Number(metrics.idle_warnings || 0);
+      gpsAlerts = Number(metrics.gps_alerts || 0);
+      mobileSessions = Number(metrics.mobile_sessions || 0);
+      autoBreaks = Number(metrics.auto_breaks || 0);
+      pendingDisputes = Number(metrics.pending_disputes || 0);
+      staleSessions = Number(metrics.stale_sessions || 0);
+    }
   } catch (err) {
     console.error('Error fetching realtime KPIs:', err);
   }

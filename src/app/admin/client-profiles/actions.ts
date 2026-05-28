@@ -56,11 +56,20 @@ export async function createProfile(formData: any) {
     if (validatedData.assigned_to) {
       const { data: employee } = await supabaseAdmin.from('employees').select('name, email').eq('id', validatedData.assigned_to).single();
       if (employee) {
-        await sendNotificationEmail(
+        const emailRes = await sendNotificationEmail(
           employee.email, 
           'New Assignment: ' + validatedData.client_name, 
           getAssignmentTemplate(employee.name, validatedData.client_name || '')
         );
+        const emailResAsAny = emailRes as any;
+        if (!emailResAsAny.success) {
+          console.warn(`[Email Delivery Failed] action: createProfile, error: ${emailResAsAny.error || emailResAsAny.reason}`);
+          await logAuditAction('EMAIL_DELIVERY_FAILED', 'application_profiles', data.id, null, {
+            recipient: employee.email,
+            subject: 'New Assignment: ' + validatedData.client_name,
+            error: emailResAsAny.error || emailResAsAny.reason
+          });
+        }
       }
     }
     
@@ -105,11 +114,20 @@ export async function updateProfile(id: string, formData: any) {
     if (validatedData.assigned_to && validatedData.assigned_to !== oldData?.assigned_to) {
       const { data: employee } = await supabaseAdmin.from('employees').select('name, email').eq('id', validatedData.assigned_to).single();
       if (employee) {
-        await sendNotificationEmail(
+        const emailRes = await sendNotificationEmail(
           employee.email, 
           'New Assignment: ' + (validatedData.client_name || oldData?.client_name || ''), 
           getAssignmentTemplate(employee.name, validatedData.client_name || oldData?.client_name || '')
         );
+        const emailResAsAny = emailRes as any;
+        if (!emailResAsAny.success) {
+          console.warn(`[Email Delivery Failed] action: updateProfile, error: ${emailResAsAny.error || emailResAsAny.reason}`);
+          await logAuditAction('EMAIL_DELIVERY_FAILED', 'application_profiles', id, null, {
+            recipient: employee.email,
+            subject: 'New Assignment: ' + (validatedData.client_name || oldData?.client_name || ''),
+            error: emailResAsAny.error || emailResAsAny.reason
+          });
+        }
       }
     }
 

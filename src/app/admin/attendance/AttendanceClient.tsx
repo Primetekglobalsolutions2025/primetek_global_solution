@@ -135,10 +135,16 @@ const formatRelativeTime = (isoString: string | null | undefined) => {
 
 export default function AttendanceClient({
   initialAttendance,
-  employees
+  employees,
+  totalCount = 0,
+  totalPagesServer = 1,
+  currentPageServer = 1,
 }: {
   initialAttendance: AttendanceRecord[],
-  employees: { id: string, name: string }[]
+  employees: { id: string, name: string }[],
+  totalCount?: number,
+  totalPagesServer?: number,
+  currentPageServer?: number,
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -187,11 +193,13 @@ export default function AttendanceClient({
 
   const [records, setRecords] = useState<AttendanceRecord[]>(initialAttendance);
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const currentPage = currentPageServer;
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, employeeFilter, statusFilter, riskFilter, quickFilter]);
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('page', String(newPage));
+    router.push(`/admin/attendance?${params.toString()}`);
+  };
 
   useEffect(() => {
     setRecords(initialAttendance);
@@ -238,6 +246,10 @@ export default function AttendanceClient({
 
   // Set up polling and synchronization loop with visibility & inactivity checks
   useEffect(() => {
+    if (activeTab !== 'live') {
+      return;
+    }
+
     let updatesInterval: NodeJS.Timeout | null = null;
     let routerRefreshInterval: NodeJS.Timeout | null = null;
 
@@ -302,7 +314,7 @@ export default function AttendanceClient({
       window.removeEventListener('focus', handleResume);
       activityEvents.forEach((ev) => window.removeEventListener(ev, handleActivity));
     };
-  }, [fetchRealtimeUpdates, router]);
+  }, [fetchRealtimeUpdates, router, activeTab]);
 
   const handleOpenDrawer = async (record: AttendanceRecord) => {
     setSelectedRecord(record);
@@ -442,14 +454,8 @@ export default function AttendanceClient({
     });
   }, [records, search, employeeFilter, statusFilter, riskFilter, quickFilter]);
 
-  const ITEMS_PER_PAGE = 50;
-  const paginatedItems = useMemo(() => {
-    return filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [filtered, currentPage]);
-
-  const totalPages = useMemo(() => {
-    return Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
-  }, [filtered.length]);
+  const paginatedItems = filtered;
+  const totalPages = totalPagesServer;
 
   const liveRecords = useMemo(() => {
     return records.filter((r) => {
@@ -1172,19 +1178,18 @@ export default function AttendanceClient({
                 </div>
               </Card>
 
-              {/* Pagination Widget */}
-              {totalPages > 1 && (
+                        {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4 border-t border-zinc-200">
                   <div className="text-xs text-zinc-500 font-medium">
-                    Showing <span className="font-bold text-navy-900">{Math.min(filtered.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> to{' '}
-                    <span className="font-bold text-navy-900">{Math.min(filtered.length, currentPage * ITEMS_PER_PAGE)}</span> of{' '}
-                    <span className="font-bold text-navy-900">{filtered.length}</span> entries
+                    Showing <span className="font-bold text-navy-900">{Math.min(totalCount, (currentPage - 1) * 100 + 1)}</span> to{' '}
+                    <span className="font-bold text-navy-900">{Math.min(totalCount, currentPage * 100)}</span> of{' '}
+                    <span className="font-bold text-navy-900">{totalCount}</span> entries
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                      onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
                       className="px-2.5 py-1 text-xs"
                     >
@@ -1201,13 +1206,13 @@ export default function AttendanceClient({
                       }
                       
                       if (pageNum < 1 || pageNum > totalPages) return null;
-
+ 
                       return (
                         <Button
                           key={pageNum}
                           variant={currentPage === pageNum ? 'primary' : 'outline'}
                           size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
+                          onClick={() => handlePageChange(pageNum)}
                           className="w-8 h-8 p-0 text-xs font-bold"
                         >
                           {pageNum}
@@ -1217,7 +1222,7 @@ export default function AttendanceClient({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                      onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
                       className="px-2.5 py-1 text-xs"
                     >

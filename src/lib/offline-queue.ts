@@ -10,7 +10,7 @@ import { getISTShiftDate } from '@/lib/utils';
 
 export interface OfflineAttendanceEntry {
   id: string;
-  action: 'check_in' | 'check_out' | 'wfh_request';
+  action: 'check_in' | 'check_out' | 'wfh_request' | 'break_start' | 'break_end';
   timestamp: string;
   lat: number;
   lng: number;
@@ -76,7 +76,7 @@ export function getOfflineQueue(): OfflineAttendanceEntry[] {
     const queue: OfflineAttendanceEntry[] = JSON.parse(raw);
 
     const now = Date.now();
-    const TTL = 24 * 60 * 60 * 1000; // 24 hours
+    const TTL = 72 * 60 * 60 * 1000; // 72 hours (3 days) to safely cover weekend gaps in connectivity (e.g. check-out on Friday and sync on Monday)
     const maxRetries = 3;
 
     const activeEntries: OfflineAttendanceEntry[] = [];
@@ -145,6 +145,7 @@ export function enqueueOfflineAction(
   lng: number,
   fingerprint: string,
   recordId?: string,
+  isBreakStartSynced?: boolean,
 ): OfflineAttendanceEntry {
   const entry: OfflineAttendanceEntry = {
     id: generateId(),
@@ -160,7 +161,7 @@ export function enqueueOfflineAction(
 
   const queue = getOfflineQueue();
 
-  // Duplicate prevention: block multiple check-ins/check-outs for the same shift date
+  // Duplicate prevention: block multiple check-ins/check-outs/breaks for the same shift date
   const shiftDate = getClientShiftDate(new Date());
   if (action === 'check_in' || action === 'wfh_request') {
     const hasDuplicate = queue.some(
@@ -186,8 +187,59 @@ export function enqueueOfflineAction(
     }
   }
 
+  if (action === 'break_start') {
+    const hasDuplicate = queue.some(
+      (e) =>
+        e.action === 'break_start' &&
+        getClientShiftDate(e.timestamp) === shiftDate &&
+        e.status !== 'failed',
+    );
+    if (hasDuplicate) {
+      throw new Error('A break start for today is already queued offline.');
+    }
+  }
+
+  if (action === 'break_end') {
+    const isBreakStartPending = queue.some(
+      (e) =>
+        e.action === 'break_start' &&
+        getClientShiftDate(e.timestamp) === shiftDate &&
+        e.status !== 'failed',
+    );
+    if (!isBreakStartPending && !isBreakStartSynced) {
+      throw new Error('Cannot end break when no break has been started.');
+    }
+    const hasDuplicate = queue.some(
+      (e) =>
+        e.action === 'break_end' &&
+        getClientShiftDate(e.timestamp) === shiftDate &&
+        e.status !== 'failed',
+    );
+    if (hasDuplicate) {
+      throw new Error('A break end for today is already queued offline.');
+    }
+  }
+
   queue.push(entry);
   saveQueue(queue);
+
+  // Attempt Background Sync tag registration
+  if (
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'ServiceWorkerRegistration' in window
+  ) {
+    navigator.serviceWorker.ready
+      .then((registration) => {
+        if ('sync' in registration) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (registration as any).sync.register('attendance-sync')
+            .catch((err: any) => console.warn('Background sync registration failed:', err));
+        }
+      })
+      .catch(() => {});
+  }
+
   return entry;
 }
 

@@ -44,11 +44,13 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
     setSaving(true);
     try {
       const res = await updateProfile(form.name, form.phone);
-      if (res.success) {
+      if (res && res.success) {
         setSaved(true);
         toast.success('Profile details saved successfully.');
         router.refresh();
         setTimeout(() => setSaved(false), 3000);
+      } else {
+        toast.error(res?.error || 'Failed to save profile details.');
       }
     } catch (err) {
       console.error(err);
@@ -77,9 +79,11 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
       formData.append('avatar', file);
       
       const res = await updateAvatar(formData);
-      if (res.success) {
+      if (res && res.success) {
         setCurrentAvatarUrl(res.avatarUrl);
         toast.success('Avatar uploaded successfully!');
+      } else {
+        toast.error(res?.error || 'Failed to upload avatar.');
       }
     } catch (err) {
       console.error(err);

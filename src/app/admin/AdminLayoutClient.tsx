@@ -1,26 +1,40 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense, use } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import AppSidebar from '@/components/pwa/AppSidebar';
 import AppHeader from '@/components/pwa/AppHeader';
 import { Loader2 } from 'lucide-react';
 import OfflineSyncBanner from '@/components/pwa/OfflineSyncBanner';
 
-export default function AdminLayoutClient({ children, initialPendingCount }: { children: React.ReactNode, initialPendingCount?: number }) {
+function PendingCountResolver({
+  promise,
+  onResolve
+}: {
+  promise: Promise<number>;
+  onResolve: (val: number) => void;
+}) {
+  const count = use(promise);
+  useEffect(() => {
+    onResolve(count);
+  }, [count, onResolve]);
+  return null;
+}
+
+export default function AdminLayoutClient({
+  children,
+  pendingCountPromise
+}: {
+  children: React.ReactNode,
+  pendingCountPromise?: Promise<number>
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [session, setSession] = useState<{ role: 'admin' | 'employee' | 'hr'; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [pendingCount, setPendingCount] = useState(initialPendingCount || 0);
+  const [pendingCount, setPendingCount] = useState(0);
 
   const isLoginPage = pathname === '/admin/login';
-
-  useEffect(() => {
-    if (initialPendingCount !== undefined) {
-      setPendingCount(initialPendingCount);
-    }
-  }, [initialPendingCount]);
 
   useEffect(() => {
     if (!session || session.role !== 'admin') return;
@@ -67,16 +81,26 @@ export default function AdminLayoutClient({ children, initialPendingCount }: { c
     }
 
     const checkAuth = async () => {
-      // Try to load session from sessionStorage
+      // Try to load session from sessionStorage first, then fallback to localStorage
       let currentSession = null;
       try {
         const savedSession = sessionStorage.getItem('primetek-admin-session');
         if (savedSession) {
           currentSession = JSON.parse(savedSession);
+        } else {
+          const fallbackSession = localStorage.getItem('primetek-admin-session');
+          if (fallbackSession) {
+            currentSession = JSON.parse(fallbackSession);
+            // Sync fallback session back to sessionStorage
+            sessionStorage.setItem('primetek-admin-session', fallbackSession);
+          }
+        }
+
+        if (currentSession) {
           setSession(currentSession);
         }
       } catch (err) {
-        console.warn('Error reading session from sessionStorage:', err);
+        console.warn('Error reading session from storage:', err);
       }
 
       if (isLoginPage) {
@@ -97,10 +121,14 @@ export default function AdminLayoutClient({ children, initialPendingCount }: { c
         return;
       }
 
-      // If offline, keep the local session (if exists) and don't redirect
+      // If offline
       if (typeof window !== 'undefined' && !navigator.onLine) {
         if (currentSession) {
           setIsLoading(false);
+          return;
+        } else {
+          // Both are empty and device is offline, redirect to login
+          router.replace('/admin/login');
           return;
         }
       }
@@ -113,6 +141,7 @@ export default function AdminLayoutClient({ children, initialPendingCount }: { c
             setSession(data.user);
             try {
               sessionStorage.setItem('primetek-admin-session', JSON.stringify(data.user));
+              localStorage.setItem('primetek-admin-session', JSON.stringify(data.user));
             } catch {}
           } else if (data.user?.role === 'employee' || data.user?.role === 'hr') {
             router.replace('/employee/dashboard');
@@ -120,6 +149,7 @@ export default function AdminLayoutClient({ children, initialPendingCount }: { c
           } else {
             try {
               sessionStorage.removeItem('primetek-admin-session');
+              localStorage.removeItem('primetek-admin-session');
               localStorage.removeItem('primetek-admin-token');
             } catch {}
             setSession(null);
@@ -130,6 +160,7 @@ export default function AdminLayoutClient({ children, initialPendingCount }: { c
           // Genuine unauthenticated response
           try {
             sessionStorage.removeItem('primetek-admin-session');
+            localStorage.removeItem('primetek-admin-session');
             localStorage.removeItem('primetek-admin-token');
           } catch {}
           setSession(null);
@@ -212,11 +243,15 @@ export default function AdminLayoutClient({ children, initialPendingCount }: { c
 
   return (
     <div className="admin-portal fixed inset-0 flex bg-zinc-50 text-navy-900 overflow-hidden font-sans">
+      {pendingCountPromise && (
+        <Suspense fallback={null}>
+          <PendingCountResolver promise={pendingCountPromise} onResolve={setPendingCount} />
+        </Suspense>
+      )}
       {session && (
         <AppSidebar 
           role={session.role} 
           userName={session.name} 
-          initialPendingCount={initialPendingCount} 
           pendingCount={pendingCount} 
         />
       )}

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { WifiOff, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,8 +8,36 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 export default function OfflineSyncBanner() {
   const { isOnline, pendingCount, isSyncing, syncQueue, lastSyncResult } = useOfflineSync();
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const showBanner = !isOnline || pendingCount > 0 || lastSyncResult !== null;
+  useEffect(() => {
+    if (lastSyncResult === 'success') {
+      setShowSuccess(true);
+    } else {
+      setShowSuccess(false);
+    }
+  }, [lastSyncResult]);
+
+  useEffect(() => {
+    if (!showSuccess) return;
+
+    const handleInteraction = () => {
+      setShowSuccess(false);
+    };
+
+    const timeoutId = setTimeout(() => {
+      window.addEventListener('click', handleInteraction);
+      window.addEventListener('touchstart', handleInteraction);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+    };
+  }, [showSuccess]);
+
+  const showBanner = !isOnline || pendingCount > 0 || showSuccess || (lastSyncResult !== null && lastSyncResult !== 'success');
 
   if (!showBanner) return null;
 
@@ -27,7 +56,7 @@ export default function OfflineSyncBanner() {
               ? 'bg-amber-500/10 border-amber-500/20 text-amber-800'
               : isSyncing
               ? 'bg-blue-500/10 border-blue-500/20 text-blue-800'
-              : lastSyncResult === 'success'
+              : showSuccess
               ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-800'
               : 'bg-blue-500/10 border-blue-500/20 text-blue-800'
           )}
@@ -43,7 +72,7 @@ export default function OfflineSyncBanner() {
                 <RefreshCw className="w-4 h-4 text-blue-600 animate-spin" />
                 <span>Syncing attendance queue...</span>
               </>
-            ) : lastSyncResult === 'success' ? (
+            ) : showSuccess ? (
               <>
                 <CheckCircle className="w-4 h-4 text-emerald-600" />
                 <span>All attendance synchronized successfully</span>

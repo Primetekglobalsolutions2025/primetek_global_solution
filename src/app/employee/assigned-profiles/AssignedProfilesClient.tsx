@@ -43,11 +43,15 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
   const handleStatusChange = async (id: string, status: string) => {
     setUpdating(id);
     try {
-      await updateProfileStatus(id, status);
-      setProfiles(prev => prev.map(p => p.id === id ? { ...p, status } : p));
-      toast.success('Profile status updated successfully.');
-      if (selectedProfile?.id === id) {
-        setSelectedProfile({...selectedProfile, status});
+      const res = await updateProfileStatus(id, status);
+      if (res && res.success) {
+        setProfiles(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+        toast.success('Profile status updated successfully.');
+        if (selectedProfile?.id === id) {
+          setSelectedProfile({...selectedProfile, status});
+        }
+      } else {
+        toast.error(res?.error || 'Failed to update status.');
       }
     } catch (err) {
       toast.error('Failed to update status.');

@@ -6,6 +6,7 @@ import { assessAttendanceRisk } from '@/lib/security/risk-engine';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { calculateDistance, getISTShiftDate } from '@/lib/utils';
+import { getCachedActiveOfficeLocation } from '@/lib/cache/office-location';
 
 function getShiftInfo(now: Date = new Date()) {
   const shiftDateStr = getISTShiftDate(now);
@@ -114,14 +115,7 @@ export async function checkIn(
       return { success: false, error: 'High risk attendance attempt detected', riskLevel: risk.level };
     }
 
-    const { data: officeList } = await supabaseAdmin
-      .from('office_locations')
-      .select('name, lat, lng, radius_meters')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    const office = await getCachedActiveOfficeLocation();
 
     const officeLat = Number(office?.lat || 17.3850);
     const officeLng = Number(office?.lng || 78.4867);
@@ -620,14 +614,7 @@ export async function resumeSession(recordId: string) {
     }
 
     // Determine if session is remote (WFH)
-    const { data: officeList } = await supabaseAdmin
-      .from('office_locations')
-      .select('lat, lng, radius_meters')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    const office = await getCachedActiveOfficeLocation();
     const officeLat = Number(office?.lat || 17.3850);
     const officeLng = Number(office?.lng || 78.4867);
     const radius = Number(office?.radius_meters || 500);
@@ -773,14 +760,7 @@ export async function endBreak() {
     const breakSeconds = Math.max(0, Math.floor((now.getTime() - breakStart.getTime()) / 1000));
     const newTotalBreak = (record.total_break_seconds || 0) + breakSeconds;
 
-    const { data: officeList } = await supabaseAdmin
-      .from('office_locations')
-      .select('lat, lng, radius_meters')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    const office = await getCachedActiveOfficeLocation();
     const officeLat = Number(office?.lat || 17.3850);
     const officeLng = Number(office?.lng || 78.4867);
     const radius = Number(office?.radius_meters || 500);
@@ -901,14 +881,7 @@ export async function checkGeofence(lat: number, lng: number) {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
 
-    const { data: officeList } = await supabaseAdmin
-      .from('office_locations')
-      .select('lat, lng, radius_meters')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    const office = await getCachedActiveOfficeLocation();
     if (!office) return { success: true, withinRange: true }; // default to true if no office set
 
     const officeLat = Number(office.lat);
@@ -990,14 +963,7 @@ export async function processHeartbeat(payload: {
     }
 
     // 2. Perform Geofencing Verification (Drift-tolerant check)
-    const { data: officeList } = await supabaseAdmin
-      .from('office_locations')
-      .select('lat, lng, radius_meters')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    const office = await getCachedActiveOfficeLocation();
     const officeLat = Number(office?.lat || 17.3850);
     const officeLng = Number(office?.lng || 78.4867);
     const radius = Number(office?.radius_meters || 500);

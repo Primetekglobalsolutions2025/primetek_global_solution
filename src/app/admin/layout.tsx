@@ -5,9 +5,14 @@ import { getPendingCountOnly } from '@/app/admin/approvals/actions';
 export const metadata: Metadata = {
   title: 'Admin Portal | Primetek Global Solutions',
   manifest: '/manifest-admin.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Primetek Admin',
+  },
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const pendingCount = await getPendingCountOnly().catch(() => 0);
-  return <AdminLayoutClient initialPendingCount={pendingCount}>{children}</AdminLayoutClient>;
+  const pendingCountPromise = getPendingCountOnly().catch(() => 0);
+  return <AdminLayoutClient pendingCountPromise={pendingCountPromise}>{children}</AdminLayoutClient>;
 }

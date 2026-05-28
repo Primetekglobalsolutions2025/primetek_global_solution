@@ -34,6 +34,8 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
           onSuccess();
           setSuccess(false);
         }, 2000);
+      } else {
+        setError(result.error || 'Failed to submit request');
       }
     } catch (err: any) {
       setError(err.message || 'Failed to submit request');

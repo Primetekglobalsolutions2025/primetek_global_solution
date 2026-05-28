@@ -130,8 +130,13 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, status: newStatus } : e)));
     
     try {
-      await toggleEmployeeStatus(id, currentStatus);
-      toast.success(`Employee status updated to ${newStatus}.`);
+      const res = await toggleEmployeeStatus(id, currentStatus);
+      if (res && res.success) {
+        toast.success(`Employee status updated to ${newStatus}.`);
+      } else {
+        setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, status: currentStatus } : e)));
+        toast.error(res?.error || 'Failed to update employee status.');
+      }
     } catch (err) {
       setEmployees((prev) => prev.map((e) => (e.id === id ? { ...e, status: currentStatus } : e)));
       toast.error('Failed to update employee status.');
@@ -178,8 +183,13 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
 
     try {
       const res = await createEmployee(newEmployeeData);
-      setSuccessMessage({ id: res.employee_id, pass: res.password });
-      toast.success('Employee created successfully.');
+      if (res && res.success) {
+        setSuccessMessage({ id: res.employee_id!, pass: res.password! });
+        toast.success('Employee created successfully.');
+      } else {
+        toast.error(res?.error || 'Failed to create employee.');
+        setIsSubmitting(false);
+      }
     } catch (err: unknown) {
       if (err instanceof Error) {
         toast.error(err.message || 'Failed to create employee.');
@@ -196,9 +206,13 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       variant: 'danger',
       onConfirm: async () => {
         try {
-          await deleteEmployee(id);
-          setEmployees((prev) => prev.filter((e) => e.id !== id));
-          toast.success('Employee deleted successfully.');
+          const res = await deleteEmployee(id);
+          if (res && res.success) {
+            setEmployees((prev) => prev.filter((e) => e.id !== id));
+            toast.success('Employee deleted successfully.');
+          } else {
+            toast.error(res?.error || 'Failed to delete employee.');
+          }
         } catch (err) {
           toast.error('Failed to delete employee.');
         }
@@ -212,10 +226,14 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       variant: 'primary',
       onConfirm: async () => {
         try {
-          await resetEmployeeMFA(id);
-          // Update local status as well
-          setEmployees(prev => prev.map(e => e.id === id ? { ...e, mfa_enabled: false } : e));
-          toast.success('Employee MFA credentials reset successfully.');
+          const res = await resetEmployeeMFA(id);
+          if (res && res.success) {
+            // Update local status as well
+            setEmployees(prev => prev.map(e => e.id === id ? { ...e, mfa_enabled: false } : e));
+            toast.success('Employee MFA credentials reset successfully.');
+          } else {
+            toast.error(res?.error || 'Failed to reset employee MFA.');
+          }
         } catch (err) {
           toast.error('Failed to reset employee MFA.');
         }
@@ -245,9 +263,13 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     if (!selectedEmployee) return;
     setIsUpdatingBalance(true);
     try {
-      await updateEmployeeBalances(selectedEmployee.id, balances);
-      toast.success('Balances updated successfully.');
-      setIsBalanceModalOpen(false);
+      const res = await updateEmployeeBalances(selectedEmployee.id, balances);
+      if (res && res.success) {
+        toast.success('Balances updated successfully.');
+        setIsBalanceModalOpen(false);
+      } else {
+        toast.error(res?.error || 'Failed to update balances.');
+      }
     } catch (err) {
       toast.error('Failed to update balances.');
     } finally {

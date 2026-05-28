@@ -182,6 +182,8 @@ export async function POST(request: NextRequest) {
           maxAge: 8 * 60 * 60, // 8 hours (admin session lifetime)
         });
 
+        response.cookies.delete('mfa-pending-token');
+
         await logAuditAction('LOGIN_SUCCESS', 'admin_users', authData.user.id, null, null, { id: authData.user.id, role: 'admin' });
         return response;
       }
@@ -288,6 +290,8 @@ export async function POST(request: NextRequest) {
       path: '/',
       maxAge: 24 * 60 * 60, // 24 hours (employee session lifetime)
     });
+
+    response.cookies.delete('mfa-pending-token');
 
     await logAuditAction('LOGIN_SUCCESS', 'employees', user.id, null, null, { id: user.id, role: user.role });
     return response;

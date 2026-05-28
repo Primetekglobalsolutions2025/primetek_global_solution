@@ -9,7 +9,7 @@ import {
   clearSyncedEntries,
   type OfflineAttendanceEntry,
 } from '@/lib/offline-queue';
-import { checkIn, checkOut, requestWFH } from '@/app/employee/attendance/actions';
+import { checkIn, checkOut, requestWFH, startBreak, endBreak } from '@/app/employee/attendance/actions';
 
 const MAX_RETRIES = 3;
 
@@ -80,6 +80,12 @@ export function useOfflineSync() {
               }
             }
             break;
+          case 'break_start':
+            result = await startBreak();
+            break;
+          case 'break_end':
+            result = await endBreak();
+            break;
           default:
             result = { success: false, error: 'Unknown action' };
         }
@@ -120,7 +126,7 @@ export function useOfflineSync() {
     }
 
     // Clear the result indicator after a delay
-    setTimeout(() => setLastSyncResult(null), 5000);
+    setTimeout(() => setLastSyncResult(null), 8000);
   }, []);
 
   // Track online/offline status
@@ -137,12 +143,24 @@ export function useOfflineSync() {
     };
     const handleOffline = () => setIsOnline(false);
 
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data && event.data.type === 'BACKGROUND_SYNC_TRIGGERED') {
+        syncQueue();
+      }
+    };
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+    }
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      }
     };
   }, [syncQueue]);
 

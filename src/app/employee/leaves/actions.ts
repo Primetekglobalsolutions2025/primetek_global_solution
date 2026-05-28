@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession, verifyActiveSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { logAuditAction } from '@/lib/audit';
 
 export async function applyForLeave(formData: {
   type: string;
@@ -10,111 +11,148 @@ export async function applyForLeave(formData: {
   end_date: string;
   reason: string;
 }) {
-  const session = await getSession();
-  if (!session || !session.id) throw new Error('Unauthorized');
-  await verifyActiveSession(session.id);
+  try {
+    const session = await getSession();
+    if (!session || !session.id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    await verifyActiveSession(session.id);
 
-  // 1. Enforce allowed leave types
-  if (!['Casual', 'Unpaid'].includes(formData.type)) {
-    throw new Error('Only Casual Leave and Unpaid Leave requests are supported.');
-  }
+    // 1. Enforce allowed leave types
+    if (!['Casual', 'Unpaid'].includes(formData.type)) {
+      return { success: false, error: 'Only Casual Leave and Unpaid Leave requests are supported.' };
+    }
 
-  const start = new Date(formData.start_date);
-  const end = new Date(formData.end_date);
-  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const start = new Date(formData.start_date);
+    const end = new Date(formData.end_date);
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
-  if (days < 1) {
-    throw new Error('Invalid leave duration.');
-  }
+    if (days < 1) {
+      return { success: false, error: 'Invalid leave duration.' };
+    }
 
-  // 2. Limit Casual Leave to exactly 1 day per request
-  if (formData.type === 'Casual' && days !== 1) {
-    throw new Error('Casual Leave can only be requested in 1-day increments.');
-  }
+    // 2. Limit Casual Leave to exactly 1 day per request
+    if (formData.type === 'Casual' && days !== 1) {
+      return { success: false, error: 'Casual Leave can only be requested in 1-day increments.' };
+    }
 
-  // 3. Block requests falling on weekends (Saturday or Sunday)
-  const dayOfWeek = start.getDay(); // 0 = Sunday, 6 = Saturday
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    throw new Error('Leave requests cannot fall on weekends (Saturday or Sunday).');
-  }
+    // 3. Block requests falling on weekends (Saturday or Sunday)
+    const dayOfWeek = start.getDay(); // 0 = Sunday, 6 = Saturday
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      return { success: false, error: 'Leave requests cannot fall on weekends (Saturday or Sunday).' };
+    }
 
-  const startMonth = start.getMonth() + 1;
-  const startYear = start.getFullYear();
+    const startMonth = start.getMonth() + 1;
+    const startYear = start.getFullYear();
 
-  // 4. Verify employee does not exceed 1 CL/month limit
-  if (formData.type === 'Casual') {
-    const startOfMonthStr = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
-    const nextMonth = startMonth === 12 ? 1 : startMonth + 1;
-    const nextMonthYear = startMonth === 12 ? startYear + 1 : startYear;
-    const endOfMonthStr = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
+    // 4. Verify employee does not exceed 1 CL/month limit
+    if (formData.type === 'Casual') {
+      const startOfMonthStr = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
+      const nextMonth = startMonth === 12 ? 1 : startMonth + 1;
+      const nextMonthYear = startMonth === 12 ? startYear + 1 : startYear;
+      const endOfMonthStr = `${nextMonthYear}-${String(nextMonth).padStart(2, '0')}-01`;
 
-    const { data: existingRequests, error: reqError } = await supabaseAdmin
+      const { data: existingRequests, error: reqError } = await supabaseAdmin
+        .from('leave_requests')
+        .select('id')
+        .eq('employee_id', session.id)
+        .eq('type', 'Casual')
+        .in('status', ['Pending', 'Approved'])
+        .gte('start_date', startOfMonthStr)
+        .lt('start_date', endOfMonthStr);
+
+      if (reqError) throw reqError;
+      if (existingRequests && existingRequests.length > 0) {
+        return { success: false, error: 'You have already requested or taken Casual Leave in this calendar month.' };
+      }
+    }
+
+    // 5. Check for overlapping requests within the date range
+    const { data: overlaps, error: overlapError } = await supabaseAdmin
       .from('leave_requests')
       .select('id')
       .eq('employee_id', session.id)
-      .eq('type', 'Casual')
       .in('status', ['Pending', 'Approved'])
-      .gte('start_date', startOfMonthStr)
-      .lt('start_date', endOfMonthStr);
+      .gte('end_date', formData.start_date)
+      .lte('start_date', formData.end_date);
 
-    if (reqError) throw reqError;
-    if (existingRequests && existingRequests.length > 0) {
-      throw new Error('You have already requested or taken Casual Leave in this calendar month.');
+    if (overlapError) throw overlapError;
+    if (overlaps && overlaps.length > 0) {
+      return { success: false, error: 'You have an overlapping leave request for this date range.' };
     }
-  }
 
-  // 5. Check for overlapping requests within the date range
-  const { data: overlaps, error: overlapError } = await supabaseAdmin
-    .from('leave_requests')
-    .select('id')
-    .eq('employee_id', session.id)
-    .in('status', ['Pending', 'Approved'])
-    .gte('end_date', formData.start_date)
-    .lte('start_date', formData.end_date);
-
-  if (overlapError) throw overlapError;
-  if (overlaps && overlaps.length > 0) {
-    throw new Error('You have an overlapping leave request for this date range.');
-  }
-
-  // 6. Record request
-  const { error } = await supabaseAdmin
-    .from('leave_requests')
-    .insert([{
-      employee_id: session.id,
-      type: formData.type,
-      start_date: formData.start_date,
-      end_date: formData.end_date,
-      reason: formData.reason,
-      status: 'Pending'
-    }]);
-
-  if (error) throw error;
-
-  // Trigger notification to admin
-  try {
-    const { data: employee } = await supabaseAdmin
-      .from('employees')
-      .select('name')
-      .eq('id', session.id)
+    // 6. Record request
+    const { error, data: newLeave } = await supabaseAdmin
+      .from('leave_requests')
+      .insert([{
+        employee_id: session.id,
+        type: formData.type,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        reason: formData.reason,
+        status: 'Pending'
+      }])
+      .select('id')
       .single();
-    const employeeName = employee?.name || 'An employee';
 
-    const { getAdminLeaveRequestTemplate, notifyAdminsIfEnabled } = await import('@/lib/notifications');
-    const html = getAdminLeaveRequestTemplate(
-      employeeName,
-      formData.type,
-      formData.start_date,
-      formData.end_date,
-      formData.reason
-    );
-    await notifyAdminsIfEnabled('notif_leave', `New Leave Request - ${employeeName}`, html);
-  } catch (notifErr) {
-    console.error('Failed to send leave notification:', notifErr);
+    if (error) throw error;
+
+    // Trigger notification to admin
+    try {
+      const { data: employee } = await supabaseAdmin
+        .from('employees')
+        .select('name')
+        .eq('id', session.id)
+        .single();
+      const employeeName = employee?.name || 'An employee';
+
+      const { getAdminLeaveRequestTemplate, notifyAdminsIfEnabled } = await import('@/lib/notifications');
+      const html = getAdminLeaveRequestTemplate(
+        employeeName,
+        formData.type,
+        formData.start_date,
+        formData.end_date,
+        formData.reason
+      );
+      const emailResult = await notifyAdminsIfEnabled('notif_leave', `New Leave Request - ${employeeName}`, html);
+      if (emailResult) {
+        const resultAsAny = emailResult as any;
+        if (!resultAsAny.success) {
+          console.warn(`[Email Delivery Failed] action: applyForLeave, error: ${resultAsAny.error || resultAsAny.reason}`);
+          await logAuditAction('EMAIL_DELIVERY_FAILED', 'leave_requests', newLeave?.id, null, {
+            recipient: 'admin',
+            subject: `New Leave Request - ${employeeName}`,
+            error: resultAsAny.error || resultAsAny.reason
+          });
+        } else if (resultAsAny.results) {
+          for (const r of resultAsAny.results) {
+            const rAsAny = r as any;
+            if (!rAsAny.success) {
+              console.warn(`[Email Delivery Failed] action: applyForLeave, error: ${rAsAny.error}`);
+              await logAuditAction('EMAIL_DELIVERY_FAILED', 'leave_requests', newLeave?.id, null, {
+                recipient: 'admin',
+                subject: `New Leave Request - ${employeeName}`,
+                error: rAsAny.error
+              });
+            }
+          }
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send leave notification:', notifErr);
+      await logAuditAction('EMAIL_DELIVERY_FAILED', 'leave_requests', newLeave?.id, null, {
+        recipient: 'admin',
+        subject: 'New Leave Request (Error)',
+        error: notifErr instanceof Error ? notifErr.message : String(notifErr)
+      });
+    }
+
+    revalidatePath('/employee/leaves');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error applying for leave:', err);
+    return { success: false, error: err.message || 'Failed to submit leave request' };
   }
-
-  revalidatePath('/employee/leaves');
-  return { success: true };
 }
 
 export async function getEmployeeLeaves() {

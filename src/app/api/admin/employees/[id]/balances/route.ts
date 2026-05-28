@@ -3,12 +3,19 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { logAuditAction } from '@/lib/audit';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    
+    if (!id || !UUID_REGEX.test(id)) {
+      return NextResponse.json({ error: 'Invalid employee ID format' }, { status: 400 });
+    }
+
     const session = await getSession();
     if (!session || session.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -55,8 +62,8 @@ export async function GET(
 
     return NextResponse.json({ balances });
   } catch (error) {
-    console.error('Error fetching balances:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('[Balances GET API] Error:', error);
+    return NextResponse.json({ error: 'An internal error occurred. Please try again.' }, { status: 500 });
   }
 }
 
@@ -66,12 +73,20 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+
+    if (!id || !UUID_REGEX.test(id)) {
+      return NextResponse.json({ error: 'Invalid employee ID format' }, { status: 400 });
+    }
+
     const session = await getSession();
     if (!session || session.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ error: 'Invalid or missing request body' }, { status: 400 });
+    }
     const casual = typeof body.casual === 'number' ? body.casual : parseInt(body.casual) || 0;
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
@@ -118,7 +133,7 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating balance:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('[Balances POST API] Error:', error);
+    return NextResponse.json({ error: 'An internal error occurred. Please try again.' }, { status: 500 });
   }
 }

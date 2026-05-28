@@ -45,9 +45,19 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
       // Try to load session from sessionStorage first, then fallback to localStorage
       let currentSession = null;
       try {
-        const savedSession = sessionStorage.getItem('primetek-employee-session') || localStorage.getItem('primetek-employee-session');
+        const savedSession = sessionStorage.getItem('primetek-employee-session');
         if (savedSession) {
           currentSession = JSON.parse(savedSession);
+        } else {
+          const fallbackSession = localStorage.getItem('primetek-employee-session');
+          if (fallbackSession) {
+            currentSession = JSON.parse(fallbackSession);
+            // Sync fallback session back to sessionStorage
+            sessionStorage.setItem('primetek-employee-session', fallbackSession);
+          }
+        }
+
+        if (currentSession) {
           setSession(currentSession);
         }
       } catch (err) {
@@ -72,10 +82,14 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
         return;
       }
 
-      // If offline, keep the local session (if exists) and don't redirect
+      // If offline
       if (typeof window !== 'undefined' && !navigator.onLine) {
         if (currentSession) {
           setIsLoading(false);
+          return;
+        } else {
+          // Both are empty and device is offline, redirect to login
+          router.replace('/employee/login');
           return;
         }
       }
@@ -88,7 +102,7 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
             setSession(data.user);
             try {
               sessionStorage.setItem('primetek-employee-session', JSON.stringify(data.user));
-              localStorage.removeItem('primetek-employee-session'); // Remove legacy insecure localStorage copy
+              localStorage.setItem('primetek-employee-session', JSON.stringify(data.user));
             } catch {}
           } else if (data.user?.role === 'admin') {
             router.replace('/admin/dashboard');

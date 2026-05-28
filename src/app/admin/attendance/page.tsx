@@ -5,13 +5,15 @@ import { AttendanceSkeleton } from './skeletons';
 export const dynamic = 'force-dynamic';
 
 interface PageProps {
-  searchParams: Promise<{ startDate?: string; endDate?: string }>;
+  searchParams: Promise<{ startDate?: string; endDate?: string; page?: string; pageSize?: string }>;
 }
 
 export default async function AdminAppAttendancePage(props: PageProps) {
   const resolvedParams = await props.searchParams;
   const startDate = typeof resolvedParams.startDate === 'string' ? resolvedParams.startDate : undefined;
   const endDate = typeof resolvedParams.endDate === 'string' ? resolvedParams.endDate : undefined;
+  const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
+  const pageSize = typeof resolvedParams.pageSize === 'string' ? parseInt(resolvedParams.pageSize, 10) : 100;
 
   return (
     <div className="space-y-5">
@@ -20,7 +22,7 @@ export default async function AdminAppAttendancePage(props: PageProps) {
         <p className="text-text-secondary text-sm">Track and review employee attendance.</p>
       </div>
       <Suspense fallback={<AttendanceSkeleton />}>
-        <AttendanceClientWrapper startDate={startDate} endDate={endDate} />
+        <AttendanceClientWrapper startDate={startDate} endDate={endDate} page={page} pageSize={pageSize} />
       </Suspense>
     </div>
   );
