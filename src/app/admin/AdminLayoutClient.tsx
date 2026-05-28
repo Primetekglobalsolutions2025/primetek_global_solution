@@ -190,7 +190,7 @@ export default function AdminLayoutClient({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="admin-portal flex h-[100dvh] bg-zinc-50 text-navy-900 overflow-hidden font-sans">
+    <div className="admin-portal fixed inset-0 flex bg-zinc-50 text-navy-900 overflow-hidden font-sans">
       {session && <AppSidebar role={session.role} userName={session.name} />}
       <div className="flex-1 flex flex-col min-w-0 bg-zinc-50">
         <AppHeader userName={session?.name} role={session?.role} />

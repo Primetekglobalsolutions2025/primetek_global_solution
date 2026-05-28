@@ -131,7 +131,7 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={`h-full antialiased overflow-x-hidden ${inter.variable} ${playfair.variable}`}>
-      <body className="min-h-full flex flex-col overflow-x-hidden w-full">
+      <body className="h-full flex flex-col overflow-x-hidden w-full">
         {/* Google Analytics 4 */}
         {gaId && (
           <>

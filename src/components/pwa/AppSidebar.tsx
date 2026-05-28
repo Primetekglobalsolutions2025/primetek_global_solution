@@ -158,7 +158,7 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
     <>
       {/* ─── Desktop Sidebar (hidden on mobile) ─── */}
       <aside className={cn(
-        'hidden md:flex flex-col bg-navy-900 text-white transition-all duration-300 h-full border-r border-white/5',
+        'hidden md:flex flex-col bg-navy-900 text-white transition-[width] duration-300 ease-in-out h-full border-r border-white/5 overflow-hidden',
         collapsed ? 'w-[68px]' : 'w-60'
       )}>
         {/* Brand */}
