@@ -759,6 +759,16 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
                 bc.postMessage({ type: 'STATE_REFRESH' });
                 bc.close();
               }
+            } else {
+              // Self-healing: if heartbeat fails because the session was terminated by admin/sweeper,
+              // force local state synchronization to stop timers and update UI.
+              if (res.error?.includes('Session is already clocked out') || res.error?.includes('not found')) {
+                showNotification("Session closed by administrator. Syncing state...", "info");
+                await refreshProjectionState();
+                const bc = new BroadcastChannel('attendance_tabs');
+                bc.postMessage({ type: 'STATE_REFRESH' });
+                bc.close();
+              }
             }
           } catch (err) {
             console.error('[Heartbeat Error]:', err);
