@@ -104,6 +104,43 @@ const statusColors: Record<string, string> = {
   force_logged_out: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
 };
 
+function StatusBadge({ status }: { status: string }) {
+  const s = status?.toLowerCase() || '';
+  const getTheme = () => {
+    if (['working', 'present', 'approved wfh'].includes(s)) {
+      return { bg: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', dot: 'bg-emerald-500' };
+    }
+    if (['idle', 'late', 'pending wfh'].includes(s)) {
+      return { bg: 'bg-amber-500/10 text-amber-605 border-amber-500/20', dot: 'bg-amber-500' };
+    }
+    if (['break (auto)', 'rejected wfh', 'absent'].includes(s)) {
+      return { bg: 'bg-orange-500/10 text-orange-600 border-orange-500/20', dot: 'bg-orange-500' };
+    }
+    if (['break', 'on break'].includes(s)) {
+      return { bg: 'bg-sky-500/10 text-sky-600 border-sky-500/20', dot: 'bg-sky-500' };
+    }
+    if (['logged out', 'clocked_out', 'logged_out', 'force_logged_out', 'force_logout'].includes(s)) {
+      return { bg: 'bg-zinc-500/10 text-zinc-650 border-zinc-500/20', dot: 'bg-zinc-550' };
+    }
+    if (s === 'half-day') {
+      return { bg: 'bg-blue-500/10 text-blue-650 border-blue-500/20', dot: 'bg-blue-500' };
+    }
+    return { bg: 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20', dot: 'bg-zinc-400' };
+  };
+
+  const theme = getTheme();
+
+  return (
+    <span className={cn(
+      'inline-flex items-center px-2 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider',
+      theme.bg
+    )}>
+      <span className={cn('w-1.5 h-1.5 rounded-full mr-1.5 shrink-0', theme.dot)} />
+      {status}
+    </span>
+  );
+}
+
 const getRowHighlightClass = (record: AttendanceRecord, breakSecs: number) => {
   const status = record.status;
   if (status === 'Idle') {
@@ -310,14 +347,14 @@ export default function AttendanceClient({
   const filterCounts = useMemo(() => {
     return {
       all: initialAttendance.length,
-      active: initialAttendance.filter(r => ['Working', 'DESKTOP_ACTIVE', 'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP'].includes(r.status)).length,
-      breaks: initialAttendance.filter(r => ['On Break', 'AUTO_BREAK'].includes(r.status)).length,
-      idle: initialAttendance.filter(r => ['PRODUCTIVE_TIMER_PAUSED', 'IDLE_WARNING'].includes(r.status)).length,
-      gps: initialAttendance.filter(r => r.status === 'GPS_UNSTABLE' || r.risk_reasons?.some(re => re.signal.toLowerCase().includes('gps') || re.detail.toLowerCase().includes('geofence'))).length,
-      mobile: initialAttendance.filter(r => r.device_type === 'mobile' || r.device_type === 'tablet' || r.status === 'MOBILE_CLOCKED_IN' || r.status === 'AWAITING_DESKTOP').length,
+      active: initialAttendance.filter(r => r.status === 'Working').length,
+      breaks: initialAttendance.filter(r => ['Break', 'Break (Auto)'].includes(r.status)).length,
+      idle: initialAttendance.filter(r => r.status === 'Idle').length,
+      gps: initialAttendance.filter(r => r.risk_reasons?.some(re => re.signal.toLowerCase().includes('gps') || re.detail.toLowerCase().includes('geofence'))).length,
+      mobile: initialAttendance.filter(r => r.device_type === 'mobile' || r.device_type === 'tablet').length,
       stale: initialAttendance.filter(r => r.status === 'Working' && r.check_out === null && r.duration_hours > 12).length,
       disputes: initialAttendance.filter(r => r.status === 'pending wfh' || r.status === 'Pending WFH').length,
-      autobreaks: initialAttendance.filter(r => r.status === 'AUTO_BREAK').length,
+      autobreaks: initialAttendance.filter(r => r.status === 'Break (Auto)').length,
     };
   }, [initialAttendance]);
 
@@ -331,21 +368,21 @@ export default function AttendanceClient({
       // Quick filter pills
       let matchesQuick = true;
       if (quickFilter === 'active') {
-        matchesQuick = ['Working', 'DESKTOP_ACTIVE', 'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP'].includes(r.status);
+        matchesQuick = r.status === 'Working';
       } else if (quickFilter === 'idle') {
-        matchesQuick = ['PRODUCTIVE_TIMER_PAUSED', 'IDLE_WARNING'].includes(r.status);
+        matchesQuick = r.status === 'Idle';
       } else if (quickFilter === 'breaks') {
-        matchesQuick = ['On Break', 'AUTO_BREAK'].includes(r.status);
+        matchesQuick = ['Break', 'Break (Auto)'].includes(r.status);
       } else if (quickFilter === 'mobile') {
-        matchesQuick = r.device_type === 'mobile' || r.device_type === 'tablet' || r.status === 'MOBILE_CLOCKED_IN' || r.status === 'AWAITING_DESKTOP';
+        matchesQuick = r.device_type === 'mobile' || r.device_type === 'tablet';
       } else if (quickFilter === 'stale') {
         matchesQuick = r.status === 'Working' && r.check_out === null && r.duration_hours > 12;
       } else if (quickFilter === 'gps') {
-        matchesQuick = r.status === 'GPS_UNSTABLE' || r.risk_reasons?.some(re => re.signal.toLowerCase().includes('gps') || re.detail.toLowerCase().includes('geofence')) || false;
+        matchesQuick = r.risk_reasons?.some(re => re.signal.toLowerCase().includes('gps') || re.detail.toLowerCase().includes('geofence')) || false;
       } else if (quickFilter === 'disputes') {
         matchesQuick = r.status === 'pending wfh' || r.status === 'Pending WFH';
       } else if (quickFilter === 'autobreaks') {
-        matchesQuick = r.status === 'AUTO_BREAK';
+        matchesQuick = r.status === 'Break (Auto)';
       }
       
       return matchesSearch && matchesEmployee && matchesStatus && matchesRisk && matchesQuick;
@@ -355,7 +392,7 @@ export default function AttendanceClient({
   const liveRecords = useMemo(() => {
     return initialAttendance.filter((r) => {
       const isToday = r.date === todayISTStr;
-      const isActive = r.status === 'Working' || r.status === 'On Break';
+      const isActive = ['Working', 'Idle', 'Break', 'Break (Auto)'].includes(r.status) && r.check_out === null;
       return isToday || isActive;
     });
   }, [initialAttendance, todayISTStr]);
@@ -784,18 +821,18 @@ export default function AttendanceClient({
                   className="pl-3 pr-8 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm min-w-0 sm:min-w-[130px] appearance-none"
                 >
                   <option value="all">Status: ALL</option>
+                  <option value="Working">WORKING</option>
+                  <option value="Idle">IDLE</option>
+                  <option value="Break">BREAK</option>
+                  <option value="Break (Auto)">BREAK (AUTO)</option>
+                  <option value="Logged Out">LOGGED OUT</option>
                   <option value="Present">PRESENT</option>
                   <option value="Late">LATE</option>
                   <option value="Absent">ABSENT</option>
+                  <option value="Half-day">HALF-DAY</option>
                   <option value="Pending WFH">WFH PENDING</option>
                   <option value="Approved WFH">WFH APPROVED</option>
-                  <option value="Working">WORKING</option>
-                  <option value="On Break">ON BREAK</option>
-                  <option value="Logged Out">LOGGED OUT</option>
-                  <option value="MOBILE_CLOCKED_IN">MOBILE CLOCKED IN</option>
-                  <option value="AWAITING_DESKTOP">AWAITING DESKTOP</option>
-                  <option value="DESKTOP_ACTIVE">DESKTOP ACTIVE</option>
-                  <option value="PRODUCTIVE_TIMER_PAUSED">TIMER PAUSED</option>
+                  <option value="Rejected WFH">WFH REJECTED</option>
                 </select>
                 <select 
                   value={riskFilter} 
@@ -923,12 +960,7 @@ export default function AttendanceClient({
                             </span>
                           </span>
                         </div>
-                        <span className={cn(
-                          "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                          statusColors[record.status?.toLowerCase()] || statusColors.present
-                        )}>
-                          {record.status}
-                        </span>
+                        <StatusBadge status={record.status} />
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-zinc-505 font-medium">
                         <span>
@@ -1055,16 +1087,7 @@ export default function AttendanceClient({
                                   {times.break}
                                 </td>
                                 <td className="px-4 py-2.5 whitespace-nowrap">
-                                  <span className={cn(
-                                    "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                                    record.status === 'Working' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                                    record.status === 'Idle' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
-                                    record.status === 'Break (Auto)' ? "bg-orange-500/10 text-orange-600 border-orange-500/20 border-zinc-200" :
-                                    record.status === 'Break' ? "bg-sky-500/10 text-sky-600 border-sky-500/20" :
-                                    "bg-zinc-500/10 text-zinc-600 border-zinc-500/20"
-                                  )}>
-                                    {record.status}
-                                  </span>
+                                  <StatusBadge status={record.status} />
                                 </td>
                               </tr>
                               {expandedRows[record.id] && (
@@ -1232,24 +1255,7 @@ export default function AttendanceClient({
                               </div>
                             </td>
                             <td className="px-6 py-4">
-                              <span className={cn(
-                                "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border",
-                                record.status === 'Working' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
-                                record.status === 'Idle' ? "bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse" :
-                                record.status === 'Break (Auto)' ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
-                                record.status === 'Break' ? "bg-sky-500/10 text-sky-600 border-sky-500/20" :
-                                "bg-zinc-500/10 text-zinc-600 border-zinc-500/20"
-                              )}>
-                                <span className={cn(
-                                  "w-1.5 h-1.5 rounded-full",
-                                  record.status === 'Working' ? "bg-emerald-500 animate-pulse" :
-                                  record.status === 'Idle' ? "bg-amber-500" :
-                                  record.status === 'Break (Auto)' ? "bg-orange-500" :
-                                  record.status === 'Break' ? "bg-sky-500 animate-ping" :
-                                  "bg-zinc-500"
-                                )} />
-                                {record.status}
-                              </span>
+                              <StatusBadge status={record.status} />
                             </td>
                             <td className="px-6 py-4 font-mono text-xs font-semibold text-zinc-600">
                               {record.check_in || '—'}
@@ -1527,12 +1533,9 @@ export default function AttendanceClient({
                   </div>
                   <div>
                     <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">State</span>
-                    <span className={cn(
-                      "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase mt-0.5",
-                      statusColors[selectedRecord.status?.toLowerCase()] || statusColors.present
-                    )}>
-                      {selectedRecord.status}
-                    </span>
+                    <div className="mt-0.5">
+                      <StatusBadge status={selectedRecord.status} />
+                    </div>
                   </div>
                   <div>
                     <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Check-in</span>

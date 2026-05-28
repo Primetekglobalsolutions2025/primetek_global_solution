@@ -746,10 +746,8 @@ export async function overrideDeviceValidation(
 
   const nextSequence = (lastEvent?.sequence_number || 1) + 1;
 
-  let targetStatus = 'DESKTOP_ACTIVE';
-  if (actionType === 'approve_mobile') {
-    targetStatus = 'MOBILE_CLOCKED_IN';
-  }
+  // All simplified device overrides map directly to 'Working' status
+  let targetStatus = 'Working';
 
   // Insert ADMIN_OVERRIDE event to change status
   const { error: insertError } = await supabaseAdmin
