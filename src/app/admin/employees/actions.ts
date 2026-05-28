@@ -2,10 +2,11 @@
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { logAuditAction } from '@/lib/audit';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { leaveBalancesSchema } from '@/lib/validations';
 
 export async function getAdminEmployees() {
   const session = await getSession();
@@ -27,6 +28,7 @@ export async function getAdminEmployees() {
 export async function toggleEmployeeStatus(id: string, currentStatus: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // Fetch current employee data for audit logs
   const { data: employee } = await supabaseAdmin
@@ -62,6 +64,7 @@ export async function createEmployee(data: {
 }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // Generate 10-char employee ID like cmk2028273
   const randomNum = Math.floor(Math.random() * 9000000 + 1000000);
@@ -124,6 +127,7 @@ export async function createEmployee(data: {
 export async function deleteEmployee(id: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // Fetch employee details before deleting for audit log
   const { data: employee } = await supabaseAdmin
@@ -158,6 +162,7 @@ export async function deleteEmployee(id: string) {
 export async function resetEmployeeMFA(id: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data: employee } = await supabaseAdmin
     .from('employees')
@@ -201,7 +206,14 @@ export async function getEmployeeBalances(employeeId: string) {
 
 export async function updateEmployeeBalances(employeeId: string, balances: { sick: number; casual: number; earned: number }) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
+
+  // Validate balance values to prevent malicious input using schema
+  const parsed = leaveBalancesSchema.safeParse(balances);
+  if (!parsed.success) {
+    throw new Error(`Invalid balance values: ${parsed.error.issues.map((issue) => issue.message).join(', ')}`);
+  }
 
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;

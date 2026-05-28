@@ -1,13 +1,14 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import ExcelJS from 'exceljs';
 import { logAuditAction } from '@/lib/audit';
 
 export async function getAllDailyReports(date: string, employeeId?: string) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   let query = supabaseAdmin
     .from('profile_daily_metrics')
@@ -44,7 +45,8 @@ export async function getAllDailyReports(date: string, employeeId?: string) {
 
 export async function getActiveEmployees() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('employees')
@@ -59,7 +61,8 @@ export async function getActiveEmployees() {
 
 export async function getSubmissionStatus(date: string) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // Fetch all active employees
   const { data: employees, error: empError } = await supabaseAdmin
@@ -92,7 +95,8 @@ export async function getSubmissionStatus(date: string) {
 
 export async function exportDailyReportsExcel(date: string, employeeId?: string) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   await logAuditAction(
     'EXPORT_DAILY_REPORTS_EXCEL',

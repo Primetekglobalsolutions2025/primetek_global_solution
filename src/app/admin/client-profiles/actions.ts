@@ -1,7 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
 import { sendNotificationEmail, getAssignmentTemplate } from '@/lib/notifications';
@@ -28,6 +28,7 @@ export async function createProfile(formData: any) {
   try {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
 
     // Validate and strip unknown fields to prevent mass-assignment
     const parsed = clientProfileSchema.safeParse(formData);
@@ -74,6 +75,7 @@ export async function updateProfile(id: string, formData: any) {
   try {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
 
     // Validate and strip unknown fields to prevent mass-assignment
     const parsed = clientProfileSchema.partial().safeParse(formData);
@@ -122,6 +124,7 @@ export async function deleteProfile(id: string) {
   try {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
 
     if (!id) return { error: 'Profile ID is required' };
 
@@ -176,6 +179,7 @@ export async function uploadClientResume(formData: FormData) {
   try {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
 
     const file = formData.get('resume') as File | null;
     if (!file) return { error: 'No file provided' };
@@ -208,14 +212,7 @@ export async function uploadClientResume(formData: FormData) {
       return { error: uploadError.message || 'Failed to upload to storage' };
     }
 
-    const { data: signedData, error: signedError } = await supabaseAdmin
-      .storage
-      .from('resumes')
-      .createSignedUrl(uploadData.path, 315360000); // 10 years expiration
-
-    if (signedError) return { error: 'Failed to generate secure link' };
-
-    return { success: true, url: signedData.signedUrl };
+    return { success: true, url: `/api/resumes/download?path=${encodeURIComponent(uploadData.path)}` };
   } catch (err: any) {
     console.error('Server Action Crash:', err);
     return { error: err.message || 'Internal server error' };

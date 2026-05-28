@@ -26,6 +26,10 @@ export default function LoginForm() {
   const [mfaCode, setMfaCode] = useState('');
   const [lockout, setLockout] = useState(false);
   const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaEquation, setCaptchaEquation] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [captchaNonce, setCaptchaNonce] = useState('');
   const [verifying, setVerifying] = useState(false);
 
   const onSubmit = async (data: LoginFormData) => {
@@ -34,7 +38,12 @@ export default function LoginForm() {
       const res = await fetch('/api/auth/unified-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          captchaToken,
+          captchaAnswer,
+          captchaNonce,
+        }),
       });
 
       const result = await res.json();
@@ -42,7 +51,15 @@ export default function LoginForm() {
       if (!res.ok) {
         setError(result.error || 'Invalid credentials');
         if (result.lockout) setLockout(true);
-        if (result.showCaptcha) setShowCaptcha(true);
+        if (result.showCaptcha) {
+          setShowCaptcha(true);
+          if (result.captcha) {
+            setCaptchaEquation(result.captcha.equation);
+            setCaptchaToken(result.captcha.token);
+            setCaptchaNonce(result.captcha.nonce || '');
+            setCaptchaAnswer('');
+          }
+        }
         return;
       }
 
@@ -199,8 +216,19 @@ export default function LoginForm() {
       </div>
 
       {showCaptcha && !lockout && (
-        <div className="p-3 bg-primary-50 border border-primary-100 rounded-xl text-primary-800 text-[10px] font-bold uppercase tracking-widest text-center shadow-sm">
-          Security Verification Required
+        <div className="space-y-2 animate-in fade-in zoom-in duration-200">
+          <label htmlFor="admin-captcha-answer" className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1 font-display">
+            Solve Security CAPTCHA: {captchaEquation}
+          </label>
+          <input
+            id="admin-captcha-answer"
+            type="text"
+            value={captchaAnswer}
+            onChange={(e) => setCaptchaAnswer(e.target.value.replace(/\D/g, ''))}
+            placeholder="Enter answer"
+            required
+            className="w-full px-5 py-4 rounded-2xl bg-zinc-50 border border-zinc-200 text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:bg-white transition-all text-sm font-medium shadow-sm"
+          />
         </div>
       )}
 

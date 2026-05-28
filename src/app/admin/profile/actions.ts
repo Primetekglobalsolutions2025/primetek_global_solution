@@ -1,7 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 
@@ -12,6 +12,7 @@ export async function changePassword(data: { currentPassword?: string; newPasswo
   if (!session) throw new Error('Unauthorized');
 
   if (session.role === 'admin') {
+    await verifyActiveAdmin(session.id);
     // Admin password change via Supabase Auth
     if (!data.currentPassword) throw new Error('Current password is required');
     if (!data.newPassword) throw new Error('New password is required');
@@ -74,6 +75,7 @@ export async function changePassword(data: { currentPassword?: string; newPasswo
 export async function updateAdminProfile(data: { name: string }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   if (!data.name || data.name.trim() === '') {
     throw new Error('Name cannot be empty');
@@ -105,7 +107,7 @@ export async function updateAdminProfile(data: { name: string }) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 8 * 60 * 60, // 8 hours (admin session lifetime)
   });
 
   revalidatePath('/admin/profile');

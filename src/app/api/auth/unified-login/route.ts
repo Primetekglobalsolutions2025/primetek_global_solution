@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createToken, createCaptchaToken, verifyCaptchaToken } from '@/lib/auth';
+import { createActiveSession } from '@/lib/security/session-tracker';
 import bcrypt from 'bcryptjs';
 import { loginRateLimiter, CAPTCHA_THRESHOLD } from '@/lib/rate-limit';
 import { logAuditAction } from '@/lib/audit';
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const { email, password } = body;
+    const { email, password, fingerprint } = body;
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
@@ -37,8 +38,8 @@ export async function POST(request: NextRequest) {
     const isCaptchaRequired = failedAttempts >= CAPTCHA_THRESHOLD;
 
     if (isCaptchaRequired) {
-      const { captchaToken, captchaAnswer } = body || {};
-      if (!captchaToken || captchaAnswer === undefined || captchaAnswer === null) {
+      const { captchaToken, captchaAnswer, captchaNonce } = body || {};
+      if (!captchaToken || captchaAnswer === undefined || captchaAnswer === null || !captchaNonce) {
         const captcha = await generateCaptchaChallenge();
         return NextResponse.json({
           error: 'Security verification required. Please solve the CAPTCHA.',
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
         }, { status: 401 });
       }
 
-      const isValid = await verifyCaptchaToken(captchaToken, Number(captchaAnswer));
+      const isValid = await verifyCaptchaToken(captchaToken, Number(captchaAnswer), captchaNonce);
       if (!isValid) {
         const captcha = await generateCaptchaChallenge();
         return NextResponse.json({
@@ -63,8 +64,6 @@ export async function POST(request: NextRequest) {
     }
 
     const isEmail = cleanEmail.includes('@');
-   
-
 
     // 3. Admin Check (Database-first for reliability)
     // First, check if this email exists in the admin_users table
@@ -94,7 +93,7 @@ export async function POST(request: NextRequest) {
         
         const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
         const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-        const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string } } = { error: 'Invalid credentials' };
+        const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string; nonce: string } } = { error: 'Invalid credentials' };
         if (failedAttempts >= CAPTCHA_THRESHOLD) {
           responseData.showCaptcha = true;
           responseData.captcha = await generateCaptchaChallenge();
@@ -148,6 +147,20 @@ export async function POST(request: NextRequest) {
           return response;
         }
 
+        // Create active session in database (Fail Closed)
+        const userAgent = request.headers.get('user-agent') || 'unknown';
+        const sessionRecord = await createActiveSession({
+          userId: authData.user.id,
+          role: 'admin',
+          ipAddress: ip,
+          userAgent,
+          deviceFingerprint: fingerprint || undefined,
+        });
+
+        if (!sessionRecord) {
+          return NextResponse.json({ error: 'Failed to initialize security session' }, { status: 500 });
+        }
+
         const token = await createToken({
           id: authData.user.id,
           email: authData.user.email || email,
@@ -166,7 +179,7 @@ export async function POST(request: NextRequest) {
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'lax',
           path: '/',
-          maxAge: 7 * 24 * 60 * 60, // 7 days
+          maxAge: 8 * 60 * 60, // 8 hours (admin session lifetime)
         });
 
         await logAuditAction('LOGIN_SUCCESS', 'admin_users', authData.user.id, null, null, { id: authData.user.id, role: 'admin' });
@@ -186,7 +199,7 @@ export async function POST(request: NextRequest) {
     if (error || !user) {
       const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
       const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string } } = { error: 'Invalid credentials' };
+      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string; nonce: string } } = { error: 'Invalid credentials' };
       if (failedAttempts >= CAPTCHA_THRESHOLD) {
         responseData.showCaptcha = true;
         responseData.captcha = await generateCaptchaChallenge();
@@ -204,7 +217,7 @@ export async function POST(request: NextRequest) {
       
       const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
       const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string } } = { error: 'Invalid credentials' };
+      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string; nonce: string } } = { error: 'Invalid credentials' };
       if (failedAttempts >= CAPTCHA_THRESHOLD) {
         responseData.showCaptcha = true;
         responseData.captcha = await generateCaptchaChallenge();
@@ -241,6 +254,20 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
+    // Create active session in database (Fail Closed)
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    const sessionRecord = await createActiveSession({
+      userId: user.id,
+      role: user.role,
+      ipAddress: ip,
+      userAgent,
+      deviceFingerprint: fingerprint || undefined,
+    });
+
+    if (!sessionRecord) {
+      return NextResponse.json({ error: 'Failed to initialize security session' }, { status: 500 });
+    }
+
     const token = await createToken({
       id: user.id,
       email: user.email,
@@ -259,7 +286,7 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 24 * 60 * 60, // 24 hours (employee session lifetime)
     });
 
     await logAuditAction('LOGIN_SUCCESS', 'employees', user.id, null, null, { id: user.id, role: user.role });
@@ -271,9 +298,10 @@ export async function POST(request: NextRequest) {
 }
 
 async function generateCaptchaChallenge() {
-  const num1 = Math.floor(Math.random() * 8) + 2; // 2 to 9
-  const num2 = Math.floor(Math.random() * 8) + 2; // 2 to 9
-  const equation = `${num1} + ${num2}`;
-  const token = await createCaptchaToken(num1 + num2);
-  return { equation, token };
+  const num1 = Math.floor(Math.random() * 11) + 2; // 2 to 12
+  const num2 = Math.floor(Math.random() * 11) + 2; // 2 to 12
+  const equation = `${num1} × ${num2}`;
+  const nonce = crypto.randomUUID();
+  const token = await createCaptchaToken(num1 * num2, nonce);
+  return { equation, token, nonce };
 }

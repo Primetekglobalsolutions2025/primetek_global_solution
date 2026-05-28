@@ -1,7 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveSession } from '@/lib/auth';
 import { assessAttendanceRisk } from '@/lib/security/risk-engine';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
@@ -23,7 +23,15 @@ function getShiftInfo(now: Date = new Date()) {
   };
 }
 
-export async function closeStaleSessionsForEmployee(employeeId: string, currentShiftDateStr: string) {
+export async function closeStaleSessions() {
+  const session = await getSession();
+  if (!session || !session.id) throw new Error('Unauthorized');
+  await verifyActiveSession(session.id);
+  const currentShiftDate = getISTShiftDate();
+  await closeStaleSessionsForEmployee(session.id, currentShiftDate);
+}
+
+async function closeStaleSessionsForEmployee(employeeId: string, currentShiftDateStr: string) {
   try {
     const { data: stale } = await supabaseAdmin
       .from('attendance')
@@ -121,13 +129,18 @@ export async function checkIn(
     if (!session || !session.id) {
       return { success: false, error: 'Unauthorized' };
     }
-    let now = new Date();
+    const serverNow = new Date();
+    let shiftDateRef = serverNow; // Used only for shift date calculation
     if (clientTimestamp) {
       const parsedTime = new Date(clientTimestamp);
-      // Validate that clientTimestamp is not in the future (skew threshold: 60 seconds)
-      const diff = parsedTime.getTime() - Date.now();
+      const diff = parsedTime.getTime() - serverNow.getTime();
+      // Reject timestamps more than 60 seconds in the future
       if (diff > 60 * 1000) {
         throw new Error('Future timestamp detected. Anti-tampering block triggered.');
+      }
+      // Reject timestamps more than 10 minutes in the past
+      if (diff < -10 * 60 * 1000) {
+        throw new Error('Stale timestamp detected. Anti-tampering block triggered.');
       }
 
       // Check if client timestamp matches server shift date
@@ -137,7 +150,7 @@ export async function checkIn(
         throw new Error('Timestamp shift date mismatch.');
       }
       
-      now = parsedTime;
+      shiftDateRef = parsedTime; // Only used for shift date detection
     }
 
     const reqHeaders = await headers();
@@ -156,7 +169,7 @@ export async function checkIn(
       action: 'check_in',
     });
 
-    const { shiftDateStr, shiftStart } = getShiftInfo(now);
+    const { shiftDateStr, shiftStart } = getShiftInfo(shiftDateRef);
 
     // Close stale sessions (auto logout yesterday's sessions)
     await closeStaleSessionsForEmployee(session.id, shiftDateStr);
@@ -215,7 +228,7 @@ export async function checkIn(
 
         if (!canResume && existing.check_out) {
           const checkoutTime = new Date(existing.check_out);
-          const minutesSinceCheckout = (now.getTime() - checkoutTime.getTime()) / (1000 * 60);
+          const minutesSinceCheckout = (serverNow.getTime() - checkoutTime.getTime()) / (1000 * 60);
           if (minutesSinceCheckout <= 15) {
             canResume = true;
           }
@@ -238,11 +251,11 @@ export async function checkIn(
     // 4. Record Check-in & Calculate Lateness
     // 6:45 PM IST is 13:15 UTC. Check-in is late if now >= shiftStart + 15 minutes
     const lateThreshold = new Date(shiftStart.getTime() + 15 * 60 * 1000);
-    const isLate = now.getTime() >= lateThreshold.getTime();
+    const isLate = serverNow.getTime() >= lateThreshold.getTime();
     
     // Calculate late minutes relative to shift start (6:30 PM IST = 13:00 UTC)
     const lateMinutes = isLate 
-      ? Math.max(0, Math.floor((now.getTime() - shiftStart.getTime()) / (1000 * 60)))
+      ? Math.max(0, Math.floor((serverNow.getTime() - shiftStart.getTime()) / (1000 * 60)))
       : 0;
 
     const isMobile = deviceInfo?.deviceType === 'mobile' || deviceInfo?.deviceType === 'tablet';
@@ -253,7 +266,7 @@ export async function checkIn(
       .insert([{
         employee_id: session.id,
         date: shiftDateStr,
-        check_in: now.toISOString(),
+        check_in: serverNow.toISOString(),
         lat: Number(lat),
         lng: Number(lng),
         status: initialStatus,
@@ -328,13 +341,18 @@ export async function requestWFH(
     const ua = userAgent || reqHeaders.get('user-agent') || 'unknown';
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
-    let now = new Date();
+    const serverNow = new Date();
+    let shiftDateRef = serverNow; // Used only for shift date calculation
     if (clientTimestamp) {
       const parsedTime = new Date(clientTimestamp);
-      // Validate that clientTimestamp is not in the future (skew threshold: 60 seconds)
-      const diff = parsedTime.getTime() - Date.now();
+      const diff = parsedTime.getTime() - serverNow.getTime();
+      // Reject timestamps more than 60 seconds in the future
       if (diff > 60 * 1000) {
         throw new Error('Future timestamp detected. Anti-tampering block triggered.');
+      }
+      // Reject timestamps more than 10 minutes in the past
+      if (diff < -10 * 60 * 1000) {
+        throw new Error('Stale timestamp detected. Anti-tampering block triggered.');
       }
 
       // Check if client timestamp matches server shift date
@@ -344,7 +362,7 @@ export async function requestWFH(
         throw new Error('Timestamp shift date mismatch.');
       }
       
-      now = parsedTime;
+      shiftDateRef = parsedTime; // Only used for shift date detection
     }
     
     const risk = await assessAttendanceRisk({
@@ -362,7 +380,7 @@ export async function requestWFH(
       return { success: false, error: 'High risk WFH request', riskLevel: risk.level };
     }
     
-    const { shiftDateStr, shiftStart } = getShiftInfo(now);
+    const { shiftDateStr, shiftStart } = getShiftInfo(shiftDateRef);
 
     // Close stale sessions (auto logout yesterday's sessions)
     await closeStaleSessionsForEmployee(session.id, shiftDateStr);
@@ -389,7 +407,7 @@ export async function requestWFH(
 
         if (!canResume && existing.check_out) {
           const checkoutTime = new Date(existing.check_out);
-          const minutesSinceCheckout = (now.getTime() - checkoutTime.getTime()) / (1000 * 60);
+          const minutesSinceCheckout = (serverNow.getTime() - checkoutTime.getTime()) / (1000 * 60);
           if (minutesSinceCheckout <= 15) {
             canResume = true;
           }
@@ -409,9 +427,9 @@ export async function requestWFH(
 
     // Record WFH request & Lateness
     const lateThreshold = new Date(shiftStart.getTime() + 15 * 60 * 1000);
-    const isLate = now.getTime() >= lateThreshold.getTime();
+    const isLate = serverNow.getTime() >= lateThreshold.getTime();
     const lateMinutes = isLate 
-      ? Math.max(0, Math.floor((now.getTime() - shiftStart.getTime()) / (1000 * 60)))
+      ? Math.max(0, Math.floor((serverNow.getTime() - shiftStart.getTime()) / (1000 * 60)))
       : 0;
 
     const { data: attRecord, error } = await supabaseAdmin
@@ -419,7 +437,7 @@ export async function requestWFH(
       .insert([{
         employee_id: session.id,
         date: shiftDateStr,
-        check_in: now.toISOString(),
+        check_in: serverNow.toISOString(),
         lat: Number(lat),
         lng: Number(lng),
         status: 'Pending WFH',
@@ -1147,6 +1165,21 @@ export async function rebuildSession(sessionId: string) {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
 
+    // Verify session ownership to prevent BOLA
+    const { data: record, error: fetchError } = await supabaseAdmin
+      .from('attendance')
+      .select('employee_id')
+      .eq('id', sessionId)
+      .single();
+
+    if (fetchError || !record) {
+      return { success: false, error: 'Session not found' };
+    }
+
+    if (record.employee_id !== session.id) {
+      return { success: false, error: 'Unauthorized: Session does not belong to the current user' };
+    }
+
     const { error } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
       p_session_id: sessionId
     });
@@ -1284,6 +1317,21 @@ export async function logGPSDismissEvent(sessionId: string, lat: number, lng: nu
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
 
+    // Verify session ownership to prevent BOLA
+    const { data: record, error: fetchError } = await supabaseAdmin
+      .from('attendance')
+      .select('employee_id')
+      .eq('id', sessionId)
+      .single();
+
+    if (fetchError || !record) {
+      return { success: false, error: 'Session not found' };
+    }
+
+    if (record.employee_id !== session.id) {
+      return { success: false, error: 'Unauthorized: Session does not belong to the current user' };
+    }
+
     const { data: lastEvent } = await supabaseAdmin
       .from('attendance_events')
       .select('sequence_number')
@@ -1322,6 +1370,21 @@ export async function submitDispute(attendanceId: string, category: string, reas
 
     if (!reason || reason.trim() === '') {
       return { success: false, error: 'Reason is required' };
+    }
+
+    // Verify attendance record ownership to prevent BOLA
+    const { data: attendanceRecord, error: fetchError } = await supabaseAdmin
+      .from('attendance')
+      .select('employee_id')
+      .eq('id', attendanceId)
+      .single();
+
+    if (fetchError || !attendanceRecord) {
+      return { success: false, error: 'Attendance record not found' };
+    }
+
+    if (attendanceRecord.employee_id !== session.id) {
+      return { success: false, error: 'Unauthorized: Attendance record does not belong to the current user' };
     }
 
     // Insert into disputes table

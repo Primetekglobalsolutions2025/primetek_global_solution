@@ -1,16 +1,17 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
 import { sendNotificationEmail, getLeaveStatusTemplate, getWFHStatusTemplate } from '@/lib/notifications';
 
 export async function getPendingApprovals() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') {
+  if (!session || session.role !== 'admin' || !session.id) {
     return { leaves: [], wfh: [] };
   }
+  await verifyActiveAdmin(session.id);
 
   try {
     // 1. Fetch Pending Leaves - Use a more resilient join or manual mapping if needed
@@ -72,6 +73,7 @@ export async function getPendingApprovals() {
 export async function updateLeaveStatus(id: string, status: 'Approved' | 'Rejected') {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // 1. Get request details first for email and balance
   const { data: request, error: fetchError } = await supabaseAdmin
@@ -205,6 +207,7 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
 export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Rejected WFH') {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // 1. Get request details
   const { data: request, error: fetchError } = await supabaseAdmin
@@ -331,7 +334,8 @@ function calculateWorkingDays(startDate: Date, endDate: Date): number {
 
 export async function getApprovalHistory() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') return [];
+  if (!session || session.role !== 'admin' || !session.id) return [];
+  await verifyActiveAdmin(session.id);
 
   try {
     const [{ data: leaves }, { data: wfh }] = await Promise.all([
@@ -397,9 +401,10 @@ export async function getApprovalHistory() {
 
 export async function getPendingCountOnly() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') {
+  if (!session || session.role !== 'admin' || !session.id) {
     return 0;
   }
+  await verifyActiveAdmin(session.id);
 
   try {
     const [leavesCount, wfhCount, disputesCount] = await Promise.all([
@@ -426,7 +431,8 @@ export async function getPendingCountOnly() {
 
 export async function getPendingDisputes() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') return [];
+  if (!session || session.role !== 'admin' || !session.id) return [];
+  await verifyActiveAdmin(session.id);
 
   try {
     const { data: disputes, error } = await supabaseAdmin
@@ -480,6 +486,7 @@ export async function resolveDispute(
 ) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   if (!justification || justification.trim() === '') {
     throw new Error('A justification is required to resolve a dispute.');

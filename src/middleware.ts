@@ -29,7 +29,20 @@ async function getCachedEmployeeStatus(employeeId: string): Promise<string | nul
 
       if (error) throw error;
 
-      const status = empData?.status || null;
+      // Check if a valid session exists in active_sessions table
+      const { data: activeSession, error: sessionError } = await supabaseAdmin
+        .from('active_sessions')
+        .select('id')
+        .eq('user_id', employeeId)
+        .eq('is_valid', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (sessionError) throw sessionError;
+
+      // If employee is active in DB but has no valid active session, treat as Revoked
+      const status = (!activeSession && empData?.status === 'Active') ? 'Revoked' : (empData?.status || null);
+      
       if (statusCache.size >= 500) {
         statusCache.clear();
       }
@@ -74,7 +87,18 @@ async function getCachedAdminExistence(adminId: string): Promise<boolean> {
 
       if (error) throw error;
 
-      const exists = !!adminData;
+      // Check if a valid session exists in active_sessions table
+      const { data: activeSession, error: sessionError } = await supabaseAdmin
+        .from('active_sessions')
+        .select('id')
+        .eq('user_id', adminId)
+        .eq('is_valid', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (sessionError) throw sessionError;
+
+      const exists = !!adminData && !!activeSession;
       if (adminCache.size >= 500) {
         adminCache.clear();
       }

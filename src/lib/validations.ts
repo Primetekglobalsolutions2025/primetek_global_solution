@@ -90,7 +90,7 @@ export const clientProfileSchema = z.object({
   client_linkedin: z.string().url().optional().nullable().or(z.literal('')),
   education_bachelors: z.string().max(300).optional().nullable(),
   education_masters: z.string().max(300).optional().nullable(),
-  resume_url: z.string().url().optional().nullable(),
+  resume_url: z.string().url().optional().nullable().or(z.literal('')),
   status: z.enum(['assigned', 'processing', 'completed', 'rejected', 'pending']).optional(),
   role_category: z.enum(['IT', 'Non-IT']).optional().default('IT'),
   assigned_to: z.string().uuid().optional().nullable(),
@@ -105,4 +105,12 @@ export const employeeProfileUpdateSchema = z.object({
 });
 
 export type EmployeeProfileUpdateData = z.infer<typeof employeeProfileUpdateSchema>;
+
+export const leaveBalancesSchema = z.object({
+  sick: z.number().int('Sick balance must be an integer').nonnegative('Sick balance cannot be negative').max(365, 'Sick balance cannot exceed 365 days'),
+  casual: z.number().int('Casual balance must be an integer').nonnegative('Casual balance cannot be negative').max(365, 'Casual balance cannot exceed 365 days'),
+  earned: z.number().int('Earned balance must be an integer').nonnegative('Earned balance cannot be negative').max(365, 'Earned balance cannot exceed 365 days'),
+});
+
+export type LeaveBalancesData = z.infer<typeof leaveBalancesSchema>;
 

@@ -2,12 +2,13 @@
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { logAuditAction } from '@/lib/audit';
 
 export async function getAdminInquiries() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('inquiries')
@@ -24,6 +25,13 @@ export async function getAdminInquiries() {
 export async function updateInquiryStatus(id: string, status: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
+
+  // Validate status against allowlist to prevent arbitrary values
+  const VALID_STATUSES = ['new', 'contacted', 'qualified', 'closed'];
+  if (!VALID_STATUSES.includes(status)) {
+    throw new Error(`Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`);
+  }
 
   // Fetch current inquiry status for audit trail
   const { data: inquiry } = await supabaseAdmin
@@ -59,6 +67,7 @@ export async function updateInquiryStatus(id: string, status: string) {
 export async function deleteInquiry(id: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // Fetch inquiry details before deletion for audit trail
   const { data: inquiry } = await supabaseAdmin

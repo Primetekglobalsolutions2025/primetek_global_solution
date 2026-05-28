@@ -118,17 +118,7 @@ export async function submitInterviewRequest(formData: FormData) {
       throw new Error('Failed to upload updated resume to storage.');
     }
 
-    // Secure signed URL with long-term expiration (10 years / 315360000 seconds) to prevent premature links failure
-    const { data: signedData, error: signedError } = await supabaseAdmin
-      .storage
-      .from('resumes')
-      .createSignedUrl(uploadData.path, 315360000);
-
-    if (signedError) {
-      throw new Error('Failed to generate URL for updated resume.');
-    }
-
-    updatedResumeUrl = signedData.signedUrl;
+    updatedResumeUrl = `/api/resumes/download?path=${encodeURIComponent(uploadData.path)}`;
   }
 
   // Handle JD File (.docx only)
@@ -169,17 +159,7 @@ export async function submitInterviewRequest(formData: FormData) {
     throw new Error('Failed to upload JD document to storage.');
   }
 
-  // Secure signed URL with long-term expiration (10 years / 315360000 seconds) to prevent premature links failure
-  const { data: jdSignedData, error: jdSignedError } = await supabaseAdmin
-    .storage
-    .from('resumes')
-    .createSignedUrl(jdUploadData.path, 315360000);
-
-  if (jdSignedError) {
-    throw new Error('Failed to generate URL for JD document.');
-  }
-
-  const jdUrl = jdSignedData.signedUrl;
+  const jdUrl = `/api/resumes/download?path=${encodeURIComponent(jdUploadData.path)}`;
 
   // Save the interview request
   const { error: insertError } = await supabaseAdmin

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, getTokenFromRequest } from '@/lib/auth';
+import { verifyToken, getTokenFromRequest, createToken } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: NextRequest) {
@@ -61,14 +61,30 @@ export async function GET(request: NextRequest) {
       response.cookies.delete('auth-token');
     }
 
-    // Restore HTTP-only cookie if it was missing from the request cookies
     const cookieName = responseUser.role === 'admin' ? 'admin-auth-token' : 'employee-auth-token';
-    if (!request.cookies.has(cookieName)) {
+    const maxAge = responseUser.role === 'admin' ? 8 * 60 * 60 : 24 * 60 * 60;
+
+    // Silent token refresh: if token expires within 1 hour, issue a fresh one
+    const exp = session.exp as number | undefined;
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (exp && (exp - nowSec) < 3600) {
+      // Strip JWT-specific claims before re-signing
+      const { exp: _exp, iat: _iat, ...payload } = session as any;
+      const refreshedToken = await createToken(payload);
+      response.cookies.set(cookieName, refreshedToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge,
+        path: '/',
+      });
+    } else if (!request.cookies.has(cookieName)) {
+      // Restore HTTP-only cookie if it was missing from the request cookies
       response.cookies.set(cookieName, token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60, // 7 days
+        maxAge,
         path: '/',
       });
     }
@@ -79,4 +95,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

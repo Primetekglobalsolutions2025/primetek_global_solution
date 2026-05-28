@@ -5,7 +5,7 @@ import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import Link from 'next/link';
 import { cn, getISTShiftDate } from '@/lib/utils';
-import { closeStaleSessionsForEmployee } from '../attendance/actions';
+import { closeStaleSessions } from '../attendance/actions';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 // StatusBadge inline function removed in favor of shared component import
@@ -18,7 +18,8 @@ export default async function EmployeeDashboardServerWrapper() {
   }
 
   const todayStr = getISTShiftDate();
-  await closeStaleSessionsForEmployee(session.id, todayStr);
+
+  await closeStaleSessions();
 
   // Fetch Employee, Attendance, Leave Balances, and Today's Daily Report Status
   const [

@@ -173,8 +173,15 @@ export async function getLeaveBalances() {
   return data;
 }
 
-export async function initializeLeaveBalance(employeeId: string, year: number, month: number) {
+async function initializeLeaveBalance(employeeId: string, year: number, month: number) {
   try {
+    const session = await getSession();
+    if (!session || !session.id) throw new Error('Unauthorized');
+    await verifyActiveSession(session.id);
+    if (employeeId !== session.id) {
+      throw new Error('Unauthorized: employeeId mismatch');
+    }
+
     const { data: existing } = await supabaseAdmin
       .from('leave_balances')
       .select('id')

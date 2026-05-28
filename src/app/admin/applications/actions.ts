@@ -2,13 +2,14 @@
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import type { ApplicationRecord } from './ApplicationsClient';
 import { fullApplicationSchema } from '@/lib/validations';
 
 export async function getAdminApplications() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('applications')
@@ -38,6 +39,7 @@ export async function getAdminApplications() {
 export async function updateApplicationStatus(id: string, status: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // API-02: Validate status parameter
   const VALID_STATUSES = ['pending', 'reviewed', 'shortlisted', 'rejected'];
@@ -62,7 +64,8 @@ export async function updateApplicationStatus(id: string, status: string) {
 
 export async function getAllEmployees() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('employees')
@@ -80,7 +83,8 @@ export async function getAllEmployees() {
 
 export async function getActiveJobs() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('jobs')
@@ -99,6 +103,7 @@ export async function getActiveJobs() {
 export async function createFullApplication(formData: any) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // API-04: Parse and validate input data using Zod
   const parsed = fullApplicationSchema.safeParse(formData);
@@ -164,6 +169,7 @@ export async function createFullApplication(formData: any) {
 export async function assignApplication(applicationId: string, employeeId: string | null) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { error } = await supabaseAdmin
     .from('applications')

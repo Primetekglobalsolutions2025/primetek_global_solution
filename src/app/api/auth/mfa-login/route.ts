@@ -4,6 +4,7 @@ import { verifyMFAToken, decryptSecret } from '@/lib/mfa';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logAuditAction } from '@/lib/audit';
 import { loginRateLimiter, consumeRateLimit } from '@/lib/rate-limit';
+import { createActiveSession } from '@/lib/security/session-tracker';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { code } = await request.json();
+    const { code, fingerprint } = await request.json().catch(() => ({}));
     if (!code) return NextResponse.json({ error: 'Verification code required' }, { status: 400 });
 
     const table = session.role === 'admin' ? 'admin_users' : 'employees';
@@ -42,6 +43,22 @@ export async function POST(request: NextRequest) {
     const isValid = await verifyMFAToken(code, decryptedSecret);
 
     if (isValid) {
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+
+      // Create active session in database (Fail Closed)
+      const sessionRecord = await createActiveSession({
+        userId: session.id,
+        role: session.role,
+        ipAddress: ip,
+        userAgent,
+        deviceFingerprint: fingerprint || undefined,
+      });
+
+      if (!sessionRecord) {
+        return NextResponse.json({ error: 'Failed to initialize security session' }, { status: 500 });
+      }
+
       // Create full auth token
       const finalSession = { ...session };
       delete (finalSession as any).mfa_pending;
@@ -50,11 +67,12 @@ export async function POST(request: NextRequest) {
       const response = NextResponse.json({ success: true, user: { id: session.id, role: session.role } });
 
       const cookieName = session.role === 'admin' ? 'admin-auth-token' : 'employee-auth-token';
+      const maxAge = session.role === 'admin' ? 8 * 60 * 60 : 24 * 60 * 60;
       response.cookies.set(cookieName, token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60, // 7 days
+        maxAge,
         path: '/',
       });
 
@@ -66,7 +84,10 @@ export async function POST(request: NextRequest) {
     }
 
     await logAuditAction('LOGIN_MFA_FAILED', table, session.id, null, { reason: 'Invalid code' }, { id: session.id, role: session.role });
-    return NextResponse.json({ error: 'Invalid verification code' }, { status: 401 });
+    // Clear mfa-pending-token on failure to force re-authentication
+    const failResponse = NextResponse.json({ error: 'Invalid verification code' }, { status: 401 });
+    failResponse.cookies.delete('mfa-pending-token');
+    return failResponse;
   } catch (err) {
     console.error('MFA login error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: 'MFA verification failed' }, { status: 500 });

@@ -1,13 +1,14 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
 
 export async function getOfficeLocation() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('office_locations')
@@ -31,6 +32,7 @@ export async function saveOfficeLocation(data: {
 }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // Fetch the active office location before updates for audit trail comparison
   const { data: oldLocations } = await supabaseAdmin
@@ -83,7 +85,8 @@ export async function saveOfficeLocation(data: {
 
 export async function getSystemStatus() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
  
   const { data, error } = await supabaseAdmin
     .from('system_status')
@@ -99,7 +102,8 @@ export async function getSystemStatus() {
 
 export async function getNotificationPreferences() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('portal_config')
@@ -139,6 +143,7 @@ export async function saveNotificationPreferences(prefs: {
 }) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { error } = await supabaseAdmin
     .from('portal_config')

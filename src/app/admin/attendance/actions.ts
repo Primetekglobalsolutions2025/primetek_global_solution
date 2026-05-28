@@ -1,7 +1,7 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import ExcelJS from 'exceljs';
 import { logAuditAction } from '@/lib/audit';
 import { getISTShiftDate } from '@/lib/utils';
@@ -40,7 +40,8 @@ async function sweepGlobalStaleSessions(): Promise<{ closed: number; errors: num
 
 export async function getAdminAttendance(startDate?: string, endDate?: string) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   // Proactively sweep stale sessions before fetching — guarantees live monitor accuracy
   const todayIST = getISTShiftDate();
@@ -198,7 +199,8 @@ export async function getAdminAttendance(startDate?: string, endDate?: string) {
 
 export async function getEmployeesList() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('employees')
@@ -211,7 +213,8 @@ export async function getEmployeesList() {
 
 export async function exportAttendanceExcel(year: number) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   await logAuditAction(
     'EXPORT_ATTENDANCE_EXCEL',
@@ -465,6 +468,7 @@ export async function exportAttendanceExcel(year: number) {
 export async function toggleExemption(recordId: string, fieldName: string, value: boolean) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const allowedFields = ['late_approved', 'permission_approved', 'shift_override', 'manager_exemption'];
   if (!allowedFields.includes(fieldName)) {
@@ -565,6 +569,10 @@ export async function toggleExemption(recordId: string, fieldName: string, value
 }
 
 export async function recalculateEmployeeLates(employeeId: string, year: number, month: number) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
+
   // Execute transaction-locked PL/pgSQL function to prevent race conditions
   const { error } = await supabaseAdmin.rpc('recalculate_employee_lates_safe', {
     p_employee_id: employeeId,
@@ -580,7 +588,8 @@ export async function recalculateEmployeeLates(employeeId: string, year: number,
 
 export async function getSessionEvents(sessionId: string) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('attendance_events')
@@ -600,6 +609,7 @@ export async function reverseAutoBreak(sessionId: string, reason: string) {
   if (!reason || reason.trim() === '') throw new Error('Justification reason is required');
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data: oldRecord } = await supabaseAdmin
     .from('attendance')
@@ -666,6 +676,7 @@ export async function correctClockOutTime(sessionId: string, clockOutTime: strin
   if (!reason || reason.trim() === '') throw new Error('Justification reason is required');
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data: oldRecord } = await supabaseAdmin
     .from('attendance')
@@ -732,6 +743,7 @@ export async function correctClockOutTime(sessionId: string, clockOutTime: strin
 export async function rebuildSessionProjection(sessionId: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data: record } = await supabaseAdmin
     .from('attendance')
@@ -771,6 +783,7 @@ export async function overrideDeviceValidation(
   }
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data: oldRecord } = await supabaseAdmin
     .from('attendance')
@@ -849,7 +862,8 @@ export async function overrideDeviceValidation(
 
 export async function getRealtimeAttendanceUpdates() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const activeShiftDate = getISTShiftDate();
   
@@ -982,7 +996,8 @@ export async function getRealtimeAttendanceUpdates() {
 
 export async function getSingleAdminAttendanceRecord(sessionId: string) {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data: record, error } = await supabaseAdmin
     .from('attendance')

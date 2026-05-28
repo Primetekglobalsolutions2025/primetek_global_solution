@@ -13,6 +13,57 @@ export async function verifyActiveSession(employeeId: string): Promise<void> {
   if (error || !data || data.status !== 'Active') {
     throw new Error('Unauthorized: Account is inactive or deleted.');
   }
+
+  const { data: activeSession, error: sessionError } = await supabaseAdmin
+    .from('active_sessions')
+    .select('id')
+    .eq('user_id', employeeId)
+    .eq('is_valid', true)
+    .limit(1)
+    .maybeSingle();
+
+  if (sessionError || !activeSession) {
+    throw new Error('Unauthorized: Session has been revoked or expired.');
+  }
+}
+
+const adminExistenceCache = new Map<string, { exists: boolean; timestamp: number }>();
+const CACHE_TTL_MS = 60 * 1000;
+
+export async function verifyActiveAdmin(adminId: string): Promise<void> {
+  const now = Date.now();
+  const cached = adminExistenceCache.get(adminId);
+  if (cached && (now - cached.timestamp) < CACHE_TTL_MS) {
+    if (!cached.exists) {
+      throw new Error('Unauthorized: Admin account is inactive, deleted, or session revoked.');
+    }
+    return;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('admin_users')
+    .select('id')
+    .eq('id', adminId)
+    .maybeSingle();
+
+  const { data: activeSession, error: sessionError } = await supabaseAdmin
+    .from('active_sessions')
+    .select('id')
+    .eq('user_id', adminId)
+    .eq('is_valid', true)
+    .limit(1)
+    .maybeSingle();
+
+  const exists = !!data && !error && !!activeSession && !sessionError;
+
+  if (adminExistenceCache.size >= 500) {
+    adminExistenceCache.clear();
+  }
+  adminExistenceCache.set(adminId, { exists, timestamp: now });
+
+  if (!exists) {
+    throw new Error('Unauthorized: Admin account is inactive, deleted, or session revoked.');
+  }
 }
 
 let _jwtSecret: Uint8Array | null = null;
@@ -32,10 +83,12 @@ interface TokenPayload {
 }
 
 export async function createToken(payload: TokenPayload): Promise<string> {
+  // Admin tokens expire in 8 hours (one shift), employee/HR in 24 hours
+  const expiration = payload.role === 'admin' ? '8h' : '24h';
   return new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('7d') // 7-day sessions for security
+    .setExpirationTime(expiration)
     .sign(getJwtSecret());
 }
 
@@ -78,8 +131,8 @@ async function getCaptchaKey(): Promise<CryptoKey> {
   return _captchaKey;
 }
 
-export async function createCaptchaToken(answer: number): Promise<string> {
-  const payload = JSON.stringify({ answer, expiry: Date.now() + 5 * 60 * 1000 });
+export async function createCaptchaToken(answer: number, nonce: string): Promise<string> {
+  const payload = JSON.stringify({ answer, nonce, expiry: Date.now() + 5 * 60 * 1000 });
   const aesKey = await getCaptchaKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const payloadBuffer = new TextEncoder().encode(payload);
@@ -92,7 +145,7 @@ export async function createCaptchaToken(answer: number): Promise<string> {
   return `${bufToHex(iv.buffer)}:${bufToHex(encrypted)}`;
 }
 
-export async function verifyCaptchaToken(token: string, submittedAnswer: number): Promise<boolean> {
+export async function verifyCaptchaToken(token: string, submittedAnswer: number, expectedNonce: string): Promise<boolean> {
   try {
     const parts = token.split(':');
     if (parts.length !== 2) return false;
@@ -112,9 +165,9 @@ export async function verifyCaptchaToken(token: string, submittedAnswer: number)
     const payloadStr = new TextDecoder().decode(decrypted);
     const payload = JSON.parse(payloadStr);
 
-    if (typeof payload.answer !== 'number' || typeof payload.expiry !== 'number') return false;
+    if (typeof payload.answer !== 'number' || typeof payload.expiry !== 'number' || typeof payload.nonce !== 'string') return false;
     if (Date.now() > payload.expiry) return false;
-    return payload.answer === submittedAnswer;
+    return payload.answer === submittedAnswer && payload.nonce === expectedNonce;
   } catch (err) {
     console.error('[Captcha Verify] Cryptographic error:', err);
     return false;

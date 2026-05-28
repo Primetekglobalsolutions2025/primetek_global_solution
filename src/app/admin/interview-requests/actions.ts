@@ -1,13 +1,14 @@
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { getSession } from '@/lib/auth';
+import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
 
 export async function getAllInterviewRequests() {
   const session = await getSession();
-  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
 
   const { data, error } = await supabaseAdmin
     .from('interview_requests')
@@ -29,6 +30,7 @@ export async function updateInterviewStatus(requestId: string, status: string) {
   try {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
 
     // Validate status is a known enum value
     const allowedStatuses = ['pending', 'acknowledged', 'completed', 'cancelled'];

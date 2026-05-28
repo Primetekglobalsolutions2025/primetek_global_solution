@@ -20,6 +20,7 @@ export default function EmployeeLoginForm() {
   const [captchaEquation, setCaptchaEquation] = useState('');
   const [captchaToken, setCaptchaToken] = useState('');
   const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [captchaNonce, setCaptchaNonce] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +31,7 @@ export default function EmployeeLoginForm() {
       const res = await fetch('/api/auth/unified-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, captchaToken, captchaAnswer }),
+        body: JSON.stringify({ email, password, captchaToken, captchaAnswer, captchaNonce }),
       });
 
       const data = await res.json();
@@ -43,6 +44,7 @@ export default function EmployeeLoginForm() {
           if (data.captcha) {
             setCaptchaEquation(data.captcha.equation);
             setCaptchaToken(data.captcha.token);
+            setCaptchaNonce(data.captcha.nonce || '');
             setCaptchaAnswer('');
           }
         }
