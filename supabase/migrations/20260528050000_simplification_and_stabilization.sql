@@ -11,6 +11,33 @@ ALTER TABLE public.attendance ADD COLUMN IF NOT EXISTS active_tab_id VARCHAR(256
 -- Drop the old constraint
 ALTER TABLE public.attendance DROP CONSTRAINT IF EXISTS attendance_status_check;
 
+-- Map existing status values to standard forms to avoid constraint violations
+UPDATE public.attendance
+SET status = CASE 
+    WHEN LOWER(status) IN ('working', 'active', 'active_desktop', 'desktop_active', 'desktop active', 'mobile_clocked_in', 'mobile_only') THEN 'Working'
+    WHEN LOWER(status) IN ('idle', 'idle_warning') THEN 'Idle'
+    WHEN LOWER(status) IN ('break', 'on break', 'active_break') THEN 'Break'
+    WHEN LOWER(status) IN ('break (auto)', 'auto_break', 'productive_timer_paused', 'productive timer paused') THEN 'Break (Auto)'
+    WHEN LOWER(status) IN ('logged out', 'clocked_out', 'offline', 'force_logged_out') THEN 'Logged Out'
+    WHEN LOWER(status) = 'pending wfh' THEN 'Pending WFH'
+    WHEN LOWER(status) = 'approved wfh' THEN 'Approved WFH'
+    WHEN LOWER(status) = 'rejected wfh' THEN 'Rejected WFH'
+    WHEN LOWER(status) = 'present' THEN 'Present'
+    WHEN LOWER(status) = 'late' THEN 'Late'
+    WHEN LOWER(status) = 'absent' THEN 'Absent'
+    WHEN LOWER(status) = 'half-day' THEN 'Half-day'
+    ELSE status
+END;
+
+-- Fallback for any unmatched values to avoid constraint failure
+UPDATE public.attendance
+SET status = 'Logged Out'
+WHERE status NOT IN (
+    'Working', 'Idle', 'Break', 'Break (Auto)', 'Logged Out',
+    'Pending WFH', 'Approved WFH', 'Rejected WFH', 
+    'Present', 'Late', 'Absent', 'Half-day'
+);
+
 -- Recreate constraint with the simplified states (preserving leaves/WFH for compatibility)
 ALTER TABLE public.attendance ADD CONSTRAINT attendance_status_check 
     CHECK (status IN (
