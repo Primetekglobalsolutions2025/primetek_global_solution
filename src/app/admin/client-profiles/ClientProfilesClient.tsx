@@ -64,6 +64,8 @@ interface ClientProfile {
   assigned_employee?: { id: string; name: string };
 }
 
+const inputClasses = 'w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all text-xs font-semibold shadow-2xs';
+
 export default function ClientProfilesClient({ initialProfiles, employees }: { initialProfiles: ClientProfile[], employees: any[] }) {
   const router = useRouter();
   const [profiles, setProfiles] = useState<ClientProfile[]>(initialProfiles);
@@ -254,27 +256,33 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-navy-900">Client Profiles</h1>
-          <p className="text-text-secondary text-sm">Create and assign client profiles to employees.</p>
+    <div className="space-y-6 pb-12 text-zinc-650 font-sans">
+      {/* Premium Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-lg border border-zinc-200 shadow-2xs">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-primary-500" />
+            <h1 className="text-xl font-bold text-navy-900 tracking-tight">Client Profiles</h1>
+          </div>
+          <p className="text-xs text-zinc-450">
+            Create and assign client profiles to employees.
+          </p>
         </div>
-        <Button onClick={() => handleOpenModal()}>
-          <Plus className="w-4 h-4" /> Add Profile
+        <Button onClick={() => handleOpenModal()} size="sm">
+          <Plus className="w-3.5 h-3.5" /> Add Profile
         </Button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-xl border border-border/60 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-lg border border-zinc-200 shadow-2xs">
         {/* Search Text */}
         <div className="relative flex-1 group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-500 transition-colors" />
           <input 
             type="text" 
             placeholder="Search name, email, role, or employee..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-border/60 bg-slate-50 text-sm text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all"
+            className="w-full pl-9 pr-4 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold text-navy-900 placeholder:text-zinc-450 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all shadow-2xs"
           />
         </div>
 
@@ -284,7 +292,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
           <select 
             value={selectedEmployee} 
             onChange={(e) => setSelectedEmployee(e.target.value)} 
-            className="px-3 py-2 rounded-lg border border-border/60 bg-slate-50 text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all cursor-pointer min-w-[140px]"
+            className="px-3 py-1.5 rounded-md border border-zinc-200 bg-white text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer min-w-[140px] shadow-2xs"
           >
             <option value="">All Employees</option>
             {employees.map(emp => (
@@ -299,7 +307,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
           <select 
             value={roleCategory} 
             onChange={(e) => setRoleCategory(e.target.value as any)} 
-            className="px-3 py-2 rounded-lg border border-border/60 bg-slate-50 text-xs text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:bg-white transition-all cursor-pointer min-w-[120px]"
+            className="px-3 py-1.5 rounded-md border border-zinc-200 bg-white text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer min-w-[120px] shadow-2xs"
           >
             <option value="all">All Roles</option>
             <option value="IT">IT Roles</option>
@@ -308,180 +316,272 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.length === 0 && (
-          <div className="col-span-full p-16 text-center bg-white rounded-xl border border-dashed border-border/60">
-            <div className="w-14 h-14 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
-              <FileUser className="w-7 h-7 text-gray-300" />
+      <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="p-16 text-center bg-white">
+            <div className="w-12 h-12 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center mx-auto mb-3">
+              <FileUser className="w-5 h-5 text-zinc-400" />
             </div>
-            <p className="text-sm font-bold text-navy-900 mb-1">No Client Profiles Found</p>
-            <p className="text-xs text-text-muted font-medium">Create a new profile to get started, or adjust your search filter.</p>
+            <p className="text-xs font-semibold text-navy-900 uppercase tracking-wider font-mono">No Client Profiles Found</p>
+            <p className="text-[11px] text-zinc-450 mt-0.5">Create a new profile to get started, or adjust your search filter.</p>
           </div>
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50 text-zinc-650 border-b border-zinc-200">
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Client Details</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Contact Info</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Assigned Employee</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Status</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Resume</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-150">
+                  {filtered.map((profile) => {
+                    const category = getProfileCategory(profile);
+                    return (
+                      <tr key={profile.id} className="hover:bg-zinc-50/50 transition-colors group text-zinc-600">
+                        <td className="p-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-navy-900 tracking-tight font-sans">
+                              {profile.client_name}
+                            </span>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-[9px] font-mono font-semibold text-primary-750 uppercase tracking-wider">
+                                {profile.client_role}
+                              </span>
+                              <span className={cn(
+                                "text-[8px] px-1 rounded font-mono font-medium border uppercase tracking-wider",
+                                category === 'IT' 
+                                  ? "bg-blue-50 text-blue-700 border-blue-200" 
+                                  : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                              )}>
+                                {category}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-xs">
+                          <div className="flex flex-col font-mono text-[10px] text-zinc-500">
+                            <span>{profile.client_email || '—'}</span>
+                            <span className="text-[9px] text-zinc-400">{profile.client_phone || '—'}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 whitespace-nowrap">
+                          <span className="text-xs font-semibold text-navy-900">
+                            {profile.assigned_employee?.name || 'Unassigned'}
+                          </span>
+                        </td>
+                        <td className="p-4 whitespace-nowrap">
+                          <span className={cn(
+                            "text-[8px] px-2 py-0.5 rounded-full font-mono font-medium border uppercase tracking-wider",
+                            statusColors[profile.status?.toLowerCase() || ''] || 'bg-blue-50 text-blue-700 border-blue-200'
+                          )}>
+                            {profile.status || 'Pending'}
+                          </span>
+                        </td>
+                        <td className="p-4 whitespace-nowrap">
+                          {profile.resume_url ? (
+                            <a href={profile.resume_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2.5 py-0.5 rounded transition-all">
+                              <Download className="w-3 h-3" /> DOCX
+                            </a>
+                          ) : (
+                            <span className="text-zinc-450 font-bold font-mono text-[10px]">—</span>
+                          )}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-right text-xs">
+                          <div className="flex justify-end gap-1.5">
+                            <button onClick={() => handleOpenModal(profile)} className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-navy-950 transition-colors cursor-pointer" title="Edit Profile">
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => handleDelete(profile.id!)} className="p-1 hover:bg-red-50 rounded text-red-500 hover:text-red-700 transition-colors cursor-pointer" title="Delete Profile">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked List View */}
+            <div className="block md:hidden divide-y divide-zinc-150">
+              {filtered.map((profile) => {
+                const category = getProfileCategory(profile);
+                return (
+                  <div key={profile.id} className="p-4 hover:bg-zinc-50/50 transition-colors space-y-3 text-zinc-650">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-xs font-bold text-navy-900">{profile.client_name}</h3>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className="text-[9px] font-mono font-semibold text-primary-750 uppercase tracking-wider">
+                            {profile.client_role}
+                          </span>
+                          <span className={cn(
+                            "text-[8px] px-1 rounded font-mono font-medium border uppercase tracking-wider",
+                            category === 'IT' 
+                              ? "bg-blue-50 text-blue-700 border-blue-200" 
+                              : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                          )}>
+                            {category}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => handleOpenModal(profile)} className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-navy-950 transition-colors cursor-pointer">
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => handleDelete(profile.id!)} className="p-1 hover:bg-red-50 rounded text-red-500 hover:text-red-700 transition-colors cursor-pointer">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 bg-zinc-50/50 p-2.5 rounded border border-zinc-200/60 text-[10px]">
+                      <div>
+                        <span className="text-zinc-450 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Contact</span>
+                        <span className="font-semibold text-navy-900 truncate block">{profile.client_email || '—'}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-450 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Assigned Employee</span>
+                        <span className="font-semibold text-navy-900 truncate block">{profile.assigned_employee?.name || 'Unassigned'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <span className={cn(
+                        "text-[8px] px-2 py-0.5 rounded-full font-mono font-medium border uppercase tracking-wider",
+                        statusColors[profile.status?.toLowerCase() || ''] || 'bg-blue-50 text-blue-700 border-blue-200'
+                      )}>
+                        {profile.status || 'Pending'}
+                      </span>
+                      {profile.resume_url && (
+                        <a href={profile.resume_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider">
+                          <Download className="w-3.5 h-3.5" /> DOCX Resume
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
-        {filtered.map(profile => (
-          <Card key={profile.id} className="p-5 flex flex-col h-full border-t-4 border-t-primary-500 hover:shadow-md transition-all duration-200 group">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="font-heading font-bold text-navy-900">{profile.client_name}</h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-primary-600 font-bold uppercase tracking-wider">{profile.client_role}</span>
-                  <span className={cn(
-                    "text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider uppercase border",
-                    getProfileCategory(profile) === 'IT' 
-                      ? "bg-blue-50 text-blue-700 border-blue-200" 
-                      : "bg-indigo-50 text-indigo-700 border-indigo-200"
-                  )}>
-                    {getProfileCategory(profile)}
-                  </span>
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <button onClick={() => handleOpenModal(profile)} className="p-1.5 hover:bg-surface-alt rounded-lg text-text-muted transition-colors" title="Edit Profile">
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button onClick={() => handleDelete(profile.id!)} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400 transition-colors">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3 flex-1">
-              <div className="flex items-center gap-3 text-sm text-text-secondary">
-                <Mail className="w-4 h-4 text-text-muted" />
-                <span className="truncate">{profile.client_email}</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-text-secondary">
-                <UserPlus className="w-4 h-4 text-text-muted" />
-                <span>Assigned to: <span className="font-medium text-navy-900">{profile.assigned_employee?.name || 'Unassigned'}</span></span>
-              </div>
-            </div>
-
-            <div className="mt-5 pt-4 border-t border-border flex justify-between items-center">
-              <span className={cn(
-                "text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",
-                statusColors[profile.status?.toLowerCase() || ''] || 'bg-blue-100 text-blue-700'
-              )}>
-                {profile.status || 'Pending'}
-              </span>
-              {profile.resume_url && (
-                <a href={profile.resume_url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold text-primary-600 flex items-center gap-1 hover:underline">
-                  <Download className="w-3 h-3" /> DOCX Resume
-                </a>
-              )}
-            </div>
-          </Card>
-        ))}
       </div>
 
       {/* Profile Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90dvh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="sticky top-0 bg-white border-b border-border px-6 py-4 flex justify-between items-center z-10">
-              <h2 className="text-lg font-heading font-bold text-navy-900">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90dvh] overflow-y-auto shadow-xl border border-zinc-200 animate-in zoom-in-95 duration-200">
+            <div className="sticky top-0 bg-white border-b border-zinc-200 px-5 py-3.5 flex justify-between items-center z-10">
+              <h2 className="text-sm font-semibold text-navy-900">
                 {editingProfile ? 'Edit Profile' : 'New Client Profile'}
               </h2>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-surface-alt rounded-lg">
-                <X className="w-5 h-5" />
+              <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-zinc-100 rounded text-zinc-500 hover:text-navy-950 transition-colors cursor-pointer">
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="p-5 space-y-5 text-zinc-650">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-navy-900">Client Name</label>
-                  <input required value={formData.client_name} onChange={e => setFormData({...formData, client_name: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none" />
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Client Name</label>
+                  <input required value={formData.client_name} onChange={e => setFormData({...formData, client_name: e.target.value})} className={inputClasses} />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-navy-900">Email Address</label>
-                  <input type="email" value={formData.client_email} onChange={e => setFormData({...formData, client_email: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none" />
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Email Address</label>
+                  <input type="email" value={formData.client_email} onChange={e => setFormData({...formData, client_email: e.target.value})} className={inputClasses} />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-navy-900">Phone Number</label>
-                  <input value={formData.client_phone} onChange={e => setFormData({...formData, client_phone: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none" />
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Phone Number</label>
+                  <input value={formData.client_phone} onChange={e => setFormData({...formData, client_phone: e.target.value})} className={inputClasses} />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-navy-900">Target Role</label>
-                  <input value={formData.client_role} onChange={e => setFormData({...formData, client_role: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none" />
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Target Role</label>
+                  <input value={formData.client_role} onChange={e => setFormData({...formData, client_role: e.target.value})} className={inputClasses} />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-navy-900">LinkedIn Profile URL</label>
-                <input value={formData.client_linkedin} onChange={e => setFormData({...formData, client_linkedin: e.target.value})} placeholder="https://linkedin.com/in/..." className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none" />
+              <div className="space-y-1">
+                <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">LinkedIn Profile URL</label>
+                <input value={formData.client_linkedin} onChange={e => setFormData({...formData, client_linkedin: e.target.value})} placeholder="https://linkedin.com/in/..." className={inputClasses} />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-navy-900">Physical Address</label>
-                <textarea rows={2} value={formData.client_address} onChange={e => setFormData({...formData, client_address: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none" />
+              <div className="space-y-1">
+                <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Physical Address</label>
+                <textarea rows={2} value={formData.client_address} onChange={e => setFormData({...formData, client_address: e.target.value})} className="w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all text-xs font-semibold shadow-2xs" />
               </div>
 
-              <div className="bg-surface-alt p-4 rounded-2xl space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-text-muted">Education Details</h3>
-  { }
+              <div className="bg-zinc-50 p-4 rounded-md border border-zinc-200/80 space-y-4">
+                <h3 className="text-[9px] font-bold uppercase tracking-widest text-zinc-450">Education Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-navy-900">Master&apos;s Degree</label>
-  { }
-                    <input value={formData.education_details.masters} onChange={e => setFormData({...formData, education_details: {...formData.education_details, masters: e.target.value}})} className="w-full px-3 py-2 rounded-lg border border-border" />
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Master&apos;s Degree</label>
+                    <input value={formData.education_details.masters} onChange={e => setFormData({...formData, education_details: {...formData.education_details, masters: e.target.value}})} className="w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary-500" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-navy-900">Bachelor&apos;s Degree</label>
-                    <input value={formData.education_details.bachelors} onChange={e => setFormData({...formData, education_details: {...formData.education_details, bachelors: e.target.value}})} className="w-full px-3 py-2 rounded-lg border border-border" />
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Bachelor&apos;s Degree</label>
+                    <input value={formData.education_details.bachelors} onChange={e => setFormData({...formData, education_details: {...formData.education_details, bachelors: e.target.value}})} className="w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary-500" />
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-navy-900">Assign to Employee</label>
-                  <select value={formData.assigned_to} onChange={e => setFormData({...formData, assigned_to: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Assign to Employee</label>
+                  <select value={formData.assigned_to} onChange={e => setFormData({...formData, assigned_to: e.target.value})} className="w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer">
                     <option value="">Unassigned</option>
                     {employees.map(emp => (
                       <option key={emp.id} value={emp.id}>{emp.name}</option>
                     ))}
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-navy-900">Status</label>
-                  <select value={(formData.status || 'assigned').toLowerCase()} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Status</label>
+                  <select value={(formData.status || 'assigned').toLowerCase()} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer">
                     <option value="assigned">Assigned</option>
                     <option value="processing">Processing</option>
                     <option value="completed">Completed</option>
                     <option value="rejected">Rejected</option>
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-navy-900">Role Category</label>
-                  <select value={formData.role_category || 'IT'} onChange={e => setFormData({...formData, role_category: e.target.value as any})} className="w-full px-4 py-2 rounded-xl border border-border focus:ring-2 focus:ring-primary-400 focus:outline-none">
+                <div className="space-y-1">
+                  <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Role Category</label>
+                  <select value={formData.role_category || 'IT'} onChange={e => setFormData({...formData, role_category: e.target.value as any})} className="w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer">
                     <option value="IT">IT Role</option>
                     <option value="Non-IT">Non-IT Role</option>
                   </select>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-navy-900">Upload Resume (DOCX only, Max 1MB)</label>
+              <div className="space-y-1">
+                <label className="block text-[9px] font-bold text-zinc-400 uppercase tracking-widest ml-0.5">Upload Resume (DOCX only, Max 1MB)</label>
                 <div className="flex items-center gap-4">
                   <input 
                     type="file" 
                     accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
                     onChange={e => setResumeFile(e.target.files?.[0] || null)}
-                    className="w-full text-sm text-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                    className="w-full text-xs text-zinc-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-zinc-200 file:text-xs file:font-semibold file:bg-zinc-50 file:text-zinc-700 hover:file:bg-zinc-100 cursor-pointer"
                   />
                   {formData.resume_url && !resumeFile && (
-                    <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 shrink-0">
-                      <FileText className="w-4 h-4" /> Existing file
+                    <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 shrink-0">
+                      <FileText className="w-3.5 h-3.5" /> Existing file
                     </span>
                   )}
                 </div>
-                {resumeError && <p className="text-xs text-red-500 font-medium">{resumeError}</p>}
+                {resumeError && <p className="text-[10px] text-red-500 font-medium">{resumeError}</p>}
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Profile'}
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-zinc-100">
+                <Button type="button" variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button type="submit" size="sm" disabled={loading}>
+                  {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save Profile'}
                 </Button>
               </div>
             </form>

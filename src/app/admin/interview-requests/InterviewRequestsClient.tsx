@@ -76,31 +76,39 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-navy-900">Support Interview Requests</h1>
-        <p className="text-text-secondary text-sm">View and manage interview support requests submitted by employees.</p>
+    <div className="space-y-6 pb-12 text-zinc-650 font-sans">
+      {/* Premium Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-lg border border-zinc-200 shadow-2xs">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-primary-500" />
+            <h1 className="text-xl font-bold text-navy-900 tracking-tight">Support Interview Requests</h1>
+          </div>
+          <p className="text-xs text-zinc-450">
+            View and manage interview support requests submitted by employees.
+          </p>
+        </div>
       </div>
 
       {/* Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-xl border border-border/60 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white p-4 rounded-lg border border-zinc-200 shadow-2xs">
         <div className="relative w-full sm:max-w-md group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary-500 transition-colors" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-500 transition-colors" />
           <input 
             type="text" 
             placeholder="Search by consultant, employee, or company..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-border/60 bg-white text-sm text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 transition-all shadow-sm"
+            className="w-full pl-9 pr-4 py-2 rounded-md border border-zinc-200 bg-white text-xs font-semibold text-navy-900 placeholder:text-zinc-450 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all shadow-2xs"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider shrink-0">Status:</label>
+          <label className="text-xs font-bold text-navy-900 shrink-0">Status:</label>
           <select 
             value={statusFilter} 
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-lg border border-border/60 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 cursor-pointer"
+            className="px-3 py-1.5 rounded-md border border-zinc-200 bg-white text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer min-w-[120px] shadow-2xs"
           >
             <option value="all">All Requests</option>
             <option value="pending">Pending</option>
@@ -111,172 +119,269 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
         </div>
       </div>
 
-      {/* Grid List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredRequests.length === 0 && (
-          <div className="col-span-full p-16 text-center bg-white rounded-xl border border-dashed border-border/60">
-            <div className="w-14 h-14 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-4">
-              <FileUser className="w-7 h-7 text-gray-300" />
+      {/* List Layout */}
+      <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
+        {filteredRequests.length === 0 ? (
+          <div className="p-16 text-center bg-white">
+            <div className="w-12 h-12 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center mx-auto mb-3">
+              <FileUser className="w-5 h-5 text-zinc-400" />
             </div>
-            <p className="text-sm font-bold text-navy-900 mb-1">No Support Requests Found</p>
-            <p className="text-xs text-text-muted font-medium">No interview requests match your current search/filter settings.</p>
+            <p className="text-xs font-semibold text-navy-900 uppercase tracking-wider font-mono">No Support Requests Found</p>
+            <p className="text-[11px] text-zinc-450 mt-0.5">No interview requests match your current search/filter settings.</p>
           </div>
-        )}
-        {filteredRequests.map(req => {
-          const formattedEstTime = new Date(req.interview_datetime).toLocaleString('en-US', {
-            timeZone: 'America/New_York',
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          });
+        ) : (
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden xl:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-zinc-50 text-zinc-650 border-b border-zinc-200">
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Consultant Info</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Client / Company</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Assigned Employee</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Date & Platform</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Documents</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Status</th>
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-150">
+                  {filteredRequests.map((req) => {
+                    const formattedEstTime = new Date(req.interview_datetime).toLocaleString('en-US', {
+                      timeZone: 'America/New_York',
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    });
+                    const resumeUrl = req.resume_type === 'updated' ? req.updated_resume_url : req.profile?.resume_url;
 
-          // Resume link logic: check if updated resume url is set, otherwise fallback to original profile resume url
-          const resumeUrl = req.resume_type === 'updated' ? req.updated_resume_url : req.profile?.resume_url;
+                    return (
+                      <tr key={req.id} className="hover:bg-zinc-50/50 transition-colors group text-zinc-600">
+                        <td className="p-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-navy-900 tracking-tight font-sans">
+                              {req.consultant_name}
+                            </span>
+                            <span className="text-[9px] font-mono font-semibold text-primary-750 uppercase tracking-wider mt-0.5">
+                              {req.consultant_technology}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-xs font-semibold text-navy-900">
+                          {req.client_company}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-xs font-semibold text-navy-900">
+                          {req.employee?.name || 'Unknown'}
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-[10px]">
+                          <div className="flex flex-col font-mono text-zinc-500 space-y-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+                              <span>{formattedEstTime}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[9px] text-zinc-400">
+                              <Briefcase className="w-3.5 h-3.5 text-zinc-350" />
+                              <span>{req.interview_platform}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-xs">
+                          <div className="flex flex-col gap-1">
+                            {resumeUrl ? (
+                              <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2 py-0.5 rounded w-fit">
+                                <Download className="w-3 h-3" /> Resume
+                              </a>
+                            ) : (
+                              <span className="text-zinc-400 text-[9px] italic">No Resume</span>
+                            )}
+                            {req.jd_url ? (
+                              <a href={req.jd_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2 py-0.5 rounded w-fit">
+                                <Download className="w-3 h-3" /> JD DOC
+                              </a>
+                            ) : (
+                              <span className="text-zinc-400 text-[9px] italic">No JD</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-4 whitespace-nowrap">
+                          <span className={cn(
+                            "text-[8px] px-2.5 py-0.5 rounded-full font-mono font-medium border uppercase tracking-wider",
+                            statusColors[req.status] || statusColors.pending
+                          )}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td className="p-4 whitespace-nowrap text-right text-xs">
+                          <div className="flex justify-end gap-1.5">
+                            {req.status === 'pending' && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => handleStatusUpdate(req.id, 'cancelled')}
+                                  disabled={loadingId !== null}
+                                  className="border-red-200 text-red-655 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold"
+                                >
+                                  {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cancel'}
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleStatusUpdate(req.id, 'acknowledged')}
+                                  disabled={loadingId !== null}
+                                  className="bg-primary-600 hover:bg-primary-700 text-white py-1 px-2.5 rounded-md text-[9px] font-bold"
+                                >
+                                  {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Acknowledge'}
+                                </Button>
+                              </>
+                            )}
 
-          return (
-            <Card key={req.id} className="p-5 flex flex-col h-full border-t-4 border-t-navy-900 bg-white hover:shadow-md transition-all duration-200 group">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-heading font-bold text-navy-900 text-base">{req.consultant_name}</h3>
-                  <p className="text-xs text-primary-600 font-bold uppercase tracking-wider">{req.consultant_technology}</p>
-                </div>
-                <span className={cn(
-                  "text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border",
-                  statusColors[req.status] || statusColors.pending
-                )}>
-                  {req.status}
-                </span>
-              </div>
+                            {req.status === 'acknowledged' && (
+                              <>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={() => handleStatusUpdate(req.id, 'cancelled')}
+                                  disabled={loadingId !== null}
+                                  className="border-red-200 text-red-655 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold"
+                                >
+                                  {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cancel'}
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  onClick={() => handleStatusUpdate(req.id, 'completed')}
+                                  disabled={loadingId !== null}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white py-1 px-2.5 rounded-md text-[9px] font-bold"
+                                >
+                                  {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Complete'}
+                                </Button>
+                              </>
+                            )}
 
-              <div className="grid grid-cols-2 gap-y-3 gap-x-4 flex-1 text-sm border-t border-b border-border/60 py-4 my-4">
-                <div>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Assigned Employee</p>
-                  <p className="font-semibold text-navy-900 truncate">{req.employee?.name || 'Unknown'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Client / Company</p>
-                  <p className="font-semibold text-navy-900 truncate">{req.client_company}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Interview Date & Time (EST)</p>
-                  <div className="flex items-center gap-1.5 text-navy-900 font-semibold text-xs mt-0.5">
-                    <Calendar className="w-3.5 h-3.5 text-text-muted" />
-                    <span>{formattedEstTime}</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Platform / Method</p>
-                  <div className="flex items-center gap-1.5 text-navy-900 font-semibold text-xs mt-0.5">
-                    <Briefcase className="w-3.5 h-3.5 text-text-muted" />
-                    <span>{req.interview_platform}</span>
-                  </div>
-                </div>
-                {req.consultant_phone && (
-                  <div>
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Consultant Contact</p>
-                    <div className="flex items-center gap-1.5 text-navy-900 font-semibold text-xs mt-0.5">
-                      <Phone className="w-3.5 h-3.5 text-text-muted" />
-                      <span>{req.consultant_phone}</span>
+                            {req.status !== 'pending' && req.status !== 'acknowledged' && (
+                              <span className="text-[10px] text-zinc-400 font-mono font-medium italic">
+                                Action Logged · {new Date(req.created_at).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked List View */}
+            <div className="block xl:hidden divide-y divide-zinc-150">
+              {filteredRequests.map((req) => {
+                const formattedEstTime = new Date(req.interview_datetime).toLocaleString('en-US', {
+                  timeZone: 'America/New_York',
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                });
+                const resumeUrl = req.resume_type === 'updated' ? req.updated_resume_url : req.profile?.resume_url;
+
+                return (
+                  <div key={req.id} className="p-4 hover:bg-zinc-50/50 transition-colors space-y-3 text-zinc-650">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-xs font-bold text-navy-900">{req.consultant_name}</h3>
+                        <span className="text-[9px] font-mono font-semibold text-primary-750 uppercase tracking-wider block mt-0.5">
+                          {req.consultant_technology}
+                        </span>
+                      </div>
+                      <span className={cn(
+                        "text-[8px] px-2.5 py-0.5 rounded-full font-mono font-medium border uppercase tracking-wider",
+                        statusColors[req.status] || statusColors.pending
+                      )}>
+                        {req.status}
+                      </span>
                     </div>
-                  </div>
-                )}
-                <div>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Resume Attachment</p>
-                  {resumeUrl ? (
-                    <a 
-                      href={resumeUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 mt-0.5"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>{req.resume_type === 'updated' ? 'Updated Resume' : 'Original Resume'}</span>
-                    </a>
-                  ) : (
-                    <span className="text-xs text-text-muted italic flex items-center gap-1.5 mt-0.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>No resume available</span>
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">JD Document (.docx)</p>
-                  {req.jd_url ? (
-                    <a 
-                      href={req.jd_url} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1.5 mt-0.5"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download JD</span>
-                    </a>
-                  ) : (
-                    <span className="text-xs text-text-muted italic flex items-center gap-1.5 mt-0.5">
-                      <AlertCircle className="w-3.5 h-3.5" />
-                      <span>No JD attached</span>
-                    </span>
-                  )}
-                </div>
-              </div>
 
-              {/* Status Actions */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[10px] text-text-muted font-medium flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Requested: {new Date(req.created_at).toLocaleDateString()}</span>
-                </span>
-                
-                {req.status === 'pending' && (
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleStatusUpdate(req.id, 'cancelled')}
-                      disabled={loadingId !== null}
-                      className="border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 py-1 rounded-lg"
-                    >
-                      {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleStatusUpdate(req.id, 'acknowledged')}
-                      disabled={loadingId !== null}
-                      className="bg-primary-600 hover:bg-primary-700 text-white flex items-center gap-1 py-1 rounded-lg"
-                    >
-                      {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      Acknowledge
-                    </Button>
-                  </div>
-                )}
+                    <div className="grid grid-cols-2 gap-3 bg-zinc-50/50 p-2.5 rounded border border-zinc-200/60 text-[10px]">
+                      <div>
+                        <span className="text-zinc-455 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Client / Platform</span>
+                        <span className="font-semibold text-navy-900 block truncate">{req.client_company} · {req.interview_platform}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-455 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">DateTime (EST)</span>
+                        <span className="font-semibold text-navy-900 block font-mono">{formattedEstTime}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-455 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Employee</span>
+                        <span className="font-semibold text-navy-900 block truncate">{req.employee?.name || 'Unknown'}</span>
+                      </div>
+                      <div className="flex flex-col gap-1 justify-end">
+                        {resumeUrl && (
+                          <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-755 hover:text-primary-850 uppercase tracking-wider">
+                            <Download className="w-3 h-3" /> Resume
+                          </a>
+                        )}
+                        {req.jd_url && (
+                          <a href={req.jd_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-755 hover:text-primary-850 uppercase tracking-wider">
+                            <Download className="w-3 h-3" /> JD Attached
+                          </a>
+                        )}
+                      </div>
+                    </div>
 
-                {req.status === 'acknowledged' && (
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => handleStatusUpdate(req.id, 'cancelled')}
-                      disabled={loadingId !== null}
-                      className="border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 py-1 rounded-lg"
-                    >
-                      {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleStatusUpdate(req.id, 'completed')}
-                      disabled={loadingId !== null}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 py-1 rounded-lg"
-                    >
-                      {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                      Complete
-                    </Button>
+                    {(req.status === 'pending' || req.status === 'acknowledged') ? (
+                      <div className="flex gap-2 justify-end pt-1">
+                        {req.status === 'pending' && (
+                          <>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleStatusUpdate(req.id, 'cancelled')}
+                              disabled={loadingId !== null}
+                              className="border-red-200 text-red-600 hover:bg-red-50 py-1 px-3 rounded-md text-[9px] font-bold"
+                            >
+                              {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cancel'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleStatusUpdate(req.id, 'acknowledged')}
+                              disabled={loadingId !== null}
+                              className="bg-primary-600 hover:bg-primary-700 text-white py-1 px-3 rounded-md text-[9px] font-bold"
+                            >
+                              {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Acknowledge'}
+                            </Button>
+                          </>
+                        )}
+
+                        {req.status === 'acknowledged' && (
+                          <>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleStatusUpdate(req.id, 'cancelled')}
+                              disabled={loadingId !== null}
+                              className="border-red-200 text-red-600 hover:bg-red-50 py-1 px-3 rounded-md text-[9px] font-bold"
+                            >
+                              {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cancel'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              onClick={() => handleStatusUpdate(req.id, 'completed')}
+                              disabled={loadingId !== null}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white py-1 px-3 rounded-md text-[9px] font-bold"
+                            >
+                              {loadingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Complete'}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between text-[9px] text-zinc-400 font-mono font-medium italic pt-1 border-t border-zinc-100">
+                        <span>Immutable Support Ledger</span>
+                        <span>Created: {new Date(req.created_at).toLocaleDateString()}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            </Card>
-          );
-        })}
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
