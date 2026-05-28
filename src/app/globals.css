@@ -83,6 +83,9 @@
   .admin-portal h1, .admin-portal h2, .admin-portal h3, .admin-portal h4, .admin-portal h5, .admin-portal h6 {
     font-family: var(--font-sans);
   }
+  .admin-portal h1, .admin-portal h2, .admin-portal h3, .admin-portal h4, .admin-portal h5, .admin-portal h6 {
+    color: #f8fafc !important;
+  }
 
   .employee-portal .font-mono,
   .admin-portal .font-mono {

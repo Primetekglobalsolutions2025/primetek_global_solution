@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/ui/Logo';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { getPendingApprovals, getPendingDisputes } from '@/app/admin/approvals/actions';
 
 interface AppSidebarProps {
   role: 'admin' | 'employee' | 'hr';
@@ -33,26 +34,44 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
 
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (role !== 'admin') return;
+
+    const fetchPendingCount = async () => {
+      try {
+        const [approvals, disputes] = await Promise.all([
+          getPendingApprovals(),
+          getPendingDisputes()
+        ]);
+        const count = (approvals?.leaves?.length || 0) + (approvals?.wfh?.length || 0) + (disputes?.length || 0);
+        setPendingCount(count);
+      } catch (err) {
+        console.warn('Failed to fetch pending counts for sidebar', err);
+      }
+    };
+
+    fetchPendingCount();
+    const interval = setInterval(fetchPendingCount, 25000);
+    return () => clearInterval(interval);
+  }, [role]);
+
   const desktopAdminItems: NavItem[] = [
-    { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'MAIN' },
+    { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'Operations' },
+    { href: '/admin/attendance', icon: Clock, label: 'Attendance', section: 'Operations' },
+    { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals', section: 'Operations' },
     
-    { href: '/admin/employees', icon: Users, label: 'Employees', section: 'WORKFORCE' },
-    { href: '/admin/attendance', icon: Clock, label: 'Attendance', section: 'WORKFORCE' },
-    { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'WORKFORCE' },
-    { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals', section: 'WORKFORCE' },
+    { href: '/admin/employees', icon: Users, label: 'Employees', section: 'Workforce' },
+    { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'Workforce' },
+    { href: '/admin/client-profiles', icon: FileUser, label: 'Client Management', section: 'Workforce' },
+    { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests', section: 'Workforce' },
+    { href: '/admin/applications', icon: FileText, label: 'Candidate Pipeline', section: 'Workforce' },
+    { href: '/admin/inquiries', icon: MessageSquare, label: 'Contact Inquiries', section: 'Workforce' },
     
-    { href: '/admin/client-profiles', icon: FileUser, label: 'Client Management', section: 'RECRUITMENT & CLIENTS' },
-    { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests', section: 'RECRUITMENT & CLIENTS' },
-    { href: '/admin/applications', icon: FileText, label: 'Candidate Pipeline', section: 'RECRUITMENT & CLIENTS' },
-    
-    { href: '/admin/inquiries', icon: MessageSquare, label: 'Contact Inquiries', section: 'COMMUNICATION' },
-    
-    { href: '/admin/audit', icon: History, label: 'Audit Logs', section: 'SECURITY & COMPLIANCE' },
-    { href: '/admin/audit#activity', icon: History, label: 'Activity Monitoring', section: 'SECURITY & COMPLIANCE' },
-    
-    { href: '/admin/settings#notifications', icon: Settings, label: 'Notifications', section: 'SYSTEM' },
-    { href: '/admin/settings', icon: Settings, label: 'Settings', section: 'SYSTEM' },
-    { href: '/admin/profile', icon: UserCircle, label: 'My Profile', section: 'SYSTEM' },
+    { href: '/admin/audit', icon: History, label: 'Audit Logs', section: 'Security & System' },
+    { href: '/admin/settings', icon: Settings, label: 'Settings', section: 'Security & System' },
+    { href: '/admin/profile', icon: UserCircle, label: 'My Profile', section: 'Security & System' },
   ];
 
   const desktopEmployeeItems: NavItem[] = [
@@ -182,15 +201,30 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
                   <Link 
                     href={item.href} 
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 relative',
                       isActive 
                         ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' 
                         : 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
                     )}
                     title={collapsed ? item.label : undefined}
                   >
-                    <item.icon className="w-[18px] h-[18px] shrink-0" />
+                    <div className="relative shrink-0 flex items-center justify-center">
+                      <item.icon className="w-[18px] h-[18px]" />
+                      {collapsed && item.label === 'Approvals' && pendingCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-navy-900 animate-pulse" />
+                      )}
+                    </div>
                     {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && item.label === 'Approvals' && pendingCount > 0 && (
+                      <span className={cn(
+                        "ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none",
+                        isActive 
+                          ? "bg-white text-primary-600" 
+                          : "bg-red-500/25 text-red-400 border border-red-500/30"
+                      )}>
+                        {pendingCount}
+                      </span>
+                    )}
                   </Link>
                 </div>
               );
@@ -218,8 +252,13 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
       </aside>
 
       {/* ─── Mobile Bottom Navigation Bar ─── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-around h-16 px-2 pb-[env(safe-area-inset-bottom)]">
+      <nav className={cn(
+        "md:hidden fixed bottom-0 left-0 right-0 z-50",
+        role === 'admin' 
+          ? "bg-[#090e17] border-t border-navy-800 shadow-[0_-4px_20px_rgba(0,0,0,0.4)]" 
+          : "bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+      )}>
+        <div className="flex items-center justify-around h-16 px-2 pb-[env(safe-area-inset-bottom)] flex-row">
           {bottomBarItems.map((item) => {
             const isActive = pathname === item.href.split('#')[0];
             return (
@@ -229,15 +268,21 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
                 className={cn(
                   'flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 rounded-xl transition-all',
                   isActive 
-                    ? 'text-primary-500' 
-                    : 'text-gray-400 active:text-gray-600'
+                    ? (role === 'admin' ? 'text-primary-400' : 'text-primary-500') 
+                    : (role === 'admin' ? 'text-slate-400 active:text-slate-200' : 'text-gray-400 active:text-gray-600')
                 )}
               >
                 <div className={cn(
-                  'p-1.5 rounded-xl transition-all',
-                  isActive && 'bg-primary-50'
+                  'p-1.5 rounded-xl transition-all relative',
+                  isActive && (role === 'admin' ? 'bg-primary-500/10' : 'bg-primary-50')
                 )}>
                   <item.icon className="w-5 h-5" />
+                  {item.label === 'Approvals' && pendingCount > 0 && (
+                    <span className={cn(
+                      "absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full",
+                      role === 'admin' ? "ring-2 ring-[#090e17]" : "ring-2 ring-white"
+                    )} />
+                  )}
                 </div>
                 <span className={cn(
                   'text-[10px] leading-none font-medium',
@@ -255,13 +300,15 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
               onClick={() => setIsMoreOpen(true)}
               className={cn(
                 'flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 transition-all',
-                isOverflowActive ? 'text-primary-500' : 'text-gray-400 active:text-gray-600'
+                isOverflowActive 
+                  ? (role === 'admin' ? 'text-primary-400' : 'text-primary-500') 
+                  : (role === 'admin' ? 'text-slate-400 active:text-slate-200' : 'text-gray-400 active:text-gray-600')
               )}
               aria-label="More navigation options"
             >
               <div className={cn(
-                'p-1.5 rounded-xl transition-all',
-                isOverflowActive && 'bg-primary-50'
+                'p-1.5 rounded-xl transition-all relative',
+                isOverflowActive && (role === 'admin' ? 'bg-primary-500/10' : 'bg-primary-50')
               )}>
                 <MoreHorizontal className="w-5 h-5" />
               </div>
@@ -275,7 +322,10 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
           ) : (
             <button 
               onClick={handleLogout}
-              className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 text-gray-400 active:text-red-500 transition-all"
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 transition-all",
+                role === 'admin' ? "text-slate-400 active:text-red-400" : "text-gray-400 active:text-red-500"
+              )}
             >
               <div className="p-1.5 rounded-xl">
                 <LogOut className="w-5 h-5" />
@@ -306,19 +356,29 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[2rem] shadow-2xl pb-[env(safe-area-inset-bottom)]"
+              className={cn(
+                "md:hidden fixed bottom-0 left-0 right-0 z-[70] pb-[env(safe-area-inset-bottom)] rounded-t-[2rem] shadow-2xl",
+                role === 'admin' 
+                  ? "bg-[#0c1424] text-slate-100 border-t border-navy-800" 
+                  : "bg-white text-navy-900"
+              )}
             >
               {/* Drag Handle */}
               <div className="flex justify-center pt-3 pb-2">
-                <div className="w-10 h-1 bg-gray-200 rounded-full" />
+                <div className={cn("w-10 h-1 rounded-full", role === 'admin' ? "bg-navy-800" : "bg-gray-200")} />
               </div>
 
               {/* Header */}
               <div className="flex items-center justify-between px-6 pb-4">
-                <h3 className="text-sm font-black text-navy-900 uppercase tracking-wider">Portal Menu</h3>
+                <h3 className={cn("text-sm font-black uppercase tracking-wider", role === 'admin' ? "text-slate-200" : "text-navy-900")}>Portal Menu</h3>
                 <button
                   onClick={() => setIsMoreOpen(false)}
-                  className="p-2 rounded-xl bg-surface-alt text-gray-400 hover:text-navy-900 transition-colors"
+                  className={cn(
+                    "p-2 rounded-xl transition-colors",
+                    role === 'admin' 
+                      ? "bg-navy-900 text-slate-400 hover:text-white" 
+                      : "bg-surface-alt text-gray-400 hover:text-navy-900"
+                  )}
                   aria-label="Close menu"
                 >
                   <X className="w-4 h-4" />
@@ -338,8 +398,8 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
                         className={cn(
                           'flex flex-col items-center justify-center p-3 rounded-2xl gap-1.5 transition-all active:scale-95 border',
                           isActive
-                            ? 'bg-primary-50 border-primary-100 text-primary-600'
-                            : 'bg-surface-alt/60 border-transparent text-gray-600 hover:bg-surface-alt'
+                            ? (role === 'admin' ? 'bg-primary-500/20 border-primary-500/30 text-primary-400' : 'bg-primary-50 border-primary-100 text-primary-600')
+                            : (role === 'admin' ? 'bg-[#090e17]/80 border-transparent text-slate-300 hover:bg-navy-900' : 'bg-surface-alt/60 border-transparent text-gray-600 hover:bg-surface-alt')
                         )}
                       >
                         <item.icon className="w-5 h-5" />
@@ -351,16 +411,19 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
               </div>
 
               {/* User Info + Sign Out */}
-              <div className="mx-5 mt-2 mb-4 p-4 rounded-2xl bg-surface-alt/60 border border-border/40">
+              <div className={cn(
+                "mx-5 mt-2 mb-4 p-4 rounded-2xl border",
+                role === 'admin' ? "bg-[#090e17]/80 border-navy-800/80" : "bg-surface-alt/60 border-border/40"
+              )}>
                 {userName && (
-                  <div className="mb-3 pb-3 border-b border-border/40">
+                  <div className={cn("mb-3 pb-3 border-b", role === 'admin' ? "border-navy-800/60" : "border-border/40")}>
                     <p className="text-[9px] text-gray-400 uppercase tracking-[0.2em] font-bold mb-0.5">Signed in as</p>
-                    <p className="text-xs font-semibold text-navy-900 truncate">{userName}</p>
+                    <p className={cn("text-xs font-semibold truncate", role === 'admin' ? "text-slate-200" : "text-navy-900")}>{userName}</p>
                   </div>
                 )}
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2.5 w-full text-red-500 hover:text-red-600 transition-colors active:scale-95"
+                  className="flex items-center gap-2.5 w-full text-red-500 hover:text-red-400 transition-colors active:scale-95"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="text-xs font-bold">Sign Out</span>

@@ -13,7 +13,7 @@ export async function getAdminEmployees() {
 
   const { data, error } = await supabaseAdmin
     .from('employees')
-    .select('id, employee_id, name, email, role, department, status, join_date, avatar_url')
+    .select('id, employee_id, name, email, role, department, status, join_date, avatar_url, mfa_enabled')
     .order('created_at', { ascending: false })
     .limit(500);
 

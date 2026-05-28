@@ -2,7 +2,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Card from '@/components/ui/Card';
-import { History, User, Clock, ShieldCheck, Search, Activity, LogIn, LogOut, Home, AlertTriangle } from 'lucide-react';
+import { History, User, Clock, ShieldCheck, Search, Activity, LogIn, LogOut, Home, AlertTriangle, RefreshCw, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const formatSafeDateTime = (dateStr: any) => {
@@ -110,9 +110,9 @@ export default async function AuditLogsPage(props: PageProps) {
   });
 
   return (
-    <div className="space-y-4 pb-8">
+    <div className="space-y-6 pb-8 text-slate-350">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-xl bg-navy-900 p-6 text-white shadow-md shadow-navy-900/10">
+      <div className="relative overflow-hidden rounded-xl bg-navy-950 border border-navy-800 p-6 text-white shadow-md">
         <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[100%] bg-primary-500/10 rounded-full blur-[80px]" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -121,16 +121,16 @@ export default async function AuditLogsPage(props: PageProps) {
               <span className="text-[9px] font-bold uppercase tracking-wider text-primary-200">Security Ledger</span>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-white">System Audit Logs</h1>
-            <p className="text-gray-400 text-xs mt-1 font-medium">Immutable record of all critical administrative actions.</p>
+            <p className="text-slate-400 text-xs mt-1 font-medium">Immutable record of all critical administrative actions.</p>
           </div>
           <form method="GET" action="/admin/audit" className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary-400 transition-colors" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary-400 transition-colors" />
             <input 
               type="text" 
               name="q"
               defaultValue={q}
               placeholder="Search logs..." 
-              className="pl-9 pr-3 py-2 rounded-lg bg-white/5 border border-white/10 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/50 w-full md:w-64 text-white placeholder:text-gray-500"
+              className="pl-9 pr-3 py-2 rounded-lg bg-navy-900 border border-navy-800 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30 w-full md:w-64 text-slate-200 placeholder:text-slate-550"
             />
           </form>
         </div>
@@ -138,55 +138,55 @@ export default async function AuditLogsPage(props: PageProps) {
 
       {/* Activity Monitoring Section */}
       <div id="activity" className="scroll-mt-20">
-        <Card hover={false} className="overflow-hidden border-border/60 shadow-sm rounded-xl p-0">
-          <div className="flex items-center justify-between px-5 py-3.5 bg-surface-alt/30 border-b border-border/60">
+        <Card hover={false} className="overflow-hidden border border-navy-850 shadow-sm rounded-xl p-0 bg-[#0c1424]/40">
+          <div className="flex items-center justify-between px-5 py-3.5 bg-[#090e17]/40 border-b border-navy-800/60">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center">
-                <Activity className="w-4 h-4 text-primary-500" />
+              <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center border border-primary-500/20">
+                <Activity className="w-4 h-4 text-primary-455" />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-navy-900 tracking-tight">Activity Monitoring</h2>
-                <p className="text-[10px] text-text-muted font-medium">Last 24 hours — employee check-ins, check-outs &amp; remote work</p>
+                <h2 className="text-sm font-bold text-slate-100 tracking-tight">Activity Monitoring</h2>
+                <p className="text-[10px] text-slate-450 font-medium">Last 24 hours — employee check-ins, check-outs &amp; remote work</p>
               </div>
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-text-muted bg-surface-alt px-2.5 py-1 rounded-full border border-border/60">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-350 bg-navy-900 px-2.5 py-1 rounded-full border border-navy-800">
               {recentActivity?.length || 0} events
             </span>
           </div>
           {(!recentActivity || recentActivity.length === 0) ? (
             <div className="p-10 text-center">
-              <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-2">
-                <Activity className="w-5 h-5 text-gray-300" />
+              <div className="w-10 h-10 rounded-full bg-navy-900 border border-navy-850 flex items-center justify-center mx-auto mb-2">
+                <Activity className="w-5 h-5 text-slate-650" />
               </div>
-              <p className="text-xs text-text-muted font-semibold">No activity in the last 24 hours.</p>
+              <p className="text-xs text-slate-400 font-bold">No activity in the last 24 hours.</p>
             </div>
           ) : (
-            <div className="divide-y divide-border/40 max-h-[320px] overflow-y-auto">
+            <div className="divide-y divide-navy-800/40 max-h-[320px] overflow-y-auto">
               {recentActivity.map((act) => {
                 const name = actorMap[act.employee_id]?.name || 'Unknown';
                 const isWFH = act.status?.includes('WFH');
                 const hasCheckOut = !!act.check_out;
                 const isPending = act.status === 'Pending WFH';
                 const Icon = isWFH ? Home : hasCheckOut ? LogOut : LogIn;
-                const iconColor = isWFH ? 'text-violet-500' : hasCheckOut ? 'text-amber-500' : 'text-emerald-500';
+                const iconColor = isWFH ? 'text-violet-400' : hasCheckOut ? 'text-amber-450' : 'text-emerald-450';
                 const iconBg = isWFH ? 'bg-violet-500/10' : hasCheckOut ? 'bg-amber-500/10' : 'bg-emerald-500/10';
                 const label = isWFH
                   ? (isPending ? 'WFH Request (Pending)' : `WFH ${act.status?.replace(' WFH', '')}`)
                   : hasCheckOut ? 'Checked Out' : 'Checked In';
                 const time = formatSafeTimeOnly(act.check_in);
                 return (
-                  <div key={act.id} className="flex items-center gap-3.5 px-5 py-3 hover:bg-surface-alt/20 transition-colors">
-                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', iconBg)}>
+                  <div key={act.id} className="flex items-center gap-3.5 px-5 py-3 hover:bg-navy-900/20 transition-colors">
+                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-navy-800/30', iconBg)}>
                       <Icon className={cn('w-4 h-4', iconColor)} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-navy-900 truncate">{name}</p>
-                      <p className="text-[10px] text-text-muted font-medium">
+                      <p className="text-xs font-semibold text-slate-200 truncate">{name}</p>
+                      <p className="text-[10px] text-slate-450 font-medium">
                         {label}{time ? ` · ${time}` : ''} · {act.date}
                       </p>
                     </div>
                     {isPending && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
                         <AlertTriangle className="w-3 h-3" />
                         Pending
                       </span>
@@ -202,113 +202,153 @@ export default async function AuditLogsPage(props: PageProps) {
       {/* Mobile view */}
       <div className="block md:hidden space-y-3">
         {(!logs || logs.length === 0) ? (
-          <div className="p-8 text-center bg-white rounded-xl border border-border/60">
-            <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-2">
-              <History className="w-5 h-5 text-gray-300" />
+          <div className="p-8 text-center bg-[#0c1424]/40 rounded-xl border border-navy-800">
+            <div className="w-10 h-10 rounded-full bg-navy-900 border border-navy-850 flex items-center justify-center mx-auto mb-2">
+              <History className="w-5 h-5 text-slate-650" />
             </div>
-            <p className="text-xs text-text-muted font-semibold">No audit logs matching query.</p>
+            <p className="text-xs text-slate-400 font-semibold">No audit logs matching query.</p>
           </div>
         ) : (
-          logs.map((log) => (
-            <Card key={log.id} hover={false} className="p-4 rounded-xl border border-border/60 shadow-sm bg-white">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5 text-[10px] font-semibold text-text-secondary">
-                  <Clock className="w-3.5 h-3.5 text-primary-500/50" />
-                  <span>{formatSafeDateTime(log.created_at)}</span>
-                </div>
-                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border ${
-                   log.action.includes('DELETE') ? 'bg-red-50 text-red-600 border-red-100' :
-                   log.action.includes('CREATE') ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                   'bg-blue-50 text-blue-600 border-blue-100'
-                }`}>
-                  {log.action}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 bg-surface-alt/40 p-2.5 rounded-lg text-[10px]">
-                <div>
-                  <span className="text-gray-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Actor</span>
-                  <span className="font-bold text-navy-900">
-                    {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
+          logs.map((log) => {
+            const isDelete = log.action.includes('DELETE');
+            const isCreate = log.action.includes('CREATE') || log.action.includes('ONBOARD');
+            const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
+            
+            return (
+              <Card key={log.id} hover={false} className="p-4 rounded-xl border border-navy-850 shadow-sm bg-[#0c1424]/40 text-slate-350">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-450">
+                    <Clock className="w-3.5 h-3.5 text-primary-500/50" />
+                    <span>{formatSafeDateTime(log.created_at)}</span>
+                  </div>
+                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider border uppercase ${
+                     isDelete ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                     isCreate ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' :
+                     isOverride ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
+                     'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                  }`}>
+                    {log.action}
                   </span>
-                  {actorMap[log.user_id]?.email && (
-                    <span className="text-gray-500 block text-[9px] lowercase truncate">
-                      {actorMap[log.user_id].email}
+                </div>
+                <div className="grid grid-cols-2 gap-2 bg-navy-950/40 border border-navy-850 p-2.5 rounded-lg text-[10px]">
+                  <div>
+                    <span className="text-slate-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Actor</span>
+                    <span className="font-bold text-slate-200">
+                      {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
                     </span>
-                  )}
+                    {actorMap[log.user_id]?.email && (
+                      <span className="text-slate-450 block text-[9px] lowercase truncate">
+                        {actorMap[log.user_id].email}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Module / Entity</span>
+                    <span className="font-bold text-slate-200 uppercase">{log.entity_type} {log.entity_id ? `(${log.entity_id.substring(0, 8)})` : ''}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-gray-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Module / Entity</span>
-                  <span className="font-bold text-navy-900 uppercase">{log.entity_type} {log.entity_id ? `(${log.entity_id.substring(0, 8)})` : ''}</span>
-                </div>
-              </div>
-            </Card>
-          ))
+
+                {/* Grouping visualization for session replays / details */}
+                {log.entity_type === 'attendance' && log.entity_id && (
+                  <div className="mt-2.5 pt-2 border-t border-navy-800/40 flex items-center gap-1.5 justify-between">
+                    <div className="flex items-center gap-1">
+                      <Layers className="w-3.5 h-3.5 text-violet-400" />
+                      <span className="text-[9px] font-black text-violet-300 font-mono uppercase">
+                        Traceable Replay Stream
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-black text-slate-400 font-mono bg-navy-900 border border-navy-850 px-1.5 py-0.5 rounded">
+                      Session: #{log.entity_id.substring(0, 8).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </Card>
+            );
+          })
         )}
       </div>
 
       {/* Desktop view */}
-      <Card hover={false} className="overflow-hidden border-border/60 shadow-sm rounded-xl p-0 hidden md:block">
+      <Card hover={false} className="overflow-hidden border border-navy-850 shadow-sm rounded-xl p-0 hidden md:block bg-[#0c1424]/40">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-surface-alt/50 border-b border-border">
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Event Timeline</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Actor</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Operation</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Module</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Entity Context</th>
+              <tr className="bg-[#090e17]/40 border-b border-navy-800/60">
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Event Timeline</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Actor</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Operation</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Module</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Entity Context</th>
+                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">Trace Replay</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/60">
-              {logs?.map((log) => (
-                <tr key={log.id} className="hover:bg-surface-alt/30 transition-colors group">
-                  <td className="px-4 py-2.5 whitespace-nowrap">
-                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-text-secondary">
-                      <Clock className="w-3.5 h-3.5 text-primary-500/50" />
-                      {formatSafeDateTime(log.created_at)}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-surface-alt flex items-center justify-center text-navy-900 group-hover:bg-primary-500 group-hover:text-white transition-colors">
-                        <User className="w-3.5 h-3.5" />
+            <tbody className="divide-y divide-navy-800/60">
+              {logs?.map((log) => {
+                const isDelete = log.action.includes('DELETE');
+                const isCreate = log.action.includes('CREATE') || log.action.includes('ONBOARD');
+                const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
+                
+                return (
+                  <tr key={log.id} className="hover:bg-navy-900/30 transition-colors group text-slate-350">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
+                        <Clock className="w-3.5 h-3.5 text-primary-500/50" />
+                        {formatSafeDateTime(log.created_at)}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-navy-900 tracking-tight">
-                          {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
-                        </span>
-                        {actorMap[log.user_id]?.email && (
-                          <span className="text-[9px] text-text-muted">
-                            {actorMap[log.user_id].email}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded bg-navy-900 border border-navy-850 flex items-center justify-center text-slate-300 group-hover:bg-primary-500 group-hover:text-white transition-colors">
+                          <User className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-semibold text-slate-200 tracking-tight">
+                            {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
                           </span>
-                        )}
+                          {actorMap[log.user_id]?.email && (
+                            <span className="text-[9px] text-slate-450">
+                              {actorMap[log.user_id].email}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 whitespace-nowrap">
-                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border ${
-                       log.action.includes('DELETE') ? 'bg-red-50 text-red-600 border-red-100' :
-                       log.action.includes('CREATE') ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                       'bg-blue-50 text-blue-600 border-blue-100'
-                    }`}>
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 whitespace-nowrap text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
-                    {log.entity_type}
-                  </td>
-                  <td className="px-4 py-2.5 text-[10px] text-text-muted font-medium font-mono">
-                    {log.entity_id ? `${log.entity_id.substring(0, 8)}...` : 'N/A'}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider border uppercase ${
+                         isDelete ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                         isCreate ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' :
+                         isOverride ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
+                         'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                      }`}>
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 whitespace-nowrap text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                      {log.entity_type}
+                    </td>
+                    <td className="px-4 py-2.5 text-[10px] text-slate-500 font-medium font-mono">
+                      {log.entity_id ? `${log.entity_id.substring(0, 8)}...` : 'N/A'}
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      {log.entity_type === 'attendance' && log.entity_id ? (
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-violet-500/5 text-violet-400 border border-violet-500/15 text-[9px] font-black font-mono tracking-tight" title={`Traceable event-sourcing stream: Session ID: ${log.entity_id}`}>
+                          <Layers className="w-3 h-3 text-violet-400" />
+                          <span>SESSION #{log.entity_id.substring(0, 8).toUpperCase()}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-650 font-bold font-mono">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {(!logs || logs.length === 0) && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center">
-                    <div className="w-10 h-10 rounded-full bg-surface-alt flex items-center justify-center mx-auto mb-3">
-                      <History className="w-5 h-5 text-gray-300" />
+                  <td colSpan={6} className="px-4 py-12 text-center">
+                    <div className="w-10 h-10 rounded-full bg-navy-900 border border-navy-850 flex items-center justify-center mx-auto mb-3">
+                      <History className="w-5 h-5 text-slate-655" />
                     </div>
-                    <p className="text-xs text-text-muted font-bold">No audit logs matching query.</p>
+                    <p className="text-xs text-slate-450 font-bold">No audit logs matching query.</p>
                   </td>
                 </tr>
               )}
@@ -319,36 +359,36 @@ export default async function AuditLogsPage(props: PageProps) {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white border border-border/60 rounded-xl shadow-sm">
-          <div className="text-xs text-text-secondary">
-            Showing <span className="font-semibold">{offset + 1}</span> to{' '}
-            <span className="font-semibold">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#0c1424]/40 border border-navy-800 rounded-xl shadow-sm">
+          <div className="text-xs text-slate-400">
+            Showing <span className="font-semibold text-slate-200">{offset + 1}</span> to{' '}
+            <span className="font-semibold text-slate-200">
               {Math.min(offset + limit, totalCount)}
             </span>{' '}
-            of <span className="font-semibold">{totalCount}</span> entries
+            of <span className="font-semibold text-slate-200">{totalCount}</span> entries
           </div>
           <div className="flex items-center gap-2">
             <a
               href={page > 1 ? `/admin/audit?page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
-                "px-3 py-1.5 rounded-lg border border-border/60 text-xs font-semibold transition-all",
+                "px-3 py-1.5 rounded-lg border border-navy-800 text-xs font-semibold transition-all",
                 page <= 1
-                  ? "pointer-events-none opacity-50 bg-slate-50 text-gray-400"
-                  : "bg-white text-navy-900 hover:bg-slate-50 active:scale-95"
+                  ? "pointer-events-none opacity-40 bg-navy-950 text-slate-550"
+                  : "bg-navy-900 text-slate-350 hover:bg-navy-850 hover:text-white active:scale-95"
               )}
             >
               Previous
             </a>
-            <span className="text-xs font-semibold text-navy-900 px-2">
+            <span className="text-xs font-semibold text-slate-200 px-2 font-mono">
               Page {page} of {totalPages}
             </span>
             <a
               href={page < totalPages ? `/admin/audit?page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
-                "px-3 py-1.5 rounded-lg border border-border/60 text-xs font-semibold transition-all",
+                "px-3 py-1.5 rounded-lg border border-navy-800 text-xs font-semibold transition-all",
                 page >= totalPages
-                  ? "pointer-events-none opacity-50 bg-slate-50 text-gray-400"
-                  : "bg-white text-navy-900 hover:bg-slate-50 active:scale-95"
+                  ? "pointer-events-none opacity-40 bg-navy-950 text-slate-550"
+                  : "bg-navy-900 text-slate-350 hover:bg-navy-850 hover:text-white active:scale-95"
               )}
             >
               Next
@@ -359,4 +399,3 @@ export default async function AuditLogsPage(props: PageProps) {
     </div>
   );
 }
-
