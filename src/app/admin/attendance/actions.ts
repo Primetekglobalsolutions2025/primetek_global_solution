@@ -800,3 +800,137 @@ export async function overrideDeviceValidation(
   return { success: true };
 }
 
+export async function getRealtimeAttendanceUpdates() {
+  const session = await getSession();
+  if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  const todayIST = (() => {
+    const d = new Date();
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5));
+    return ist.toISOString().split('T')[0];
+  })();
+
+  let activeWorkforce = 0;
+  let activeBreaks = 0;
+  let idleWarnings = 0;
+  let gpsAlerts = 0;
+  let mobileSessions = 0;
+  let staleSessions = 0;
+  let autoBreaks = 0;
+  let pendingDisputes = 0;
+
+  try {
+    const [
+      activeRes,
+      breakRes,
+      idleRes,
+      gpsRes,
+      mobileRes,
+      autoBreakRes,
+      disputesRes,
+      staleRes
+    ] = await Promise.all([
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).in('status', ['Working', 'DESKTOP_ACTIVE', 'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP']),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).in('status', ['On Break', 'AUTO_BREAK']),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).in('status', ['PRODUCTIVE_TIMER_PAUSED', 'IDLE_WARNING']),
+      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'GPS_EXIT').gte('event_timestamp', todayIST + 'T00:00:00'),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).is('check_out', null).eq('device_type', 'mobile'),
+      supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'AUTO_BREAK_TRIGGERED').gte('event_timestamp', todayIST + 'T00:00:00'),
+      supabaseAdmin.from('attendance_disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+      supabaseAdmin.from('attendance').select('id, check_in').is('check_out', null).neq('status', 'Logged Out').gte('date', (() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 2);
+        return d.toISOString().split('T')[0];
+      })())
+    ]);
+
+    activeWorkforce = activeRes.count || 0;
+    activeBreaks = breakRes.count || 0;
+    idleWarnings = idleRes.count || 0;
+    gpsAlerts = gpsRes.count || 0;
+    mobileSessions = mobileRes.count || 0;
+    autoBreaks = autoBreakRes.count || 0;
+    pendingDisputes = disputesRes.count || 0;
+
+    // Calculate stale count: check_in older than 12 hours
+    const nowMs = Date.now();
+    (staleRes.data || []).forEach((r) => {
+      const checkInTime = new Date(r.check_in).getTime();
+      const diffHrs = (nowMs - checkInTime) / (1000 * 60 * 60);
+      if (diffHrs > 12) {
+        staleSessions++;
+      }
+    });
+
+  } catch (err) {
+    console.error('Error fetching realtime KPIs:', err);
+  }
+
+  // Fetch latest 20 events
+  let latestEvents: any[] = [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('attendance_events')
+      .select('id, session_id, employee_id, event_type, event_timestamp, payload, client_ip')
+      .order('event_timestamp', { ascending: false })
+      .limit(20);
+    latestEvents = data || [];
+  } catch (err) {
+    console.error('Error fetching latest events:', err);
+  }
+
+  // Resolve employee names for events
+  const empIds = [...new Set(latestEvents.map(e => e.employee_id).filter(Boolean))];
+  let empMap: Record<string, string> = {};
+  if (empIds.length > 0) {
+    try {
+      const { data: emps } = await supabaseAdmin.from('employees').select('id, name').in('id', empIds);
+      if (emps) {
+        emps.forEach(e => { empMap[e.id] = e.name; });
+      }
+    } catch (err) {
+      console.error('Error resolving employee names:', err);
+    }
+  }
+
+  // Format events
+  const formattedEvents = latestEvents.map(evt => ({
+    id: evt.id,
+    session_id: evt.session_id,
+    employee_id: evt.employee_id,
+    employee_name: empMap[evt.employee_id] || 'System',
+    event_type: evt.event_type,
+    event_timestamp: evt.event_timestamp,
+    client_ip: evt.client_ip,
+    payload: evt.payload
+  }));
+
+  // Fetch system health nodes
+  let systemHealth: any[] = [];
+  try {
+    const { data } = await supabaseAdmin
+      .from('system_status')
+      .select('*')
+      .order('node_name');
+    systemHealth = data || [];
+  } catch (err) {
+    console.error('Error fetching system health nodes:', err);
+  }
+
+  return {
+    metrics: {
+      activeWorkforce,
+      activeBreaks,
+      idleWarnings,
+      gpsAlerts,
+      mobileSessions,
+      staleSessions,
+      autoBreaks,
+      pendingDisputes
+    },
+    latestEvents: formattedEvents,
+    systemHealth
+  };
+}
+

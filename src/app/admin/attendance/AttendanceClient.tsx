@@ -1,11 +1,44 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, Fragment } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Download, FileSpreadsheet, Loader2, User, Clock, Calendar, MapPin, Sparkles, AlertTriangle, ShieldCheck, Wifi, Smartphone, Monitor, ChevronDown, ChevronRight } from 'lucide-react';
+import { 
+  Search, 
+  Download, 
+  FileSpreadsheet, 
+  Loader2, 
+  User, 
+  Clock, 
+  Calendar, 
+  MapPin, 
+  Sparkles, 
+  AlertTriangle, 
+  ShieldCheck, 
+  Wifi, 
+  Smartphone, 
+  Monitor, 
+  ChevronDown, 
+  ChevronRight,
+  Coffee,
+  ShieldAlert,
+  Gavel,
+  Activity,
+  Signal,
+  Info,
+  ExternalLink
+} from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { exportAttendanceExcel, toggleExemption, getSessionEvents, reverseAutoBreak, correctClockOutTime, rebuildSessionProjection, overrideDeviceValidation } from './actions';
+import { 
+  exportAttendanceExcel, 
+  toggleExemption, 
+  getSessionEvents, 
+  reverseAutoBreak, 
+  correctClockOutTime, 
+  rebuildSessionProjection, 
+  overrideDeviceValidation,
+  getRealtimeAttendanceUpdates
+} from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -56,10 +89,18 @@ const statusColors: Record<string, string> = {
   'on break': 'bg-amber-500/10 text-amber-600 border-amber-500/20',
   'logged out': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
   'clocked_out': 'bg-gray-500/10 text-gray-600 border-gray-500/20',
-  mobile_clocked_in: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  awaiting_desktop: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse',
+  mobile_clocked_in: 'bg-violet-500/10 text-violet-450 border-violet-500/20',
+  awaiting_desktop: 'bg-amber-500/10 text-amber-450 border-amber-500/20 animate-pulse',
   desktop_active: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/25',
   productive_timer_paused: 'bg-red-500/10 text-red-400 border-red-500/20',
+  active_desktop: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/25',
+  mobile_only: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+  active_break: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  idle_warning: 'bg-amber-500/10 text-amber-600 border-amber-500/20 animate-pulse',
+  gps_unstable: 'bg-amber-500/10 text-amber-650 border-amber-500/20 animate-pulse',
+  stale_session: 'bg-red-500/10 text-red-650 border-red-500/20 animate-pulse',
+  auto_break: 'bg-red-500/10 text-red-600 border-red-500/20',
+  force_logged_out: 'bg-rose-500/10 text-rose-600 border-rose-500/20',
 };
 
 export default function AttendanceClient({
@@ -94,6 +135,49 @@ export default function AttendanceClient({
   const [clockOutTimeCorrection, setClockOutTimeCorrection] = useState('');
   const [isSubmittingOverride, setIsSubmittingOverride] = useState(false);
 
+  // Expanded rows state
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+
+  // Realtime Data state
+  const [realtimeData, setRealtimeData] = useState<{
+    metrics: {
+      activeWorkforce: number;
+      activeBreaks: number;
+      idleWarnings: number;
+      gpsAlerts: number;
+      mobileSessions: number;
+      staleSessions: number;
+      autoBreaks: number;
+      pendingDisputes: number;
+    };
+    latestEvents: any[];
+    systemHealth: any[];
+  } | null>(null);
+
+  const fetchRealtimeUpdates = useCallback(async () => {
+    try {
+      const data = await getRealtimeAttendanceUpdates();
+      setRealtimeData(data);
+    } catch (err) {
+      console.error('Failed to fetch realtime updates:', err);
+    }
+  }, []);
+
+  // Set up polling and synchronization loop
+  useEffect(() => {
+    fetchRealtimeUpdates();
+
+    const updatesInterval = setInterval(fetchRealtimeUpdates, 5000);
+    const routerRefreshInterval = setInterval(() => {
+      router.refresh();
+    }, 10000); // refresh layout server components data every 10s
+
+    return () => {
+      clearInterval(updatesInterval);
+      clearInterval(routerRefreshInterval);
+    };
+  }, [fetchRealtimeUpdates, router]);
+
   const handleOpenDrawer = async (record: AttendanceRecord) => {
     setSelectedRecord(record);
     setIsDrawerOpen(true);
@@ -102,17 +186,14 @@ export default function AttendanceClient({
     setOverrideJustification('');
     setClockOutTimeCorrection('');
     
-    // Set a default clock out time if they correct it (e.g. current check out or check in + 9 hours)
     if (record.check_out_raw) {
-      // Convert to local datetime-local format for input
       const localDate = new Date(record.check_out_raw);
-      // adjust for timezone offset
       const tzOffset = localDate.getTimezoneOffset() * 60000;
       const formatted = new Date(localDate.getTime() - tzOffset).toISOString().slice(0, 16);
       setClockOutTimeCorrection(formatted);
     } else if (record.check_in_raw) {
       const localDate = new Date(record.check_in_raw);
-      localDate.setHours(localDate.getHours() + 9); // default 9 hours later
+      localDate.setHours(localDate.getHours() + 9);
       const tzOffset = localDate.getTimezoneOffset() * 60000;
       const formatted = new Date(localDate.getTime() - tzOffset).toISOString().slice(0, 16);
       setClockOutTimeCorrection(formatted);
@@ -157,16 +238,12 @@ export default function AttendanceClient({
         toast.success('Device validation override applied successfully.');
       }
       
-      // Refresh events and close action form
       const updatedEvents = await getSessionEvents(selectedRecord.id);
       setSelectedRecordEvents(updatedEvents);
       setOverrideActionType(null);
       setOverrideJustification('');
       
-      // Refresh parent table state by updating the page/router
       router.refresh();
-      
-      // Wait a moment and then update selected record local fields if possible, or just close and refresh
       toast.success('Audit ledger updated.');
     } catch (err: any) {
       console.error(err);
@@ -201,7 +278,21 @@ export default function AttendanceClient({
     const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
     const ist = new Date(utc + (3600000 * 5.5));
     return ist.toISOString().split('T')[0];
-  }, [ticks]); // Re-calculate dynamically on tick
+  }, [ticks]);
+
+  const filterCounts = useMemo(() => {
+    return {
+      all: initialAttendance.length,
+      active: initialAttendance.filter(r => ['Working', 'DESKTOP_ACTIVE', 'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP'].includes(r.status)).length,
+      breaks: initialAttendance.filter(r => ['On Break', 'AUTO_BREAK'].includes(r.status)).length,
+      idle: initialAttendance.filter(r => ['PRODUCTIVE_TIMER_PAUSED', 'IDLE_WARNING'].includes(r.status)).length,
+      gps: initialAttendance.filter(r => r.status === 'GPS_UNSTABLE' || r.risk_reasons?.some(re => re.signal.toLowerCase().includes('gps') || re.detail.toLowerCase().includes('geofence'))).length,
+      mobile: initialAttendance.filter(r => r.device_type === 'mobile' || r.device_type === 'tablet' || r.status === 'MOBILE_CLOCKED_IN' || r.status === 'AWAITING_DESKTOP').length,
+      stale: initialAttendance.filter(r => r.status === 'Working' && r.check_out === null && r.duration_hours > 12).length,
+      disputes: initialAttendance.filter(r => r.status === 'pending wfh' || r.status === 'Pending WFH').length,
+      autobreaks: initialAttendance.filter(r => r.status === 'AUTO_BREAK').length,
+    };
+  }, [initialAttendance]);
 
   const filtered = useMemo(() => {
     return initialAttendance.filter((r) => {
@@ -213,22 +304,27 @@ export default function AttendanceClient({
       // Quick filter pills
       let matchesQuick = true;
       if (quickFilter === 'active') {
-        matchesQuick = r.status === 'Working' || r.status === 'DESKTOP_ACTIVE';
+        matchesQuick = ['Working', 'DESKTOP_ACTIVE', 'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP'].includes(r.status);
       } else if (quickFilter === 'idle') {
-        matchesQuick = r.status === 'PRODUCTIVE_TIMER_PAUSED';
+        matchesQuick = ['PRODUCTIVE_TIMER_PAUSED', 'IDLE_WARNING'].includes(r.status);
       } else if (quickFilter === 'breaks') {
-        matchesQuick = r.status === 'On Break';
+        matchesQuick = ['On Break', 'AUTO_BREAK'].includes(r.status);
       } else if (quickFilter === 'mobile') {
         matchesQuick = r.device_type === 'mobile' || r.device_type === 'tablet' || r.status === 'MOBILE_CLOCKED_IN' || r.status === 'AWAITING_DESKTOP';
       } else if (quickFilter === 'stale') {
         matchesQuick = r.status === 'Working' && r.check_out === null && r.duration_hours > 12;
+      } else if (quickFilter === 'gps') {
+        matchesQuick = r.status === 'GPS_UNSTABLE' || r.risk_reasons?.some(re => re.signal.toLowerCase().includes('gps') || re.detail.toLowerCase().includes('geofence')) || false;
+      } else if (quickFilter === 'disputes') {
+        matchesQuick = r.status === 'pending wfh' || r.status === 'Pending WFH';
+      } else if (quickFilter === 'autobreaks') {
+        matchesQuick = r.status === 'AUTO_BREAK';
       }
       
       return matchesSearch && matchesEmployee && matchesStatus && matchesRisk && matchesQuick;
     });
   }, [initialAttendance, search, employeeFilter, statusFilter, riskFilter, quickFilter]);
 
-  // Live Records filter for today or active sessions
   const liveRecords = useMemo(() => {
     return initialAttendance.filter((r) => {
       const isToday = r.date === todayISTStr;
@@ -237,7 +333,6 @@ export default function AttendanceClient({
     });
   }, [initialAttendance, todayISTStr]);
 
-  // Late Logins filter
   const lateRecords = useMemo(() => {
     return initialAttendance.filter((r) => r.is_late);
   }, [initialAttendance]);
@@ -263,6 +358,144 @@ export default function AttendanceClient({
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return [hrs, mins, secs].map((v) => String(v).padStart(2, '0')).join(':');
+  };
+
+  const getRealtimeDurations = (record: AttendanceRecord) => {
+    const isClockedOut = !!record.check_out_raw || record.status === 'Logged Out' || record.status === 'clocked_out';
+    const now = Date.now();
+    
+    let productiveSecs = 0;
+    let breakSecs = 0;
+    let idleSecs = 0;
+    let sessionSecs = 0;
+
+    if (isClockedOut) {
+      productiveSecs = (record.productive_hours ?? record.duration_hours) * 3600;
+      breakSecs = record.total_break_seconds ?? 0;
+      if (record.check_in_raw && record.check_out_raw) {
+        sessionSecs = Math.floor((new Date(record.check_out_raw).getTime() - new Date(record.check_in_raw).getTime()) / 1000);
+      } else {
+        sessionSecs = productiveSecs + breakSecs;
+      }
+    } else {
+      const checkInMs = record.check_in_raw ? new Date(record.check_in_raw).getTime() : now;
+      sessionSecs = Math.max(0, Math.floor((now - checkInMs) / 1000));
+      
+      const accumulatedBreak = record.total_break_seconds ?? 0;
+      if ((record.status === 'On Break' || record.status === 'AUTO_BREAK') && record.current_break_start) {
+        const breakStartMs = new Date(record.current_break_start).getTime();
+        breakSecs = accumulatedBreak + Math.max(0, Math.floor((now - breakStartMs) / 1000));
+      } else {
+        breakSecs = accumulatedBreak;
+      }
+      
+      if (record.status === 'PRODUCTIVE_TIMER_PAUSED' || record.status === 'IDLE_WARNING') {
+        idleSecs = Math.max(0, sessionSecs - breakSecs - ((record.productive_hours ?? 0) * 3600));
+      }
+      
+      if (record.status === 'Working' || record.status === 'DESKTOP_ACTIVE' || record.status === 'MOBILE_CLOCKED_IN' || record.status === 'AWAITING_DESKTOP') {
+        productiveSecs = Math.max(0, sessionSecs - breakSecs);
+      } else {
+        productiveSecs = (record.productive_hours ?? 0) * 3600;
+      }
+    }
+
+    return {
+      productive: formatDuration(productiveSecs),
+      break: formatDuration(breakSecs),
+      idle: formatDuration(idleSecs),
+      session: formatDuration(sessionSecs),
+      isClockedOut,
+      productiveSecs,
+      breakSecs,
+      idleSecs,
+      sessionSecs
+    };
+  };
+
+  const renderTelemetry = (record: AttendanceRecord) => {
+    const isClockedOut = !!record.check_out_raw || record.status === 'Logged Out' || record.status === 'clocked_out';
+    
+    // GPS Indicator
+    let gpsColor = 'text-zinc-300';
+    let gpsTitle = 'GPS Telemetry Inactive';
+    if (!isClockedOut) {
+      if (record.lat !== 0 && record.lng !== 0) {
+        if (record.status === 'GPS_UNSTABLE') {
+          gpsColor = 'text-amber-500 animate-pulse';
+          gpsTitle = 'GPS Coordinate Unstable';
+        } else if (record.risk_reasons?.some(r => r.signal.toLowerCase().includes('gps') || r.detail.toLowerCase().includes('geofence'))) {
+          gpsColor = 'text-red-500';
+          gpsTitle = 'Geofence Violation Detected';
+        } else {
+          gpsColor = 'text-emerald-500';
+          gpsTitle = 'GPS Locked: Within Geofence';
+        }
+      } else {
+        gpsColor = 'text-red-400';
+        gpsTitle = 'No GPS Location Data';
+      }
+    }
+
+    // Desktop Indicator
+    let desktopColor = 'text-zinc-300';
+    let desktopTitle = 'Desktop Telemetry Inactive';
+    if (!isClockedOut) {
+      if (record.status === 'DESKTOP_ACTIVE' || record.status === 'Working') {
+        desktopColor = 'text-emerald-500';
+        desktopTitle = 'Desktop Application Active';
+      } else if (record.status === 'AWAITING_DESKTOP') {
+        desktopColor = 'text-amber-500 animate-pulse';
+        desktopTitle = 'Awaiting Desktop Link (Grace Period)';
+      } else if (record.device_type === 'mobile' || record.status === 'MOBILE_CLOCKED_IN') {
+        desktopColor = 'text-violet-400';
+        desktopTitle = 'Mobile Only Verification';
+      } else {
+        desktopColor = 'text-red-500';
+        desktopTitle = 'Desktop Agent Inactive';
+      }
+    }
+
+    // Heartbeat Indicator / Pulse
+    let pulseColor = 'bg-zinc-300';
+    let pulseTitle = 'No Heartbeat (Inactive)';
+    let latencyText = '';
+    if (!isClockedOut) {
+      if (record.status === 'On Break') {
+        pulseColor = 'bg-amber-400 animate-pulse';
+        pulseTitle = 'Heartbeat Paused (On Break)';
+      } else if (record.status === 'PRODUCTIVE_TIMER_PAUSED' || record.status === 'IDLE_WARNING') {
+        pulseColor = 'bg-red-500 animate-ping';
+        pulseTitle = 'Idle Warning (Telemetry Missed)';
+      } else {
+        pulseColor = 'bg-emerald-500 animate-pulse';
+        pulseTitle = 'Heartbeat Live & Synchronized';
+        latencyText = ' <5s';
+      }
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <span title={gpsTitle}>
+          <MapPin className={cn("w-3.5 h-3.5", gpsColor)} />
+        </span>
+        <span title={desktopTitle}>
+          <Monitor className={cn("w-3.5 h-3.5", desktopColor)} />
+        </span>
+        <div className="flex items-center gap-1">
+          <span className={cn("w-2 h-2 rounded-full", pulseColor)} title={pulseTitle} />
+          {latencyText && <span className="text-[8px] font-mono text-zinc-400 font-bold">{latencyText}</span>}
+        </div>
+        <span title={!isClockedOut ? "Signal strength: High" : "Offline"}>
+          <Signal className={cn("w-3.5 h-3.5", !isClockedOut ? "text-emerald-500" : "text-zinc-300")} />
+        </span>
+      </div>
+    );
+  };
+
+  const toggleRow = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleToggleExemption = async (recordId: string, fieldName: string, currentVal: boolean) => {
@@ -320,6 +553,111 @@ export default function AttendanceClient({
     }
   };
 
+  const kpiItems = [
+    { label: 'Active Workforce', value: realtimeData?.metrics.activeWorkforce ?? 0, color: 'from-emerald-500 to-teal-600', icon: Activity, pulse: true },
+    { label: 'Active Breaks', value: realtimeData?.metrics.activeBreaks ?? 0, color: 'from-amber-400 to-orange-500', icon: Coffee },
+    { label: 'Idle Warnings', value: realtimeData?.metrics.idleWarnings ?? 0, color: 'from-yellow-400 to-amber-500', icon: AlertTriangle },
+    { label: 'GPS Alerts', value: realtimeData?.metrics.gpsAlerts ?? 0, color: 'from-rose-500 to-red-600', icon: MapPin },
+    { label: 'Mobile-Only', value: realtimeData?.metrics.mobileSessions ?? 0, color: 'from-violet-500 to-purple-600', icon: Smartphone },
+    { label: 'Stale Sessions', value: realtimeData?.metrics.staleSessions ?? 0, color: 'from-red-600 to-rose-700', icon: ShieldAlert },
+    { label: 'Auto-Breaks Today', value: realtimeData?.metrics.autoBreaks ?? 0, color: 'from-red-400 to-orange-600', icon: Clock },
+    { label: 'Pending Disputes', value: realtimeData?.metrics.pendingDisputes ?? 0, color: 'from-blue-500 to-indigo-600', icon: Gavel }
+  ];
+
+  const renderActivityFeed = () => (
+    <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-4 flex flex-col h-full max-h-[600px] overflow-hidden">
+      <div className="flex items-center justify-between pb-3 border-b border-zinc-155 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <h3 className="font-heading font-black text-xs text-navy-900 uppercase tracking-wider">
+            Realtime Activity
+          </h3>
+        </div>
+        <span className="text-[9px] text-zinc-400 font-mono">LIVE</span>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
+        {!realtimeData || realtimeData.latestEvents.length === 0 ? (
+          <div className="py-8 text-center text-xs text-zinc-400 italic">
+            No recent activity events.
+          </div>
+        ) : (
+          realtimeData.latestEvents.slice(0, 15).map((evt) => {
+            const time = new Date(evt.event_timestamp);
+            const timeString = time.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            
+            let badgeColor = 'bg-zinc-100 text-zinc-650 border-zinc-200';
+            let title = evt.event_type;
+            
+            switch (evt.event_type) {
+              case 'CLOCK_IN':
+                badgeColor = 'bg-emerald-50 text-emerald-600 border-emerald-100';
+                break;
+              case 'CLOCK_OUT':
+              case 'FORCE_LOGOUT':
+                badgeColor = 'bg-red-50 text-red-600 border-red-100';
+                break;
+              case 'BREAK_STARTED':
+              case 'BREAK_ENDED':
+              case 'AUTO_BREAK_TRIGGERED':
+                badgeColor = 'bg-amber-50 text-amber-600 border-amber-100';
+                break;
+              case 'HEARTBEAT_RECEIVED':
+                badgeColor = 'bg-blue-50 text-blue-650 border-blue-100';
+                title = 'HEARTBEAT';
+                break;
+              case 'ADMIN_OVERRIDE':
+                badgeColor = 'bg-violet-50 text-violet-650 border-violet-100';
+                break;
+              default:
+                badgeColor = 'bg-zinc-50 text-zinc-650 border-zinc-200';
+            }
+            
+            const matchRecord = initialAttendance.find(r => r.id === evt.session_id);
+            
+            return (
+              <div 
+                key={evt.id}
+                onClick={() => matchRecord && handleOpenDrawer(matchRecord)}
+                className={cn(
+                  "p-2.5 rounded-lg border border-zinc-150 bg-zinc-50/50 hover:bg-zinc-100/50 transition-all text-[11px] leading-relaxed cursor-pointer select-none",
+                  matchRecord ? "hover:border-primary-400" : "opacity-80"
+                )}
+              >
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="font-extrabold text-navy-900 truncate max-w-[120px]" title={evt.employee_name}>
+                    {evt.employee_name}
+                  </span>
+                  <span className="text-[8px] text-zinc-400 font-mono shrink-0">
+                    {timeString}
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border shrink-0", badgeColor)}>
+                    {title.replace(/_RECEIVED|_TRIGGERED/g, '')}
+                  </span>
+                  <span className="text-zinc-500 font-medium truncate max-w-[150px]" title={
+                    evt.event_type === 'HEARTBEAT_RECEIVED'
+                      ? `Telemetry active`
+                      : evt.payload?.reason || evt.payload?.stale_reason || 'Workforce event logged'
+                  }>
+                    {evt.event_type === 'HEARTBEAT_RECEIVED'
+                      ? `Active`
+                      : evt.payload?.reason || evt.payload?.stale_reason || 'Logged'}
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Tabs Selection */}
@@ -347,6 +685,46 @@ export default function AttendanceClient({
             </button>
           );
         })}
+      </div>
+
+      {/* Realtime KPI Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        {kpiItems.map((kpi) => (
+          <div 
+            key={kpi.label} 
+            className="relative bg-white rounded-xl border border-zinc-200 shadow-sm p-3.5 flex flex-col justify-between hover:scale-[1.02] hover:border-primary-400/50 hover:shadow-md transition-all duration-300 overflow-hidden group cursor-pointer"
+            onClick={() => {
+              if (kpi.label === 'Active Workforce') setQuickFilter('active');
+              if (kpi.label === 'Active Breaks') setQuickFilter('breaks');
+              if (kpi.label === 'Idle Warnings') setQuickFilter('idle');
+              if (kpi.label === 'Mobile-Only') setQuickFilter('mobile');
+              if (kpi.label === 'Stale Sessions') setQuickFilter('stale');
+              if (kpi.label === 'GPS Alerts') setQuickFilter('gps');
+              if (kpi.label === 'Pending Disputes') setQuickFilter('disputes');
+              if (kpi.label === 'Auto-Breaks Today') setQuickFilter('autobreaks');
+            }}
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br ${kpi.color} opacity-0 group-hover:opacity-[0.02] transition-opacity duration-300`} />
+            
+            <div className="flex items-center justify-between mb-2">
+              <div className="p-1.5 rounded-lg bg-zinc-50 border border-zinc-100 group-hover:border-primary-200/50 transition-colors">
+                <kpi.icon className="w-4 h-4 text-navy-850" />
+              </div>
+              {kpi.pulse && (
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="text-2xl font-black text-navy-900 tracking-tight">{kpi.value}</p>
+              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 leading-snug">
+                {kpi.label}
+              </p>
+            </div>
+          </div>
+        ))}
       </div>
 
       {activeTab === 'logs' && (
@@ -446,12 +824,15 @@ export default function AttendanceClient({
           {/* Quick Filter Pills */}
           <div className="flex items-center gap-2 flex-wrap px-1">
             {[
-              { id: 'all', label: 'All Records', count: initialAttendance.length },
-              { id: 'active', label: 'Active', count: initialAttendance.filter(r => r.status === 'Working' || r.status === 'DESKTOP_ACTIVE').length },
-              { id: 'breaks', label: 'On Break', count: initialAttendance.filter(r => r.status === 'On Break').length },
-              { id: 'idle', label: 'Idle', count: initialAttendance.filter(r => r.status === 'PRODUCTIVE_TIMER_PAUSED').length },
-              { id: 'mobile', label: 'Mobile', count: initialAttendance.filter(r => r.device_type === 'mobile' || r.device_type === 'tablet').length },
-              { id: 'stale', label: 'Stale', count: initialAttendance.filter(r => r.status === 'Working' && r.check_out === null && r.duration_hours > 12).length },
+              { id: 'all', label: 'All Records', count: filterCounts.all },
+              { id: 'active', label: 'Active', count: filterCounts.active },
+              { id: 'breaks', label: 'On Break', count: filterCounts.breaks },
+              { id: 'idle', label: 'Idle', count: filterCounts.idle },
+              { id: 'gps', label: 'GPS Alerts', count: filterCounts.gps },
+              { id: 'mobile', label: 'Mobile', count: filterCounts.mobile },
+              { id: 'stale', label: 'Stale', count: filterCounts.stale },
+              { id: 'disputes', label: 'Disputes', count: filterCounts.disputes },
+              { id: 'autobreaks', label: 'Auto-Breaks', count: filterCounts.autobreaks },
             ].map((pill) => (
               <button
                 key={pill.id}
@@ -484,316 +865,463 @@ export default function AttendanceClient({
             </div>
           </div>
 
-          {/* Mobile Card Layout */}
-          <div className="block md:hidden space-y-2">
-            {filtered.length === 0 ? (
-              <Card hover={false} className="p-8 rounded-xl border border-zinc-200 bg-white text-center">
-                <Calendar className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                <p className="text-xs text-zinc-500 font-bold">No logs found.</p>
-              </Card>
-            ) : (
-              filtered.map((record) => (
-                <Card 
-                  key={record.id} 
-                  hover={true} 
-                  onClick={() => handleOpenDrawer(record)}
-                  className="p-4 rounded-xl border border-zinc-200 bg-white cursor-pointer hover:border-primary-500/40 hover:shadow-md hover:bg-zinc-50 transition-all text-zinc-700"
-                >
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-zinc-700">
-                        <User className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="text-xs font-semibold text-navy-900 tracking-tight flex items-center gap-1.5">
-                        {record.employee_name}
-                        <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
-                          {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
-                        </span>
-                      </span>
-                    </div>
-                    <span className={cn(
-                      "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                      statusColors[record.status?.toLowerCase()] || statusColors.present
-                    )}>
-                      {record.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-zinc-500 font-medium">
-                    <span>
-                      {!isNaN(new Date(record.date).getTime())
-                        ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' }).toUpperCase()
-                        : record.date?.toUpperCase() || '—'}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span>{record.check_in || '—'} → {record.check_out || '—'}</span>
-                      {record.duration_hours > 0 && (
-                        <span className="bg-white px-1.5 py-0.5 rounded border border-zinc-200 text-[10px] font-bold text-navy-900">
-                          {record.duration_hours}H
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-200/30">
-                    <div className="flex items-center gap-1.5">
-                      <span className={cn(
-                        "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                        record.risk_level === 'high' ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                        record.risk_level === 'medium' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
-                        "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                      )}>
-                        {record.risk_level || 'low'}
-                      </span>
-                      {record.risk_score !== undefined && record.risk_score > 0 && (
-                        <span className="text-[10px] font-mono text-zinc-400">({record.risk_score} pts)</span>
-                      )}
-                    </div>
-                    <MapPin className="w-3.5 h-3.5 text-slate-600" />
-                  </div>
-                </Card>
-              ))
-            )}
-          </div>
-
-          {/* Desktop Table */}
-          <Card hover={false} className="p-0 overflow-hidden border border-zinc-200 bg-white backdrop-blur-md rounded-xl shadow-sm hidden md:block">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-zinc-200 bg-zinc-50/50">
-                    <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Staff Member</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Timeline</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Clock In</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Clock Out</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Intensity</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Compliance</th>
-                    <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Trust Engine</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100/60">
-                  {filtered.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center">
-                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-3">
-                          <Calendar className="w-5 h-5 text-slate-600" />
-                        </div>
-                        <p className="text-xs text-zinc-500 font-bold">No synchronization logs found for this period.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered.map((record) => (
-                      <tr 
-                        key={record.id} 
-                        onClick={() => handleOpenDrawer(record)}
-                        className="group hover:bg-zinc-50/30 transition-colors cursor-pointer"
-                      >
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-zinc-700 group-hover:bg-primary-500 group-hover:text-navy-900 transition-colors">
-                              <User className="w-3.5 h-3.5" />
-                            </div>
-                            <span className="text-xs font-semibold text-navy-900 tracking-tight flex items-center gap-1.5">
-                              {record.employee_name}
-                              <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
-                                {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
-                              </span>
-                            </span>
+          {/* Desktop Table & Realtime Split Grid Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+            {/* Left Column: Table/Cards */}
+            <div className="lg:col-span-8 space-y-4">
+              {/* Mobile Card Layout */}
+              <div className="block md:hidden space-y-2">
+                {filtered.length === 0 ? (
+                  <Card hover={false} className="p-8 rounded-xl border border-zinc-200 bg-white text-center">
+                    <Calendar className="w-8 h-8 text-slate-605 mx-auto mb-2" />
+                    <p className="text-xs text-zinc-500 font-bold">No logs found.</p>
+                  </Card>
+                ) : (
+                  filtered.map((record) => (
+                    <Card 
+                      key={record.id} 
+                      hover={true} 
+                      onClick={() => handleOpenDrawer(record)}
+                      className="p-4 rounded-xl border border-zinc-200 bg-white cursor-pointer hover:border-primary-500/40 hover:shadow-md hover:bg-zinc-50 transition-all text-zinc-700"
+                    >
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-zinc-700">
+                            <User className="w-3.5 h-3.5" />
                           </div>
-                        </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          <div className="text-[10px] font-semibold text-zinc-500">
-                            {!isNaN(new Date(record.date).getTime()) 
-                              ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' }).toUpperCase() 
-                              : record.date?.toUpperCase() || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          <div className="flex items-center gap-1 text-xs font-medium text-navy-900">
-                            <Clock className="w-3.5 h-3.5 text-emerald-400/50" />
-                            {record.check_in || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          <div className="flex items-center gap-1 text-xs font-medium text-navy-900">
-                            <Clock className="w-3.5 h-3.5 text-red-400/50" />
-                            {record.check_out || '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          <div className="text-xs font-semibold text-zinc-500">
-                            {record.duration_hours > 0 ? (
-                              <span className="bg-white px-1.5 py-0.5 rounded border border-zinc-200 text-[10px] text-navy-900 font-bold">
-                                {record.duration_hours}H
-                              </span>
-                            ) : '—'}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <div className={cn(
-                            "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                            statusColors[record.status?.toLowerCase()] || statusColors.present
-                          )}>
-                            {record.status}
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 whitespace-nowrap">
-                          <div 
-                            className="flex items-center gap-1.5 cursor-help"
-                            title={record.risk_reasons && record.risk_reasons.length > 0 
-                              ? record.risk_reasons.map((r) => `• ${r.detail} (+${r.weight} pts)`).join('\n') 
-                              : 'All trust signals secure (0 pts)'}
-                          >
-                            <span className={cn(
-                              "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                              record.risk_level === 'high' ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                              record.risk_level === 'medium' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
-                              "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                            )}>
-                              {record.risk_level || 'low'}
-                            </span>
-                            {record.risk_score !== undefined && record.risk_score > 0 && (
-                              <span className="text-[10px] font-mono text-zinc-400">({record.risk_score} pts)</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === 'live' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                <span className="text-navy-900 font-extrabold">{liveRecords.length}</span> Active Sessions Today
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {liveRecords.length === 0 ? (
-              <div className="col-span-full p-12 text-center bg-white rounded-2xl border border-zinc-200">
-                <Clock className="w-10 h-10 text-slate-650 mx-auto mb-3" />
-                <p className="text-xs text-zinc-500 font-bold">No active check-ins detected today.</p>
-              </div>
-            ) : (
-              liveRecords.map((record) => {
-                const now = new Date();
-                const checkInTime = record.check_in_raw ? new Date(record.check_in_raw) : null;
-                const breakStartTime = record.current_break_start ? new Date(record.current_break_start) : null;
-                
-                const currentStatus = record.status; 
-                let totalBreakSecs = record.total_break_seconds || 0;
-                
-                if (currentStatus === 'On Break' && breakStartTime) {
-                  totalBreakSecs += Math.floor((now.getTime() - breakStartTime.getTime()) / 1000);
-                }
-                
-                let totalWorkSecs = 0;
-                if (checkInTime) {
-                  if (record.check_out_raw) {
-                    const checkOutTime = new Date(record.check_out_raw);
-                    totalWorkSecs = Math.floor((checkOutTime.getTime() - checkInTime.getTime()) / 1000);
-                  } else {
-                    totalWorkSecs = Math.floor((now.getTime() - checkInTime.getTime()) / 1000);
-                  }
-                }
-                
-                const productiveSecs = Math.max(0, totalWorkSecs - totalBreakSecs);
-                const isOverrun = totalBreakSecs > 3600;
-                const isWarning = totalBreakSecs > 2700 && totalBreakSecs <= 3600;
-
-                return (
-                  <Card 
-                    key={record.id} 
-                    hover={false} 
-                    className={cn(
-                      "p-5 rounded-2xl border bg-white shadow-sm transition-all duration-300 relative overflow-hidden text-navy-900",
-                      currentStatus === 'On Break' ? "border-amber-500/30 bg-amber-500/5 animate-pulse" : "border-zinc-200",
-                      isOverrun && "ring-2 ring-red-500/50 border-red-500/50 bg-red-500/[0.02]"
-                    )}
-                  >
-                    {isOverrun && (
-                      <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-black text-center py-1 uppercase tracking-widest">
-                        ⚠️ Break Overrun Danger (&gt; 1hr)
-                      </div>
-                    )}
-                    
-                    <div className={cn("flex items-start justify-between", isOverrun && "mt-4")}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-zinc-600 font-bold border border-zinc-200/40">
-                          {record.employee_name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
-                        </div>
-                        <div>
-                          <h4 className="text-xs font-bold text-navy-900 flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-navy-900 tracking-tight flex items-center gap-1.5">
                             {record.employee_name}
                             <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
                               {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
                             </span>
-                          </h4>
-                          <p className="text-[9px] text-zinc-500 font-bold tracking-widest mt-0.5 font-mono">
-                            IN: {record.check_in || '—'}
-                          </p>
+                          </span>
+                        </div>
+                        <span className={cn(
+                          "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
+                          statusColors[record.status?.toLowerCase()] || statusColors.present
+                        )}>
+                          {record.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-zinc-505 font-medium">
+                        <span>
+                          {!isNaN(new Date(record.date).getTime())
+                            ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' }).toUpperCase()
+                            : record.date?.toUpperCase() || '—'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span>{record.check_in || '—'} → {record.check_out || '—'}</span>
+                          {(() => {
+                            const times = getRealtimeDurations(record);
+                            return (
+                              <span className={cn(
+                                "px-1.5 py-0.5 rounded border text-[9px] font-mono",
+                                times.isClockedOut ? "bg-zinc-105 text-zinc-650 border-zinc-200" : "bg-emerald-50 text-emerald-600 border-emerald-25"
+                              )}>
+                                {times.productive}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
-
-                      <span className={cn(
-                        "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border",
-                        (currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'MOBILE_CLOCKED_IN' || currentStatus === 'AWAITING_DESKTOP') ? "bg-emerald-500/10 text-emerald-450 border-emerald-500/25" :
-                        currentStatus === 'On Break' ? "bg-amber-500/10 text-amber-450 border-amber-500/25" :
-                        "bg-slate-800/40 text-zinc-500 border-slate-700/50"
-                      )}>
-                        <span className={cn(
-                          "w-1.5 h-1.5 rounded-full",
-                          (currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'MOBILE_CLOCKED_IN' || currentStatus === 'AWAITING_DESKTOP') ? "bg-emerald-500 animate-pulse" :
-                          currentStatus === 'On Break' ? "bg-amber-500 animate-ping" :
-                          "bg-slate-500"
-                        )} />
-                        {currentStatus}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-zinc-200">
-                      <div>
-                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Productive Work</span>
-                        <span className="text-xs font-black text-navy-900 font-mono tracking-tight">
-                          {formatDuration(productiveSecs)}
-                        </span>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-200/30">
+                        <div className="flex items-center gap-1.5">
+                          <span className={cn(
+                            "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
+                            record.risk_level === 'high' ? "bg-red-500/10 text-red-600 border-red-500/20" :
+                            record.risk_level === 'medium' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                            "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                          )}>
+                            {record.risk_level || 'low'}
+                          </span>
+                          {record.risk_score !== undefined && record.risk_score > 0 && (
+                            <span className="text-[10px] font-mono text-zinc-400">({record.risk_score} pts)</span>
+                          )}
+                        </div>
+                        <MapPin className="w-3.5 h-3.5 text-slate-600" />
                       </div>
-                      <div>
-                        <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Break Duration</span>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+              {/* Desktop Table layout */}
+              <Card hover={false} className="p-0 overflow-hidden border border-zinc-200 bg-white backdrop-blur-md rounded-xl shadow-sm hidden md:block">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-zinc-200 bg-zinc-50/50">
+                        <th className="w-10 px-2 py-2.5"></th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Staff Member</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Telemetry</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Timeline</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Clock In</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Clock Out</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Intensity</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Compliance</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Trust Engine</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100/60">
+                      {filtered.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="px-4 py-12 text-center">
+                            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-3">
+                              <Calendar className="w-5 h-5 text-slate-600" />
+                            </div>
+                            <p className="text-xs text-zinc-505 font-bold">No synchronization logs found for this period.</p>
+                          </td>
+                        </tr>
+                      ) : (
+                        filtered.map((record) => (
+                          <Fragment key={record.id}>
+                            <tr 
+                              onClick={() => handleOpenDrawer(record)}
+                              className={cn(
+                                "group hover:bg-zinc-50/30 transition-colors cursor-pointer",
+                                expandedRows[record.id] && "bg-zinc-50/20"
+                              )}
+                            >
+                              <td className="w-10 px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                <button 
+                                  onClick={(e) => toggleRow(record.id, e)}
+                                  className="p-1 rounded hover:bg-zinc-150 text-zinc-500 transition-colors"
+                                >
+                                  {expandedRows[record.id] ? (
+                                    <ChevronDown className="w-4 h-4" />
+                                  ) : (
+                                    <ChevronRight className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-zinc-700 group-hover:bg-primary-500 group-hover:text-navy-900 transition-colors">
+                                    <User className="w-3.5 h-3.5" />
+                                  </div>
+                                  <span className="text-xs font-semibold text-navy-900 tracking-tight flex items-center gap-1.5">
+                                    {record.employee_name}
+                                    <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                                      {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+                                    </span>
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                {renderTelemetry(record)}
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <div className="text-[10px] font-semibold text-zinc-505">
+                                  {!isNaN(new Date(record.date).getTime()) 
+                                    ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' }).toUpperCase() 
+                                    : record.date?.toUpperCase() || '—'}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <div className="flex items-center gap-1 text-xs font-medium text-navy-900">
+                                  <Clock className="w-3.5 h-3.5 text-emerald-400/50" />
+                                  {record.check_in || '—'}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <div className="flex items-center gap-1 text-xs font-medium text-navy-900">
+                                  <Clock className="w-3.5 h-3.5 text-red-400/50" />
+                                  {record.check_out || '—'}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                {(() => {
+                                  const times = getRealtimeDurations(record);
+                                  if (times.isClockedOut) {
+                                    return (
+                                      <div className="text-xs font-semibold text-zinc-500 flex items-center gap-1.5">
+                                        <span className="bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200 text-[10px] text-zinc-650 font-mono">
+                                          {times.productive}
+                                        </span>
+                                        {times.breakSecs > 0 && (
+                                          <span className="bg-amber-50 text-amber-600 border border-amber-25 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">
+                                            B: {times.break}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  } else {
+                                    return (
+                                      <div className="text-xs font-semibold flex items-center gap-1.5">
+                                        <span className="bg-emerald-50 text-emerald-600 border border-emerald-25 px-2 py-0.5 rounded text-[10px] font-mono animate-pulse flex items-center gap-1">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                                          {times.productive}
+                                        </span>
+                                        {times.breakSecs > 0 && (
+                                          <span className="bg-amber-50 text-amber-600 border border-amber-25 px-1.5 py-0.5 rounded text-[9px] font-mono animate-pulse font-bold">
+                                            B: {times.break}
+                                          </span>
+                                        )}
+                                        {times.idleSecs > 0 && (
+                                          <span className="bg-red-50 text-red-655 border border-red-25 px-1.5 py-0.5 rounded text-[9px] font-mono animate-pulse font-bold">
+                                            I: {times.idle}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                })()}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className={cn(
+                                  "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
+                                  statusColors[record.status?.toLowerCase()] || statusColors.present
+                                )}>
+                                  {record.status}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 whitespace-nowrap">
+                                <div 
+                                  className="flex items-center gap-1.5 cursor-help"
+                                  title={record.risk_reasons && record.risk_reasons.length > 0 
+                                    ? record.risk_reasons.map((r) => `• ${r.detail} (+${r.weight} pts)`).join('\n') 
+                                    : 'All trust signals secure (0 pts)'}
+                                >
+                                  <span className={cn(
+                                    "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
+                                    record.risk_level === 'high' ? "bg-red-500/10 text-red-600 border-red-500/20" :
+                                    record.risk_level === 'medium' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                                    "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                  )}>
+                                    {record.risk_level || 'low'}
+                                  </span>
+                                  {record.risk_score !== undefined && record.risk_score > 0 && (
+                                    <span className="text-[10px] font-mono text-zinc-400">({record.risk_score} pts)</span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                            {expandedRows[record.id] && (
+                              <tr className="bg-zinc-50/20" onClick={(e) => e.stopPropagation()}>
+                                <td colSpan={9} className="px-6 py-4 border-b border-zinc-200">
+                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+                                    <div className="space-y-1">
+                                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Geofence Telemetry</span>
+                                      <p className="font-semibold text-navy-900">Coordinates: {record.lat.toFixed(6)}, {record.lng.toFixed(6)}</p>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <a 
+                                          href={`https://www.google.com/maps/search/?api=1&query=${record.lat},${record.lng}`}
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-[10px] text-primary-600 font-bold hover:underline inline-flex items-center gap-0.5"
+                                        >
+                                          Google Maps <ExternalLink className="w-2.5 h-2.5" />
+                                        </a>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="space-y-1">
+                                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Device Registry</span>
+                                      <p className="font-semibold text-navy-900 truncate max-w-xs">{record.device_label || 'Default Workstation'}</p>
+                                      <p className="text-[10px] text-zinc-450 mt-0.5 uppercase font-mono">{record.device_type || 'Desktop'}</p>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Break Diagnostics</span>
+                                      <p className="font-semibold text-navy-900">Total Break: {Math.round((record.total_break_seconds ?? 0) / 60)} mins</p>
+                                      {record.current_break_start && (
+                                        <p className="text-[10px] text-amber-505 font-semibold animate-pulse mt-0.5">
+                                          Active Break since {new Date(record.current_break_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    <div className="space-y-1.5 flex flex-col justify-center">
+                                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Admin Override Actions</span>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        <button
+                                          onClick={() => handleOpenDrawer(record)}
+                                          className="px-2 py-1 rounded bg-primary-50 hover:bg-primary-100 text-primary-600 font-bold text-[9px] uppercase tracking-wider transition-colors"
+                                        >
+                                          Open Drawer
+                                        </button>
+                                        <button
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            try {
+                                              await rebuildSessionProjection(record.id);
+                                              toast.success('Session rebuilt successfully.');
+                                              router.refresh();
+                                            } catch (err) {
+                                              toast.error('Rebuild failed.');
+                                            }
+                                          }}
+                                          className="px-2 py-1 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-[9px] uppercase tracking-wider transition-colors"
+                                        >
+                                          Rebuild
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOpenDrawer(record).then(() => {
+                                              setOverrideActionType('correct_clockout');
+                                            });
+                                          }}
+                                          className="px-2 py-1 rounded bg-teal-50 hover:bg-teal-100 text-teal-600 font-bold text-[9px] uppercase tracking-wider transition-colors"
+                                        >
+                                          Clockout
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleOpenDrawer(record).then(() => {
+                                              setOverrideActionType('reverse_autobreak');
+                                            });
+                                          }}
+                                          className="px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-600 font-bold text-[9px] uppercase tracking-wider transition-colors"
+                                        >
+                                          Rev Break
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </div>
+
+            {/* Right Column: Live Activity Feed (lg:col-span-2) */}
+            <div className="lg:col-span-2">
+              {renderActivityFeed()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'live' && (
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          {/* Left Column: Live Monitors */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="flex items-center justify-between px-1">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                  <span className="text-navy-900 font-extrabold">{liveRecords.length}</span> Active Sessions Today
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {liveRecords.length === 0 ? (
+                <div className="col-span-full p-12 text-center bg-white rounded-2xl border border-zinc-200">
+                  <Clock className="w-10 h-10 text-slate-655 mx-auto mb-3" />
+                  <p className="text-xs text-zinc-505 font-bold">No active check-ins detected today.</p>
+                </div>
+              ) : (
+                liveRecords.map((record) => {
+                  const times = getRealtimeDurations(record);
+                  const currentStatus = record.status;
+                  const isOverrun = times.breakSecs > 3600;
+                  const isWarning = times.breakSecs > 2700 && times.breakSecs <= 3600;
+
+                  return (
+                    <Card 
+                      key={record.id} 
+                      hover={false} 
+                      className={cn(
+                        "p-5 rounded-2xl border bg-white shadow-sm transition-all duration-300 relative overflow-hidden text-navy-900 cursor-pointer hover:border-primary-500/40 hover:shadow-md",
+                        currentStatus === 'On Break' ? "border-amber-500/30 bg-amber-500/5 animate-pulse" : "border-zinc-200",
+                        isOverrun && "ring-2 ring-red-500/50 border-red-500/50 bg-red-500/[0.02]"
+                      )}
+                      onClick={() => handleOpenDrawer(record)}
+                    >
+                      {isOverrun && (
+                        <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-[9px] font-black text-center py-1 uppercase tracking-widest">
+                          ⚠️ Break Overrun Danger (&gt; 1hr)
+                        </div>
+                      )}
+                      
+                      <div className={cn("flex items-start justify-between", isOverrun && "mt-4")}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-zinc-650 font-bold border border-zinc-200/40">
+                            {record.employee_name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-navy-900 flex items-center gap-1.5">
+                              {record.employee_name}
+                              <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                                {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
+                              </span>
+                            </h4>
+                            <div className="mt-1">
+                              {renderTelemetry(record)}
+                            </div>
+                            <p className="text-[9px] text-zinc-505 font-bold tracking-widest mt-1.5 font-mono">
+                              IN: {record.check_in || '—'}
+                            </p>
+                          </div>
+                        </div>
+
                         <span className={cn(
-                          "text-xs font-black font-mono tracking-tight flex items-center gap-1",
-                          isOverrun ? "text-red-500 animate-pulse" :
-                          isWarning ? "text-amber-400" :
-                          "text-navy-900"
+                          "inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black tracking-wider uppercase border",
+                          (currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'MOBILE_CLOCKED_IN' || currentStatus === 'AWAITING_DESKTOP') ? "bg-emerald-500/10 text-emerald-450 border-emerald-500/25" :
+                          currentStatus === 'On Break' ? "bg-amber-500/10 text-amber-450 border-amber-500/25" :
+                          "bg-slate-800/40 text-zinc-500 border-slate-700/50"
                         )}>
-                          {formatDuration(totalBreakSecs)}
+                          <span className={cn(
+                            "w-1.5 h-1.5 rounded-full",
+                            (currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'MOBILE_CLOCKED_IN' || currentStatus === 'AWAITING_DESKTOP') ? "bg-emerald-500 animate-pulse" :
+                            currentStatus === 'On Break' ? "bg-amber-500 animate-ping" :
+                            "bg-slate-500"
+                          )} />
+                          {currentStatus}
                         </span>
                       </div>
-                    </div>
-                  </Card>
-                );
-              })
-            )}
+
+                      <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-zinc-200">
+                        <div>
+                          <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Productive Work</span>
+                          <span className="text-xs font-black text-navy-900 font-mono tracking-tight flex items-center gap-1">
+                            {!times.isClockedOut && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />}
+                            {times.productive}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block mb-1">Break Duration</span>
+                          <span className={cn(
+                            "text-xs font-black font-mono tracking-tight flex items-center gap-1",
+                            isOverrun ? "text-red-500 animate-pulse" :
+                            isWarning ? "text-amber-400" :
+                            "text-navy-900"
+                          )}>
+                            {currentStatus === 'On Break' && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />}
+                            {times.break}
+                          </span>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Live Activity Feed (lg:col-span-2) */}
+          <div className="lg:col-span-2">
+            {renderActivityFeed()}
           </div>
         </div>
       )}
 
       {activeTab === 'lates' && (
         <div className="space-y-6">
-          {/* Lates Overview Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               { label: 'Total Late Logins', value: lateRecords.length, icon: AlertTriangle, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20 text-amber-400' },
               { label: 'Active Deductions', value: `${lateRecords.reduce((acc, r) => acc + (r.deduction_applied || 0), 0)} Days`, icon: ShieldCheck, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20 text-red-400' },
-              { label: 'Unexempted Lates', value: lateRecords.filter(r => !r.late_approved && !r.permission_approved && !r.shift_override && !r.manager_exemption && r.status !== 'Approved WFH').length, icon: Clock, color: 'text-navy-900', bg: 'bg-white border-zinc-200 text-zinc-600' },
+              { label: 'Unexempted Lates', value: lateRecords.filter(r => !r.late_approved && !r.permission_approved && !r.shift_override && !r.manager_exemption && r.status !== 'Approved WFH').length, icon: Clock, color: 'text-navy-900', bg: 'bg-white border-zinc-200 text-zinc-650' },
             ].map((s) => (
               <div key={s.label} className={cn("rounded-xl p-4 border shadow-sm flex items-center gap-3 bg-white border-zinc-200", s.bg)}>
                 <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center bg-white border border-zinc-200 shadow-sm", s.color)}>
@@ -801,20 +1329,19 @@ export default function AttendanceClient({
                 </div>
                 <div>
                   <p className="text-xl font-bold text-navy-900 leading-none">{s.value}</p>
-                  <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1">{s.label}</p>
+                  <p className="text-[9px] font-bold text-zinc-550 uppercase tracking-wider mt-1">{s.label}</p>
                 </div>
               </div>
             ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Lates Trend Chart */}
             <Card hover={false} className="p-6 rounded-2xl border border-zinc-200 bg-white lg:col-span-1 flex flex-col justify-between">
               <div>
                 <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider mb-4">Lateness Trend (This Month)</h3>
                 <div className="space-y-4">
                   {employeeLatesTrend.length === 0 ? (
-                    <p className="text-xs text-zinc-500 font-bold italic py-8 text-center">No lates recorded this month.</p>
+                    <p className="text-xs text-zinc-505 font-bold italic py-8 text-center">No lates recorded this month.</p>
                   ) : (
                     employeeLatesTrend.slice(0, 5).map((t) => {
                       const maxLates = Math.max(...employeeLatesTrend.map(x => x.total));
@@ -826,7 +1353,7 @@ export default function AttendanceClient({
                         <div key={t.employee_name} className="space-y-1">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-bold text-navy-900">{t.employee_name}</span>
-                            <span className="font-semibold text-zinc-500">
+                            <span className="font-semibold text-zinc-505">
                               {t.total} Lates ({t.unexempted} Active)
                             </span>
                           </div>
@@ -847,12 +1374,11 @@ export default function AttendanceClient({
                   )}
                 </div>
               </div>
-              <p className="text-[9px] text-zinc-500 mt-6 font-bold leading-normal uppercase tracking-wider border-t border-zinc-200/50 pt-4">
+              <p className="text-[9px] text-zinc-505 mt-6 font-bold leading-normal uppercase tracking-wider border-t border-zinc-200/50 pt-4">
                 💡 3+ Active Lates triggers a 0.5 Day deduction. 6+ Active Lates triggers a 1.0 Day deduction.
               </p>
             </Card>
 
-            {/* Late Logins Register */}
             <Card hover={false} className="p-0 overflow-hidden border border-zinc-200 rounded-2xl shadow-sm bg-white lg:col-span-2">
               <div className="p-4 border-b border-zinc-200 bg-zinc-50/30 flex items-center justify-between">
                 <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider">Late Logins Register</h3>
@@ -861,18 +1387,18 @@ export default function AttendanceClient({
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-zinc-200 bg-zinc-50/50">
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Staff Member</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Date</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Check In</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Delay</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Deduction</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500 text-center">Exemption Toggles</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Staff Member</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Date</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Check In</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Delay</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Deduction</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505 text-center">Exemption Toggles</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100/60">
                     {lateRecords.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-xs text-zinc-500 font-bold">
+                        <td colSpan={6} className="px-4 py-12 text-center text-xs text-zinc-505 font-bold">
                           No late check-in instances found in this period.
                         </td>
                       </tr>
@@ -885,7 +1411,7 @@ export default function AttendanceClient({
                               <span className="text-xs font-semibold text-navy-900 tracking-tight">{record.employee_name}</span>
                             </td>
                             <td className="px-4 py-2.5 whitespace-nowrap">
-                              <span className="text-[10px] font-semibold text-zinc-500">
+                              <span className="text-[10px] font-semibold text-zinc-505">
                                 {!isNaN(new Date(record.date).getTime()) 
                                   ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }).toUpperCase() 
                                   : record.date}
@@ -949,10 +1475,33 @@ export default function AttendanceClient({
         </div>
       )}
 
+      {/* System Health Footer */}
+      {realtimeData?.systemHealth && realtimeData.systemHealth.length > 0 && (
+        <div className="mt-8 pt-4 border-t border-zinc-200/60 flex flex-wrap items-center justify-between gap-4 text-[10px] text-zinc-505 font-bold uppercase tracking-wider">
+          <div className="flex items-center gap-1.5">
+            <Wifi className="w-3.5 h-3.5 text-zinc-400" />
+            <span>System Infrastructure Health:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
+            {realtimeData.systemHealth.map((node) => {
+              const isOnline = node.status === 'ONLINE' || node.status === 'active' || node.status === 'healthy';
+              return (
+                <div key={node.node_name} className="flex items-center gap-1.5 bg-white px-2 py-1 rounded border border-zinc-200 shadow-sm">
+                  <span className={cn("w-1.5 h-1.5 rounded-full", isOnline ? "bg-emerald-500 animate-pulse" : "bg-red-500")} />
+                  <span>{node.node_name}:</span>
+                  <span className={cn("font-extrabold font-mono", isOnline ? "text-emerald-650" : "text-red-500")}>
+                    {node.status.toUpperCase()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Slide-out details drawer */}
       {isDrawerOpen && selectedRecord && (
         <>
-          {/* Backdrop */}
           <div 
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 transition-opacity" 
             onClick={() => {
@@ -963,7 +1512,6 @@ export default function AttendanceClient({
             }}
           />
           
-          {/* Drawer container */}
           <motion.div
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -971,17 +1519,16 @@ export default function AttendanceClient({
             transition={{ type: 'spring', damping: 25, stiffness: 220 }}
             className="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl border-l border-zinc-200 z-50 flex flex-col text-navy-900"
           >
-            {/* Header */}
-            <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/40">
+            <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-55/40">
               <div>
                 <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider">
                   Session Details
                 </h3>
-                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-0.5">
+                <p className="text-[10px] font-bold text-zinc-505 uppercase tracking-wider mt-0.5">
                   {selectedRecord.employee_name}
                 </p>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border bg-zinc-100 text-zinc-500 border-zinc-200">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border bg-zinc-100 text-zinc-505 border-zinc-200">
                     {selectedRecord.device_type === 'mobile' || selectedRecord.device_type === 'tablet' 
                       ? <><Smartphone className="w-2.5 h-2.5" /> {selectedRecord.device_label || 'Mobile'}</>
                       : <><Monitor className="w-2.5 h-2.5" /> {selectedRecord.device_label || 'Desktop'}</>
@@ -1004,19 +1551,17 @@ export default function AttendanceClient({
               </button>
             </div>
 
-            {/* Scrollable Event Timeline */}
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
-              {/* Session Overview Card */}
-              <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50/40 space-y-2 text-xs">
+              <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-55/40 space-y-2 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Date</span>
+                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Date</span>
                     <span className="font-semibold text-navy-900">
                       {selectedRecord.date}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">State</span>
+                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">State</span>
                     <span className={cn(
                       "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase mt-0.5",
                       statusColors[selectedRecord.status?.toLowerCase()] || statusColors.present
@@ -1025,24 +1570,24 @@ export default function AttendanceClient({
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Check-in</span>
+                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Check-in</span>
                     <span className="font-semibold text-navy-900">{selectedRecord.check_in || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Check-out</span>
+                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Check-out</span>
                     <span className="font-semibold text-navy-900">{selectedRecord.check_out || '—'}</span>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-zinc-200/40 grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Productive Hours</span>
+                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Productive Hours</span>
                     <span className="font-mono font-bold text-navy-900">
                       {selectedRecord.productive_hours !== undefined ? selectedRecord.productive_hours.toFixed(1) : selectedRecord.duration_hours.toFixed(1)} hrs
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Break Time</span>
+                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Break Time</span>
                     <span className="font-mono font-bold text-navy-900">
                       {selectedRecord.total_break_seconds !== undefined ? Math.round(selectedRecord.total_break_seconds / 60) : 0} mins
                     </span>
@@ -1050,21 +1595,20 @@ export default function AttendanceClient({
                 </div>
               </div>
 
-              {/* Telemetry Summary */}
               {selectedRecordEvents.length > 0 && (
-                <div className="p-3 rounded-xl border border-zinc-200/60 bg-zinc-50/30 grid grid-cols-3 gap-3 text-center">
+                <div className="p-3 rounded-xl border border-zinc-200/60 bg-zinc-55/30 grid grid-cols-3 gap-3 text-center">
                   <div>
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block">Events</span>
+                    <span className="text-[8px] font-black text-zinc-505 uppercase tracking-widest block">Events</span>
                     <span className="text-sm font-bold text-navy-900">{selectedRecordEvents.length}</span>
                   </div>
                   <div>
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block">Heartbeats</span>
+                    <span className="text-[8px] font-black text-zinc-505 uppercase tracking-widest block">Heartbeats</span>
                     <span className="text-sm font-bold text-navy-900">
                       {selectedRecordEvents.filter(e => e.event_type === 'HEARTBEAT_RECEIVED').length}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block">GPS Pings</span>
+                    <span className="text-[8px] font-black text-zinc-505 uppercase tracking-widest block">GPS Pings</span>
                     <span className="text-sm font-bold text-navy-900">
                       {selectedRecordEvents.filter(e => e.event_type === 'GPS_EXIT' || e.event_type === 'GPS_REENTRY').length}
                     </span>
@@ -1072,19 +1616,18 @@ export default function AttendanceClient({
                 </div>
               )}
 
-              {/* Timeline Container */}
               <div className="space-y-4 relative">
                 <h4 className="text-[10px] font-black text-zinc-700 uppercase tracking-widest block mb-4 border-b border-zinc-200/40 pb-1">
                   Immutable Telemetry Timeline
                 </h4>
 
                 {isLoadingEvents ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-zinc-500 text-xs font-bold gap-2">
+                  <div className="py-12 flex flex-col items-center justify-center text-zinc-505 text-xs font-bold gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-primary-400" />
                     <span>Retrieving event stream logs...</span>
                   </div>
                 ) : selectedRecordEvents.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-zinc-500 font-bold border border-dashed border-zinc-200 rounded-xl p-4 bg-zinc-50/40">
+                  <div className="py-8 text-center text-xs text-zinc-550 font-bold border border-dashed border-zinc-200 rounded-xl p-4 bg-zinc-55/40">
                     <AlertTriangle className="w-5 h-5 text-amber-500 mx-auto mb-2" />
                     <p>No telemetry logs found.</p>
                     <p className="font-normal text-[10px] text-zinc-400 mt-1">This record predates the event-sourcing ledger.</p>
@@ -1156,7 +1699,7 @@ export default function AttendanceClient({
                           break;
                         case 'GPS_REENTRY':
                           dotColor = 'bg-emerald-400';
-                          iconColor = 'text-emerald-500';
+                          iconColor = 'text-emerald-505';
                           description = `GPS coordinate change: User returned within geofence boundaries.`;
                           break;
                         case 'ADMIN_OVERRIDE':
@@ -1167,7 +1710,7 @@ export default function AttendanceClient({
                           break;
                         case 'HEARTBEAT_RECEIVED':
                           dotColor = 'bg-blue-400';
-                          iconColor = 'text-blue-500';
+                          iconColor = 'text-blue-505';
                           const clicks = evt.payload?.clicks_count ?? evt.payload?.telemetry?.clicks ?? 0;
                           const keys = evt.payload?.keys_count ?? evt.payload?.telemetry?.keys ?? 0;
                           description = `Heartbeat check secure. Keyboard/Mouse telemetry: ${clicks} clicks, ${keys} keystrokes.`;
@@ -1206,13 +1749,11 @@ export default function AttendanceClient({
 
                       return (
                         <div key={evt.id || idx} className="relative group/item">
-                          {/* Circle dot on the timeline line */}
                           <div className={cn(
                             "absolute left-[-21px] top-1.5 w-3 h-3 rounded-full border border-white z-10",
                             dotColor
                           )} />
                           
-                          {/* Event details card */}
                           <div className={cn("p-3 rounded-xl border text-xs shadow-sm space-y-1", cardBg)}>
                             <div className="flex items-center justify-between">
                               <span className="font-bold text-navy-900 tracking-tight">{evt.event_type}</span>
@@ -1221,10 +1762,9 @@ export default function AttendanceClient({
                             <p className="text-[10px] text-zinc-700 whitespace-pre-line leading-relaxed">
                               {description}
                             </p>
-                            {/* Expandable raw payload */}
                             {evt.payload && Object.keys(evt.payload).length > 0 && (
                               <details className="mt-1">
-                                <summary className="text-[9px] font-mono text-zinc-400 cursor-pointer hover:text-zinc-600 select-none flex items-center gap-1">
+                                <summary className="text-[9px] font-mono text-zinc-400 cursor-pointer hover:text-zinc-650 select-none flex items-center gap-1">
                                   <ChevronRight className="w-2.5 h-2.5 inline-block details-open:hidden" />
                                   <span>Raw payload</span>
                                 </summary>
@@ -1242,12 +1782,10 @@ export default function AttendanceClient({
               </div>
             </div>
 
-            {/* Bottom Actions Drawer Panel */}
             <div className="p-4 border-t border-zinc-200 bg-zinc-50/80 space-y-3">
-              {/* Action Selector Toggles */}
               {!overrideActionType ? (
                 <div className="flex flex-col gap-2">
-                  <h4 className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">
+                  <h4 className="text-[10px] font-black text-zinc-705 uppercase tracking-widest">
                     Operational Administrative Controls
                   </h4>
                   <div className="grid grid-cols-2 gap-2">
@@ -1290,16 +1828,15 @@ export default function AttendanceClient({
                       <button 
                         type="button"
                         onClick={() => setOverrideActionType(null)}
-                        className="text-[10px] text-zinc-500 font-bold hover:text-navy-900 uppercase"
+                        className="text-[10px] text-zinc-550 font-bold hover:text-navy-900 uppercase"
                       >
                         Cancel
                       </button>
                     </div>
 
-                    {/* Clockout datetime selector if needed */}
                     {overrideActionType === 'correct_clockout' && (
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">
+                        <label className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">
                           Adjusted Clock-out Time (Local Time)
                         </label>
                         <input
@@ -1314,7 +1851,7 @@ export default function AttendanceClient({
 
                     {overrideActionType === 'override_validation' && (
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">
+                        <label className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">
                           Validation Override Type
                         </label>
                         <select
@@ -1330,10 +1867,9 @@ export default function AttendanceClient({
                       </div>
                     )}
 
-                    {/* Justification Text Area (Mandatory for overrides) */}
                     {overrideActionType !== 'rebuild' && (
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">
+                        <label className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">
                           Override Justification Reason (Mandatory)
                         </label>
                         <textarea
@@ -1348,7 +1884,7 @@ export default function AttendanceClient({
                     )}
 
                     {overrideActionType === 'rebuild' && (
-                      <p className="text-[10px] text-zinc-500 leading-relaxed">
+                      <p className="text-[10px] text-zinc-505 leading-relaxed">
                         This will delete the daily attendance cache projections for this session and fully recalculate them by replaying the event telemetry stream sequentially. Use this if the dashboard counters are out of sync.
                       </p>
                     )}
