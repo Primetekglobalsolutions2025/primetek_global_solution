@@ -110,84 +110,80 @@ export default async function AuditLogsPage(props: PageProps) {
   });
 
   return (
-    <div className="space-y-6 pb-8 text-zinc-600">
+    <div className="space-y-6 pb-12 font-sans text-zinc-650">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-xl bg-zinc-50 border border-zinc-200 p-6 text-white shadow-md">
-        <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[100%] bg-primary-500/10 rounded-full blur-[80px]" />
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <ShieldCheck className="w-4 h-4 text-primary-400" />
-              <span className="text-[9px] font-bold uppercase tracking-wider text-primary-200">Security Ledger</span>
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">System Audit Logs</h1>
-            <p className="text-zinc-500 text-xs mt-1 font-medium">Immutable record of all critical administrative actions.</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-lg border border-zinc-200 shadow-2xs">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary-500" />
+            <h1 className="text-xl font-bold text-navy-900 tracking-tight">System Audit Logs</h1>
           </div>
-          <form method="GET" action="/admin/audit" className="relative group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
-            <input 
-              type="text" 
-              name="q"
-              defaultValue={q}
-              placeholder="Search logs..." 
-              className="pl-9 pr-3 py-2 rounded-lg bg-white border border-zinc-200 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500/30 w-full md:w-64 text-navy-900 placeholder:text-zinc-400"
-            />
-          </form>
+          <p className="text-xs text-zinc-450">
+            Immutable record of all critical administrative actions.
+          </p>
         </div>
+
+        <form method="GET" action="/admin/audit" className="relative group w-full sm:w-auto">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-450 focus:text-primary-500 transition-colors" />
+          <input 
+            type="text" 
+            name="q"
+            defaultValue={q}
+            placeholder="Search logs..." 
+            className="w-full sm:w-64 pl-10 pr-4 py-2 rounded-lg border border-zinc-200 bg-white text-xs text-navy-900 placeholder:text-zinc-450 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all shadow-sm font-semibold"
+          />
+        </form>
       </div>
 
       {/* Activity Monitoring Section */}
-      <div id="activity" className="scroll-mt-20">
-        <Card hover={false} className="overflow-hidden border border-zinc-200 shadow-sm rounded-xl p-0 bg-white">
-          <div className="flex items-center justify-between px-5 py-3.5 bg-zinc-50/50 border-b border-zinc-200/60">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center border border-primary-500/20">
-                <Activity className="w-4 h-4 text-primary-455" />
-              </div>
-              <div>
-                <h2 className="text-sm font-bold text-navy-900 tracking-tight">Activity Monitoring</h2>
-                <p className="text-[10px] text-zinc-500 font-medium">Last 24 hours — employee check-ins, check-outs &amp; remote work</p>
-              </div>
-            </div>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-600 bg-white px-2.5 py-1 rounded-full border border-zinc-200">
-              {recentActivity?.length || 0} events
-            </span>
+      <div id="activity" className="scroll-mt-20 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-5 bg-primary-500 rounded-full" />
+            <h2 className="text-sm font-semibold text-navy-900 tracking-tight font-sans">Activity Monitoring</h2>
           </div>
+          <span className="text-[9px] font-mono font-medium text-zinc-500 uppercase tracking-wider bg-zinc-150/50 border border-zinc-200 px-3 py-1 rounded transition-all">
+            {recentActivity?.length || 0} events
+          </span>
+        </div>
+
+        <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
           {(!recentActivity || recentActivity.length === 0) ? (
-            <div className="p-10 text-center">
-              <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center mx-auto mb-2">
-                <Activity className="w-5 h-5 text-slate-650" />
+            <div className="p-12 text-center font-sans">
+              <div className="w-10 h-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center mx-auto mb-3 text-zinc-400">
+                <Activity className="w-5 h-5" />
               </div>
-              <p className="text-xs text-zinc-500 font-bold">No activity in the last 24 hours.</p>
+              <p className="text-xs font-semibold text-navy-900 uppercase tracking-wider font-mono">No Recent Activity</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">No attendance events recorded in the last 24 hours.</p>
             </div>
           ) : (
-            <div className="divide-y divide-zinc-100/40 max-h-[320px] overflow-y-auto">
+            <div className="divide-y divide-zinc-100 max-h-[320px] overflow-y-auto">
               {recentActivity.map((act) => {
                 const name = actorMap[act.employee_id]?.name || 'Unknown';
                 const isWFH = act.status?.includes('WFH');
                 const hasCheckOut = !!act.check_out;
                 const isPending = act.status === 'Pending WFH';
                 const Icon = isWFH ? Home : hasCheckOut ? LogOut : LogIn;
-                const iconColor = isWFH ? 'text-violet-400' : hasCheckOut ? 'text-amber-450' : 'text-emerald-450';
-                const iconBg = isWFH ? 'bg-violet-500/10' : hasCheckOut ? 'bg-amber-500/10' : 'bg-emerald-500/10';
+                const iconColor = isWFH ? 'text-violet-650' : hasCheckOut ? 'text-amber-650' : 'text-emerald-650';
+                const iconBg = isWFH ? 'bg-violet-500/10 border-violet-500/10' : hasCheckOut ? 'bg-amber-500/10 border-amber-500/10' : 'bg-emerald-500/10 border-emerald-500/10';
                 const label = isWFH
                   ? (isPending ? 'WFH Request (Pending)' : `WFH ${act.status?.replace(' WFH', '')}`)
                   : hasCheckOut ? 'Checked Out' : 'Checked In';
                 const time = formatSafeTimeOnly(act.check_in);
                 return (
-                  <div key={act.id} className="flex items-center gap-3.5 px-5 py-3 hover:bg-white/20 transition-colors">
-                    <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-zinc-200/30', iconBg)}>
-                      <Icon className={cn('w-4 h-4', iconColor)} />
+                  <div key={act.id} className="flex items-center gap-3.5 px-5 py-3.5 hover:bg-zinc-50/50 transition-all group">
+                    <div className={cn('w-8 h-8 rounded-md flex items-center justify-center shrink-0 border transition-transform duration-300 group-hover:scale-105', iconBg, iconColor)}>
+                      <Icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-navy-900 truncate">{name}</p>
-                      <p className="text-[10px] text-zinc-500 font-medium">
+                      <p className="text-xs font-bold text-navy-900 truncate font-sans">{name}</p>
+                      <p className="text-[10px] text-zinc-550 mt-0.5 font-medium font-sans">
                         {label}{time ? ` · ${time}` : ''} · {act.date}
                       </p>
                     </div>
                     {isPending && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        <AlertTriangle className="w-3 h-3" />
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[8px] font-mono font-medium bg-amber-50 text-amber-700 border border-amber-250 uppercase tracking-wider shrink-0">
+                        <AlertTriangle className="w-3 h-3 mr-1" />
                         Pending
                       </span>
                     )}
@@ -196,17 +192,17 @@ export default async function AuditLogsPage(props: PageProps) {
               })}
             </div>
           )}
-        </Card>
+        </div>
       </div>
 
       {/* Mobile view */}
       <div className="block md:hidden space-y-3">
         {(!logs || logs.length === 0) ? (
-          <div className="p-8 text-center bg-white rounded-xl border border-zinc-200">
-            <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center mx-auto mb-2">
-              <History className="w-5 h-5 text-slate-650" />
+          <div className="p-8 text-center bg-white rounded-lg border border-zinc-200">
+            <div className="w-10 h-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center mx-auto mb-2 text-zinc-400">
+              <History className="w-5 h-5" />
             </div>
-            <p className="text-xs text-zinc-500 font-semibold">No audit logs matching query.</p>
+            <p className="text-xs text-zinc-400 font-semibold uppercase tracking-wider font-mono">No logs matching query</p>
           </div>
         ) : (
           logs.map((log) => {
@@ -215,32 +211,28 @@ export default async function AuditLogsPage(props: PageProps) {
             const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
             
             return (
-              <Card key={log.id} hover={false} className="p-4 rounded-xl border border-zinc-200 shadow-sm bg-white text-zinc-600">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-500">
-                    <Clock className="w-3.5 h-3.5 text-primary-500/50" />
+              <div key={log.id} className="bg-white rounded-lg border border-zinc-200 shadow-2xs p-5 space-y-4 text-zinc-650">
+                <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+                  <div className="flex items-center gap-1.5 text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">
+                    <Clock className="w-3.5 h-3.5 text-zinc-350" />
                     <span>{formatSafeDateTime(log.created_at)}</span>
                   </div>
-                  <span className={`px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider border uppercase ${
-                     isDelete ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                     isCreate ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' :
-                     isOverride ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
-                     'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  }`}>
+                  <span className={cn(
+                    "inline-flex px-2 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider",
+                    isDelete ? 'bg-red-50 text-red-700 border-red-200' :
+                    isCreate ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    isOverride ? 'bg-violet-50 text-violet-750 border-violet-200' :
+                    'bg-blue-50 text-blue-700 border-blue-200'
+                  )}>
                     {log.action}
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-2 bg-zinc-50/40 border border-zinc-200 p-2.5 rounded-lg text-[10px]">
+                <div className="grid grid-cols-2 gap-4 bg-zinc-50/50 p-3 rounded-lg border border-zinc-200/60 text-[10px]">
                   <div>
                     <span className="text-zinc-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Actor</span>
                     <span className="font-bold text-navy-900">
                       {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
                     </span>
-                    {actorMap[log.user_id]?.email && (
-                      <span className="text-zinc-500 block text-[9px] lowercase truncate">
-                        {actorMap[log.user_id].email}
-                      </span>
-                    )}
                   </div>
                   <div>
                     <span className="text-zinc-400 block mb-0.5 font-bold uppercase tracking-wider text-[8px]">Module / Entity</span>
@@ -248,95 +240,95 @@ export default async function AuditLogsPage(props: PageProps) {
                   </div>
                 </div>
 
-                {/* Grouping visualization for session replays / details */}
                 {log.entity_type === 'attendance' && log.entity_id && (
-                  <div className="mt-2.5 pt-2 border-t border-zinc-200/40 flex items-center gap-1.5 justify-between">
+                  <div className="mt-2.5 pt-2.5 border-t border-zinc-100 flex items-center justify-between">
                     <div className="flex items-center gap-1">
-                      <Layers className="w-3.5 h-3.5 text-violet-400" />
-                      <span className="text-[9px] font-black text-violet-300 font-mono uppercase">
+                      <Layers className="w-3.5 h-3.5 text-violet-650" />
+                      <span className="text-[8px] font-mono font-semibold text-violet-750 uppercase tracking-wider">
                         Traceable Replay Stream
                       </span>
                     </div>
-                    <span className="text-[9px] font-black text-zinc-500 font-mono bg-white border border-zinc-200 px-1.5 py-0.5 rounded">
+                    <span className="text-[8px] font-mono font-semibold text-zinc-500 bg-zinc-50 border border-zinc-200 px-1.5 py-0.5 rounded">
                       Session: #{log.entity_id.substring(0, 8).toUpperCase()}
                     </span>
                   </div>
                 )}
-              </Card>
+              </div>
             );
           })
         )}
       </div>
 
       {/* Desktop view */}
-      <Card hover={false} className="overflow-hidden border border-zinc-200 shadow-sm rounded-xl p-0 hidden md:block bg-white">
+      <div className="hidden md:block bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-50/50 border-b border-zinc-200/60">
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Event Timeline</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Actor</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Operation</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Module</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Entity Context</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 text-center">Trace Replay</th>
+              <tr className="bg-zinc-50 text-zinc-650 border-b border-zinc-200">
+                <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Event Timeline</th>
+                <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Actor</th>
+                <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Operation</th>
+                <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Module</th>
+                <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Entity Context</th>
+                <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center">Trace Replay</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-100/60">
+            <tbody className="divide-y divide-zinc-150">
               {logs?.map((log) => {
                 const isDelete = log.action.includes('DELETE');
                 const isCreate = log.action.includes('CREATE') || log.action.includes('ONBOARD');
                 const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
                 
                 return (
-                  <tr key={log.id} className="hover:bg-zinc-50/30 transition-colors group text-zinc-600">
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-500">
-                        <Clock className="w-3.5 h-3.5 text-primary-500/50" />
+                  <tr key={log.id} className="hover:bg-zinc-50/50 transition-colors group text-zinc-600">
+                    <td className="p-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">
+                        <Clock className="w-3.5 h-3.5 text-zinc-350" />
                         {formatSafeDateTime(log.created_at)}
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-white border border-zinc-200 flex items-center justify-center text-zinc-700 group-hover:bg-primary-500 group-hover:text-navy-900 transition-colors">
+                    <td className="p-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-6 h-6 rounded bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-550 group-hover:bg-primary-500/10 group-hover:text-primary-650 group-hover:border-primary-500/20 transition-all">
                           <User className="w-3.5 h-3.5" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-navy-900 tracking-tight">
+                          <span className="text-xs font-bold text-navy-900 tracking-tight font-sans">
                             {actorMap[log.user_id]?.name || log.user_role.toUpperCase()}
                           </span>
                           {actorMap[log.user_id]?.email && (
-                            <span className="text-[9px] text-zinc-500">
+                            <span className="text-[9px] text-zinc-450 lowercase">
                               {actorMap[log.user_id].email}
                             </span>
                           )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black tracking-wider border uppercase ${
-                         isDelete ? 'bg-red-500/10 text-red-400 border-red-500/20' :
-                         isCreate ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' :
-                         isOverride ? 'bg-violet-500/10 text-violet-400 border-violet-500/20' :
-                         'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                      }`}>
+                    <td className="p-4 whitespace-nowrap">
+                      <span className={cn(
+                        "inline-flex px-2 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider",
+                        isDelete ? 'bg-red-50 text-red-700 border-red-200' :
+                        isCreate ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        isOverride ? 'bg-violet-50 text-violet-750 border-violet-200' :
+                        'bg-blue-50 text-blue-700 border-blue-200'
+                      )}>
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                    <td className="p-4 whitespace-nowrap text-[9px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
                       {log.entity_type}
                     </td>
-                    <td className="px-4 py-2.5 text-[10px] text-zinc-400 font-medium font-mono">
+                    <td className="p-4 text-[10px] text-zinc-400 font-semibold font-mono">
                       {log.entity_id ? `${log.entity_id.substring(0, 8)}...` : 'N/A'}
                     </td>
-                    <td className="px-4 py-2.5 text-center">
+                    <td className="p-4 text-center whitespace-nowrap">
                       {log.entity_type === 'attendance' && log.entity_id ? (
-                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-violet-500/5 text-violet-400 border border-violet-500/15 text-[9px] font-black font-mono tracking-tight" title={`Traceable event-sourcing stream: Session ID: ${log.entity_id}`}>
-                          <Layers className="w-3 h-3 text-violet-400" />
+                        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-violet-50 text-violet-750 border border-violet-200/50 text-[8px] font-mono font-medium uppercase tracking-wider" title={`Traceable event-sourcing stream: Session ID: ${log.entity_id}`}>
+                          <Layers className="w-3 h-3 text-violet-500" />
                           <span>SESSION #{log.entity_id.substring(0, 8).toUpperCase()}</span>
                         </div>
                       ) : (
-                        <span className="text-slate-650 font-bold font-mono">—</span>
+                        <span className="text-zinc-400 font-bold font-mono">—</span>
                       )}
                     </td>
                   </tr>
@@ -344,51 +336,51 @@ export default async function AuditLogsPage(props: PageProps) {
               })}
               {(!logs || logs.length === 0) && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
-                    <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center mx-auto mb-3">
-                      <History className="w-5 h-5 text-zinc-450" />
+                  <td colSpan={6} className="p-12 text-center font-sans">
+                    <div className="w-10 h-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center mx-auto mb-3 text-zinc-450">
+                      <History className="w-5 h-5" />
                     </div>
-                    <p className="text-xs text-zinc-500 font-bold">No audit logs matching query.</p>
+                    <p className="text-xs font-semibold text-navy-900 uppercase tracking-wider font-mono">No Logs Found</p>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-4 py-3 bg-white border border-zinc-200 rounded-xl shadow-sm">
-          <div className="text-xs text-zinc-500">
-            Showing <span className="font-semibold text-navy-900">{offset + 1}</span> to{' '}
-            <span className="font-semibold text-navy-900">
+        <div className="flex items-center justify-between p-4 bg-white border border-zinc-200 rounded-lg shadow-2xs font-sans">
+          <div className="text-xs text-zinc-500 font-semibold uppercase tracking-tighter">
+            Showing <span className="font-bold text-navy-900">{offset + 1}</span> to{' '}
+            <span className="font-bold text-navy-900">
               {Math.min(offset + limit, totalCount)}
             </span>{' '}
-            of <span className="font-semibold text-navy-900">{totalCount}</span> entries
+            of <span className="font-bold text-navy-900">{totalCount}</span> entries
           </div>
           <div className="flex items-center gap-2">
             <a
               href={page > 1 ? `/admin/audit?page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
-                "px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-semibold transition-all",
+                "px-3.5 py-1.5 rounded border border-zinc-200 text-xs font-semibold transition-all active:scale-95",
                 page <= 1
                   ? "pointer-events-none opacity-40 bg-zinc-50 text-zinc-400"
-                  : "bg-white text-zinc-600 hover:bg-zinc-50 hover:text-navy-950 active:scale-95"
+                  : "bg-white text-zinc-650 hover:bg-zinc-50 hover:text-navy-900"
               )}
             >
               Previous
             </a>
-            <span className="text-xs font-semibold text-navy-900 px-2 font-mono">
+            <span className="text-xs font-mono font-semibold text-navy-900 px-2">
               Page {page} of {totalPages}
             </span>
             <a
               href={page < totalPages ? `/admin/audit?page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
-                "px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-semibold transition-all",
+                "px-3.5 py-1.5 rounded border border-zinc-200 text-xs font-semibold transition-all active:scale-95",
                 page >= totalPages
                   ? "pointer-events-none opacity-40 bg-zinc-50 text-zinc-400"
-                  : "bg-white text-zinc-600 hover:bg-zinc-50 hover:text-navy-950 active:scale-95"
+                  : "bg-white text-zinc-650 hover:bg-zinc-50 hover:text-navy-900"
               )}
             >
               Next
