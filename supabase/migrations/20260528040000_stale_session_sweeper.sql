@@ -1,10 +1,249 @@
 -- ====================================================================
--- Migration: Global Stale Session Sweeper
+-- Migration: Global Stale Session Sweeper & Projection Fix
 -- Purpose: Proactive database-level sweeper that closes stale active
 --          sessions by appending FORCE_LOGOUT events and rebuilding
---          projections. Fully event-sourced — no direct status mutations.
+--          projections. Corrects check constraint mapping for status.
 -- ====================================================================
 
+-- 1. Redefine apply_event_to_projection trigger function to map event-source status values safely
+CREATE OR REPLACE FUNCTION public.apply_event_to_projection()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_prod_delta INT := 0;
+    v_break_delta INT := 0;
+    v_last_time TIMESTAMPTZ;
+    v_state_val VARCHAR;
+    v_desktop_verified BOOLEAN := false;
+    v_grace_expired BOOLEAN := false;
+BEGIN
+    -- Handle ADMIN_OVERRIDE event type
+    IF NEW.event_type = 'ADMIN_OVERRIDE' THEN
+        IF (NEW.payload->>'override_field') = 'late_approved' THEN
+            UPDATE public.attendance SET late_approved = (NEW.payload->>'new_value')::boolean WHERE id = NEW.session_id;
+        ELSIF (NEW.payload->>'override_field') = 'permission_approved' THEN
+            UPDATE public.attendance SET permission_approved = (NEW.payload->>'new_value')::boolean WHERE id = NEW.session_id;
+        ELSIF (NEW.payload->>'override_field') = 'shift_override' THEN
+            UPDATE public.attendance SET shift_override = (NEW.payload->>'new_value')::boolean WHERE id = NEW.session_id;
+        ELSIF (NEW.payload->>'override_field') = 'manager_exemption' THEN
+            UPDATE public.attendance SET manager_exemption = (NEW.payload->>'new_value')::boolean WHERE id = NEW.session_id;
+        ELSIF (NEW.payload->>'override_field') = 'status' THEN
+            UPDATE public.attendance SET status = (NEW.payload->>'new_value')::text WHERE id = NEW.session_id;
+            UPDATE public.attendance_projections SET current_state = (NEW.payload->>'new_value')::text WHERE session_id = NEW.session_id;
+        ELSIF (NEW.payload->>'override_field') = 'check_out' THEN
+            UPDATE public.attendance SET check_out = (NEW.payload->>'new_value')::timestamp with time zone WHERE id = NEW.session_id;
+        END IF;
+
+        UPDATE public.attendance_projections
+        SET
+            updated_at = now(),
+            session_version = session_version + 1
+        WHERE session_id = NEW.session_id;
+
+        RETURN NEW;
+    END IF;
+
+    -- Fetch the last processed state and timestamp of the projection
+    SELECT current_state, last_heartbeat_at 
+    INTO v_state_val, v_last_time
+    FROM public.attendance_projections
+    WHERE session_id = NEW.session_id
+    FOR UPDATE;
+
+    -- If projection does not exist, initialize it (only on CLOCK_IN or MOBILE_CLOCK_IN event)
+    IF NOT FOUND THEN
+        IF NEW.event_type = 'CLOCK_IN' THEN
+            INSERT INTO public.attendance_projections (
+                session_id, employee_id, current_state, last_heartbeat_at, last_geofence_status, session_version, device_type, device_label
+            ) VALUES (
+                NEW.session_id, NEW.employee_id, 'ACTIVE', NEW.event_timestamp, true, 1, 
+                COALESCE((NEW.payload->>'device_type')::varchar, 'desktop'),
+                COALESCE((NEW.payload->>'device_label')::varchar, 'Desktop')
+            );
+        ELSIF NEW.event_type = 'MOBILE_CLOCK_IN' THEN
+            INSERT INTO public.attendance_projections (
+                session_id, employee_id, current_state, last_heartbeat_at, last_geofence_status, session_version, device_type, device_label
+            ) VALUES (
+                NEW.session_id, NEW.employee_id, 'AWAITING_DESKTOP', NEW.event_timestamp, true, 1,
+                COALESCE((NEW.payload->>'device_type')::varchar, 'mobile'),
+                COALESCE((NEW.payload->>'device_label')::varchar, 'Mobile')
+            );
+        END IF;
+        RETURN NEW;
+    END IF;
+
+    -- Calculate delta timing based on state transition
+    IF v_state_val IN ('ACTIVE', 'MOBILE_CLOCKED_IN', 'AWAITING_DESKTOP', 'DESKTOP_ACTIVE') THEN
+        v_prod_delta := EXTRACT(EPOCH FROM (NEW.event_timestamp - v_last_time))::INT;
+    ELSIF v_state_val IN ('ON_BREAK', 'AUTO_BREAK') THEN
+        v_break_delta := EXTRACT(EPOCH FROM (NEW.event_timestamp - v_last_time))::INT;
+    END IF;
+
+    -- Fetch event history helpers to resolve break ends and GPS reentries correctly
+    SELECT EXISTS (
+        SELECT 1 FROM public.attendance_events
+        WHERE session_id = NEW.session_id AND event_type = 'DESKTOP_SESSION_VERIFIED'
+    ) INTO v_desktop_verified;
+
+    SELECT EXISTS (
+        SELECT 1 FROM public.attendance_events
+        WHERE session_id = NEW.session_id AND event_type = 'DESKTOP_SESSION_MISSING'
+    ) INTO v_grace_expired;
+
+    -- Update state mapping based on new event
+    CASE NEW.event_type
+        WHEN 'BREAK_STARTED' THEN v_state_val := 'ON_BREAK';
+        WHEN 'AUTO_BREAK_TRIGGERED' THEN v_state_val := 'AUTO_BREAK';
+        WHEN 'BREAK_ENDED', 'GPS_REENTRY' THEN
+            IF v_desktop_verified THEN
+                v_state_val := 'DESKTOP_ACTIVE';
+            ELSIF v_grace_expired THEN
+                v_state_val := 'PRODUCTIVE_TIMER_PAUSED';
+            ELSE
+                -- Check if we clocked in from mobile
+                IF EXISTS (
+                    SELECT 1 FROM public.attendance_events
+                    WHERE session_id = NEW.session_id AND event_type = 'MOBILE_CLOCK_IN'
+                ) THEN
+                    v_state_val := 'AWAITING_DESKTOP';
+                ELSE
+                    v_state_val := 'ACTIVE';
+                END IF;
+            END IF;
+        WHEN 'GPS_EXIT' THEN v_state_val := 'GEO_OUTSIDE';
+        WHEN 'CLOCK_OUT', 'FORCE_LOGOUT' THEN v_state_val := 'CLOCKED_OUT';
+        WHEN 'MOBILE_CLOCK_IN' THEN v_state_val := 'AWAITING_DESKTOP';
+        WHEN 'DESKTOP_SESSION_VERIFIED', 'PRODUCTIVE_TIMER_RESUMED' THEN v_state_val := 'DESKTOP_ACTIVE';
+        WHEN 'DESKTOP_SESSION_MISSING', 'PRODUCTIVE_TIMER_PAUSED' THEN v_state_val := 'PRODUCTIVE_TIMER_PAUSED';
+        ELSE
+            -- Keep current state for telemetry events
+    END CASE;
+
+    -- Update the projection cache
+    UPDATE public.attendance_projections
+    SET
+        current_state = v_state_val,
+        productive_seconds = productive_seconds + COALESCE(v_prod_delta, 0),
+        break_seconds = break_seconds + COALESCE(v_break_delta, 0),
+        last_heartbeat_at = NEW.event_timestamp,
+        session_version = session_version + 1,
+        device_type = COALESCE((NEW.payload->>'device_type')::varchar, device_type),
+        device_label = COALESCE((NEW.payload->>'device_label')::varchar, device_label),
+        updated_at = now()
+    WHERE session_id = NEW.session_id;
+
+    -- Also cache on public.attendance (Mapping logic to fit attendance_status_check constraint)
+    UPDATE public.attendance
+    SET
+        status = CASE v_state_val
+            WHEN 'ACTIVE' THEN 'Working'
+            WHEN 'ON_BREAK' THEN 'On Break'
+            WHEN 'AUTO_BREAK' THEN 'On Break'
+            WHEN 'CLOCKED_OUT' THEN 'Logged Out'
+            WHEN 'OFFLINE' THEN 'Logged Out'
+            ELSE v_state_val
+        END,
+        device_type = COALESCE((NEW.payload->>'device_type')::varchar, device_type),
+        device_label = COALESCE((NEW.payload->>'device_label')::varchar, device_label)
+    WHERE id = NEW.session_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 2. Redefine rebuild_attendance_projection function to map event-source status values safely
+CREATE OR REPLACE FUNCTION public.rebuild_attendance_projection(p_session_id UUID)
+RETURNS VOID AS $$
+DECLARE
+    v_calculated RECORD;
+    v_emp_id UUID;
+    r RECORD;
+BEGIN
+    -- 1. Fetch employee ID from master session
+    SELECT employee_id INTO v_emp_id FROM public.attendance WHERE id = p_session_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Session ID % not found.', p_session_id;
+    END IF;
+
+    -- 2. Lock and delete old projection
+    DELETE FROM public.attendance_projections WHERE session_id = p_session_id;
+
+    -- 3. Calculate time states from events stream
+    SELECT * INTO v_calculated FROM public.get_session_state(p_session_id);
+
+    -- 4. Re-insert projection record
+    INSERT INTO public.attendance_projections (
+        session_id,
+        employee_id,
+        current_state,
+        productive_seconds,
+        break_seconds,
+        last_heartbeat_at,
+        session_version,
+        device_type,
+        device_label
+    ) VALUES (
+        p_session_id,
+        v_emp_id,
+        v_calculated.current_state,
+        v_calculated.total_productive_seconds,
+        v_calculated.total_break_seconds,
+        now(),
+        1,
+        v_calculated.device_type,
+        v_calculated.device_label
+    );
+
+    -- 5. Reset the master attendance cached fields that can be modified by overrides (Mapping status safely)
+    UPDATE public.attendance
+    SET 
+        status = CASE v_calculated.current_state
+            WHEN 'ACTIVE' THEN 'Working'
+            WHEN 'ON_BREAK' THEN 'On Break'
+            WHEN 'AUTO_BREAK' THEN 'On Break'
+            WHEN 'CLOCKED_OUT' THEN 'Logged Out'
+            WHEN 'OFFLINE' THEN 'Logged Out'
+            ELSE v_calculated.current_state
+        END,
+        check_out = NULL,
+        late_approved = false,
+        permission_approved = false,
+        shift_override = false,
+        manager_exemption = false,
+        device_type = v_calculated.device_type,
+        device_label = v_calculated.device_label
+    WHERE id = p_session_id;
+
+    -- 6. Replay all event overrides to restore status, check_out, and exemptions
+    FOR r IN 
+        SELECT event_type, payload, event_timestamp 
+        FROM public.attendance_events 
+        WHERE session_id = p_session_id 
+        ORDER BY sequence_number ASC 
+    LOOP
+        IF r.event_type = 'ADMIN_OVERRIDE' THEN
+            IF (r.payload->>'override_field') = 'late_approved' THEN
+                UPDATE public.attendance SET late_approved = (r.payload->>'new_value')::boolean WHERE id = p_session_id;
+            ELSIF (r.payload->>'override_field') = 'permission_approved' THEN
+                UPDATE public.attendance SET permission_approved = (r.payload->>'new_value')::boolean WHERE id = p_session_id;
+            ELSIF (r.payload->>'override_field') = 'shift_override' THEN
+                UPDATE public.attendance SET shift_override = (r.payload->>'new_value')::boolean WHERE id = p_session_id;
+            ELSIF (r.payload->>'override_field') = 'manager_exemption' THEN
+                UPDATE public.attendance SET manager_exemption = (r.payload->>'new_value')::boolean WHERE id = p_session_id;
+            ELSIF (r.payload->>'override_field') = 'status' THEN
+                UPDATE public.attendance SET status = (r.payload->>'new_value')::text WHERE id = p_session_id;
+                UPDATE public.attendance_projections SET current_state = (r.payload->>'new_value')::text WHERE session_id = p_session_id;
+            ELSIF (r.payload->>'override_field') = 'check_out' THEN
+                UPDATE public.attendance SET check_out = (r.payload->>'new_value')::timestamp with time zone WHERE id = p_session_id;
+            END IF;
+        ELSIF r.event_type = 'CLOCK_OUT' OR r.event_type = 'FORCE_LOGOUT' THEN
+            -- Restore check_out value from original clock_out event timestamp
+            UPDATE public.attendance SET check_out = r.event_timestamp WHERE id = p_session_id;
+        END IF;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 3. Create or replace sweep_and_close_stale_sessions function using the corrected projection helpers
 CREATE OR REPLACE FUNCTION public.sweep_and_close_stale_sessions()
 RETURNS JSONB AS $$
 DECLARE
@@ -115,20 +354,8 @@ BEGIN
             );
 
             -- Rebuild projection from event stream (this replays all events)
+            -- The mapping inside rebuild_attendance_projection sets status correctly on public.attendance
             PERFORM public.rebuild_attendance_projection(v_stale.id);
-
-            -- The rebuild sets status = 'CLOCKED_OUT' from get_session_state,
-            -- but the attendance CHECK constraint requires 'Logged Out'.
-            -- Map it here after the rebuild completes.
-            UPDATE public.attendance
-            SET status = 'Logged Out'
-            WHERE id = v_stale.id
-              AND status = 'CLOCKED_OUT';
-
-            -- Also ensure the projection reflects the mapped state
-            UPDATE public.attendance_projections
-            SET current_state = 'CLOCKED_OUT'
-            WHERE session_id = v_stale.id;
 
             v_closed_count := v_closed_count + 1;
 
