@@ -365,6 +365,36 @@ export async function requestWFH(
 
     if (error) throw error;
 
+    const isMobile = /mobile|tablet|android|iphone|ipad/i.test(ua);
+    const eventType = isMobile ? 'MOBILE_CLOCK_IN' : 'CLOCK_IN';
+
+    // Insert CLOCK_IN or MOBILE_CLOCK_IN event for WFH session tracking
+    await supabaseAdmin
+      .from('attendance_events')
+      .insert([{
+        session_id: attRecord.id,
+        employee_id: session.id,
+        event_type: eventType,
+        sequence_number: 1,
+        idempotency_key: `wfh-clk-in-${attRecord.id}`,
+        client_ip: ip === 'unknown' ? '0.0.0.0' : ip,
+        gps_lat: Number(lat),
+        gps_lng: Number(lng),
+        gps_accuracy: 10,
+        payload: { 
+          is_late: isLate, 
+          late_minutes: lateMinutes,
+          device_type: isMobile ? 'mobile' : 'desktop',
+          device_label: isMobile ? 'Mobile' : 'Desktop',
+          is_wfh_request: true
+        }
+      }]);
+
+    // Rebuild projection so it initializes correctly and is fetchable by client check
+    await supabaseAdmin.rpc('rebuild_attendance_projection', {
+      p_session_id: attRecord.id
+    });
+
     // Trigger notification to admin
     try {
       const { data: employee } = await supabaseAdmin
@@ -553,10 +583,10 @@ export async function resumeSession(recordId: string) {
 
     const { shiftDateStr } = getShiftInfo();
 
-    // Fetch the checkout record first to check the time guard
+    // Fetch the checkout record first with coordinates
     const { data: record, error: fetchError } = await supabaseAdmin
       .from('attendance')
-      .select('check_out')
+      .select('check_out, lat, lng')
       .eq('id', recordId)
       .eq('employee_id', session.id)
       .single();
@@ -565,19 +595,52 @@ export async function resumeSession(recordId: string) {
       return { success: false, error: 'Checkout record not found' };
     }
 
-    const checkoutTime = new Date(record.check_out);
-    const now = new Date();
-    const minutesSinceCheckout = (now.getTime() - checkoutTime.getTime()) / (1000 * 60);
+    // Check if the session was auto-logged out by system sweeper
+    const { data: lastEvent } = await supabaseAdmin
+      .from('attendance_events')
+      .select('event_type')
+      .eq('session_id', recordId)
+      .order('sequence_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (minutesSinceCheckout > 15) {
-      return { success: false, error: 'Resume window (15 minutes) has expired' };
+    const isSystemForced = lastEvent?.event_type === 'FORCE_LOGOUT';
+
+    if (!isSystemForced) {
+      const checkoutTime = new Date(record.check_out);
+      const now = new Date();
+      const minutesSinceCheckout = (now.getTime() - checkoutTime.getTime()) / (1000 * 60);
+
+      if (minutesSinceCheckout > 15) {
+        return { success: false, error: 'Resume window (15 minutes) has expired' };
+      }
     }
+
+    // Determine if session is remote (WFH)
+    const { data: officeList } = await supabaseAdmin
+      .from('office_locations')
+      .select('lat, lng, radius_meters')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const office = officeList && officeList.length > 0 ? officeList[0] : null;
+    const officeLat = Number(office?.lat || 17.3850);
+    const officeLng = Number(office?.lng || 78.4867);
+    const radius = Number(office?.radius_meters || 500);
+
+    const isRemote = record.lat && record.lng 
+      ? calculateDistance(Number(record.lat), Number(record.lng), officeLat, officeLng) > radius 
+      : false;
+
+    const restoredStatus = isRemote ? 'Approved WFH' : 'Working';
+    const now = new Date();
 
     const { error } = await supabaseAdmin
       .from('attendance')
       .update({ 
         check_out: null,
-        status: 'Working'
+        status: restoredStatus
       })
       .eq('id', recordId)
       .eq('employee_id', session.id)
@@ -586,7 +649,7 @@ export async function resumeSession(recordId: string) {
     if (error) throw error;
 
     // Append SESSION_RECOVERED event to keep the event stream consistent
-    const { data: lastEvent } = await supabaseAdmin
+    const { data: lastEventRec } = await supabaseAdmin
       .from('attendance_events')
       .select('sequence_number')
       .eq('session_id', recordId)
@@ -594,7 +657,7 @@ export async function resumeSession(recordId: string) {
       .limit(1)
       .maybeSingle();
 
-    const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+    const nextSequence = (lastEventRec?.sequence_number || 1) + 1;
     await supabaseAdmin
       .from('attendance_events')
       .insert([{
@@ -604,7 +667,7 @@ export async function resumeSession(recordId: string) {
         sequence_number: nextSequence,
         idempotency_key: `resume-${recordId}-${nextSequence}`,
         client_ip: '0.0.0.0',
-        payload: { resumed_at: now.toISOString() }
+        payload: { resumed_at: now.toISOString(), status: restoredStatus }
       }]);
 
     // Rebuild projection so admin live monitor reflects the resumed session immediately

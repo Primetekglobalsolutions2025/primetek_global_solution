@@ -259,18 +259,16 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
         setSyncBannerVisible(true);
         setTimeout(() => setSyncBannerVisible(false), 5000);
       } else {
-        console.warn('[Sync]: Projection reconciliation failed, forcing reload...');
-        window.location.reload();
+        console.warn('[Sync]: Projection reconciliation failed.');
       }
     } catch (err) {
-      console.error('[Sync]: Reconciliation error, forcing reload:', err);
-      window.location.reload();
+      console.error('[Sync]: Reconciliation error:', err);
     }
   };
 
   // Projection Version Verification wrapper for mutations
   const executeMutationWithVersionCheck = async (
-    mutationFn: () => Promise<{ success: boolean; error?: string }>,
+    mutationFn: () => Promise<{ success: boolean; error?: string; outOfRadius?: boolean; distance?: number; officeName?: string }>,
     actionName: string
   ) => {
     if (!todayRecord) {
@@ -279,9 +277,11 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
       if (res.success) {
         broadcastStateRefreshAndReload();
       } else {
-        showNotification(res.error || `Failed to ${actionName}`, 'error');
+        if (!res.outOfRadius) {
+          showNotification(res.error || `Failed to ${actionName}`, 'error');
+        }
       }
-      return;
+      return res;
     }
 
     try {
@@ -296,8 +296,8 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
       if (serverVersion !== projectionVersion.current) {
         console.warn(`[Version Conflict]: Local version ${projectionVersion.current} vs Server version ${serverVersion}. Reconciling...`);
         showNotification('Session updated on another tab. Synchronizing status...', 'info');
+        projectionVersion.current = serverVersion;
         await refreshProjectionState();
-        return;
       }
 
       const mutationResult = await mutationFn();
@@ -309,8 +309,11 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
         bc.postMessage({ type: 'STATE_REFRESH' });
         bc.close();
       } else {
-        showNotification(mutationResult.error || `Action failed: ${actionName}`, 'error');
+        if (!mutationResult.outOfRadius) {
+          showNotification(mutationResult.error || `Action failed: ${actionName}`, 'error');
+        }
       }
+      return mutationResult;
     } catch (err) {
       console.error(`[Mutation Error] ${actionName}:`, err);
       showNotification('Failed to connect to the server.', 'error');
@@ -580,7 +583,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   // Telemetry Input Listeners
   useEffect(() => {
-    if (!checkedIn || isCheckedOut || currentStatus !== 'Working') return;
+    if (!checkedIn || isCheckedOut || (currentStatus !== 'Working' && currentStatus !== 'Approved WFH')) return;
 
     const trackClick = () => { clickCount.current++; };
     const trackKeydown = () => { keypressCount.current++; };
@@ -599,7 +602,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
 
   // Periodic Telemetry Heartbeat Loop
   useEffect(() => {
-    const isTimerActive = currentStatus === 'Working';
+    const isTimerActive = currentStatus === 'Working' || currentStatus === 'Approved WFH';
     if (!checkedIn || isCheckedOut || !isTimerActive || !todayRecord) return;
 
     const sendHeartbeat = () => {
@@ -777,11 +780,24 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
       }
 
       const devInfo = getDeviceInfo();
-      await executeMutationWithVersionCheck(async () => {
-        const result = await checkIn(lat, lng, undefined, undefined, fingerprint, undefined, devInfo);
-        return result;
+      const result = await executeMutationWithVersionCheck(async () => {
+        const res = await checkIn(lat, lng, undefined, undefined, fingerprint, undefined, devInfo);
+        return res;
       }, 'Check In');
-      setGpsStatus('success');
+      
+      if (result && result.outOfRadius) {
+        setWfhRequest({
+          active: true,
+          distance: result.distance,
+          officeName: result.officeName
+        });
+        setGpsStatus('idle');
+      } else if (result && result.success) {
+        setGpsStatus('success');
+      } else {
+        setGpsStatus('error');
+      }
+
     } catch (err) {
       if (!navigator.onLine && coords) {
         try {
@@ -800,12 +816,30 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   };
 
   const handleWFHRequest = async () => {
-    if (!coords) return;
+    let currentCoords = coords;
+    if (!currentCoords) {
+      setGpsStatus('loading');
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { 
+            enableHighAccuracy: true, 
+            timeout: 10000 
+          });
+        });
+        currentCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setCoords(currentCoords);
+      } catch (err) {
+        setGpsStatus('error');
+        showNotification('Could not retrieve your GPS location for WFH request.', 'error');
+        return;
+      }
+    }
+
     setGpsStatus('loading');
     try {
       const fingerprint = getOrCreateFingerprint();
       await executeMutationWithVersionCheck(async () => {
-        const result = await requestWFH(coords.lat, coords.lng, undefined, undefined, fingerprint);
+        const result = await requestWFH(currentCoords!.lat, currentCoords!.lng, undefined, undefined, fingerprint);
         return result;
       }, 'WFH Request');
       setGpsStatus('success');
@@ -981,7 +1015,7 @@ export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = fa
   for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
 
   // Dynamic statistics calculation for the selected month
-  const selectedMonthRecords = initialRecords.filter(r => {
+  const selectedMonthRecords = records.filter(r => {
     if (!r.date) return false;
     const dateObj = new Date(r.date);
     return dateObj.getMonth() === selectedMonthDate.getMonth() && dateObj.getFullYear() === selectedMonthDate.getFullYear();
