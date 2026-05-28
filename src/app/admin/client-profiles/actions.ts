@@ -154,6 +154,25 @@ export async function deleteProfile(id: string) {
     // Log the action
     await logAuditAction('DELETE_PROFILE', 'application_profiles', id, oldData, null);
 
+    // If the profile has a resume, delete it from storage as well to prevent storage leak
+    if (oldData.resume_url && oldData.resume_url.includes('path=')) {
+      try {
+        const urlObj = new URL(oldData.resume_url, 'http://localhost');
+        const path = urlObj.searchParams.get('path');
+        if (path) {
+          const { error: storageDeleteError } = await supabaseAdmin
+            .storage
+            .from('resumes')
+            .remove([path]);
+          if (storageDeleteError) {
+            console.error('[deleteProfile] Failed to delete resume from storage:', storageDeleteError);
+          }
+        }
+      } catch (storageErr) {
+        console.error('[deleteProfile] Error parsing storage path from resume_url:', storageErr);
+      }
+    }
+
     revalidatePath('/admin/client-profiles');
     return { success: true };
   } catch (err: any) {

@@ -113,51 +113,27 @@ export async function createFullApplication(formData: any) {
   }
   const validated = parsed.data;
 
-  // 1. Create Application
-  const { data: app, error: appError } = await supabaseAdmin
-    .from('applications')
-    .insert({
-      job_id: validated.job_id,
-      name: validated.name,
-      email: validated.email,
-      phone: validated.phone || null,
-      experience_years: validated.experience_years ? Number(validated.experience_years) : null,
-      status: 'pending',
-      assigned_to: validated.assigned_to || null,
-    })
-    .select()
-    .single();
+  // 1. Create Application and Profile atomically via RPC
+  const { data, error } = await supabaseAdmin.rpc('create_full_application', {
+    p_job_id: validated.job_id,
+    p_name: validated.name,
+    p_email: validated.email,
+    p_phone: validated.phone || null,
+    p_experience_years: validated.experience_years ? Number(validated.experience_years) : null,
+    p_assigned_to: validated.assigned_to || null,
+    p_client_address: validated.client_address || null,
+    p_client_role: validated.client_role || null,
+    p_client_linkedin: validated.client_linkedin || null,
+    p_role_category: validated.role_category,
+    p_education_details: {
+      bachelors: validated.education_bachelors || '',
+      masters: validated.education_masters || '',
+    }
+  });
 
-  if (appError) {
-    console.error('Error creating application:', appError);
+  if (error || (data && !data.success)) {
+    console.error('Error creating application via RPC:', error || data?.error);
     throw new Error('Failed to create application');
-  }
-
-  // 2. Create Profile
-  const { error: profileError } = await supabaseAdmin
-    .from('application_profiles')
-    .insert({
-      application_id: app.id,
-      assigned_to: validated.assigned_to || null,
-      client_name: validated.name,
-      client_email: validated.email,
-      client_phone: validated.phone || null,
-      client_address: validated.client_address || null,
-      client_role: validated.client_role || null,
-      client_linkedin: validated.client_linkedin || null,
-      role_category: validated.role_category,
-      education_details: {
-        bachelors: validated.education_bachelors || '',
-        masters: validated.education_masters || '',
-      },
-      status: validated.assigned_to ? 'assigned' : 'processing',
-    });
-
-  if (profileError) {
-    console.error('Error creating application profile:', profileError);
-    // CODE-02: Rollback the created application to avoid orphaned record / inconsistent state
-    await supabaseAdmin.from('applications').delete().eq('id', app.id);
-    throw new Error('Failed to create application profile. Action rolled back.');
   }
 
   revalidatePath('/admin/applications');

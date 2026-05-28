@@ -33,78 +33,14 @@ export async function closeStaleSessions() {
 
 async function closeStaleSessionsForEmployee(employeeId: string, currentShiftDateStr: string) {
   try {
-    const { data: stale } = await supabaseAdmin
-      .from('attendance')
-      .select('id, employee_id, date, check_in, status, current_break_start, total_break_seconds')
-      .eq('employee_id', employeeId)
-      .is('check_out', null)
-      .neq('date', currentShiftDateStr);
+    const { error } = await supabaseAdmin.rpc('sweep_stale_sessions_for_employee', {
+      p_employee_id: employeeId,
+      p_current_shift_date: currentShiftDateStr
+    });
 
-    if (stale && stale.length > 0) {
-      for (const record of stale) {
-        // Idempotency guard: check if FORCE_LOGOUT already registered for this session ID
-        const { data: existingForceLogout } = await supabaseAdmin
-          .from('attendance_events')
-          .select('id')
-          .eq('session_id', record.id)
-          .eq('event_type', 'FORCE_LOGOUT')
-          .maybeSingle();
-
-        if (existingForceLogout) {
-          console.log(`[Idempotency] FORCE_LOGOUT event already exists for session ${record.id}. Skipping.`);
-          continue;
-        }
-
-        const checkInTime = new Date(record.check_in);
-        const [y, m, d] = record.date.split('-').map(Number);
-        let autoOut = new Date(Date.UTC(y, m - 1, d, 22, 0, 0)); // 3:30 AM IST of next day (22:00 UTC of shift date)
-        if (autoOut.getTime() <= checkInTime.getTime()) {
-          autoOut = new Date(checkInTime.getTime() + 60 * 1000); // safety fallback: 1 min after check-in
-        }
-
-        // Get next sequence number for the event stream
-        const { data: lastEvent } = await supabaseAdmin
-          .from('attendance_events')
-          .select('sequence_number')
-          .eq('session_id', record.id)
-          .order('sequence_number', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const nextSequence = (lastEvent?.sequence_number || 1) + 1;
-
-        // Append FORCE_LOGOUT event (event-sourced, not direct mutation)
-        await supabaseAdmin
-          .from('attendance_events')
-          .insert([{
-            session_id: record.id,
-            employee_id: record.employee_id,
-            event_type: 'FORCE_LOGOUT',
-            event_timestamp: autoOut.toISOString(),
-            sequence_number: nextSequence,
-            idempotency_key: `stale-close-${record.id}-${nextSequence}`,
-            client_ip: '0.0.0.0',
-            payload: {
-              forced_by: 'system_sweeper',
-              stale_reason: 'cross_shift_boundary',
-              original_status: record.status,
-              auto_checkout_time: autoOut.toISOString()
-            }
-          }]);
-
-        // Rebuild projection from event stream
-        await supabaseAdmin.rpc('rebuild_attendance_projection', {
-          p_session_id: record.id
-        });
-
-        // Map CLOCKED_OUT → Logged Out for status constraint
-        await supabaseAdmin
-          .from('attendance')
-          .update({ status: 'Logged Out' })
-          .eq('id', record.id)
-          .eq('status', 'CLOCKED_OUT');
-      }
-      
+    if (error) {
+      console.error('RPC sweep_stale_sessions_for_employee failed:', error.message);
+    } else {
       revalidatePath('/employee/attendance');
       revalidatePath('/employee/dashboard');
       revalidatePath('/admin/attendance');

@@ -99,82 +99,38 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
     .eq('id', request.employee_id)
     .single();
 
-  // 2. Update Status atomically only if it is still Pending
-  const { data: updatedRequest, error } = await supabaseAdmin
-    .from('leave_requests')
-    .update({ status })
-    .eq('id', id)
-    .eq('status', 'Pending')
-    .select('*')
-    .maybeSingle();
-
-  if (error) {
-    console.error('Database update error:', error);
-    throw new Error('Database update failed');
-  }
-
-  // If no row was updated, it means another request processed it first
-  if (!updatedRequest) {
-    return { success: false, error: 'Leave request has already been processed.' };
-  }
-
-  // 3. Deduct Balance if Approved
+  // 2. Process Approval or Rejection atomically
   if (status === 'Approved') {
     const start = new Date(request.start_date);
     const end = new Date(request.end_date);
     const days = calculateWorkingDays(start, end);
-    const requestYear = start.getFullYear();
-    const requestMonth = start.getMonth() + 1;
 
-    // Ensure the leave balance record exists so that the stored procedure UPDATE can match and increment it.
-    const { data: existingBalance } = await supabaseAdmin
-      .from('leave_balances')
-      .select('id')
-      .eq('employee_id', request.employee_id)
-      .eq('year', requestYear)
-      .eq('month', requestMonth)
-      .eq('leave_type', request.type)
-      .maybeSingle();
-
-    if (!existingBalance) {
-      const { error: initError } = await supabaseAdmin
-        .from('leave_balances')
-        .insert([{
-          employee_id: request.employee_id,
-          leave_type: request.type,
-          total_days: request.type === 'Casual' ? 1 : 0,
-          used_days: 0,
-          year: requestYear,
-          month: requestMonth
-        }]);
-      if (initError) {
-        console.error('Failed to initialize leave balance during approval:', initError.message);
-        // Revert status update
-        await supabaseAdmin
-          .from('leave_requests')
-          .update({ status: 'Pending' })
-          .eq('id', id);
-        throw new Error(`Failed to initialize leave balance row: ${initError.message}`);
-      }
-    }
-
-    // Atomic update to used_days via stored procedure to prevent race conditions
-    const { error: rpcError } = await supabaseAdmin.rpc('increment_used_days', {
-      p_employee_id: request.employee_id,
-      p_leave_type: request.type,
-      p_days: days,
-      p_year: requestYear,
-      p_month: requestMonth
+    const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('approve_leave_request_atomic', {
+      p_request_id: id,
+      p_days: days
     });
 
-    if (rpcError) {
-      console.error('RPC increment_used_days failed:', rpcError.message);
-      // Revert the status update for consistency
-      await supabaseAdmin
-        .from('leave_requests')
-        .update({ status: 'Pending' })
-        .eq('id', id);
-      throw new Error(`Failed to update leave balance atomically: ${rpcError.message}`);
+    if (rpcErr || (rpcRes && !rpcRes.success)) {
+      console.error('RPC approve_leave_request_atomic failed:', rpcErr || rpcRes?.error);
+      throw new Error(`Failed to approve leave request: ${rpcErr?.message || rpcRes?.error || 'Unknown error'}`);
+    }
+  } else {
+    // Rejection: Update status atomically only if it is still Pending
+    const { data: updatedRequest, error } = await supabaseAdmin
+      .from('leave_requests')
+      .update({ status })
+      .eq('id', id)
+      .eq('status', 'Pending')
+      .select('*')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Database update error during rejection:', error);
+      throw new Error('Database update failed');
+    }
+
+    if (!updatedRequest) {
+      return { success: false, error: 'Leave request has already been processed.' };
     }
   }
 
@@ -233,64 +189,16 @@ export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Reje
     .eq('id', request.employee_id)
     .single();
 
-  // 2. Fetch the last sequence number for the session's event stream
-  const { data: lastEvent } = await supabaseAdmin
-    .from('attendance_events')
-    .select('sequence_number')
-    .eq('session_id', id)
-    .order('sequence_number', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const nextSequence = (lastEvent?.sequence_number || 1) + 1;
-
-  // Insert ADMIN_OVERRIDE event instead of direct mutation
-  const { error: insertError } = await supabaseAdmin
-    .from('attendance_events')
-    .insert([{
-      session_id: id,
-      employee_id: request.employee_id,
-      event_type: 'ADMIN_OVERRIDE',
-      sequence_number: nextSequence,
-      idempotency_key: `override-${id}-status-${status}-${nextSequence}`,
-      client_ip: '0.0.0.0', // Admin action
-      payload: {
-        override_field: 'status',
-        old_value: request.status,
-        new_value: status,
-        reason: `WFH request approval decision to ${status}`,
-        admin_id: session.id
-      }
-    }]);
-
-  if (insertError) {
-    console.error('Error logging WFH approval override event:', insertError);
-    throw new Error('Database transaction failed to append WFH override');
-  }
-
-  // Trigger projection rebuild to apply the WFH override status change
-  const { error: rebuildError } = await supabaseAdmin.rpc('rebuild_attendance_projection', {
-    p_session_id: id
+  // 2. Call RPC to update WFH status, append event, rebuild projection, and recalculate lates atomically
+  const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc('update_wfh_status_atomic', {
+    p_session_id: id,
+    p_status: status,
+    p_admin_id: session.id
   });
 
-  if (rebuildError) {
-    console.error('Error rebuilding projection in updateWFHStatus:', rebuildError);
-    throw new Error('Database projection rebuild failed');
-  }
-
-  // Recalculate employee lates for the month of this record
-  if (request.date) {
-    const recordDate = new Date(request.date);
-    const year = recordDate.getFullYear();
-    const month = recordDate.getMonth() + 1;
-    const { error: rpcError } = await supabaseAdmin.rpc('recalculate_employee_lates_safe', {
-      p_employee_id: request.employee_id,
-      p_year: year,
-      p_month: month
-    });
-    if (rpcError) {
-      console.error('Error running recalculate_employee_lates_safe in updateWFHStatus:', rpcError);
-    }
+  if (rpcErr || (rpcRes && !rpcRes.success)) {
+    console.error('RPC update_wfh_status_atomic failed:', rpcErr || rpcRes?.error);
+    throw new Error(`Failed to update WFH status atomically: ${rpcErr?.message || rpcRes?.error || 'Unknown error'}`);
   }
 
   // Log action to audit ledger

@@ -35,13 +35,52 @@ export async function GET(req: Request) {
     const { data: riskDeleted, error: err2 } = await supabaseAdmin.rpc('cleanup_old_risk_events');
     if (err2) throw err2;
 
+    // 3. Purge exported Excel spreadsheets older than 1 hour from exports storage bucket
+    let exportsDeletedCount = 0;
+    try {
+      const { data: files, error: listErr } = await supabaseAdmin
+        .storage
+        .from('exports')
+        .list();
+
+      if (listErr) {
+        console.error('[Cron/Cleanup] Failed to list exports bucket:', listErr.message);
+      } else if (files && files.length > 0) {
+        const now = Date.now();
+        const filesToDelete = files
+          .filter(file => {
+            if (file.name === '.emptyFolderPlaceholder') return false;
+            if (!file.created_at) return false;
+            const created = new Date(file.created_at).getTime();
+            return now - created > 60 * 60 * 1000; // older than 1 hour
+          })
+          .map(file => file.name);
+
+        if (filesToDelete.length > 0) {
+          const { error: removeErr } = await supabaseAdmin
+            .storage
+            .from('exports')
+            .remove(filesToDelete);
+          
+          if (removeErr) {
+            console.error('[Cron/Cleanup] Failed to delete expired exports:', removeErr.message);
+          } else {
+            exportsDeletedCount = filesToDelete.length;
+            console.log(`[Cron/Cleanup] Deleted ${exportsDeletedCount} expired exports from storage.`);
+          }
+        }
+      }
+    } catch (storageCatchErr) {
+      console.error('[Cron/Cleanup] Exports storage cleanup unexpected error:', storageCatchErr);
+    }
+
     const durationMs = Date.now() - startTime;
 
     return NextResponse.json({
       success: true,
       duration_ms: durationMs,
       sweep: sweepResult,
-      message: `Pruned ${sessionsDeleted} expired sessions and ${riskDeleted} old risk events.`,
+      message: `Pruned ${sessionsDeleted} expired sessions, ${riskDeleted} old risk events, and deleted ${exportsDeletedCount} expired exports from storage.`,
     });
   } catch (error: unknown) {
     const durationMs = Date.now() - startTime;
