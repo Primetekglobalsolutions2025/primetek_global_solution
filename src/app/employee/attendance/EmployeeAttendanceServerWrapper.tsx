@@ -47,13 +47,35 @@ export default async function EmployeeAttendanceServerWrapper() {
     };
   });
 
+  // Check if the most recent closed session was auto-logged-out by the system sweeper
+  let wasAutoLoggedOut = false;
+  const todayRecord = (records || []).find(r => r.date === currentShiftDate);
+  if (!todayRecord || todayRecord.check_out) {
+    // No active session today — check if the previous session was force-closed
+    const lastClosedRecord = (records || []).find(r => r.check_out !== null);
+    if (lastClosedRecord) {
+      const { data: lastEvents } = await supabaseAdmin
+        .from('attendance_events')
+        .select('event_type, payload')
+        .eq('session_id', lastClosedRecord.id)
+        .eq('event_type', 'FORCE_LOGOUT')
+        .limit(1);
+      if (lastEvents && lastEvents.length > 0) {
+        const payload = lastEvents[0]?.payload as Record<string, unknown> | null;
+        if (payload?.forced_by === 'system_sweeper') {
+          wasAutoLoggedOut = true;
+        }
+      }
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div>
         <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">Attendance</h1>
         <p className="text-zinc-550 text-sm">Clock in and out using GPS.</p>
       </div>
-      <AttendanceClient initialRecords={empRecords} />
+      <AttendanceClient initialRecords={empRecords} wasAutoLoggedOut={wasAutoLoggedOut} />
     </div>
   );
 }

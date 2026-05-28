@@ -38,7 +38,7 @@ export async function closeStaleSessionsForEmployee(employeeId: string, currentS
   try {
     const { data: stale } = await supabaseAdmin
       .from('attendance')
-      .select('*')
+      .select('id, employee_id, check_in, status, current_break_start, total_break_seconds')
       .eq('employee_id', employeeId)
       .is('check_out', null)
       .neq('date', currentShiftDateStr);
@@ -47,31 +47,48 @@ export async function closeStaleSessionsForEmployee(employeeId: string, currentS
       for (const record of stale) {
         const checkInTime = new Date(record.check_in);
         const autoOut = new Date(checkInTime.getTime() + 9 * 60 * 60 * 1000);
-        
-        let totalBreak = record.total_break_seconds || 0;
-        if (record.current_break_start) {
-          const breakStart = new Date(record.current_break_start);
-          const breakEnd = breakStart.getTime() < autoOut.getTime() ? autoOut : breakStart;
-          const breakSeconds = Math.max(0, Math.floor((breakEnd.getTime() - breakStart.getTime()) / 1000));
-          totalBreak += breakSeconds;
-        }
-        
-        const totalSeconds = Math.max(0, Math.floor((autoOut.getTime() - checkInTime.getTime()) / 1000));
-        const productiveSeconds = Math.max(0, totalSeconds - totalBreak);
-        const productiveHours = Number((productiveSeconds / 3600).toFixed(2));
-        const durationHours = Number((totalSeconds / 3600).toFixed(2));
-        
+
+        // Get next sequence number for the event stream
+        const { data: lastEvent } = await supabaseAdmin
+          .from('attendance_events')
+          .select('sequence_number')
+          .eq('session_id', record.id)
+          .order('sequence_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+        // Append FORCE_LOGOUT event (event-sourced, not direct mutation)
+        await supabaseAdmin
+          .from('attendance_events')
+          .insert([{
+            session_id: record.id,
+            employee_id: record.employee_id,
+            event_type: 'FORCE_LOGOUT',
+            event_timestamp: autoOut.toISOString(),
+            sequence_number: nextSequence,
+            idempotency_key: `stale-close-${record.id}-${nextSequence}`,
+            client_ip: '0.0.0.0',
+            payload: {
+              forced_by: 'system_sweeper',
+              stale_reason: 'cross_shift_boundary',
+              original_status: record.status,
+              auto_checkout_time: autoOut.toISOString()
+            }
+          }]);
+
+        // Rebuild projection from event stream
+        await supabaseAdmin.rpc('rebuild_attendance_projection', {
+          p_session_id: record.id
+        });
+
+        // Map CLOCKED_OUT → Logged Out for status constraint
         await supabaseAdmin
           .from('attendance')
-          .update({ 
-            check_out: autoOut.toISOString(),
-            status: 'Logged Out',
-            current_break_start: null,
-            total_break_seconds: totalBreak,
-            productive_hours: productiveHours,
-            duration_hours: durationHours,
-          })
-          .eq('id', record.id);
+          .update({ status: 'Logged Out' })
+          .eq('id', record.id)
+          .eq('status', 'CLOCKED_OUT');
       }
     }
   } catch (err) {

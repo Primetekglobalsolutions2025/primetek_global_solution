@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
-  MoreHorizontal, X, ClipboardList, BarChart2
+  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -58,20 +58,27 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   }, [role]);
 
   const desktopAdminItems: NavItem[] = [
+    // ─── Operations ───
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'Operations' },
     { href: '/admin/attendance', icon: Clock, label: 'Attendance', section: 'Operations' },
     { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals', section: 'Operations' },
     
+    // ─── Workforce ───
     { href: '/admin/employees', icon: Users, label: 'Employees', section: 'Workforce' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'Workforce' },
-    { href: '/admin/client-profiles', icon: FileUser, label: 'Client Management', section: 'Workforce' },
-    { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests', section: 'Workforce' },
-    { href: '/admin/applications', icon: FileText, label: 'Candidate Pipeline', section: 'Workforce' },
-    { href: '/admin/inquiries', icon: MessageSquare, label: 'Contact Inquiries', section: 'Workforce' },
     
-    { href: '/admin/audit', icon: History, label: 'Audit Logs', section: 'Security & System' },
-    { href: '/admin/settings', icon: Settings, label: 'Settings', section: 'Security & System' },
-    { href: '/admin/profile', icon: UserCircle, label: 'My Profile', section: 'Security & System' },
+    // ─── Recruitment & Clients ───
+    { href: '/admin/client-profiles', icon: Building2, label: 'Client Management', section: 'Recruitment & Clients' },
+    { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests', section: 'Recruitment & Clients' },
+    { href: '/admin/applications', icon: FileText, label: 'Candidate Pipeline', section: 'Recruitment & Clients' },
+    { href: '/admin/inquiries', icon: MessageSquare, label: 'Contact Inquiries', section: 'Recruitment & Clients' },
+    
+    // ─── Security & Compliance ───
+    { href: '/admin/audit', icon: Shield, label: 'Audit Logs', section: 'Security & Compliance' },
+    
+    // ─── System Management ───
+    { href: '/admin/settings', icon: Settings, label: 'Settings', section: 'System Management' },
+    { href: '/admin/profile', icon: UserCircle, label: 'My Profile', section: 'System Management' },
   ];
 
   const desktopEmployeeItems: NavItem[] = [
@@ -95,11 +102,12 @@ export default function AppSidebar({ role, userName }: AppSidebarProps) {
   ];
 
   const mobileAdminMore = [
-    { href: '/admin/client-profiles', icon: FileUser, label: 'Client Profiles' },
-    { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports' },
+    { href: '/admin/client-profiles', icon: Building2, label: 'Clients' },
+    { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews' },
+    { href: '/admin/applications', icon: FileText, label: 'Pipeline' },
     { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
-    { href: '/admin/audit', icon: History, label: 'Audit Logs' },
+    { href: '/admin/audit', icon: Shield, label: 'Audit Logs' },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
     { href: '/admin/profile', icon: UserCircle, label: 'Profile' },
   ];

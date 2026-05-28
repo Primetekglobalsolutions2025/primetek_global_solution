@@ -26,7 +26,8 @@ export default function DashboardGreeting({ userName, email }: DashboardGreeting
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded bg-white/5 border border-white/10 shadow-inner font-mono text-[9px] font-medium uppercase tracking-wider text-primary-200">
-            <span>Admin Portal</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Operations Center</span>
           </div>
           
           <div>
@@ -35,7 +36,7 @@ export default function DashboardGreeting({ userName, email }: DashboardGreeting
               <span className="text-primary-400 brightness-110">{firstName}</span>
             </h1>
             <p className="text-zinc-400 text-xs mt-2.5 max-w-md font-medium leading-relaxed font-sans">
-              Administrator Console. Monitor attendance telemetry, review pending disputes, manage team directories, and manage client profiles.
+              Realtime workforce monitoring, attendance telemetry, operational approvals, and compliance oversight.
             </p>
           </div>
 

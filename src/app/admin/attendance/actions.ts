@@ -13,9 +13,36 @@ declare module 'exceljs' {
   }
 }
 
+/**
+ * Proactively sweep and close all stale active sessions across the entire
+ * workforce. Invokes the database-level sweeper which appends FORCE_LOGOUT
+ * events and rebuilds projections — fully event-sourced.
+ * 
+ * This is fire-and-forget: errors are logged but never block callers.
+ */
+async function sweepGlobalStaleSessions(): Promise<{ closed: number; errors: number } | null> {
+  try {
+    const { data, error } = await supabaseAdmin.rpc('sweep_and_close_stale_sessions');
+    if (error) {
+      console.error('[StaleSweeper] RPC error:', error.message);
+      return null;
+    }
+    if (data && (data as any).closed > 0) {
+      console.log(`[StaleSweeper] Closed ${(data as any).closed} stale sessions, ${(data as any).errors} errors`);
+    }
+    return data as { closed: number; errors: number } | null;
+  } catch (err) {
+    console.error('[StaleSweeper] Unexpected error:', err);
+    return null;
+  }
+}
+
 export async function getAdminAttendance(startDate?: string, endDate?: string) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
+
+  // Proactively sweep stale sessions before fetching — guarantees live monitor accuracy
+  await sweepGlobalStaleSessions();
 
   let query = supabaseAdmin
     .from('attendance')

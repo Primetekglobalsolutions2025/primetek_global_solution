@@ -280,7 +280,11 @@ export default async function AuditLogsPage(props: PageProps) {
                 const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
                 
                 return (
-                  <tr key={log.id} className="hover:bg-zinc-50/50 transition-colors group text-zinc-600">
+                  <tr key={log.id} className={cn(
+                    "hover:bg-zinc-50/50 transition-colors group text-zinc-600",
+                    isOverride && "bg-violet-50/30 border-l-2 border-l-violet-400",
+                    isDelete && "bg-red-50/20 border-l-2 border-l-red-400"
+                  )}>
                     <td className="p-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">
                         <Clock className="w-3.5 h-3.5 text-zinc-350" />
@@ -359,25 +363,42 @@ export default async function AuditLogsPage(props: PageProps) {
             </span>{' '}
             of <span className="font-bold text-navy-900">{totalCount}</span> entries
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <a
               href={page > 1 ? `/admin/audit?page=${page - 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
-                "px-3.5 py-1.5 rounded border border-zinc-200 text-xs font-semibold transition-all active:scale-95",
+                "px-3 py-1.5 rounded border border-zinc-200 text-xs font-semibold transition-all active:scale-95",
                 page <= 1
                   ? "pointer-events-none opacity-40 bg-zinc-50 text-zinc-400"
                   : "bg-white text-zinc-650 hover:bg-zinc-50 hover:text-navy-900"
               )}
             >
-              Previous
+              Prev
             </a>
-            <span className="text-xs font-mono font-semibold text-navy-900 px-2">
-              Page {page} of {totalPages}
-            </span>
+            {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+              const pageNum = totalPages <= 7 ? i + 1 : 
+                page <= 4 ? i + 1 : 
+                page >= totalPages - 3 ? totalPages - 6 + i : 
+                page - 3 + i;
+              return (
+                <a
+                  key={pageNum}
+                  href={`/admin/audit?page=${pageNum}${q ? `&q=${encodeURIComponent(q)}` : ''}`}
+                  className={cn(
+                    "w-8 h-8 rounded flex items-center justify-center text-xs font-bold transition-all",
+                    pageNum === page
+                      ? "bg-primary-500 text-white shadow-sm"
+                      : "bg-white border border-zinc-200 text-zinc-500 hover:text-navy-900 hover:bg-zinc-50"
+                  )}
+                >
+                  {pageNum}
+                </a>
+              );
+            })}
             <a
               href={page < totalPages ? `/admin/audit?page=${page + 1}${q ? `&q=${encodeURIComponent(q)}` : ''}` : '#'}
               className={cn(
-                "px-3.5 py-1.5 rounded border border-zinc-200 text-xs font-semibold transition-all active:scale-95",
+                "px-3 py-1.5 rounded border border-zinc-200 text-xs font-semibold transition-all active:scale-95",
                 page >= totalPages
                   ? "pointer-events-none opacity-40 bg-zinc-50 text-zinc-400"
                   : "bg-white text-zinc-650 hover:bg-zinc-50 hover:text-navy-900"

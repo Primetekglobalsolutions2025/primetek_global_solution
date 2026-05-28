@@ -1,4 +1,4 @@
-import { MessageSquare, Users, Clock, Settings, ArrowRight, CheckSquare, TrendingUp, Zap, FileUser } from 'lucide-react';
+import { MessageSquare, Users, Clock, Settings, ArrowRight, CheckSquare, TrendingUp, Zap, FileUser, Activity, Coffee, MapPin, AlertTriangle, ShieldAlert, Smartphone, LogOut as LogOutIcon, Gavel } from 'lucide-react';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { formatDate, cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -6,69 +6,104 @@ import AnalyticsCharts from '@/components/admin/AnalyticsCharts';
 import DashboardGreeting from '@/components/admin/DashboardGreeting';
 import { getSession } from '@/lib/auth';
 import { Suspense } from 'react';
-import { StatsCardsSkeleton, ChartsSkeleton, RecentInquiriesSkeleton, SystemStatusSkeleton } from './skeletons';
+import { StatsCardsSkeleton, ChartsSkeleton, SystemStatusSkeleton, ActivityFeedSkeleton } from './skeletons';
 
-// ─── 1. ASYNC STATS SECTION ───
-async function StatsGrid() {
-  let inquiriesCount = 0;
-  let clientProfilesCount = 0;
-  let employeesCount = 0;
-  let pendingLeavesCount = 0;
-  let pendingWFHCount = 0;
+// ─── 1. ASYNC OPERATIONAL KPI GRID ───
+async function OperationalKPIGrid() {
+  const todayIST = (() => {
+    const d = new Date();
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5));
+    return ist.toISOString().split('T')[0];
+  })();
+
+  let activeEmployees = 0;
+  let activeBreaks = 0;
+  let idleSessions = 0;
+  let gpsAlerts = 0;
+  let autoBreaks = 0;
+  let pendingApprovals = 0;
+  let pendingDisputes = 0;
+  let mobileSessions = 0;
+  let autoLogouts = 0;
 
   try {
     const [
-      inquiriesRes,
-      profilesRes,
-      employeesRes,
+      activeRes,
+      breakRes,
+      mobileRes,
       pendingLeavesRes,
-      pendingWFHRes
+      pendingWFHRes,
+      disputesRes,
     ] = await Promise.all([
-      supabaseAdmin.from('inquiries').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('application_profiles').select('id', { count: 'exact', head: true }),
-      supabaseAdmin.from('employees').select('id', { count: 'exact', head: true }),
+      supabaseAdmin.from('attendance').select('id, status, device_type', { count: 'exact' }).eq('date', todayIST).is('check_out', null),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact' }).eq('date', todayIST).eq('status', 'On Break'),
+      supabaseAdmin.from('attendance').select('id', { count: 'exact' }).eq('date', todayIST).is('check_out', null).eq('device_type', 'mobile'),
       supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
       supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
+      supabaseAdmin.from('attendance_disputes').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
     ]);
 
-    inquiriesCount = inquiriesRes.count || 0;
-    clientProfilesCount = profilesRes.count || 0;
-    employeesCount = employeesRes.count || 0;
-    pendingLeavesCount = pendingLeavesRes.count || 0;
-    pendingWFHCount = pendingWFHRes.count || 0;
+    const activeData = activeRes.data || [];
+    activeEmployees = activeData.length;
+    activeBreaks = breakRes.count || 0;
+    mobileSessions = mobileRes.count || 0;
+    pendingApprovals = (pendingLeavesRes.count || 0) + (pendingWFHRes.count || 0);
+    pendingDisputes = disputesRes.count || 0;
+
+    // Count idle sessions (status = PRODUCTIVE_TIMER_PAUSED)
+    const { count: idleCount } = await supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).eq('date', todayIST).eq('status', 'PRODUCTIVE_TIMER_PAUSED');
+    idleSessions = idleCount || 0;
+
+    // Count GPS alerts (attendance_events of type GPS_EXIT today)
+    const { count: gpsCount } = await supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'GPS_EXIT').gte('event_timestamp', todayIST + 'T00:00:00');
+    gpsAlerts = gpsCount || 0;
+
+    // Count auto-breaks today
+    const { count: autoBreakCount } = await supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'AUTO_BREAK_TRIGGERED').gte('event_timestamp', todayIST + 'T00:00:00');
+    autoBreaks = autoBreakCount || 0;
+
+    // Count force logouts today
+    const { count: forceLogoutCount } = await supabaseAdmin.from('attendance_events').select('id', { count: 'exact', head: true }).eq('event_type', 'FORCE_LOGOUT').gte('event_timestamp', todayIST + 'T00:00:00');
+    autoLogouts = forceLogoutCount || 0;
+
   } catch (err) {
-    console.error('Failed to load dashboard metrics from database:', err);
+    console.error('Failed to load operational KPIs:', err);
   }
 
-  const totalPending = pendingLeavesCount + pendingWFHCount;
-
-  const stats = [
-    { label: 'Inquiries', value: inquiriesCount.toString(), icon: MessageSquare, color: 'text-primary-650', bg: 'bg-primary-500/10 border-primary-500/10', href: '/admin/inquiries' },
-    { label: 'Client Profiles', value: clientProfilesCount.toString(), icon: FileUser, color: 'text-amber-650', bg: 'bg-amber-500/10 border-amber-500/10', href: '/admin/client-profiles' },
-    { label: 'Employees', value: employeesCount.toString(), icon: Users, color: 'text-emerald-650', bg: 'bg-emerald-500/10 border-emerald-500/10', href: '/admin/employees' },
-    { label: 'Approvals', value: totalPending.toString(), icon: Clock, color: 'text-violet-650', bg: 'bg-violet-500/10 border-violet-500/10', href: '/admin/approvals' },
+  const kpis = [
+    { label: 'Active Now', value: activeEmployees, icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-500/10 border-emerald-500/15', href: '/admin/attendance', pulse: true },
+    { label: 'On Break', value: activeBreaks, icon: Coffee, color: 'text-amber-600', bg: 'bg-amber-500/10 border-amber-500/15', href: '/admin/attendance' },
+    { label: 'Idle Sessions', value: idleSessions, icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-500/10 border-red-500/15', href: '/admin/attendance' },
+    { label: 'GPS Alerts', value: gpsAlerts, icon: MapPin, color: 'text-orange-600', bg: 'bg-orange-500/10 border-orange-500/15', href: '/admin/attendance' },
+    { label: 'Auto-Breaks', value: autoBreaks, icon: ShieldAlert, color: 'text-rose-600', bg: 'bg-rose-500/10 border-rose-500/15', href: '/admin/audit' },
+    { label: 'Approvals', value: pendingApprovals, icon: CheckSquare, color: 'text-violet-600', bg: 'bg-violet-500/10 border-violet-500/15', href: '/admin/approvals' },
+    { label: 'Disputes', value: pendingDisputes, icon: Gavel, color: 'text-indigo-600', bg: 'bg-indigo-500/10 border-indigo-500/15', href: '/admin/approvals' },
+    { label: 'Mobile-Only', value: mobileSessions, icon: Smartphone, color: 'text-sky-600', bg: 'bg-sky-500/10 border-sky-500/15', href: '/admin/attendance' },
+    { label: 'Auto-Logouts', value: autoLogouts, icon: LogOutIcon, color: 'text-zinc-600', bg: 'bg-zinc-500/10 border-zinc-500/15', href: '/admin/audit' },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat) => (
+    <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-9 gap-3">
+      {kpis.map((kpi) => (
         <Link 
-          key={stat.label} 
-          href={stat.href}
-          className="group bg-white rounded-lg p-5 border border-zinc-200/80 flex flex-col gap-4 relative hover:border-primary-500/50 transition-all duration-200 shadow-2xs cursor-pointer"
+          key={kpi.label} 
+          href={kpi.href}
+          className="group bg-white rounded-xl p-3.5 lg:p-4 border border-zinc-200/80 flex flex-col items-center gap-2.5 relative hover:border-primary-500/50 transition-all duration-200 shadow-2xs cursor-pointer text-center"
         >
-          <div className="flex items-center justify-between">
-            <div className={cn(
-              'w-8 h-8 rounded-md flex items-center justify-center transition-transform duration-300 group-hover:scale-105 border',
-              stat.color,
-              stat.bg
-            )}>
-              <stat.icon className="w-4 h-4" />
-            </div>
+          <div className={cn(
+            'w-8 h-8 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 border',
+            kpi.color,
+            kpi.bg
+          )}>
+            <kpi.icon className="w-4 h-4" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight text-navy-900 font-sans leading-none">{stat.value}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-400 mt-2 font-sans">{stat.label}</p>
+            <p className="text-lg font-bold tracking-tight text-navy-900 font-sans leading-none">
+              {kpi.value}
+              {kpi.pulse && kpi.value > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1 align-middle" />}
+            </p>
+            <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-400 mt-1.5 font-sans leading-tight">{kpi.label}</p>
           </div>
         </Link>
       ))}
@@ -76,32 +111,110 @@ async function StatsGrid() {
   );
 }
 
-// ─── 2. ASYNC MOBILE APPROVALS BUTTON ───
-async function MobilePendingApprovalsButton() {
-  let pendingLeavesCount = 0;
-  let pendingWFHCount = 0;
+// ─── 2. ASYNC REALTIME ACTIVITY FEED ───
+async function RealtimeActivityFeed() {
+  const todayIST = (() => {
+    const d = new Date();
+    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+    const ist = new Date(utc + (3600000 * 5.5));
+    return ist.toISOString().split('T')[0];
+  })();
 
+  let events: any[] = [];
   try {
-    const [pendingLeavesRes, pendingWFHRes] = await Promise.all([
-      supabaseAdmin.from('leave_requests').select('id', { count: 'exact', head: true }).ilike('status', 'Pending'),
-      supabaseAdmin.from('attendance').select('id', { count: 'exact', head: true }).ilike('status', 'Pending WFH'),
-    ]);
-    pendingLeavesCount = pendingLeavesRes.count || 0;
-    pendingWFHCount = pendingWFHRes.count || 0;
-  } catch (err) {}
+    const { data } = await supabaseAdmin
+      .from('attendance_events')
+      .select('id, session_id, employee_id, event_type, event_timestamp, payload, client_ip')
+      .gte('event_timestamp', todayIST + 'T00:00:00')
+      .order('event_timestamp', { ascending: false })
+      .limit(15);
+    events = data || [];
+  } catch (err) {
+    console.error('Failed to load activity feed:', err);
+  }
 
-  const totalPending = pendingLeavesCount + pendingWFHCount;
+  // Resolve employee names
+  const empIds = [...new Set(events.map(e => e.employee_id).filter(Boolean))];
+  let empMap: Record<string, string> = {};
+  if (empIds.length > 0) {
+    const { data: emps } = await supabaseAdmin.from('employees').select('id, name').in('id', empIds);
+    if (emps) {
+      emps.forEach(e => { empMap[e.id] = e.name; });
+    }
+  }
+
+  const eventConfig: Record<string, { color: string; bg: string; label: string }> = {
+    'CLOCK_IN': { color: 'text-emerald-600', bg: 'bg-emerald-500/10', label: 'Clocked In' },
+    'CLOCK_OUT': { color: 'text-red-600', bg: 'bg-red-500/10', label: 'Clocked Out' },
+    'FORCE_LOGOUT': { color: 'text-red-700', bg: 'bg-red-500/15', label: 'Force Logout' },
+    'BREAK_STARTED': { color: 'text-amber-600', bg: 'bg-amber-500/10', label: 'Break Started' },
+    'BREAK_ENDED': { color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'Break Ended' },
+    'AUTO_BREAK_TRIGGERED': { color: 'text-rose-600', bg: 'bg-rose-500/10', label: 'Auto-Break' },
+    'GPS_EXIT': { color: 'text-orange-600', bg: 'bg-orange-500/10', label: 'GPS Exit' },
+    'GPS_REENTRY': { color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'GPS Reentry' },
+    'IDLE_WARNING': { color: 'text-amber-500', bg: 'bg-amber-500/10', label: 'Idle Warning' },
+    'ADMIN_OVERRIDE': { color: 'text-violet-600', bg: 'bg-violet-500/10', label: 'Admin Override' },
+    'HEARTBEAT': { color: 'text-zinc-400', bg: 'bg-zinc-500/5', label: 'Heartbeat' },
+  };
+
+  const formatRelativeTime = (ts: string) => {
+    const now = new Date();
+    const then = new Date(ts);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    return `${Math.floor(diffHrs / 24)}d ago`;
+  };
+
+  // Filter out HEARTBEAT events for the feed (too noisy)
+  const filteredEvents = events.filter(e => e.event_type !== 'HEARTBEAT');
 
   return (
-    <Link href="/admin/approvals" className="col-span-2">
-      <button className="w-full flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md active:scale-98 transition-all cursor-pointer">
-        <div className="flex items-center gap-3">
-          <CheckSquare className="w-5 h-5" />
-          <span>Pending Approvals ({totalPending})</span>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-1 h-5 bg-primary-500 rounded-full" />
+          <h2 className="text-sm font-semibold text-navy-900 tracking-tight font-sans">Live Activity Feed</h2>
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
         </div>
-        <ArrowRight className="w-4 h-4" />
-      </button>
-    </Link>
+        <Link href="/admin/audit" className="text-[9px] font-mono font-medium text-primary-700 hover:text-primary-800 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-3 py-1 rounded transition-all">
+          View All
+        </Link>
+      </div>
+
+      <div className="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden divide-y divide-zinc-100/60">
+        {filteredEvents.length === 0 ? (
+          <div className="px-5 py-10 text-center">
+            <Activity className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
+            <p className="text-xs text-zinc-400 font-semibold">No activity events recorded today</p>
+          </div>
+        ) : (
+          filteredEvents.slice(0, 12).map((evt) => {
+            const config = eventConfig[evt.event_type] || { color: 'text-zinc-500', bg: 'bg-zinc-500/5', label: evt.event_type };
+            const empName = empMap[evt.employee_id] || 'Unknown';
+            return (
+              <div key={evt.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-zinc-50/50 transition-colors">
+                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', config.bg)}>
+                  <Activity className={cn('w-3.5 h-3.5', config.color)} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-navy-900 truncate">{empName}</span>
+                    <span className={cn('text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border', config.bg, config.color)}>
+                      {config.label}
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[9px] font-mono text-zinc-400 shrink-0">{formatRelativeTime(evt.event_timestamp)}</span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -164,76 +277,7 @@ async function PerformanceChartsSection() {
   );
 }
 
-// ─── 4. ASYNC RECENT INQUIRIES SECTION ───
-async function RecentInquiriesSection() {
-  let recentInquiries: any[] = [];
-  
-  try {
-    const { data } = await supabaseAdmin
-      .from('inquiries')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5);
-    recentInquiries = data || [];
-  } catch (err) {
-    console.error('Failed to load recent inquiries:', err);
-  }
-
-  const statusColors: Record<string, string> = {
-    new: 'bg-blue-50 text-blue-700 border-blue-200',
-    contacted: 'bg-amber-50 text-amber-700 border-amber-200',
-    qualified: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    closed: 'bg-zinc-100 text-zinc-550 border-zinc-200',
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-1 h-5 bg-primary-500 rounded-full" />
-          <h2 className="text-sm font-semibold text-navy-900 tracking-tight font-sans">Recent Inquiries</h2>
-        </div>
-        <Link href="/admin/inquiries" className="text-[9px] font-mono font-medium text-primary-700 hover:text-primary-800 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-3 py-1 rounded transition-all">
-          View All
-        </Link>
-      </div>
-
-      <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
-        <div className="divide-y divide-zinc-100">
-          {recentInquiries?.map((inq) => (
-            <div key={inq.id} className="px-5 py-3.5 hover:bg-zinc-50/50 transition-all group">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-navy-900 group-hover:text-primary-650 transition-colors font-sans">{inq.name}</span>
-                <span className={cn(
-                  "inline-flex items-center px-2 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider",
-                  statusColors[inq.status] || statusColors.new
-                )}>
-                  {inq.status}
-                </span>
-              </div>
-              <p className="text-xs text-zinc-500 line-clamp-1 mb-1.5 font-medium font-sans">{inq.message}</p>
-              <div className="flex items-center gap-3 text-[9px] text-zinc-400 font-mono uppercase tracking-wider">
-                {inq.company && <span className="text-zinc-500">{inq.company}</span>}
-                {inq.company && <span>•</span>}
-                <span>{formatDate(inq.created_at)}</span>
-              </div>
-            </div>
-          ))}
-          {(!recentInquiries || recentInquiries.length === 0) && (
-            <div className="px-5 py-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center mx-auto mb-3">
-                <MessageSquare className="w-5 h-5 text-zinc-400" />
-              </div>
-              <p className="text-xs text-zinc-400 font-semibold uppercase tracking-wider font-mono">No active inquiries</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── 5. ASYNC SYSTEM STATUS SECTION ───
+// ─── 4. ASYNC SYSTEM STATUS SECTION ───
 async function SystemStatusSection() {
   let systemNodes: any[] = [];
   try {
@@ -247,19 +291,20 @@ async function SystemStatusSection() {
   }
 
   const nodes = systemNodes && systemNodes.length ? systemNodes : [
-    { node_name: 'Authentication', status: 'Active', color: 'bg-emerald-500' },
-    { node_name: 'DB Cluster', status: 'Syncing', color: 'bg-emerald-500' },
+    { node_name: 'Database', status: 'Active', color: 'bg-emerald-500' },
+    { node_name: 'API Gateway', status: 'Optimal', color: 'bg-emerald-500' },
+    { node_name: 'Auth System', status: 'Active', color: 'bg-emerald-500' },
+    { node_name: 'Heartbeat Engine', status: 'Active', color: 'bg-emerald-500' },
     { node_name: 'Mail Server', status: 'Active', color: 'bg-emerald-500' },
-    { node_name: 'API Gateway', status: 'Optimal', color: 'bg-primary-400' },
   ];
 
   return (
-    <div className="bg-white border border-zinc-200 hover:border-primary-500/50 rounded-lg p-5 relative overflow-hidden transition-all duration-200 shadow-2xs group">
+    <div className="bg-white border border-zinc-200 hover:border-primary-500/50 rounded-xl p-5 relative overflow-hidden transition-all duration-200 shadow-2xs group">
       <div className="absolute top-0 right-0 p-5 opacity-[0.03] text-navy-900 pointer-events-none">
         <Zap className="w-20 h-20" />
       </div>
-      <h3 className="text-sm font-bold tracking-tight mb-1 relative z-10 text-navy-900 font-sans">System Status</h3>
-      <p className="text-xs text-zinc-450 font-medium mb-4 relative z-10 font-sans">Real-time status check across all services.</p>
+      <h3 className="text-sm font-bold tracking-tight mb-1 relative z-10 text-navy-900 font-sans">Operational Health</h3>
+      <p className="text-xs text-zinc-450 font-medium mb-4 relative z-10 font-sans">Real-time status across all services.</p>
       
       <div className="space-y-3 relative z-10">
         {nodes.map(node => (
@@ -276,7 +321,7 @@ async function SystemStatusSection() {
   );
 }
 
-// ─── 6. MAIN DASHBOARD PAGE (Non-blocking Layout shell) ───
+// ─── 5. MAIN DASHBOARD PAGE ───
 export default async function AdminAppDashboard() {
   const session = await getSession();
   const userName = session?.name || 'Administrator';
@@ -292,18 +337,19 @@ export default async function AdminAppDashboard() {
     <div className="space-y-6 pb-10">
       <DashboardGreeting userName={userName} email={session?.email} />
 
-      {/* Mobile Quick Actions Block (Streaming button inside fallback) */}
+      {/* Mobile Quick Actions Block */}
       <div className="block md:hidden bg-white rounded-lg p-4 border border-zinc-200 shadow-2xs space-y-3">
         <h3 className="text-[10px] font-mono font-semibold text-zinc-400 uppercase tracking-wider ml-1">Quick Actions</h3>
         <div className="grid grid-cols-2 gap-3">
-          <Suspense fallback={
-            <div className="col-span-2 h-14 bg-gradient-to-r from-violet-500/10 to-indigo-600/10 border border-violet-500/20 rounded-lg animate-pulse flex items-center justify-between px-4">
-              <div className="h-4 w-32 bg-violet-200/50 rounded" />
-              <div className="h-4 w-4 bg-violet-200/50 rounded" />
-            </div>
-          }>
-            <MobilePendingApprovalsButton />
-          </Suspense>
+          <Link href="/admin/approvals" className="col-span-2">
+            <button className="w-full flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-violet-500 to-indigo-600 text-white font-bold text-sm shadow-md active:scale-98 transition-all cursor-pointer">
+              <div className="flex items-center gap-3">
+                <CheckSquare className="w-5 h-5" />
+                <span>Pending Approvals</span>
+              </div>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </Link>
           <Link href="/admin/employees">
             <button className="w-full flex flex-col items-center justify-center p-3.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 active:scale-95 transition-all text-center gap-1.5 shadow-2xs cursor-pointer text-navy-900 font-bold font-sans">
               <Users className="w-5 h-5 text-primary-600" />
@@ -319,9 +365,9 @@ export default async function AdminAppDashboard() {
         </div>
       </div>
 
-      {/* ─── Stats Cards Section (Streaming) ─── */}
+      {/* ─── Operational KPI Grid (Streaming) ─── */}
       <Suspense fallback={<StatsCardsSkeleton />}>
-        <StatsGrid />
+        <OperationalKPIGrid />
       </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -329,7 +375,7 @@ export default async function AdminAppDashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-1 h-5 bg-primary-500 rounded-full" />
-              <h2 className="text-sm font-semibold text-navy-900 tracking-tight font-sans">Performance Analytics</h2>
+              <h2 className="text-sm font-semibold text-navy-900 tracking-tight font-sans">Workforce Analytics</h2>
             </div>
             <div className="flex gap-2">
               <span className="px-2.5 py-0.5 rounded-full bg-zinc-100 border border-zinc-200 text-[9px] font-mono font-medium text-zinc-500 uppercase tracking-wider">Last 7 Days</span>
@@ -341,9 +387,9 @@ export default async function AdminAppDashboard() {
             <PerformanceChartsSection />
           </Suspense>
 
-          {/* ─── Recent Inquiries Section (Streaming) ─── */}
-          <Suspense fallback={<RecentInquiriesSkeleton />}>
-            <RecentInquiriesSection />
+          {/* ─── Realtime Activity Feed (Streaming) ─── */}
+          <Suspense fallback={<ActivityFeedSkeleton />}>
+            <RealtimeActivityFeed />
           </Suspense>
         </div>
 

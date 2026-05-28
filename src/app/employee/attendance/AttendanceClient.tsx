@@ -74,7 +74,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function AttendanceClient({ initialRecords }: { initialRecords: AttendanceRecord[] }) {
+export default function AttendanceClient({ initialRecords, wasAutoLoggedOut = false }: { initialRecords: AttendanceRecord[]; wasAutoLoggedOut?: boolean }) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -1126,6 +1126,26 @@ export default function AttendanceClient({ initialRecords }: { initialRecords: A
 
   return (
     <div className="space-y-6 pb-16">
+      {/* Auto-Logout Advisory Banner */}
+      <AnimatePresence>
+        {wasAutoLoggedOut && !checkedIn && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="relative flex items-start gap-3 px-4 py-3 rounded-xl border border-amber-200 bg-amber-50/80 text-amber-800 text-sm font-sans"
+          >
+            <Info className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
+            <div className="flex-1">
+              <p className="font-medium">Previous session ended automatically</p>
+              <p className="text-amber-700/80 text-xs mt-0.5">
+                Your previous work session was ended automatically after prolonged inactivity or connection loss. Please clock in again to continue work.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Inactivity / Idle Warning Modal Overlay */}
       <AnimatePresence>
         {sessionState === 'WARNING' && (

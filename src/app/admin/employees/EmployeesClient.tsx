@@ -34,6 +34,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     setEmployees(initialEmployees);
   }
   const [search, setSearch] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
   const { toast } = useToast();
   
   // Modal State
@@ -63,15 +64,22 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     return { total, active, inactive };
   }, [employees]);
 
+  const departments = useMemo(() => {
+    const depts = new Set(employees.map(e => e.department).filter(Boolean));
+    return Array.from(depts).sort() as string[];
+  }, [employees]);
+
   const filtered = employees.filter((emp) => {
-    if (!search) return true;
+    const matchesDept = departmentFilter === 'all' || emp.department === departmentFilter;
+    if (!search && matchesDept) return true;
     const q = search.toLowerCase();
-    return (
+    const matchesSearch = !search || (
       emp.name.toLowerCase().includes(q) ||
       emp.email.toLowerCase().includes(q) ||
       emp.employee_id.toLowerCase().includes(q) ||
       (emp.department && emp.department.toLowerCase().includes(q))
     );
+    return matchesSearch && matchesDept;
   });
 
   const handleToggle = async (id: string, currentStatus: string) => {
@@ -212,15 +220,27 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
 
       {/* 2. Search & Actions */}
       <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-        <div className="relative w-full sm:max-w-sm group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Search by ID, name, email..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-sm font-medium" 
-          />
+        <div className="flex gap-2 flex-1 sm:max-w-lg">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
+            <input 
+              type="text" 
+              placeholder="Search by ID, name, email..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 bg-white text-xs text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-sm font-medium" 
+            />
+          </div>
+          {departments.length > 0 && (
+            <select 
+              value={departmentFilter} 
+              onChange={(e) => setDepartmentFilter(e.target.value)} 
+              className="pl-3 pr-8 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm min-w-[130px] appearance-none"
+            >
+              <option value="all">Dept: ALL</option>
+              {departments.map((dept) => <option key={dept} value={dept}>{dept.toUpperCase()}</option>)}
+            </select>
+          )}
         </div>
         <Button 
           onClick={() => {

@@ -393,6 +393,8 @@ export default function ApprovalsClient({
                             <div className="flex flex-col text-zinc-550 font-semibold">
                               <span>Late Penalty:</span>
                               <span>Deduction:</span>
+                              <span>Productive:</span>
+                              <span>Break Time:</span>
                             </div>
                             <div className="flex flex-col items-end">
                               {dispute.attendance_is_late ? (
@@ -407,6 +409,12 @@ export default function ApprovalsClient({
                               ) : (
                                 <span className="text-zinc-400">—</span>
                               )}
+                              <span className="font-bold text-navy-900">
+                                {dispute.attendance_productive_hours !== undefined ? `${dispute.attendance_productive_hours.toFixed(1)}h` : `${dispute.attendance_duration_hours?.toFixed(1) || '—'}h`}
+                              </span>
+                              <span className="font-bold text-navy-900">
+                                {dispute.attendance_total_break_seconds !== undefined ? `${Math.round(dispute.attendance_total_break_seconds / 60)}m` : '—'}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -701,7 +709,21 @@ export default function ApprovalsClient({
                         case 'FORCE_LOGOUT':
                           dotColor = 'bg-red-500 ring-4 ring-red-500/20';
                           cardBg = 'bg-red-50 border-red-100 text-red-800';
-                          description = `${evt.event_type === 'FORCE_LOGOUT' ? 'Admin Force Logout' : 'Self Clock Out'}\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
+                          if (evt.event_type === 'FORCE_LOGOUT' && evt.payload?.forced_by === 'system_sweeper') {
+                            const staleReason = evt.payload?.stale_reason === 'heartbeat_timeout' ? 'Heartbeat Timeout' 
+                              : evt.payload?.stale_reason === 'session_exceeded_16h' ? 'Session Exceeded 16h'
+                              : evt.payload?.stale_reason === 'desktop_grace_expired' ? 'Desktop Grace Expired'
+                              : evt.payload?.stale_reason === 'cross_shift_boundary' ? 'Cross-Shift Boundary'
+                              : evt.payload?.stale_reason || 'Unknown';
+                            const staleDuration = evt.payload?.stale_duration_seconds 
+                              ? `${Math.round(evt.payload.stale_duration_seconds / 60)}min inactive` 
+                              : '';
+                            description = `⚡ System Inactivity Auto-Logout\nReason: ${staleReason}${staleDuration ? '\nInactivity: ' + staleDuration : ''}${evt.payload?.last_heartbeat_at ? '\nLast Heartbeat: ' + new Date(evt.payload.last_heartbeat_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : ''}`;
+                          } else if (evt.event_type === 'FORCE_LOGOUT') {
+                            description = `Admin Force Logout\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
+                          } else {
+                            description = `Self Clock Out\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
+                          }
                           break;
                         case 'BREAK_STARTED':
                           dotColor = 'bg-amber-500';

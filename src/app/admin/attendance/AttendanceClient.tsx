@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Download, FileSpreadsheet, Loader2, User, Clock, Calendar, MapPin, Sparkles, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Search, Download, FileSpreadsheet, Loader2, User, Clock, Calendar, MapPin, Sparkles, AlertTriangle, ShieldCheck, Wifi, Smartphone, Monitor, ChevronDown, ChevronRight } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { exportAttendanceExcel, toggleExemption, getSessionEvents, reverseAutoBreak, correctClockOutTime, rebuildSessionProjection, overrideDeviceValidation } from './actions';
@@ -78,6 +78,7 @@ export default function AttendanceClient({
   const [isExporting, setIsExporting] = useState(false);
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
   const [ticks, setTicks] = useState(0);
+  const [quickFilter, setQuickFilter] = useState<string>('all');
   const { toast } = useToast();
 
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
@@ -207,9 +208,24 @@ export default function AttendanceClient({
       const matchesEmployee = employeeFilter === 'all' || r.employee_id === employeeFilter;
       const matchesStatus = statusFilter === 'all' || (r.status || '').toLowerCase() === statusFilter.toLowerCase();
       const matchesRisk = riskFilter === 'all' || (r.risk_level || 'low').toLowerCase() === riskFilter.toLowerCase();
-      return matchesSearch && matchesEmployee && matchesStatus && matchesRisk;
+      
+      // Quick filter pills
+      let matchesQuick = true;
+      if (quickFilter === 'active') {
+        matchesQuick = r.status === 'Working' || r.status === 'DESKTOP_ACTIVE';
+      } else if (quickFilter === 'idle') {
+        matchesQuick = r.status === 'PRODUCTIVE_TIMER_PAUSED';
+      } else if (quickFilter === 'breaks') {
+        matchesQuick = r.status === 'On Break';
+      } else if (quickFilter === 'mobile') {
+        matchesQuick = r.device_type === 'mobile' || r.device_type === 'tablet' || r.status === 'MOBILE_CLOCKED_IN' || r.status === 'AWAITING_DESKTOP';
+      } else if (quickFilter === 'stale') {
+        matchesQuick = r.status === 'Working' && r.check_out === null && r.duration_hours > 12;
+      }
+      
+      return matchesSearch && matchesEmployee && matchesStatus && matchesRisk && matchesQuick;
     });
-  }, [initialAttendance, search, employeeFilter, statusFilter, riskFilter]);
+  }, [initialAttendance, search, employeeFilter, statusFilter, riskFilter, quickFilter]);
 
   // Live Records filter for today or active sessions
   const liveRecords = useMemo(() => {
@@ -424,6 +440,39 @@ export default function AttendanceClient({
                 Excel Master
               </Button>
             </div>
+          </div>
+
+          {/* Quick Filter Pills */}
+          <div className="flex items-center gap-2 flex-wrap px-1">
+            {[
+              { id: 'all', label: 'All Records', count: initialAttendance.length },
+              { id: 'active', label: 'Active', count: initialAttendance.filter(r => r.status === 'Working' || r.status === 'DESKTOP_ACTIVE').length },
+              { id: 'breaks', label: 'On Break', count: initialAttendance.filter(r => r.status === 'On Break').length },
+              { id: 'idle', label: 'Idle', count: initialAttendance.filter(r => r.status === 'PRODUCTIVE_TIMER_PAUSED').length },
+              { id: 'mobile', label: 'Mobile', count: initialAttendance.filter(r => r.device_type === 'mobile' || r.device_type === 'tablet').length },
+              { id: 'stale', label: 'Stale', count: initialAttendance.filter(r => r.status === 'Working' && r.check_out === null && r.duration_hours > 12).length },
+            ].map((pill) => (
+              <button
+                key={pill.id}
+                onClick={() => setQuickFilter(pill.id)}
+                className={cn(
+                  "px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-all active:scale-95",
+                  quickFilter === pill.id
+                    ? "bg-primary-500 text-white border-primary-500 shadow-sm shadow-primary-500/20"
+                    : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:text-navy-900"
+                )}
+              >
+                {pill.label}
+                {pill.count > 0 && (
+                  <span className={cn(
+                    "ml-1 px-1 py-0.5 rounded-full text-[8px] font-bold leading-none",
+                    quickFilter === pill.id ? "bg-white/25 text-white" : "bg-zinc-100 text-zinc-400"
+                  )}>
+                    {pill.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
           <div className="flex items-center justify-between px-1">
@@ -930,6 +979,15 @@ export default function AttendanceClient({
                 <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-0.5">
                   {selectedRecord.employee_name}
                 </p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border bg-zinc-100 text-zinc-500 border-zinc-200">
+                    {selectedRecord.device_type === 'mobile' || selectedRecord.device_type === 'tablet' 
+                      ? <><Smartphone className="w-2.5 h-2.5" /> {selectedRecord.device_label || 'Mobile'}</>
+                      : <><Monitor className="w-2.5 h-2.5" /> {selectedRecord.device_label || 'Desktop'}</>
+                    }
+                  </span>
+                  <span className="text-[8px] font-mono text-zinc-400">ID: {selectedRecord.id.slice(0, 8)}</span>
+                </div>
               </div>
               <button 
                 onClick={() => {
@@ -991,6 +1049,28 @@ export default function AttendanceClient({
                 </div>
               </div>
 
+              {/* Telemetry Summary */}
+              {selectedRecordEvents.length > 0 && (
+                <div className="p-3 rounded-xl border border-zinc-200/60 bg-zinc-50/30 grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block">Events</span>
+                    <span className="text-sm font-bold text-navy-900">{selectedRecordEvents.length}</span>
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block">Heartbeats</span>
+                    <span className="text-sm font-bold text-navy-900">
+                      {selectedRecordEvents.filter(e => e.event_type === 'HEARTBEAT_RECEIVED').length}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest block">GPS Pings</span>
+                    <span className="text-sm font-bold text-navy-900">
+                      {selectedRecordEvents.filter(e => e.event_type === 'GPS_EXIT' || e.event_type === 'GPS_REENTRY').length}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Timeline Container */}
               <div className="space-y-4 relative">
                 <h4 className="text-[10px] font-black text-zinc-700 uppercase tracking-widest block mb-4 border-b border-zinc-200/40 pb-1">
@@ -1031,7 +1111,21 @@ export default function AttendanceClient({
                           dotColor = 'bg-red-500 ring-4 ring-red-500/20';
                           iconColor = 'text-red-600';
                           cardBg = 'bg-red-50 border-red-100 text-red-800';
-                          description = `${evt.event_type === 'FORCE_LOGOUT' ? 'Admin Force Logout' : 'Self Clock Out'}\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
+                          if (evt.event_type === 'FORCE_LOGOUT' && evt.payload?.forced_by === 'system_sweeper') {
+                            const staleReason = evt.payload?.stale_reason === 'heartbeat_timeout' ? 'Heartbeat Timeout' 
+                              : evt.payload?.stale_reason === 'session_exceeded_16h' ? 'Session Exceeded 16h'
+                              : evt.payload?.stale_reason === 'desktop_grace_expired' ? 'Desktop Grace Expired'
+                              : evt.payload?.stale_reason === 'cross_shift_boundary' ? 'Cross-Shift Boundary'
+                              : evt.payload?.stale_reason || 'Unknown';
+                            const staleDuration = evt.payload?.stale_duration_seconds 
+                              ? `${Math.round(evt.payload.stale_duration_seconds / 60)}min inactive` 
+                              : '';
+                            description = `⚡ System Inactivity Auto-Logout\nReason: ${staleReason}${staleDuration ? '\nInactivity: ' + staleDuration : ''}${evt.payload?.last_heartbeat_at ? '\nLast Heartbeat: ' + new Date(evt.payload.last_heartbeat_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) : ''}`;
+                          } else if (evt.event_type === 'FORCE_LOGOUT') {
+                            description = `Admin Force Logout\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
+                          } else {
+                            description = `Self Clock Out\nIP: ${evt.client_ip || '—'}${evt.payload?.reason ? '\nJustification: ' + evt.payload.reason : ''}`;
+                          }
                           break;
                         case 'BREAK_STARTED':
                           dotColor = 'bg-amber-500';
@@ -1126,6 +1220,18 @@ export default function AttendanceClient({
                             <p className="text-[10px] text-zinc-700 whitespace-pre-line leading-relaxed">
                               {description}
                             </p>
+                            {/* Expandable raw payload */}
+                            {evt.payload && Object.keys(evt.payload).length > 0 && (
+                              <details className="mt-1">
+                                <summary className="text-[9px] font-mono text-zinc-400 cursor-pointer hover:text-zinc-600 select-none flex items-center gap-1">
+                                  <ChevronRight className="w-2.5 h-2.5 inline-block details-open:hidden" />
+                                  <span>Raw payload</span>
+                                </summary>
+                                <pre className="mt-1 text-[8px] font-mono text-zinc-500 bg-zinc-100 p-2 rounded border border-zinc-200 overflow-x-auto max-h-32 leading-relaxed">
+                                  {JSON.stringify(evt.payload, null, 2)}
+                                </pre>
+                              </details>
+                            )}
                           </div>
                         </div>
                       );
