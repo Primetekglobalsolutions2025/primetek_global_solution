@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { Target, Eye, Award, Users, Lightbulb, Zap, Briefcase } from 'lucide-react';
+import { Target, Eye, Award, Users, Lightbulb, Zap } from 'lucide-react';
 import SectionHeading from '@/components/ui/SectionHeading';
 import Card from '@/components/ui/Card';
 import CTASection from '@/components/sections/CTASection';

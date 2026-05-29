@@ -3,12 +3,11 @@
 import { useState, useRef } from 'react';
 import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 import { 
-  Calendar, Home, CheckCircle2, XCircle, 
-  Clock, MapPin, User, Loader2, 
-  Sparkles, ShieldCheck, History, AlertTriangle
+  Calendar, Home, 
+  MapPin, User, Loader2, 
+  ShieldCheck, History, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { updateLeaveStatus, updateWFHStatus, resolveDispute } from './actions';
 import { getSessionEvents } from '../attendance/actions';
@@ -17,14 +16,14 @@ import { formatDate, cn } from '@/lib/utils';
 
 type Tab = 'leaves' | 'wfh' | 'disputes' | 'history';
 
-const formatSafeTime = (timeStr: any) => {
+const formatSafeTime = (timeStr: string | number | Date | null | undefined) => {
   if (!timeStr) return '--:--';
   const d = new Date(timeStr);
   if (isNaN(d.getTime())) return '--:--';
   return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
 };
 
-const formatSafeDate = (dateStr: any) => {
+const formatSafeDate = (dateStr: string | number | Date | null | undefined) => {
   if (!dateStr) return '-- --- ----';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return String(dateStr);
@@ -111,7 +110,14 @@ export interface DisputeEventTimeline {
   id: string;
   event_type: string;
   event_timestamp: string;
-  payload: any;
+  payload: {
+    within_geofence?: boolean;
+    distance_meters?: number;
+    forced_by?: string;
+    stale_reason?: string;
+    stale_duration_seconds?: number;
+    last_heartbeat_at?: string;
+  } | null;
   client_ip?: string | null;
 }
 
@@ -222,7 +228,7 @@ export default function ApprovalsClient({
     }
   };
 
-  const tabs: { id: Tab; label: string; icon: any; count?: number }[] = [
+  const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }>; count?: number }[] = [
     { id: 'leaves', label: 'Time Off', icon: Calendar, count: leaves.length || undefined },
     { id: 'wfh', label: 'Remote Work', icon: Home, count: wfh.length || undefined },
     { id: 'disputes', label: 'Disputes Queue', icon: AlertTriangle, count: disputes.length || undefined },
@@ -294,7 +300,7 @@ export default function ApprovalsClient({
                               </span>
                             </div>
                             {leave.reason && (
-                              <p className="text-xs text-zinc-500 font-medium italic mt-0.5">"{leave.reason}"</p>
+                              <p className="text-xs text-zinc-500 font-medium italic mt-0.5">&quot;{leave.reason}&quot;</p>
                             )}
                           </div>
                         </div>
@@ -423,7 +429,7 @@ export default function ApprovalsClient({
                               <div className="absolute left-0 top-0 bottom-0 w-1 bg-violet-400 rounded-full" />
                               <p className="text-zinc-700 font-medium italic">
                                 <span className="font-bold text-zinc-500 not-italic block text-[8px] uppercase tracking-wider mb-0.5">Employee Explanation:</span>
-                                "{dispute.reason}"
+                                &quot;{dispute.reason}&quot;
                               </p>
                             </div>
                           )}

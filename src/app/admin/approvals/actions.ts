@@ -45,7 +45,7 @@ export async function getPendingApprovals() {
           .in('id', allEmpIds)
       : { data: [] };
 
-    const empMap = (employees || []).reduce((acc: any, emp: any) => {
+    const empMap = (employees || []).reduce<Record<string, { id: string; name: string; email: string }>>((acc, emp) => {
       acc[emp.id] = emp;
       return acc;
     }, {});

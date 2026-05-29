@@ -100,7 +100,7 @@ export async function getActiveJobs() {
 }
    
 
-export async function createFullApplication(formData: any) {
+export async function createFullApplication(formData: unknown) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
   await verifyActiveAdmin(session.id);

@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
-import { Search, Download, Eye, X, UserPlus, Loader2, Plus, Users, CheckCircle2, Clock, XCircle, FileUser } from 'lucide-react';
+import { Search, Download, Eye, X, UserPlus, Loader2, Plus, Users, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDate } from '@/lib/utils';
 import Card from '@/components/ui/Card';
@@ -79,7 +79,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
       await assignApplication(appId, empId === 'none' ? null : empId);
       setApps(prev => prev.map(a => a.id === appId ? { ...a, assigned_to: empId === 'none' ? undefined : empId } : a));
       toast.success('Application assigned successfully.');
-    } catch (err) {
+    } catch {
       toast.error('Failed to assign application.');
     } finally {
       setAssigning(null);
