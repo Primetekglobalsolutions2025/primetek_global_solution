@@ -66,6 +66,7 @@ export async function checkIn(
     if (!session || !session.id) {
       return { success: false, error: 'Unauthorized' };
     }
+    await verifyActiveSession(session.id);
     const serverNow = new Date();
     let shiftDateRef = serverNow; // Used only for shift date calculation
     if (clientTimestamp) {

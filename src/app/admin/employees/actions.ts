@@ -8,21 +8,73 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { leaveBalancesSchema } from '@/lib/validations';
 
-export async function getAdminEmployees() {
+export async function getAdminEmployees(
+  page: number = 1,
+  pageSize: number = 100,
+  search: string = '',
+  department: string = 'all'
+) {
   const session = await getSession();
   if (!session || session.role !== 'admin') throw new Error('Unauthorized');
 
-  const { data, error } = await supabaseAdmin
+  // Query counts and departments concurrently for performance
+  const [
+    totalRes,
+    activeRes,
+    deptsRes
+  ] = await Promise.all([
+    supabaseAdmin.from('employees').select('id', { count: 'exact', head: true }),
+    supabaseAdmin.from('employees').select('id', { count: 'exact', head: true }).eq('status', 'Active'),
+    supabaseAdmin.from('employees').select('department').not('department', 'is', null)
+  ]);
+
+  const total = totalRes.count || 0;
+  const active = activeRes.count || 0;
+  const inactive = total - active;
+  const departmentsList = Array.from(new Set((deptsRes.data || []).map(d => d.department).filter(Boolean))).sort() as string[];
+
+  // Query paginated and filtered list of employees
+  let query = supabaseAdmin
     .from('employees')
-    .select('id, employee_id, name, email, role, department, status, join_date, avatar_url, mfa_enabled')
+    .select('id, employee_id, name, email, role, department, status, join_date, avatar_url, mfa_enabled', { count: 'exact' });
+
+  if (department && department !== 'all') {
+    query = query.eq('department', department);
+  }
+
+  if (search) {
+    query = query.ilike('name', `%${search}%`);
+  }
+
+  const start = (page - 1) * pageSize;
+  const end = page * pageSize - 1;
+
+  const { data, count, error } = await query
     .order('created_at', { ascending: false })
-    .limit(5000);
+    .range(start, end);
 
   if (error) {
     console.error('Error fetching admin employees:', error);
-    return [];
+    return {
+      data: [],
+      count: 0,
+      totalPages: 0,
+      currentPage: page,
+      stats: { total, active, inactive },
+      departments: departmentsList
+    };
   }
-  return data;
+
+  const totalPages = Math.ceil((count || 0) / pageSize) || 1;
+
+  return {
+    data: data || [],
+    count: count || 0,
+    totalPages,
+    currentPage: page,
+    stats: { total, active, inactive },
+    departments: departmentsList
+  };
 }
 
 export async function toggleEmployeeStatus(id: string, currentStatus: string) {

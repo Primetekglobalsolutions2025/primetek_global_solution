@@ -110,14 +110,7 @@ export interface DisputeEventTimeline {
   id: string;
   event_type: string;
   event_timestamp: string;
-  payload: {
-    within_geofence?: boolean;
-    distance_meters?: number;
-    forced_by?: string;
-    stale_reason?: string;
-    stale_duration_seconds?: number;
-    last_heartbeat_at?: string;
-  } | null;
+  payload: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   client_ip?: string | null;
 }
 
@@ -204,7 +197,7 @@ export default function ApprovalsClient({
         setLeaves(prev => prev.filter(l => l.id !== id));
         toast.success(`Leave request ${status.toLowerCase()} successfully.`);
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to update leave request status.');
     } finally {
       setProcessing(null);
@@ -221,7 +214,7 @@ export default function ApprovalsClient({
         setWfh(prev => prev.filter(w => w.id !== id));
         toast.success(`Remote work request ${status === 'Approved WFH' ? 'approved' : 'rejected'} successfully.`);
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to update remote work request status.');
     } finally {
       setProcessing(null);

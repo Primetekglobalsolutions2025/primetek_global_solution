@@ -37,9 +37,9 @@ export function getDeviceInfo(): DeviceInfo {
   // Label detection: OS name
   let os = 'Unknown OS';
   if (/Windows/i.test(ua)) os = 'Windows';
-  else if (/Macintosh|Mac OS X/i.test(ua)) os = 'MacBook';
   else if (/iPhone/i.test(ua)) os = 'iPhone';
   else if (/iPad/i.test(ua)) os = 'iPad';
+  else if (/Macintosh|Mac OS X/i.test(ua)) os = 'MacBook';
   else if (/Android/i.test(ua)) os = 'Android';
   else if (/Linux/i.test(ua)) os = 'Linux';
 

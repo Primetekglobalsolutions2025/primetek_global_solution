@@ -48,7 +48,7 @@ function broadcast(msg) {
     try {
       port.postMessage(msg);
       return true;
-    } catch (err) {
+    } catch {
       return false; 
     }
   });

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { X, Loader2, Calendar, Building, HelpCircle, FileUp } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { submitInterviewRequest } from './actions';
+import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 
 interface ClientProfile {
   id: string;
@@ -28,6 +29,9 @@ export default function InterviewRequestModal({
   onSubmitSuccess
 }: InterviewRequestModalProps) {
   const { toast } = useToast();
+  const modalRef = useRef<HTMLDivElement>(null);
+  useModalFocusTrap(modalRef, isOpen, onClose);
+
   const [submitting, setSubmitting] = useState(false);
   const [clientCompany, setClientCompany] = useState('');
   const [jobTitle, setJobTitle] = useState('');
@@ -134,8 +138,13 @@ export default function InterviewRequestModal({
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 cursor-pointer"
       onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') onClose();
+      }}
+      tabIndex={-1}
     >
       <div 
+        ref={modalRef}
         className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default"
         onClick={(e) => e.stopPropagation()}
       >

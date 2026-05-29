@@ -6,7 +6,7 @@ import { Plus, Search, ToggleLeft, ToggleRight, X, Loader2, Trash2, Users, Shiel
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { toggleEmployeeStatus, createEmployee, deleteEmployee, resetEmployeeMFA, getEmployeeBalances, updateEmployeeBalances } from './actions';
+import { toggleEmployeeStatus, createEmployee, deleteEmployee, resetEmployeeMFA, getEmployeeBalances, updateEmployeeBalances, getAdminEmployees } from './actions';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/Toast';
@@ -27,26 +27,82 @@ export interface EmployeeRecord {
   mfa_enabled?: boolean;
 }
 
-export default function EmployeesClient({ initialEmployees }: { initialEmployees: EmployeeRecord[] }) {
+interface EmployeesClientProps {
+  initialEmployees: EmployeeRecord[];
+  initialTotalCount: number;
+  initialStats: { total: number; active: number; inactive: number };
+  initialDepartments: string[];
+}
+
+export default function EmployeesClient({ 
+  initialEmployees,
+  initialTotalCount,
+  initialStats,
+  initialDepartments
+}: EmployeesClientProps) {
   const router = useRouter();
   const [employees, setEmployees] = useState<EmployeeRecord[]>(initialEmployees);
+  const [totalCount, setTotalCount] = useState(initialTotalCount);
+  const [stats, setStats] = useState(initialStats);
+  const [departments, setDepartments] = useState<string[]>(initialDepartments);
+
   const [prevInitialEmployees, setPrevInitialEmployees] = useState(initialEmployees);
   if (initialEmployees !== prevInitialEmployees) {
     setPrevInitialEmployees(initialEmployees);
     setEmployees(initialEmployees);
+    setTotalCount(initialTotalCount);
+    setStats(initialStats);
+    setDepartments(initialDepartments);
   }
+
   const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const ITEMS_PER_PAGE = 100;
 
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearch(searchValue);
-    }, 150);
+    }, 250);
     return () => clearTimeout(handler);
   }, [searchValue]);
-  
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, departmentFilter]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const result = await getAdminEmployees(currentPage, ITEMS_PER_PAGE, search, departmentFilter);
+        if (active) {
+          setEmployees(result.data);
+          setTotalCount(result.count);
+          setStats(result.stats);
+          setDepartments(result.departments);
+        }
+      } catch (err) {
+        console.error('Failed to fetch paginated employees:', err);
+        toast.error('Failed to load employees from server.');
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    }
+
+    fetchData();
+
+    return () => {
+      active = false;
+    };
+  }, [currentPage, search, departmentFilter]);
+
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,45 +141,11 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
     variant?: 'danger' | 'primary';
   } | null>(null);
 
-  const stats = useMemo(() => {
-    const total = employees.length;
-    const active = employees.filter(e => e.status === 'Active').length;
-    const inactive = total - active;
-    return { total, active, inactive };
-  }, [employees]);
-
-  const departments = useMemo(() => {
-    const depts = new Set(employees.map(e => e.department).filter(Boolean));
-    return Array.from(depts).sort() as string[];
-  }, [employees]);
-
-  const filtered = employees.filter((emp) => {
-    const matchesDept = departmentFilter === 'all' || emp.department === departmentFilter;
-    if (!search && matchesDept) return true;
-    const q = search.toLowerCase();
-    const matchesSearch = !search || (
-      emp.name.toLowerCase().includes(q) ||
-      emp.email.toLowerCase().includes(q) ||
-      emp.employee_id.toLowerCase().includes(q) ||
-      (emp.department && emp.department.toLowerCase().includes(q))
-    );
-    return matchesSearch && matchesDept;
-  });
-
-  const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, departmentFilter]);
-
-  const ITEMS_PER_PAGE = 50;
-  const paginatedItems = useMemo(() => {
-    return filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [filtered, currentPage]);
+  const paginatedItems = employees;
 
   const totalPages = useMemo(() => {
-    return Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
-  }, [filtered.length]);
+    return Math.ceil(totalCount / ITEMS_PER_PAGE) || 1;
+  }, [totalCount]);
 
   const handleToggle = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
@@ -340,8 +362,8 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       </div>
 
       {/* 3. Employees Mobile Cards & Desktop Table */}
-      <div className="block md:hidden space-y-3">
-        {filtered.length === 0 ? (
+      <div className={cn("block md:hidden space-y-3 transition-opacity duration-200", isLoading && "opacity-50 pointer-events-none")}>
+        {employees.length === 0 ? (
           <div className="p-8 text-center bg-white rounded-xl border border-zinc-200">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-2 border border-zinc-200">
               <Users className="w-5 h-5 text-slate-650" />
@@ -450,7 +472,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
         )}
       </div>
 
-      <Card hover={false} className="p-0 overflow-hidden border border-zinc-200 rounded-xl shadow-sm bg-white hidden md:block">
+      <Card hover={false} className={cn("p-0 overflow-hidden border border-zinc-200 rounded-xl shadow-sm bg-white hidden md:block transition-opacity duration-200", isLoading && "opacity-50 pointer-events-none")}>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
@@ -464,7 +486,7 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100/60">
-              {filtered.length === 0 ? (
+              {employees.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-3 border border-zinc-200">
@@ -577,9 +599,9 @@ export default function EmployeesClient({ initialEmployees }: { initialEmployees
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-4 border-t border-zinc-200">
           <div className="text-xs text-zinc-500 font-medium">
-            Showing <span className="font-bold text-navy-900">{Math.min(filtered.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> to{' '}
-            <span className="font-bold text-navy-900">{Math.min(filtered.length, currentPage * ITEMS_PER_PAGE)}</span> of{' '}
-            <span className="font-bold text-navy-900">{filtered.length}</span> entries
+            Showing <span className="font-bold text-navy-900">{totalCount === 0 ? 0 : (currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to{' '}
+            <span className="font-bold text-navy-900">{Math.min(totalCount, currentPage * ITEMS_PER_PAGE)}</span> of{' '}
+            <span className="font-bold text-navy-900">{totalCount}</span> entries
           </div>
           <div className="flex items-center gap-1">
             <Button
