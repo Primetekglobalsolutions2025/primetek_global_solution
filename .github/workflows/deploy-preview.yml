@@ -16,6 +16,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Clean environment variables
+        run: |
+          echo "VERCEL_ORG_ID=$(echo '${{ secrets.VERCEL_ORG_ID }}' | tr -d '\r\n')" >> $GITHUB_ENV
+          echo "VERCEL_PROJECT_ID=$(echo '${{ secrets.VERCEL_PROJECT_ID }}' | tr -d '\r\n')" >> $GITHUB_ENV
+          echo "VERCEL_TOKEN=$(echo '${{ secrets.VERCEL_TOKEN }}' | tr -d '\r\n')" >> $GITHUB_ENV
+
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
