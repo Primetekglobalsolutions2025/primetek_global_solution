@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loginAsEmployee } from './helpers';
+import { loginAsEmployee, resetTestEmployeeAttendance } from './helpers';
 import { OFFICE_LOCATION } from '../src/lib/location';
 
 test.describe('Employee Attendance Flow', () => {
@@ -7,6 +7,10 @@ test.describe('Employee Attendance Flow', () => {
   test.use({
     geolocation: { latitude: OFFICE_LOCATION.lat, longitude: OFFICE_LOCATION.lng },
     permissions: ['geolocation'],
+  });
+
+  test.beforeEach(async () => {
+    await resetTestEmployeeAttendance();
   });
 
   test('TEST-E6 & TEST-E7: Employee Clock In & Clock Out flow', async ({ page }) => {
@@ -22,11 +26,11 @@ test.describe('Employee Attendance Flow', () => {
     await clockInBtn.click();
     
     // Assert status badge updates to Working
-    const statusBadge = page.locator('text=Working, text=Present');
+    const statusBadge = page.getByText(/^(Working|Present)$/i).filter({ visible: true }).first();
     await expect(statusBadge).toBeVisible();
     
     // Assert timer starts counting
-    const timer = page.locator('.timer, [data-testid="timer"]');
+    const timer = page.locator('span:has-text("Productive Work") + span').filter({ visible: true }).first();
     await expect(timer).toBeVisible();
     
     // Clock Out
@@ -41,7 +45,7 @@ test.describe('Employee Attendance Flow', () => {
     }
     
     // Assert status badge updates to Logged Out
-    const loggedOutBadge = page.locator('text=Logged Out');
+    const loggedOutBadge = page.getByText(/^Logged Out$/i).filter({ visible: true }).first();
     await expect(loggedOutBadge).toBeVisible();
   });
 
@@ -49,11 +53,12 @@ test.describe('Employee Attendance Flow', () => {
     await loginAsEmployee(page, 'cmk1234567', 'TestPass123!');
     await page.goto('/employee/attendance');
 
-    // Ensure we are clocked in first
+    // Clock In first
     const clockInBtn = page.locator('button:has-text("Clock In"), button:has-text("Check In")');
-    if (await clockInBtn.isVisible()) {
-      await clockInBtn.click();
-    }
+    await expect(clockInBtn).toBeVisible();
+    await clockInBtn.click();
+    const statusBadge = page.getByText(/^(Working|Present)$/i).filter({ visible: true }).first();
+    await expect(statusBadge).toBeVisible();
 
     // Start Break
     const startBreakBtn = page.locator('button:has-text("Start Break")');
@@ -61,16 +66,16 @@ test.describe('Employee Attendance Flow', () => {
     await startBreakBtn.click();
 
     // Assert status badge shows Break
-    const breakStatus = page.locator('text=Break');
+    const breakStatus = page.getByText(/^Break$/i).filter({ visible: true }).first();
     await expect(breakStatus).toBeVisible();
 
     // End Break
-    const endBreakBtn = page.locator('button:has-text("End Break")');
+    const endBreakBtn = page.locator('button:has-text("End Break"), button:has-text("Resume Work")');
     await expect(endBreakBtn).toBeVisible();
     await endBreakBtn.click();
 
     // Assert status returns to Working
-    const workingBadge = page.locator('text=Working');
+    const workingBadge = page.getByText(/^Working$/i).filter({ visible: true }).first();
     await expect(workingBadge).toBeVisible();
   });
 });

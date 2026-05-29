@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
+import { env } from '@/lib/env';
 
 import bcrypt from 'bcryptjs';
 
@@ -25,7 +27,14 @@ export async function changePassword(data: { currentPassword?: string; newPasswo
       }
 
       // Verify current password by attempting to sign in
-      const { error: verifyError } = await supabaseAdmin.auth.signInWithPassword({
+      // Create a localized client for credentials verification to avoid mutating the global supabaseAdmin client
+      const authClient = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+      const { error: verifyError } = await authClient.auth.signInWithPassword({
         email: session.email,
         password: data.currentPassword,
       });

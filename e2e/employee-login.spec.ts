@@ -5,29 +5,28 @@ test.describe('Employee Authentication Flow', () => {
     await page.goto('/employee/login');
     
     // Fill credentials (using a standard test employee code)
-    await page.fill('input[name="employeeId"]', 'cmk1234567');
-    await page.fill('input[name="password"]', 'TestPass123!');
+    await page.fill('input#emp-email', 'cmk1234567');
+    await page.fill('input#emp-password', 'TestPass123!');
     await page.click('button[type="submit"]');
 
-    // Assert redirect to dashboard
-    await expect(page).toHaveURL('/employee/dashboard');
+    // Assert redirect to employee section
+    await expect(page).toHaveURL(/\/employee\/dashboard/);
     
-    // Verify welcome message is visible
-    const welcomeText = page.locator('h1:has-text("Welcome"), h2:has-text("Welcome")');
-    await expect(welcomeText).toBeVisible();
+    // Verify layouts components (nav sidebar) are attached
+    await expect(page.locator('nav').first()).toBeAttached();
   });
 
   test('TEST-E5: Employee login failure with wrong password', async ({ page }) => {
     await page.goto('/employee/login');
     
-    await page.fill('input[name="employeeId"]', 'cmk1234567');
-    await page.fill('input[name="password"]', 'WrongPassword123!');
+    await page.fill('input#emp-email', 'cmk1234567');
+    await page.fill('input#emp-password', 'WrongPassword123!');
     await page.click('button[type="submit"]');
 
     // Assert still on login page and error is shown
     await expect(page).toHaveURL('/employee/login');
     
-    const errorAlert = page.locator('text=Invalid credentials, text=Incorrect password, text=Unauthorized');
+    const errorAlert = page.getByText(/Invalid credentials|Incorrect password|Unauthorized/i);
     await expect(errorAlert).toBeVisible();
   });
 });

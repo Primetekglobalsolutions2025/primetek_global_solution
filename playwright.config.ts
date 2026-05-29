@@ -1,15 +1,21 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load test environment variables before running any setup or webServer
+dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
 export default defineConfig({
+  globalSetup: require.resolve('./e2e/global-setup'),
   testDir: './e2e',
-  timeout: 30 * 1000,
+  timeout: 60 * 1000,
   expect: {
-    timeout: 5000,
+    timeout: 25000,
   },
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:3000',

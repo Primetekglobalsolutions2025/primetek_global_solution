@@ -22,7 +22,7 @@ function getAdminClient(): SupabaseClient | null {
         return null;
       }
       throw new Error(
-        'Cannot create Supabase Admin client: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing.'
+        `Cannot create Supabase Admin client: NEXT_PUBLIC_SUPABASE_URL (${url ? 'present' : 'missing'}) or SUPABASE_SERVICE_ROLE_KEY (${key ? 'present' : 'missing'}) is missing.`
       );
     }
 

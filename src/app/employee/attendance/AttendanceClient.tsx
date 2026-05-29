@@ -232,11 +232,11 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
   };
 
   // Lightweight projection reconciliation - pulls latest DB projection state safely
-  const refreshProjectionState = async (sessionId?: string) => {
+  const refreshProjectionState = async (sessionId?: string, force = false) => {
     const targetSessionId = sessionId || todayRecord?.id;
     if (!targetSessionId) return;
     const now = Date.now();
-    if (now - lastRefreshTimeRef.current < 2000) {
+    if (!force && now - lastRefreshTimeRef.current < 2000) {
       console.log('[Tab Sync]: Throttling duplicate refresh request.');
       return;
     }
@@ -306,7 +306,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
       const res = await mutationFn();
       if (res.success) {
         const sid = res.sessionId || res.recordId;
-        await refreshProjectionState(sid);
+        await refreshProjectionState(sid, true);
         broadcastStateRefresh(sid);
         refreshStatsAndDisputes();
       } else {
@@ -336,7 +336,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
       const mutationResult = await mutationFn();
       if (mutationResult.success) {
         projectionVersion.current++;
-        await refreshProjectionState();
+        await refreshProjectionState(todayRecord.id, true);
         // Notify other tabs to refresh projection dynamically
         broadcastStateRefresh(todayRecord.id);
         refreshStatsAndDisputes();

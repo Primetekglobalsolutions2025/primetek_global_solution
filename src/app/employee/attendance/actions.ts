@@ -29,10 +29,10 @@ export async function closeStaleSessions() {
   if (!session || !session.id) throw new Error('Unauthorized');
   await verifyActiveSession(session.id);
   const currentShiftDate = getISTShiftDate();
-  await closeStaleSessionsForEmployee(session.id, currentShiftDate);
+  await closeStaleSessionsForEmployee(session.id, currentShiftDate, true);
 }
 
-async function closeStaleSessionsForEmployee(employeeId: string, currentShiftDateStr: string) {
+async function closeStaleSessionsForEmployee(employeeId: string, currentShiftDateStr: string, skipRevalidate = false) {
   try {
     const { error } = await supabaseAdmin.rpc('sweep_stale_sessions_for_employee', {
       p_employee_id: employeeId,
@@ -41,7 +41,7 @@ async function closeStaleSessionsForEmployee(employeeId: string, currentShiftDat
 
     if (error) {
       console.error('RPC sweep_stale_sessions_for_employee failed:', error.message);
-    } else {
+    } else if (!skipRevalidate) {
       revalidatePath('/employee/attendance');
       revalidatePath('/employee/dashboard');
       revalidatePath('/admin/attendance');

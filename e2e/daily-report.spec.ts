@@ -7,7 +7,7 @@ test.describe('Daily Metrics Report Flow', () => {
     await page.goto('/employee/daily-report');
 
     // Verify daily report form components are visible
-    const formHeading = page.locator('h1:has-text("Daily Report"), h2:has-text("Daily Metrics")');
+    const formHeading = page.locator('h1:has-text("Daily Recruitment Report"), h1:has-text("Daily Report"), h2:has-text("Daily Metrics")');
     await expect(formHeading).toBeVisible();
 
     // Check if there are active client profiles to report metrics for

@@ -17,8 +17,11 @@ test.describe('Admin Authentication Flow', () => {
     const heading = page.locator('h1:has-text("Dashboard"), h1:has-text("Welcome")');
     await expect(heading).toBeVisible();
     
-    const sidebar = page.locator('nav');
-    await expect(sidebar).toBeVisible();
+    const isMobile = (page.viewportSize()?.width ?? 0) < 1024;
+    if (!isMobile) {
+      const sidebar = page.locator('nav').first();
+      await expect(sidebar).toBeVisible();
+    }
   });
 
   test('TEST-E2: Admin login failure with wrong password', async ({ page }) => {
@@ -31,7 +34,7 @@ test.describe('Admin Authentication Flow', () => {
     // Assert still on login page and error message is displayed
     await expect(page).toHaveURL('/admin/login');
     
-    const errorAlert = page.locator('text=Invalid credentials, text=Incorrect password, text=Unauthorized');
+    const errorAlert = page.getByText(/Invalid credentials|Incorrect password|Unauthorized/i);
     await expect(errorAlert).toBeVisible();
   });
 

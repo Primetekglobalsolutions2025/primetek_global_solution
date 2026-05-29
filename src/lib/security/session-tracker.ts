@@ -40,6 +40,7 @@ export async function createActiveSession(params: {
         expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7‑day TTL
         is_valid: true,
       })
+      .select()
       .single();
 
     if (error) {

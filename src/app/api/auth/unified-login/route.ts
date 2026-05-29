@@ -5,9 +5,12 @@ import { createActiveSession } from '@/lib/security/session-tracker';
 import bcrypt from 'bcryptjs';
 import { loginRateLimiter, CAPTCHA_THRESHOLD } from '@/lib/rate-limit';
 import { logAuditAction } from '@/lib/audit';
+import { createClient } from '@supabase/supabase-js';
+import { env } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   try {
+
     // 1. Basic Security: Rate Limiting by IP
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
@@ -83,7 +86,15 @@ export async function POST(request: NextRequest) {
         console.log('[Auth] Admin login attempt. Authenticating via Supabase Auth...');
       }
       
-      const { data: authData, error: apiAuthError } = await supabaseAdmin.auth.signInWithPassword({
+      // Create a localized client for credentials verification to avoid mutating the global supabaseAdmin client
+      const authClient = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+
+      const { data: authData, error: apiAuthError } = await authClient.auth.signInWithPassword({
         email: cleanEmail,
         password: cleanPassword,
       });
