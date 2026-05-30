@@ -325,14 +325,14 @@ export default async function EmployeeDashboardServerWrapper() {
           </div>
 
           {/* Assignments */}
-          <div className="relative overflow-hidden bg-navy-900 rounded-lg p-6 text-white shadow-md shadow-navy-900/10">
+          <div className="bg-white border border-zinc-200 hover:border-primary-500/50 rounded-lg p-6 relative overflow-hidden transition-all duration-200 shadow-2xs">
             <div className="absolute top-[-25%] right-[-15%] w-20 h-20 bg-primary-500/10 rounded-full blur-xl" />
             <div className="relative z-10">
-              <div className="w-8 h-8 rounded bg-white/5 border border-white/10 flex items-center justify-center mb-4">
-                <Briefcase className="w-4.5 h-4.5 text-primary-400" />
+              <div className="w-8 h-8 rounded bg-primary-500 border border-primary-600 flex items-center justify-center mb-4 text-white shadow-3xs">
+                <Briefcase className="w-4.5 h-4.5" />
               </div>
-              <h3 className="text-base font-bold mb-1.5 tracking-tight font-sans">Assigned Clients</h3>
-              <p className="text-zinc-400 text-xs mb-5 leading-relaxed font-medium font-sans">
+              <h3 className="text-base font-bold mb-1.5 tracking-tight text-navy-900 font-sans">Assigned Clients</h3>
+              <p className="text-zinc-550 text-xs mb-5 leading-relaxed font-medium font-sans">
                 View and update project profiles and client details assigned to your account.
               </p>
               <Link href="/employee/assigned-profiles">
