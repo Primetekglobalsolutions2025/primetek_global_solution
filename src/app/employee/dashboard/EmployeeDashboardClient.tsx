@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
 import { 
@@ -278,7 +278,7 @@ export default function EmployeeDashboardClient({
           {/* Floating 3D Attendance Illustration */}
           <div className="absolute top-4 right-1.5 w-[112px] h-[112px] opacity-90 select-none pointer-events-none">
             <Image 
-              src="/attendance_illustration_v3.png" 
+              src="/clock_image_transparent.png" 
               alt="Attendance" 
               width={112} 
               height={112} 
