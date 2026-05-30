@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+﻿import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import AttendanceClient from './AttendanceClient';
@@ -13,11 +13,22 @@ export default async function EmployeeAttendanceServerWrapper() {
 
   await closeStaleSessions();
 
-  const { data: records } = await supabaseAdmin
-    .from('attendance')
-    .select('*')
-    .eq('employee_id', session.id)
-    .order('date', { ascending: false });
+  // Fetch employee details and attendance records in parallel
+  const [
+    { data: employee },
+    { data: records }
+  ] = await Promise.all([
+    supabaseAdmin
+      .from('employees')
+      .select('name, employee_id, role, department, designation')
+      .eq('id', session.id)
+      .single(),
+    supabaseAdmin
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', session.id)
+      .order('date', { ascending: false })
+  ]);
 
   const empRecords = (records || []).map(r => {
     const checkIn = r.check_in ? new Date(r.check_in) : null;
@@ -53,7 +64,7 @@ export default async function EmployeeAttendanceServerWrapper() {
   let wasAutoLoggedOut = false;
   const todayRecord = (records || []).find(r => r.date === currentShiftDate);
   if (!todayRecord || todayRecord.check_out) {
-    // No active session today — check if the previous session was force-closed
+    // No active session today ΓÇö check if the previous session was force-closed
     const lastClosedRecord = (records || []).find(r => r.check_out !== null);
     if (lastClosedRecord) {
       const { data: lastEvents } = await supabaseAdmin
@@ -72,12 +83,11 @@ export default async function EmployeeAttendanceServerWrapper() {
   }
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">Attendance</h1>
-        <p className="text-zinc-550 text-sm">Clock in and out using GPS.</p>
-      </div>
-      <AttendanceClient employeeId={session.id} initialRecords={empRecords} wasAutoLoggedOut={wasAutoLoggedOut} />
-    </div>
+    <AttendanceClient 
+      employee={employee}
+      employeeId={session.id} 
+      initialRecords={empRecords} 
+      wasAutoLoggedOut={wasAutoLoggedOut} 
+    />
   );
 }
