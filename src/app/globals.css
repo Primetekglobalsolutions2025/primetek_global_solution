@@ -227,4 +227,28 @@
   font-size: 11px !important;
 }
 
+/* Sidebar Custom Slim & Smooth Scrollbar */
+.scrollbar-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-full);
+}
+
+.scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.scrollbar-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  scroll-behavior: smooth;
+}
+
 

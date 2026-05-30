@@ -201,7 +201,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 py-4 px-2.5 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 py-4 px-2.5 space-y-1.5 overflow-y-auto scrollbar-sidebar">
           {(() => {
             let lastSection = '';
             return navItems.map((item: NavItem) => {
