@@ -116,7 +116,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || 'google_verification_code',
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || 'eMOo4ExCO99sPtGufiKsizz5pJcV-8wzTo3BypIuPBE',
     other: {
       'msvalidate.01': [process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || 'bing_verification_code'],
     },
