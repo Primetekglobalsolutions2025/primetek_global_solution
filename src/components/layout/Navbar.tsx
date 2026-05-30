@@ -70,7 +70,7 @@ export default function Navbar() {
                   Services
                   <ChevronDown className="w-4 h-4 text-muted group-data-[state=open]:rotate-180 transition-transform duration-200" />
                 </NavigationMenu.Trigger>
-                <NavigationMenu.Content className="absolute top-full left-0 w-[800px] bg-white border-x border-b border-hairline rounded-b-xl shadow-lg p-8 flex gap-8 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <NavigationMenu.Content className="w-[800px] flex gap-8 p-8 outline-none">
                   {/* Left panel */}
                   <div className="w-[260px] shrink-0 pr-8 border-r border-hairline flex flex-col justify-between">
                     <div>
@@ -81,11 +81,11 @@ export default function Navbar() {
                         Contract, C2C, and full-time IT placement for US-based companies. Roles filled in 3-5 days.
                       </p>
                     </div>
-                    <Link href="/services" passHref legacyBehavior>
-                      <NavigationMenu.Link className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-teal-primary hover:bg-teal-active px-4 py-2 rounded-md transition-colors w-fit">
+                    <NavigationMenu.Link asChild>
+                      <Link href="/services" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-teal-primary hover:bg-teal-active px-4 py-2 rounded-md transition-colors w-fit">
                         View All Services <ArrowRight className="w-4 h-4" />
-                      </NavigationMenu.Link>
-                    </Link>
+                      </Link>
+                    </NavigationMenu.Link>
                   </div>
                   {/* Right panel - 2x2 grid */}
                   <div className="flex-1 grid grid-cols-2 gap-4">
@@ -135,7 +135,7 @@ export default function Navbar() {
                   Industries
                   <ChevronDown className="w-4 h-4 text-muted group-data-[state=open]:rotate-180 transition-transform duration-200" />
                 </NavigationMenu.Trigger>
-                <NavigationMenu.Content className="absolute top-full left-0 w-[700px] bg-white border-x border-b border-hairline rounded-b-xl shadow-lg p-8 flex gap-8 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <NavigationMenu.Content className="w-[700px] flex gap-8 p-8 outline-none">
                   {/* Left panel */}
                   <div className="w-[240px] shrink-0 pr-8 border-r border-hairline flex flex-col justify-between">
                     <div>
@@ -146,11 +146,11 @@ export default function Navbar() {
                         Active placements in IT, Healthcare, and Banking & Finance across the US.
                       </p>
                     </div>
-                    <Link href="/industries" passHref legacyBehavior>
-                      <NavigationMenu.Link className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-teal-primary hover:bg-teal-active px-4 py-2 rounded-md transition-colors w-fit">
+                    <NavigationMenu.Link asChild>
+                      <Link href="/industries" className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-teal-primary hover:bg-teal-active px-4 py-2 rounded-md transition-colors w-fit">
                         View Industries <ArrowRight className="w-4 h-4" />
-                      </NavigationMenu.Link>
-                    </Link>
+                      </Link>
+                    </NavigationMenu.Link>
                   </div>
                   {/* Right panel - vertical list */}
                   <div className="flex-1 flex flex-col gap-3">
@@ -187,33 +187,33 @@ export default function Navbar() {
 
               {/* Direct Link: About */}
               <NavigationMenu.Item className="h-full flex items-center">
-                <Link href="/about" passHref legacyBehavior>
-                  <NavigationMenu.Link className={cn(
+                <NavigationMenu.Link asChild>
+                  <Link href="/about" className={cn(
                     'px-4 py-2 text-sm font-medium text-body-text hover:text-teal-primary transition-colors',
                     pathname === '/about' && 'text-teal-primary font-semibold'
                   )}>
                     About
-                  </NavigationMenu.Link>
-                </Link>
+                  </Link>
+                </NavigationMenu.Link>
               </NavigationMenu.Item>
 
               {/* Direct Link: Contact */}
               <NavigationMenu.Item className="h-full flex items-center">
-                <Link href="/contact" passHref legacyBehavior>
-                  <NavigationMenu.Link className={cn(
+                <NavigationMenu.Link asChild>
+                  <Link href="/contact" className={cn(
                     'px-4 py-2 text-sm font-medium text-body-text hover:text-teal-primary transition-colors',
                     pathname === '/contact' && 'text-teal-primary font-semibold'
                   )}>
                     Contact
-                  </NavigationMenu.Link>
-                </Link>
+                  </Link>
+                </NavigationMenu.Link>
               </NavigationMenu.Item>
 
             </NavigationMenu.List>
             
             {/* Nav Viewport anchor */}
             <div className="absolute left-0 top-full flex justify-center w-full">
-              <NavigationMenu.Viewport className="relative mt-2 origin-[top_center] h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-b-xl border border-hairline bg-white shadow-lg md:w-[var(--radix-navigation-menu-viewport-width)] transition-[width,height] duration-200" />
+              <NavigationMenu.Viewport className="relative mt-2 origin-[top_center] h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-xl border border-hairline bg-white shadow-lg md:w-[var(--radix-navigation-menu-viewport-width)] transition-[width,height] duration-200" />
             </div>
           </NavigationMenu.Root>
         </div>

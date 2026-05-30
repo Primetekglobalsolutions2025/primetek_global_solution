@@ -136,6 +136,7 @@ export default function Hero() {
                   width={320}
                   height={200}
                   className="object-contain max-h-full"
+                  style={{ width: 'auto', height: 'auto' }}
                   priority
                 />
               </div>

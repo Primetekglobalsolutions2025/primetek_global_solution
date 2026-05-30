@@ -159,7 +159,7 @@ export default function RootLayout({
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
   return (
-    <html lang="en" className={`h-full antialiased overflow-x-hidden ${inter.variable} ${playfair.variable}`}>
+    <html lang="en" className={`min-h-screen antialiased overflow-x-hidden ${inter.variable} ${playfair.variable}`}>
       <head>
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <link rel="dns-prefetch" href="https://www.google-analytics.com" />
@@ -185,7 +185,7 @@ export default function RootLayout({
           </>
         )}
       </head>
-      <body className="h-full flex flex-col overflow-x-hidden w-full">
+      <body className="min-h-screen flex flex-col overflow-x-hidden w-full">
 
         {/* Microsoft Clarity */}
         {clarityId && (
