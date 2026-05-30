@@ -155,7 +155,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-1NL15P2C1V';
   const clarityId = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
   return (
