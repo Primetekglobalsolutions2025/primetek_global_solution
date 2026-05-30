@@ -20,12 +20,12 @@ test.describe('Offline Queue & Reconnection Sync Flow', () => {
     await context.setOffline(true);
 
     // Click Clock In while offline
-    const clockInBtn = page.locator('button:has-text("Clock In"), button:has-text("Check In")');
+    const clockInBtn = page.locator('[data-testid="clock-in-btn"]').filter({ visible: true });
     await expect(clockInBtn).toBeVisible();
     await clockInBtn.click();
 
     // Assert offline banner/badge appears
-    await expect(page.getByText('You are offline').first()).toBeVisible();
+    await expect(page.getByText('You are offline').filter({ visible: true }).first()).toBeVisible();
 
     // Restore Network connectivity
     await context.setOffline(false);

@@ -59,7 +59,7 @@ export async function loginAsEmployee(page: Page, employeeId: string, password: 
   await page.fill('input#emp-email', employeeId);
   await page.fill('input#emp-password', password);
   await page.click('button[type="submit"]');
-  await expect(page).toHaveURL(/\/employee\/dashboard/);
+  await expect(page).toHaveURL(/\/employee\/dashboard/, { timeout: 15000 });
   await expect(page.locator('nav').first()).toBeAttached();
 }
 

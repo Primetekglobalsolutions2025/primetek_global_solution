@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
-  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2
+  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2, Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -20,6 +20,7 @@ interface AppSidebarProps {
   userName?: string;
   initialPendingCount?: number;
   pendingCount?: number;
+  forceVisibleOnMobile?: boolean;
 }
 
 interface NavItem {
@@ -29,7 +30,7 @@ interface NavItem {
   section: string;
 }
 
-export default function AppSidebar({ role, userName, initialPendingCount = 0, pendingCount: propPendingCount }: AppSidebarProps) {
+export default function AppSidebar({ role, userName, initialPendingCount = 0, pendingCount: propPendingCount, forceVisibleOnMobile }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -73,6 +74,8 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Overview', section: 'Operations' },
     { href: '/admin/attendance', icon: Clock, label: 'Attendance', section: 'Operations' },
     { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals', section: 'Operations' },
+    { href: '/admin/holidays', icon: Calendar, label: 'Holidays', section: 'Operations' },
+    { href: '/admin/notifications', icon: Bell, label: 'Notifications', section: 'Operations' },
     
     // ─── Workforce ───
     { href: '/admin/employees', icon: Users, label: 'Employees', section: 'Workforce' },
@@ -113,6 +116,8 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
   ];
 
   const mobileAdminMore = [
+    { href: '/admin/holidays', icon: Calendar, label: 'Holidays', section: 'Operations' },
+    { href: '/admin/notifications', icon: Bell, label: 'Notifications', section: 'Operations' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'Workforce' },
     { href: '/admin/client-profiles', icon: Building2, label: 'Clients', section: 'Recruitment & Clients' },
     { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews', section: 'Recruitment & Clients' },
@@ -143,8 +148,8 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
   // Check if any overflow item is currently active (to highlight the "More" button)
   const isOverflowActive = overflowItems.some((item) => pathname === item.href.split('#')[0]);
 
-  // Hide AppSidebar bottom nav on pages that have their own mobile bottom tab bar
-  const hideMobileNav = pathname === '/employee/dashboard' || pathname === '/employee/attendance';
+  // Render bottom nav bar on all employee mobile pages
+  const hideMobileNav = false;
 
   const handleLogout = async () => {
     setIsMoreOpen(false);
@@ -275,7 +280,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
 
       {/* ─── Mobile Bottom Navigation Bar ─── */}
       {/* Hidden on dashboard & attendance — those pages have their own bottom tab bar */}
-      {!hideMobileNav && <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      {!hideMobileNav && <nav className="max-md:block hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)] max-w-[430px] mx-auto">
         <div className="flex items-center justify-around h-16 px-2 pb-[env(safe-area-inset-bottom)] flex-row">
           {bottomBarItems.map((item) => {
             const isActive = pathname === item.href.split('#')[0];
@@ -358,7 +363,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="md:hidden fixed inset-0 z-[60] bg-navy-900/60 backdrop-blur-sm"
+              className="max-md:block hidden fixed inset-0 z-[60] bg-navy-900/60 backdrop-blur-sm"
               onClick={() => setIsMoreOpen(false)}
             />
  
@@ -368,7 +373,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="md:hidden fixed bottom-0 left-0 right-0 z-[70] pb-[env(safe-area-inset-bottom)] rounded-t-[2rem] shadow-2xl bg-white text-navy-900 border-t border-border"
+              className="max-md:block hidden fixed bottom-0 left-0 right-0 z-[70] pb-[env(safe-area-inset-bottom)] rounded-t-[2rem] shadow-2xl bg-white text-navy-900 border-t border-border"
             >
               {/* Drag Handle */}
               <div className="flex justify-center pt-3 pb-2">

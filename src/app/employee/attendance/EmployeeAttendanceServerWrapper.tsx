@@ -5,6 +5,7 @@ import AttendanceClient from './AttendanceClient';
 import AttendanceClientMobile from './AttendanceClientMobile';
 import { closeStaleSessions } from './actions';
 import { getISTShiftDate } from '@/lib/utils';
+import { getHolidays } from '@/app/admin/holidays/actions';
 
 export default async function EmployeeAttendanceServerWrapper() {
   const session = await getSession();
@@ -14,10 +15,11 @@ export default async function EmployeeAttendanceServerWrapper() {
 
   await closeStaleSessions();
 
-  // Fetch employee details and attendance records in parallel
+  // Fetch employee details, attendance records, and holidays in parallel
   const [
     { data: employee },
-    { data: records }
+    { data: records },
+    holidaysResult
   ] = await Promise.all([
     supabaseAdmin
       .from('employees')
@@ -28,8 +30,11 @@ export default async function EmployeeAttendanceServerWrapper() {
       .from('attendance')
       .select('*')
       .eq('employee_id', session.id)
-      .order('date', { ascending: false })
+      .order('date', { ascending: false }),
+    getHolidays()
   ]);
+
+  const holidays = holidaysResult.success ? holidaysResult.holidays : [];
 
   const empRecords = (records || []).map(r => {
     const checkIn = r.check_in ? new Date(r.check_in) : null;
@@ -69,11 +74,11 @@ export default async function EmployeeAttendanceServerWrapper() {
     const lastClosedRecord = (records || []).find(r => r.check_out !== null);
     if (lastClosedRecord) {
       const { data: lastEvents } = await supabaseAdmin
-        .from('attendance_events')
-        .select('event_type, payload')
-        .eq('session_id', lastClosedRecord.id)
-        .eq('event_type', 'FORCE_LOGOUT')
-        .limit(1);
+         .from('attendance_events')
+         .select('event_type, payload')
+         .eq('session_id', lastClosedRecord.id)
+         .eq('event_type', 'FORCE_LOGOUT')
+         .limit(1);
       if (lastEvents && lastEvents.length > 0) {
         const payload = lastEvents[0]?.payload as Record<string, unknown> | null;
         if (payload?.forced_by === 'system_sweeper') {
@@ -91,6 +96,7 @@ export default async function EmployeeAttendanceServerWrapper() {
           employeeId={session.id}
           initialRecords={empRecords}
           wasAutoLoggedOut={wasAutoLoggedOut}
+          initialHolidays={holidays}
         />
       </div>
       <div className="hidden md:block space-y-5">
@@ -98,7 +104,12 @@ export default async function EmployeeAttendanceServerWrapper() {
           <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">Attendance</h1>
           <p className="text-zinc-550 text-sm">Clock in and out using GPS.</p>
         </div>
-        <AttendanceClient employeeId={session.id} initialRecords={empRecords} wasAutoLoggedOut={wasAutoLoggedOut} />
+        <AttendanceClient
+          employeeId={session.id}
+          initialRecords={empRecords}
+          wasAutoLoggedOut={wasAutoLoggedOut}
+          initialHolidays={holidays}
+        />
       </div>
     </>
   );

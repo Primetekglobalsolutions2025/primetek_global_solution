@@ -21,7 +21,7 @@ test.describe('Employee Attendance Flow', () => {
     await page.goto('/employee/attendance');
     
     // Clock In
-    const clockInBtn = page.locator('button:has-text("Clock In"), button:has-text("Check In")');
+    const clockInBtn = page.locator('[data-testid="clock-in-btn"]').filter({ visible: true });
     await expect(clockInBtn).toBeVisible();
     await clockInBtn.click();
     
@@ -34,12 +34,12 @@ test.describe('Employee Attendance Flow', () => {
     await expect(timer).toBeVisible();
     
     // Clock Out
-    const clockOutBtn = page.locator('button:has-text("Clock Out"), button:has-text("Check Out")');
+    const clockOutBtn = page.locator('button:has-text("Clock Out"), button:has-text("Check Out"), button:has-text("CLOCK OUT")').filter({ visible: true });
     await expect(clockOutBtn).toBeVisible();
     await clockOutBtn.click();
     
     // Confirm checkout modal if present
-    const confirmBtn = page.locator('button:has-text("Confirm"), button:has-text("Yes, Clock Out")');
+    const confirmBtn = page.locator('button:has-text("Confirm"), button:has-text("Yes, Clock Out")').filter({ visible: true });
     if (await confirmBtn.isVisible()) {
       await confirmBtn.click();
     }
@@ -54,14 +54,14 @@ test.describe('Employee Attendance Flow', () => {
     await page.goto('/employee/attendance');
 
     // Clock In first
-    const clockInBtn = page.locator('button:has-text("Clock In"), button:has-text("Check In")');
+    const clockInBtn = page.locator('[data-testid="clock-in-btn"]').filter({ visible: true });
     await expect(clockInBtn).toBeVisible();
     await clockInBtn.click();
     const statusBadge = page.getByText(/^(Working|Present)$/i).filter({ visible: true }).first();
     await expect(statusBadge).toBeVisible();
 
     // Start Break
-    const startBreakBtn = page.locator('button:has-text("Start Break")');
+    const startBreakBtn = page.locator('button:has-text("Start Break")').filter({ visible: true });
     await expect(startBreakBtn).toBeVisible();
     await startBreakBtn.click();
 
@@ -70,7 +70,7 @@ test.describe('Employee Attendance Flow', () => {
     await expect(breakStatus).toBeVisible();
 
     // End Break
-    const endBreakBtn = page.locator('button:has-text("End Break"), button:has-text("Resume Work")');
+    const endBreakBtn = page.locator('button:has-text("End Break"), button:has-text("Resume Work")').filter({ visible: true });
     await expect(endBreakBtn).toBeVisible();
     await endBreakBtn.click();
 

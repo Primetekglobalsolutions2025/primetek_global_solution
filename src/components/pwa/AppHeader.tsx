@@ -3,6 +3,7 @@
 import { Bell } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 import { useToast } from '@/components/ui/Toast';
+import { useNotifications } from '@/components/pwa/NotificationContext';
 
 interface AppHeaderProps {
   userName?: string;
@@ -12,6 +13,7 @@ interface AppHeaderProps {
 
 export default function AppHeader({ userName, role, notificationCount }: AppHeaderProps) {
   const { toast } = useToast();
+  const notifications = useNotifications();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -25,12 +27,18 @@ export default function AppHeader({ userName, role, notificationCount }: AppHead
     : 'PG';
 
   const handleNotificationClick = () => {
-    if (notificationCount && notificationCount > 0) {
-      toast.info(`You have ${notificationCount} pending approval${notificationCount > 1 ? 's' : ''} requiring attention.`);
+    if (notifications) {
+      notifications.open();
     } else {
-      toast.info('No new notifications at this time.');
+      if (notificationCount && notificationCount > 0) {
+        toast.info(`You have ${notificationCount} pending approval${notificationCount > 1 ? 's' : ''} requiring attention.`);
+      } else {
+        toast.info('No new notifications at this time.');
+      }
     }
   };
+
+  const displayCount = notifications ? notifications.unreadCount : (notificationCount || 0);
 
   return (
     <header className="h-14 md:h-16 border-b flex items-center px-4 md:px-6 shrink-0 sticky top-0 z-30 bg-white border-border">
@@ -50,13 +58,13 @@ export default function AppHeader({ userName, role, notificationCount }: AppHead
       <div className="flex items-center gap-3">
         <button 
           onClick={handleNotificationClick}
-          className="relative p-2 rounded-xl transition-colors text-gray-455 hover:text-navy-900 hover:bg-surface-alt" 
+          className="relative p-2 rounded-xl transition-colors text-gray-400 hover:text-navy-900 hover:bg-surface-alt border-0 cursor-pointer" 
           aria-label="Notifications"
         >
           <Bell className="w-5 h-5" />
-          {notificationCount !== undefined && notificationCount > 0 && (
+          {displayCount > 0 && (
             <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white flex items-center justify-center text-[7px] text-white font-bold">
-              {notificationCount}
+              {displayCount}
             </span>
           )}
         </button>

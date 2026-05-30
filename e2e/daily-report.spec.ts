@@ -7,6 +7,7 @@ test.describe('Daily Metrics Report Flow', () => {
     await page.goto('/employee/daily-report');
 
     // Verify daily report form components are visible
+    await expect(page.locator('[data-testid="daily-reports-page"]')).toBeVisible();
     const formHeading = page.locator('h1:has-text("Daily Recruitment Report"), h1:has-text("Daily Report"), h2:has-text("Daily Metrics")');
     await expect(formHeading).toBeVisible();
 

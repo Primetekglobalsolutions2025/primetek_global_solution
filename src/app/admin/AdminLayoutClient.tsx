@@ -104,8 +104,11 @@ export default function AdminLayoutClient({
       }
 
       if (isLoginPage) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         try {
-          const res = await fetch('/api/auth/me?role=admin');
+          const res = await fetch('/api/auth/me?role=admin', { signal: controller.signal });
+          clearTimeout(timeoutId);
           if (res.ok) {
             const data = await res.json();
             if (data.user?.role === 'admin') {
@@ -116,7 +119,9 @@ export default function AdminLayoutClient({
               return;
             }
           }
-        } catch {}
+        } catch {
+          clearTimeout(timeoutId);
+        }
         setIsLoading(false);
         return;
       }
@@ -133,8 +138,11 @@ export default function AdminLayoutClient({
         }
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
-        const res = await fetch('/api/auth/me?role=admin');
+        const res = await fetch('/api/auth/me?role=admin', { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (data.user?.role === 'admin') {
@@ -171,8 +179,9 @@ export default function AdminLayoutClient({
           console.warn(`Auth check received server status ${res.status}. Session retained.`);
         }
       } catch (err) {
+        clearTimeout(timeoutId);
         // Network/fetch error -> keep local session, do not redirect
-        console.warn('Network error during auth verification. Session retained:', err);
+        console.warn('Network/timeout error during auth verification. Session retained:', err);
       } finally {
         setIsLoading(false);
       }

@@ -168,6 +168,41 @@ export async function middleware(request: NextRequest) {
       (pathname === '/api/inquiries' && request.method === 'POST') ||
       (pathname === '/api/applications' && request.method === 'POST');
 
+    // Redirect already logged-in users trying to access login page
+    if (pathname === '/admin/login') {
+      const token = request.cookies.get('admin-auth-token')?.value;
+      if (token) {
+        const session = await verifyToken(token);
+        if (session && session.role === 'admin') {
+          try {
+            const adminExists = await getCachedAdminExistence(session.id);
+            if (adminExists) {
+              return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+            }
+          } catch (err) {
+            console.error('[Security Guard] Already logged in check failed for admin:', err);
+          }
+        }
+      }
+    }
+
+    if (pathname === '/employee/login') {
+      const token = request.cookies.get('employee-auth-token')?.value;
+      if (token) {
+        const session = await verifyToken(token);
+        if (session && (session.role === 'employee' || session.role === 'hr')) {
+          try {
+            const empStatus = await getCachedEmployeeStatus(session.id);
+            if (empStatus === 'Active') {
+              return NextResponse.redirect(new URL('/employee/dashboard', request.url));
+            }
+          } catch (err) {
+            console.error('[Security Guard] Already logged in check failed for employee:', err);
+          }
+        }
+      }
+    }
+
     // 1. Admin route protection
     if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
       const token = request.cookies.get('admin-auth-token')?.value;

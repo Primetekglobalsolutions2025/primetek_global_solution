@@ -68,7 +68,7 @@ export default function LoginForm() {
         return;
       }
 
-      router.push('/admin');
+      router.push('/admin/dashboard');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -94,7 +94,7 @@ export default function LoginForm() {
         return;
       }
 
-      router.push('/admin');
+      router.push('/admin/dashboard');
       router.refresh();
     } catch {
       setError('MFA verification failed');

@@ -6,11 +6,12 @@ import AppSidebar from '@/components/pwa/AppSidebar';
 import AppHeader from '@/components/pwa/AppHeader';
 import { Loader2 } from 'lucide-react';
 import OfflineSyncBanner from '@/components/pwa/OfflineSyncBanner';
+import { NotificationProvider } from '@/components/pwa/NotificationContext';
 
 export default function EmployeeLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [session, setSession] = useState<{ role: 'admin' | 'employee' | 'hr'; name: string } | null>(null);
+  const [session, setSession] = useState<{ role: 'admin' | 'employee' | 'hr'; name: string; id?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const isLoginPage = pathname === '/employee/login';
@@ -65,8 +66,11 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
       }
 
       if (isLoginPage) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         try {
-          const res = await fetch('/api/auth/me?role=employee');
+          const res = await fetch('/api/auth/me?role=employee', { signal: controller.signal });
+          clearTimeout(timeoutId);
           if (res.ok) {
             const data = await res.json();
             if (data.user?.role === 'employee' || data.user?.role === 'hr') {
@@ -77,7 +81,9 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
               return;
             }
           }
-        } catch {}
+        } catch {
+          clearTimeout(timeoutId);
+        }
         setIsLoading(false);
         return;
       }
@@ -94,8 +100,11 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
         }
       }
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
-        const res = await fetch('/api/auth/me?role=employee');
+        const res = await fetch('/api/auth/me?role=employee', { signal: controller.signal });
+        clearTimeout(timeoutId);
         if (res.ok) {
           const data = await res.json();
           if (data.user?.role === 'employee' || data.user?.role === 'hr') {
@@ -132,8 +141,9 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
           console.warn(`Auth check received server status ${res.status}. Session retained.`);
         }
       } catch (err) {
+        clearTimeout(timeoutId);
         // Network/fetch error -> keep local session, do not redirect
-        console.warn('Network error during auth verification. Session retained:', err);
+        console.warn('Network/timeout error during auth verification. Session retained:', err);
       } finally {
         setIsLoading(false);
       }
@@ -159,19 +169,21 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
   }
 
   return (
-    <div className="employee-portal fixed inset-0 flex bg-zinc-50 overflow-hidden">
-      {/* Sidebar — desktop only */}
-      {session && <div className="hidden md:flex"><AppSidebar role={session.role} userName={session.name} /></div>}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header — desktop only */}
-        <div className="hidden md:block"><AppHeader userName={session?.name} /></div>
-        <main className="flex-1 overflow-y-auto md:p-6 md:pb-6">
-          <div className="md:max-w-7xl md:mx-auto md:space-y-4">
-            <div className="hidden md:block"><OfflineSyncBanner /></div>
-            {children}
-          </div>
-        </main>
+    <NotificationProvider employeeId={session?.id}>
+      <div className="employee-portal fixed inset-0 flex bg-zinc-50 overflow-hidden justify-center">
+        {/* App Sidebar/Bottom Nav */}
+        {session && <AppSidebar role={session.role} userName={session.name} />}
+        <div className="flex-1 flex flex-col min-w-0 bg-[#F7F8FA] md:bg-zinc-50 max-w-[430px] md:max-w-none mx-auto md:mx-0 w-full border-x border-[#E8EDF2] md:border-x-0 shadow-lg md:shadow-none relative">
+          {/* Header — desktop & mobile */}
+          <AppHeader userName={session?.name} role={session?.role} />
+          <main className="flex-1 overflow-y-auto pb-24 md:p-6 md:pb-6">
+            <div className="md:max-w-7xl md:mx-auto md:space-y-4 px-4 md:px-0">
+              <div className="hidden md:block"><OfflineSyncBanner /></div>
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   );
 }

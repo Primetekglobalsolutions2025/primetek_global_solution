@@ -13,8 +13,14 @@ import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
 import { getDeviceInfo } from '@/lib/security/device-detect';
+import { useNotifications } from '@/components/pwa/NotificationContext';
 
-
+export interface Holiday {
+  id: string;
+  title: string;
+  date: string;
+  type: 'Company Holiday' | 'Optional Holiday' | 'Public Holiday';
+}
 
 export interface AttendanceRecord {
   id: string;
@@ -46,7 +52,21 @@ export interface EmployeeDispute {
 }
 
 
-export default function AttendanceClient({ employee, employeeId, initialRecords, wasAutoLoggedOut = false }: { employee?: { name: string; employee_id: string; role: string; department: string; designation?: string } | null; employeeId: string; initialRecords: AttendanceRecord[]; wasAutoLoggedOut?: boolean }) {
+export default function AttendanceClient({ 
+  employee, 
+  employeeId, 
+  initialRecords, 
+  wasAutoLoggedOut = false,
+  initialHolidays = []
+}: { 
+  employee?: { name: string; employee_id: string; role: string; department: string; designation?: string } | null; 
+  employeeId: string; 
+  initialRecords: AttendanceRecord[]; 
+  wasAutoLoggedOut?: boolean;
+  initialHolidays?: Holiday[];
+}) {
+  const { open: openNotifications, unreadCount } = useNotifications();
+  const [holidays, setHolidays] = useState<Holiday[]>(initialHolidays);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -1170,24 +1190,7 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
   };
 
   return (
-    <div className="relative w-full max-w-[430px] mx-auto min-h-screen bg-[#F7F8FA] pb-[98px] shadow-lg border-x border-[#E8EDF2] flex flex-col font-sans overflow-hidden">
-      
-      {/* 1. TOP HEADER */}
-      <header className="h-[72px] bg-white border-b border-[#E8EDF2] px-5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Logo className="h-9 w-auto" />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button type="button" className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-[#64748B] hover:bg-zinc-50 active:scale-95 transition-all border-0 bg-transparent cursor-pointer">
-            <Bell className="w-5 h-5 stroke-[1.8]" />
-          </button>
-          {/* Avatar Profile Box */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#071B3A] to-[#0B8B83] flex items-center justify-center text-white text-[15px] font-bold shadow-sm">
-            {employee?.name ? employee.name.charAt(0).toUpperCase() : 'J'}
-          </div>
-        </div>
-      </header>
+    <div data-testid="attendance-mobile" className="relative w-full font-sans">
 
       {/* Main Content Area */}
       <main className="flex-1 p-5 space-y-5 overflow-y-auto">
@@ -1233,6 +1236,40 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
             )}
           </AnimatePresence>
         )}
+
+        {/* Offline / Pending Sync Indicator */}
+        <AnimatePresence>
+          {(!isOnline || pendingCount > 0) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={cn(
+                'flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-xs font-semibold font-sans',
+                !isOnline
+                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                  : 'bg-blue-50 text-blue-700 border-blue-200'
+              )}
+            >
+              <div className="flex items-center gap-2">
+                {!isOnline ? (
+                  <><WifiOff className="w-4 h-4 text-amber-500" /> You are offline. Actions will save locally.</>
+                ) : (
+                  <><RefreshCw className={cn('w-4 h-4 text-blue-500', isSyncing && 'animate-spin')} /> {pendingCount} action{pendingCount !== 1 ? 's' : ''} to sync.</>
+                )}
+              </div>
+              {isOnline && pendingCount > 0 && (
+                <button
+                  onClick={syncQueue}
+                  disabled={isSyncing}
+                  className="px-2.5 py-1 rounded bg-blue-600 text-white text-[9px] font-mono font-semibold uppercase tracking-wider hover:bg-blue-700 transition-colors disabled:opacity-50 border-0 cursor-pointer"
+                >
+                  {isSyncing ? 'Syncing...' : 'Sync Now'}
+                </button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Late Penalty Warning Banner */}
         {!isCheckedOut && lateStats.lateCount > 0 && (
@@ -1429,6 +1466,7 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                 {!checkedIn ? (
                   <button
                     type="button"
+                    data-testid="clock-in-btn"
                     onClick={handleCheckIn}
                     disabled={gpsStatus === 'loading'}
                     className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider bg-[#0B8B83] hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 border-0"
@@ -1562,6 +1600,10 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                 const status = isCurrentMonth ? getStatusForDay(day) : null;
                 const isToday = isCurrentMonth && day === new Date().getDate() && selectedMonthDate.getMonth() === new Date().getMonth() && selectedMonthDate.getFullYear() === new Date().getFullYear();
 
+                const dStr = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isHoliday = isCurrentMonth && holidays.some(h => h.date === dStr);
+                const holidayObj = isHoliday ? holidays.find(h => h.date === dStr) : null;
+
                 const getStatusDotColor = (s: string | null, dayNum: number) => {
                   if (!isCurrentMonth) return null;
                   if (s) {
@@ -1573,6 +1615,8 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                     if (statusLower === 'holiday' || statusLower === 'off' || statusLower === 'weekly off') return 'bg-[#CBD5E1]';
                   }
                   
+                  if (isHoliday) return 'bg-[#22C55E]'; // Green dot for holiday
+
                   // For past days without records
                   const dateObj = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), dayNum);
                   const todayObj = new Date();
@@ -1614,6 +1658,8 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                                   : status === 'half-day'
                                     ? "border border-orange-200 text-orange-500 bg-orange-50/20"
                                     : "border border-emerald-200 text-[#22C55E] bg-[#E6F8F2]/30"
+                              : isHoliday
+                                ? "bg-[#E6F8F2] text-[#22C55E] border border-emerald-200"
                               : !isCurrentMonth
                                 ? "text-zinc-400 font-normal"
                                 : "text-[#071B3A]"
@@ -1663,6 +1709,49 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
             </div>
           </div>
         </section>
+
+        {/* Holidays List Card */}
+        {(() => {
+          const currentMonthHolidays = holidays.filter(h => {
+            const hDate = new Date(h.date);
+            return hDate.getMonth() === selectedMonthDate.getMonth() && hDate.getFullYear() === selectedMonthDate.getFullYear();
+          });
+
+          return (
+            <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4 font-sans">
+              <div className="flex items-center justify-between">
+                <h2 className="text-[14px] font-extrabold text-[#071B3A]">Holidays in {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long' })}</h2>
+              </div>
+              
+              {currentMonthHolidays.length === 0 ? (
+                <div className="text-center py-4 text-xs text-[#94A3B8] border border-dashed border-[#E8EDF2] rounded-[20px]">
+                  No holidays scheduled in this month
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {currentMonthHolidays.map(holiday => (
+                    <div key={holiday.id} className="flex items-center justify-between border border-[#EEF2F6] rounded-[20px] p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-[#E6F8F2] flex items-center justify-center text-[#22C55E] shrink-0">
+                          <CalendarIcon className="w-4 h-4" />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[11px] font-extrabold text-[#071B3A]">{holiday.title}</span>
+                          <span className="text-[9px] font-bold text-[#64748B]">
+                            {new Date(holiday.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'long' })}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="bg-[#E6F8F2] text-[#22C55E] text-[8px] font-bold py-1 px-2.5 rounded-full uppercase shrink-0 border border-[#22C55E]/10">
+                        {holiday.type}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })()}
 
         {/* 4. Attendance History section */}
         <section className="space-y-4">
@@ -1842,40 +1931,7 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
 
       </main>
 
-      {/* 5. FIXED BOTTOM TAB BAR (Attendance active) */}
-      <nav className="fixed bottom-0 left-0 right-0 h-[78px] bg-white border-t border-[#E8EDF2] flex items-center justify-around z-[45] px-4 pb-safe max-w-[430px] mx-auto shadow-md">
-        
-        {/* Home */}
-        <Link href="/employee/dashboard" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <LayoutGrid className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-bold">Home</span>
-        </Link>
-
-        {/* Attendance */}
-        <Link href="/employee/attendance" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full">
-          <Clock className="w-5 h-5 text-[#0B8B83] stroke-[2.2]" />
-          <span className="text-[10px] font-bold text-[#0B8B83]">Attendance</span>
-        </Link>
-
-        {/* Daily Report */}
-        <Link href="/employee/daily-report" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <ClipboardList className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-bold">Daily Report</span>
-        </Link>
-
-        {/* Profiles */}
-        <Link href="/employee/assigned-profiles" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <Contact className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-bold">Profiles</span>
-        </Link>
-
-        {/* More / Profile */}
-        <Link href="/employee/profile" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <MoreHorizontal className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-bold">More</span>
-        </Link>
-
-      </nav>
+      {/* 5. FIXED BOTTOM TAB BAR (Attendance active) removed - managed by layout sidebar */}
 
       {/* 6. MODALS OVERLAYS */}
       

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert } from 'lucide-react';
@@ -44,7 +44,25 @@ export interface EmployeeDispute {
 }
 
 
-export default function AttendanceClient({ employeeId, initialRecords, wasAutoLoggedOut = false }: { employeeId: string; initialRecords: AttendanceRecord[]; wasAutoLoggedOut?: boolean }) {
+export interface Holiday {
+  id: string;
+  title: string;
+  date: string;
+  type: 'Company Holiday' | 'Optional Holiday' | 'Public Holiday';
+}
+
+export default function AttendanceClient({ 
+  employeeId, 
+  initialRecords, 
+  wasAutoLoggedOut = false,
+  initialHolidays = []
+}: { 
+  employeeId: string; 
+  initialRecords: AttendanceRecord[]; 
+  wasAutoLoggedOut?: boolean;
+  initialHolidays?: Holiday[];
+}) {
+  const [holidays] = useState<Holiday[]>(initialHolidays);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -1117,6 +1135,12 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
     return record?.status?.toLowerCase() || null;
   };
 
+  const isHolidayForDay = (dayNum: number) => {
+    if (!dayNum) return null;
+    const dStr = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+    return holidays.find(h => h.date === dStr);
+  };
+
   return (
     <div className="space-y-6 pb-16">
       {/* Auto-Logout Advisory Banner */}
@@ -1378,6 +1402,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
               {!checkedIn ? (
                 <button
                   onClick={handleCheckIn}
+                  data-testid="clock-in-btn"
                   disabled={gpsStatus === 'loading'}
                   style={{ backgroundColor: '#10B981' }}
                   className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
@@ -1639,6 +1664,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
                   {calendarDays.map((day, i) => {
                     const status = day ? getStatusForDay(day) : null;
                     const isToday = day === new Date().getDate() && selectedMonthDate.getMonth() === new Date().getMonth() && selectedMonthDate.getFullYear() === new Date().getFullYear();
+                    const holiday = day ? isHolidayForDay(day) : null;
 
                     const getStatusDotColor = (s: string | null, dayNum: number) => {
                       if (s) {
@@ -1648,6 +1674,9 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
                         if (statusLower === 'absent' || statusLower === 'rejected wfh' || statusLower === 'productive_timer_paused' || statusLower === 'productive timer paused' || statusLower === 'timer paused') return 'bg-[#EF4444]';
                         if (statusLower.includes('wfh') || statusLower === 'half-day' || statusLower === 'awaiting_desktop' || statusLower === 'awaiting desktop' || statusLower === 'mobile_clocked_in' || statusLower === 'mobile clocked in') return 'bg-[#3B82F6]';
                         if (statusLower === 'holiday' || statusLower === 'off' || statusLower === 'weekly off') return 'bg-[#CBD5E1]';
+                      }
+                      if (holiday) {
+                        return 'bg-[#0B8B83]';
                       }
                       const dateObj = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), dayNum);
                       const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
@@ -1668,7 +1697,9 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
                                 "w-[36px] h-[36px] rounded-full flex items-center justify-center text-xs font-semibold transition-all cursor-default",
                                 isToday 
                                   ? "bg-[#0F172A] text-white font-bold" 
-                                  : "text-[#0F172A] hover:bg-[#F8FAFC]"
+                                  : holiday
+                                    ? "bg-[#E6F8F2]/60 text-[#0B8B83] hover:bg-[#E6F8F2] font-bold"
+                                    : "text-[#0F172A] hover:bg-[#F8FAFC]"
                               )}
                             >
                               <span>{day}</span>
@@ -1726,6 +1757,48 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
               </div>
             )}
           </div>
+
+          {/* Office Holidays Card */}
+          {!isCalendarLoading && (
+            <div className="bg-[#FFFFFF] rounded-[12px] p-[16px] border border-[#E2E8F0] shadow-xs mt-[16px] font-sans">
+              <div className="flex items-center gap-2 mb-3">
+                <CalendarIcon className="w-4 h-4 text-[#0B8B83]" />
+                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.05em]">
+                  Office Holidays in {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              {(() => {
+                const currentMonthHolidays = holidays.filter(h => {
+                  const hDate = new Date(h.date);
+                  return hDate.getMonth() === selectedMonthDate.getMonth() && hDate.getFullYear() === selectedMonthDate.getFullYear();
+                });
+                if (currentMonthHolidays.length === 0) {
+                  return <p className="text-xs text-zinc-450 italic">No holidays scheduled for this month.</p>;
+                }
+                return (
+                  <div className="space-y-2">
+                    {currentMonthHolidays.map((holiday) => {
+                      const hDate = new Date(holiday.date);
+                      const formattedDate = hDate.toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        weekday: 'short'
+                      });
+                      return (
+                        <div key={holiday.id} className="flex justify-between items-center py-2 px-3 rounded-lg bg-[#E6F8F2]/40 border border-[#E6F8F2]/60 text-xs">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-[#071B3A]">{holiday.title}</span>
+                            <span className="text-[10px] text-[#0B8B83] font-semibold">{holiday.type}</span>
+                          </div>
+                          <span className="font-mono text-[10px] font-bold text-[#64748B]">{formattedDate}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
 
           {/* Month Summary Card (shown only for past months below stats) */}
           {isPastMonth && !isCalendarLoading && (

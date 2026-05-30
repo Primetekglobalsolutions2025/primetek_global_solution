@@ -192,11 +192,15 @@ export async function checkIn(
     // 6:45 PM IST is 13:15 UTC. Check-in is late if check-in time >= shiftStart + 15 minutes
     const lateThreshold = new Date(shiftStart.getTime() + 15 * 60 * 1000);
     const checkInTime = clientTimestamp ? new Date(clientTimestamp) : serverNow;
-    const isLate = checkInTime.getTime() >= lateThreshold.getTime();
+    
+    // Security Fix: Lateness must always be calculated using the server time (serverNow) for live check-ins
+    // to prevent client-side time-tampering. For offline syncs, we use the client-reported sync time.
+    const latenessReferenceTime = isOfflineSync ? checkInTime : serverNow;
+    const isLate = latenessReferenceTime.getTime() >= lateThreshold.getTime();
     
     // Calculate late minutes relative to shift start (6:30 PM IST = 13:00 UTC)
     const lateMinutes = isLate 
-      ? Math.max(0, Math.floor((checkInTime.getTime() - shiftStart.getTime()) / (1000 * 60)))
+      ? Math.max(0, Math.floor((latenessReferenceTime.getTime() - shiftStart.getTime()) / (1000 * 60)))
       : 0;
 
     const isMobile = deviceInfo?.deviceType === 'mobile' || deviceInfo?.deviceType === 'tablet';

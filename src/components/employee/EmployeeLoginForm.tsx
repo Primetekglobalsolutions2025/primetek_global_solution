@@ -58,7 +58,7 @@ export default function EmployeeLoginForm() {
         return;
       }
 
-      router.push('/employee');
+      router.push('/employee/dashboard');
       router.refresh();
     } catch {
       setError('Network error. Please try again.');
@@ -85,7 +85,7 @@ export default function EmployeeLoginForm() {
         return;
       }
 
-      router.push('/employee');
+      router.push('/employee/dashboard');
       router.refresh();
     } catch {
       setError('MFA verification failed');

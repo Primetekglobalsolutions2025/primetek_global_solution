@@ -147,7 +147,7 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
   }, {} as Record<string, HistoryItem[]>);
 
   return (
-    <div className="space-y-6 pb-12 font-sans">
+    <div className="space-y-6 pb-12 font-sans" data-testid="daily-reports-page">
       {/* Header section with state */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 md:p-6 rounded-lg border border-zinc-200 shadow-2xs">
         <div className="space-y-1">
@@ -452,12 +452,12 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
 
               return (
                 <div key={profile.id} className="bg-white rounded-lg border border-zinc-200 shadow-2xs p-5 space-y-4">
-                  <div className="flex justify-between items-start border-b border-zinc-100 pb-3">
-                    <div>
-                      <h4 className="font-bold text-navy-900 text-sm font-sans">{profile.client_name}</h4>
+                  <div className="flex justify-between items-start border-b border-zinc-100 pb-3 gap-2">
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-navy-900 text-sm font-sans break-words">{profile.client_name}</h4>
                       <p className="text-[10px] font-mono text-zinc-400 mt-0.5">ASSIGNED: {formatDate(profile.created_at)}</p>
                     </div>
-                    <span className="text-[9px] font-mono bg-zinc-100 border border-zinc-200 text-zinc-700 font-semibold px-2 py-0.5 rounded uppercase tracking-wider">
+                    <span className="text-[9px] font-mono bg-zinc-100 border border-zinc-200 text-zinc-700 font-semibold px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
                       {profile.status}
                     </span>
                   </div>

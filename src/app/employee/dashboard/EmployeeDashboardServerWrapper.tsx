@@ -9,6 +9,7 @@ import { closeStaleSessions } from '../attendance/actions';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { getCachedPortalConfig } from '@/lib/cache/portal-config';
 import EmployeeDashboardClient from './EmployeeDashboardClient';
+import { getHolidays } from '@/app/admin/holidays/actions';
 
 export default async function EmployeeDashboardServerWrapper() {
   const session = await getSession();
@@ -101,27 +102,27 @@ export default async function EmployeeDashboardServerWrapper() {
   const firstName = employee?.name?.split(' ')[0] || 'Employee';
   const isAdmin = session.role === 'admin' || session.role === 'hr';
 
-  // Parse holidays for mobile view
-  let holidays: { id: string; title: string; date: string; type: 'Company Holiday' | 'Optional Holiday' | 'Public Holiday' }[] = [];
-  try {
-    if (configMap['holidays_list']) {
-      holidays = JSON.parse(configMap['holidays_list']);
-    } else {
-      holidays = [{ id: 'independence-day-2025', title: 'Independence Day', date: '2025-08-15', type: 'Company Holiday' }];
-    }
-  } catch {
-    holidays = [{ id: 'independence-day-2025', title: 'Independence Day', date: '2025-08-15', type: 'Company Holiday' }];
+  // Fetch holidays from public.holidays table or use default fallback if empty
+  const holidaysRes = await getHolidays();
+  let holidays = holidaysRes.success && holidaysRes.holidays.length > 0 ? holidaysRes.holidays : [];
+  
+  if (holidays.length === 0) {
+    const currentYear = new Date().getFullYear();
+    holidays = [
+      { id: 'new-year', title: 'New Year Day', date: `${currentYear}-01-01`, type: 'Public Holiday' },
+      { id: 'republic-day', title: 'Republic Day', date: `${currentYear}-01-26`, type: 'Public Holiday' },
+      { id: 'may-day', title: 'May Day', date: `${currentYear}-05-01`, type: 'Company Holiday' },
+      { id: 'ind-day', title: 'Independence Day', date: `${currentYear}-08-15`, type: 'Company Holiday' },
+      { id: 'gandhi-jayanti', title: 'Gandhi Jayanti', date: `${currentYear}-10-02`, type: 'Public Holiday' },
+      { id: 'christmas', title: 'Christmas', date: `${currentYear}-12-25`, type: 'Company Holiday' },
+    ];
   }
 
   // Mobile today record
   const rawTodayRecord = (records || []).find((r) => r.date === todayStr);
   const mobileTodayRecord = rawTodayRecord ? {
-    check_in: rawTodayRecord.check_in
-      ? new Date(rawTodayRecord.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
-      : '',
-    check_out: rawTodayRecord.check_out
-      ? new Date(rawTodayRecord.check_out).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
-      : null,
+    check_in: rawTodayRecord.check_in || '',
+    check_out: rawTodayRecord.check_out || null,
     duration_hours: rawTodayRecord.check_in && rawTodayRecord.check_out
       ? (new Date(rawTodayRecord.check_out).getTime() - new Date(rawTodayRecord.check_in).getTime()) / (1000 * 60 * 60)
       : 0,

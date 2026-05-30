@@ -23,7 +23,10 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { updatePortalHolidays } from '../attendance/actions';
+import { addHoliday, deleteHoliday } from '@/app/admin/holidays/actions';
+import { useToast } from '@/components/ui/Toast';
+import { useNotifications } from '@/components/pwa/NotificationContext';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Logo from '@/components/ui/Logo';
 
 interface Holiday {
@@ -59,16 +62,18 @@ export default function EmployeeDashboardClient({
   initialHolidays,
   isAdmin
 }: EmployeeDashboardClientProps) {
-  // Navigation active tab
-  const [activeTab, setActiveTab] = useState<'home' | 'attendance' | 'report' | 'profile' | 'more'>('home');
-
   // Calendar state
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [isHelpdeskOpen, setIsHelpdeskOpen] = useState(false);
   const [holidays, setHolidays] = useState<Holiday[]>(initialHolidays);
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 1)); // Default to August 2025 to show Independence Day
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date(2025, 7, 15)); // Default to Aug 15, 2025
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
+  const [greeting, setGreeting] = useState('Good Morning');
+  const [holidayToDelete, setHolidayToDelete] = useState<string | null>(null);
   
+  const { toast } = useToast();
+  const { open: openNotifications, unreadCount } = useNotifications();
+
   // Holiday form state
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHolidayTitle, setNewHolidayTitle] = useState('');
@@ -77,6 +82,22 @@ export default function EmployeeDashboardClient({
 
   // Live timer for Hours Worked today (if clocked in and not clocked out)
   const [liveHours, setLiveHours] = useState('0h 00m');
+
+  useEffect(() => {
+    // Client-side initialization to avoid SSR hydration mismatches
+    const now = new Date();
+    setCurrentDate(now);
+    setSelectedDate(now);
+
+    const hr = now.getHours();
+    if (hr < 12) {
+      setGreeting('Good Morning');
+    } else if (hr < 17) {
+      setGreeting('Good Afternoon');
+    } else {
+      setGreeting('Good Evening');
+    }
+  }, []);
 
   useEffect(() => {
     if (todayRecord && todayRecord.check_in && !todayRecord.check_out) {
@@ -142,39 +163,41 @@ export default function EmployeeDashboardClient({
     
     const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
     
-    const newHoliday: Holiday = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: newHolidayTitle.trim(),
-      date: dateStr,
-      type: newHolidayType
-    };
-
-    const updatedHolidays = [...holidays, newHoliday];
-
     startTransition(async () => {
-      const res = await updatePortalHolidays(JSON.stringify(updatedHolidays));
-      if (res.success) {
-        setHolidays(updatedHolidays);
+      const res = await addHoliday(newHolidayTitle.trim(), dateStr, newHolidayType);
+      if (res.success && res.holiday) {
+        setHolidays(prev => [...prev, {
+          id: res.holiday.id,
+          title: res.holiday.title,
+          date: res.holiday.date,
+          type: res.holiday.type
+        }]);
         setNewHolidayTitle('');
         setShowAddForm(false);
+        toast.success('Holiday added successfully');
       } else {
-        alert(res.error || 'Failed to save holiday');
+        toast.error(res.error || 'Failed to save holiday');
       }
     });
   };
 
-  const handleDeleteHoliday = (id: string) => {
-    if (!confirm('Are you sure you want to delete this holiday?')) return;
-    
-    const updatedHolidays = holidays.filter(h => h.id !== id);
+  const confirmDeleteHoliday = (id: string) => {
+    setHolidayToDelete(id);
+  };
+
+  const executeDeleteHoliday = () => {
+    if (!holidayToDelete) return;
+    const id = holidayToDelete;
 
     startTransition(async () => {
-      const res = await updatePortalHolidays(JSON.stringify(updatedHolidays));
+      const res = await deleteHoliday(id);
       if (res.success) {
-        setHolidays(updatedHolidays);
+        setHolidays(prev => prev.filter(h => h.id !== id));
+        toast.success('Holiday deleted successfully');
       } else {
-        alert(res.error || 'Failed to delete holiday');
+        toast.error(res.error || 'Failed to delete holiday');
       }
+      setHolidayToDelete(null);
     });
   };
 
@@ -187,7 +210,7 @@ export default function EmployeeDashboardClient({
   // Default display upcoming holiday (closest future holiday)
   const upcomingHoliday = holidays
     .map(h => ({ ...h, dateObj: new Date(h.date) }))
-    .filter(h => h.dateObj.getTime() >= new Date(2025, 7, 1).getTime()) // Filter matching sample timeline
+    .filter(h => h.dateObj.getTime() >= new Date().setHours(0, 0, 0, 0))
     .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())[0];
 
   const formattedUpcomingDate = upcomingHoliday
@@ -195,28 +218,8 @@ export default function EmployeeDashboardClient({
     : 'No upcoming holidays';
 
   return (
-    <div className="relative w-full max-w-[430px] mx-auto min-h-screen bg-[#F7F8FA] pb-[98px] shadow-lg border-x border-[#E8EDF2] flex flex-col font-sans overflow-hidden">
-      
-      {/* 1. TOP HEADER */}
-      <header className="h-[72px] bg-white border-b border-[#E8EDF2] px-5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Logo className="h-9 w-auto" />
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-[#64748B] hover:bg-zinc-50 active:scale-95 transition-all">
-            <Bell className="w-5 h-5 stroke-[1.8]" />
-          </button>
-          
-          {/* Avatar Profile Box */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#071B3A] to-[#0B8B83] flex items-center justify-center text-white text-[15px] font-bold shadow-sm">
-            {employee?.name ? employee.name.charAt(0).toUpperCase() : 'J'}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-5 space-y-5 overflow-y-auto">
+    <div className="relative w-full">
+      <main className="space-y-5 py-2">
         
         {/* 2. HERO SECTION */}
         <section className="h-[230px] rounded-[24px] bg-gradient-to-r from-[#071B3A] to-[#0B8B83] relative overflow-hidden p-5 flex flex-col justify-between shadow-sm">
@@ -230,7 +233,7 @@ export default function EmployeeDashboardClient({
             </div>
             
             <div>
-              <p className="text-white/80 text-sm">Good Morning,</p>
+              <p className="text-white/80 text-sm">{greeting},</p>
               <h1 className="text-3xl font-extrabold text-white tracking-tight mt-0.5 flex items-center gap-1.5">
                 {employee?.name ? employee.name.split(' ')[0] : 'Janu'} <span className="animate-bounce">👋</span>
               </h1>
@@ -289,7 +292,7 @@ export default function EmployeeDashboardClient({
         </section>
 
         {/* 3. TODAY'S OVERVIEW SECTION */}
-        <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
+        <section data-testid="today-overview" className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-[14px] font-extrabold text-[#071B3A]">Today's Overview</h2>
             <Link href="/employee/attendance" className="text-[11px] font-bold text-[#0B8B83] hover:underline flex items-center gap-0.5">
@@ -477,40 +480,7 @@ export default function EmployeeDashboardClient({
 
       </main>
 
-      {/* 7. BOTTOM TAB BAR */}
-      <nav className="fixed bottom-0 left-0 right-0 h-[78px] bg-white border-t border-[#E8EDF2] flex items-center justify-around z-45 px-4 pb-safe max-w-[430px] mx-auto shadow-md">
-        
-        {/* Home */}
-        <Link href="/employee/dashboard" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full">
-          <LayoutGrid className="w-5 h-5 text-[#0B8B83] stroke-[2.2]" />
-          <span className="text-[10px] font-bold text-[#0B8B83]">Home</span>
-        </Link>
 
-        {/* Attendance */}
-        <Link href="/employee/attendance" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <Clock className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-bold">Attendance</span>
-        </Link>
-
-        {/* Daily Report */}
-        <Link href="/employee/daily-report" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <ClipboardList className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-bold">Daily Report</span>
-        </Link>
-
-        {/* Profiles */}
-        <Link href="/employee/assigned-profiles" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <Contact className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-bold">Profiles</span>
-        </Link>
-
-        {/* More / Profile */}
-        <Link href="/employee/profile" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <MoreHorizontal className="w-5 h-5 stroke-[1.8]" />
-          <span className="text-[10px] font-bold">More</span>
-        </Link>
-
-      </nav>
 
       {/* 8. INTERACTIVE CALENDAR & HOLIDAY MANAGEMENT MODAL */}
       {isCalendarOpen && (
@@ -633,7 +603,7 @@ export default function EmployeeDashboardClient({
                   
                   {isAdmin && activeHoliday && (
                     <button 
-                      onClick={() => handleDeleteHoliday(activeHoliday.id)}
+                      onClick={() => confirmDeleteHoliday(activeHoliday.id)}
                       disabled={isPending}
                       className="text-[9px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 py-1 px-2.5 rounded-full bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-all cursor-pointer"
                     >
@@ -790,6 +760,16 @@ export default function EmployeeDashboardClient({
         </div>
       )}
 
+      <ConfirmationModal
+        isOpen={!!holidayToDelete}
+        onClose={() => setHolidayToDelete(null)}
+        onConfirm={executeDeleteHoliday}
+        title="Delete Holiday"
+        message="Are you sure you want to delete this holiday? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={isPending}
+      />
     </div>
   );
 }
