@@ -919,6 +919,7 @@ export async function getRealtimeAttendanceUpdates() {
     const { data } = await supabaseAdmin
       .from('attendance_events')
       .select('id, session_id, employee_id, event_type, event_timestamp, payload, client_ip')
+      .not('event_type', 'eq', 'HEARTBEAT_RECEIVED')
       .order('event_timestamp', { ascending: false })
       .limit(20);
     latestEvents = data || [];

@@ -152,6 +152,13 @@ export default function AttendanceClient({
   const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
 
+  const todayISTStr = useMemo(() => {
+    return getISTShiftDate(new Date());
+  }, []);
+
+  const startDate = searchParams.get('startDate') || todayISTStr;
+  const endDate = searchParams.get('endDate') || todayISTStr;
+
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearch(searchValue);
@@ -160,11 +167,10 @@ export default function AttendanceClient({
   }, [searchValue]);
 
   const [employeeFilter, setEmployeeFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [riskFilter, setRiskFilter] = useState('all');
   const [isExporting, setIsExporting] = useState(false);
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
   const [quickFilter, setQuickFilter] = useState<string>('all');
+  const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const lastActiveTimeRef = useRef<number>(Date.now());
   const isPollingPausedRef = useRef<boolean>(false);
   const { toast } = useToast();
@@ -188,8 +194,81 @@ export default function AttendanceClient({
   const [clockOutTimeCorrection, setClockOutTimeCorrection] = useState('');
   const [isSubmittingOverride, setIsSubmittingOverride] = useState(false);
 
-  // Expanded rows state
-  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
+  // Reset selection on filter / tab changes
+  useEffect(() => {
+    setSelectedRows({});
+  }, [activeTab, quickFilter, employeeFilter, searchValue, startDate, endDate]);
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const checked = e.target.checked;
+    const nextSelected = { ...selectedRows };
+    paginatedItems.forEach(r => {
+      if (checked) {
+        nextSelected[r.id] = true;
+      } else {
+        delete nextSelected[r.id];
+      }
+    });
+    setSelectedRows(nextSelected);
+  };
+
+  const handleSelectRow = (id: string) => {
+    setSelectedRows(prev => {
+      const next = { ...prev };
+      if (next[id]) {
+        delete next[id];
+      } else {
+        next[id] = true;
+      }
+      return next;
+    });
+  };
+
+  const handleBulkExemption = async (fieldName: string, value: boolean) => {
+    const selectedIds = Object.keys(selectedRows).filter(id => selectedRows[id]);
+    if (selectedIds.length === 0) return;
+
+    const nextLoading = { ...loadingRows };
+    selectedIds.forEach(id => {
+      nextLoading[`${id}-${fieldName}`] = true;
+    });
+    setLoadingRows(nextLoading);
+
+    toast.success(`Processing bulk override for ${selectedIds.length} records...`);
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const id of selectedIds) {
+      try {
+        await toggleExemption(id, fieldName, value);
+        await refreshRecordInState(id);
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to update exemption for record ${id}:`, err);
+        failCount++;
+      }
+    }
+
+    setLoadingRows(prev => {
+      const next = { ...prev };
+      selectedIds.forEach(id => {
+        delete next[`${id}-${fieldName}`];
+      });
+      return next;
+    });
+
+    setSelectedRows({});
+
+    if (failCount === 0) {
+      toast.success(`Successfully updated ${successCount} records.`);
+    } else {
+      toast.error(`Updated ${successCount} records, failed for ${failCount} records.`);
+    }
+
+    fetchRealtimeUpdates();
+    router.refresh();
+  };
 
   const [records, setRecords] = useState<AttendanceRecord[]>(initialAttendance);
 
@@ -393,12 +472,7 @@ export default function AttendanceClient({
     }
   };
 
-  const todayISTStr = useMemo(() => {
-    return getISTShiftDate(new Date());
-  }, []);
 
-  const startDate = searchParams.get('startDate') || todayISTStr;
-  const endDate = searchParams.get('endDate') || todayISTStr;
 
   const handleDateChange = (start: string, end: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -427,8 +501,6 @@ export default function AttendanceClient({
     return records.filter((r) => {
       const matchesSearch = !search || (r.employee_name || '').toLowerCase().includes(search.toLowerCase());
       const matchesEmployee = employeeFilter === 'all' || r.employee_id === employeeFilter;
-      const matchesStatus = statusFilter === 'all' || (r.status || '').toLowerCase() === statusFilter.toLowerCase();
-      const matchesRisk = riskFilter === 'all' || (r.risk_level || 'low').toLowerCase() === riskFilter.toLowerCase();
       
       // Quick filter pills
       let matchesQuick = true;
@@ -450,9 +522,9 @@ export default function AttendanceClient({
         matchesQuick = r.status === 'Break (Auto)';
       }
       
-      return matchesSearch && matchesEmployee && matchesStatus && matchesRisk && matchesQuick;
+      return matchesSearch && matchesEmployee && matchesQuick;
     });
-  }, [records, search, employeeFilter, statusFilter, riskFilter, quickFilter]);
+  }, [records, search, employeeFilter, quickFilter]);
 
   const paginatedItems = filtered;
   const totalPages = totalPagesServer;
@@ -547,10 +619,7 @@ export default function AttendanceClient({
 
 
 
-  const toggleRow = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
+
 
   const handleToggleExemption = async (recordId: string, fieldName: string, currentVal: boolean) => {
     const key = `${recordId}-${fieldName}`;
@@ -609,16 +678,7 @@ export default function AttendanceClient({
     }
   };
 
-  const kpiItems = [
-    { label: 'Active Workforce', value: realtimeData?.metrics.activeWorkforce ?? 0, color: 'from-emerald-500 to-teal-600', icon: Activity, pulse: true },
-    { label: 'Active Breaks', value: realtimeData?.metrics.activeBreaks ?? 0, color: 'from-amber-400 to-orange-500', icon: Coffee },
-    { label: 'Idle Warnings', value: realtimeData?.metrics.idleWarnings ?? 0, color: 'from-yellow-400 to-amber-500', icon: AlertTriangle },
-    { label: 'GPS Alerts', value: realtimeData?.metrics.gpsAlerts ?? 0, color: 'from-rose-500 to-red-600', icon: MapPin },
-    { label: 'Mobile-Only', value: realtimeData?.metrics.mobileSessions ?? 0, color: 'from-violet-500 to-purple-600', icon: Smartphone },
-    { label: 'Stale Sessions', value: realtimeData?.metrics.staleSessions ?? 0, color: 'from-red-600 to-rose-700', icon: ShieldAlert },
-    { label: 'Auto-Breaks Today', value: realtimeData?.metrics.autoBreaks ?? 0, color: 'from-red-400 to-orange-600', icon: Clock },
-    { label: 'Pending Disputes', value: realtimeData?.metrics.pendingDisputes ?? 0, color: 'from-blue-500 to-indigo-600', icon: Gavel }
-  ];
+
 
   const renderActivityFeed = () => (
     <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-4 flex flex-col h-full max-h-[600px] overflow-hidden">
@@ -743,45 +803,151 @@ export default function AttendanceClient({
         })}
       </div>
 
-      {/* Realtime KPI Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-        {kpiItems.map((kpi) => (
-          <div 
-            key={kpi.label} 
-            className="relative bg-white rounded-xl border border-zinc-200 shadow-sm p-3.5 flex flex-col justify-between hover:scale-[1.02] hover:border-primary-400/50 hover:shadow-md transition-all duration-300 overflow-hidden group cursor-pointer"
-            onClick={() => {
-              if (kpi.label === 'Active Workforce') setQuickFilter('active');
-              if (kpi.label === 'Active Breaks') setQuickFilter('breaks');
-              if (kpi.label === 'Idle Warnings') setQuickFilter('idle');
-              if (kpi.label === 'Mobile-Only') setQuickFilter('mobile');
-              if (kpi.label === 'Stale Sessions') setQuickFilter('stale');
-              if (kpi.label === 'GPS Alerts') setQuickFilter('gps');
-              if (kpi.label === 'Pending Disputes') setQuickFilter('disputes');
-              if (kpi.label === 'Auto-Breaks Today') setQuickFilter('autobreaks');
-            }}
-          >
-            <div className={`absolute inset-0 bg-gradient-to-br ${kpi.color} opacity-0 group-hover:opacity-[0.02] transition-opacity duration-300`} />
-            
-            <div className="flex items-center justify-between mb-2">
-              <div className="p-1.5 rounded-lg bg-zinc-50 border border-zinc-100 group-hover:border-primary-200/50 transition-colors">
-                <kpi.icon className="w-4 h-4 text-navy-850" />
-              </div>
-              {kpi.pulse && (
-                <span className="flex h-2.5 w-2.5 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                </span>
-              )}
-            </div>
-            <div>
-              <p className="text-2xl font-black text-navy-900 tracking-tight">{kpi.value}</p>
-              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider mt-1 leading-snug">
-                {kpi.label}
-              </p>
-            </div>
+      {/* Workforce Summary Strip */}
+      <div className="bg-white border border-zinc-200 rounded-xl shadow-sm px-4 py-3 flex flex-wrap items-center gap-6 justify-between">
+        <div className="flex flex-wrap items-center gap-6">
+          {/* Active Workforce Pill */}
+          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('active')}>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Active Workforce:</span>
+            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.activeWorkforce ?? 0}</span>
           </div>
-        ))}
+          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
+
+          {/* Active Breaks Pill */}
+          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('breaks')}>
+            <Coffee className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">On Break:</span>
+            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.activeBreaks ?? 0}</span>
+          </div>
+          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
+
+          {/* Idle Warnings Pill */}
+          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('idle')}>
+            <AlertTriangle className="w-3.5 h-3.5 text-yellow-555" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Idle Warnings:</span>
+            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.idleWarnings ?? 0}</span>
+          </div>
+          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
+
+          {/* Mobile Sessions Pill */}
+          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('mobile')}>
+            <Smartphone className="w-3.5 h-3.5 text-violet-500" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Mobile Sessions:</span>
+            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.mobileSessions ?? 0}</span>
+          </div>
+          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
+
+          {/* Auto-breaks Pill */}
+          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('autobreaks')}>
+            <Clock className="w-3.5 h-3.5 text-rose-500" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Auto-breaks:</span>
+            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.autoBreaks ?? 0}</span>
+          </div>
+        </div>
+
+        {quickFilter !== 'all' && (
+          <button 
+            onClick={() => setQuickFilter('all')}
+            className="text-[9px] font-extrabold text-primary-600 hover:text-primary-700 uppercase tracking-widest bg-primary-50 px-2.5 py-1 rounded-md border border-primary-100 transition-all active:scale-95 shadow-sm"
+          >
+            Clear Filter
+          </button>
+        )}
       </div>
+
+      {/* Attention Center (Exceptions Banner) */}
+      {((realtimeData?.metrics.gpsAlerts ?? 0) > 0 || 
+        (realtimeData?.metrics.staleSessions ?? 0) > 0 || 
+        (realtimeData?.metrics.pendingDisputes ?? 0) > 0) && (
+        <div className="bg-red-50/40 border border-red-200 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-red-100/50 pb-2">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-red-600" />
+              <h4 className="font-heading font-black text-xs text-red-950 uppercase tracking-wider">
+                Workforce Operations Attention Center
+              </h4>
+            </div>
+            <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-[8px] font-black uppercase tracking-widest border border-red-200/40 animate-pulse">
+              Action Required
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* GPS Alerts */}
+            {(realtimeData?.metrics.gpsAlerts ?? 0) > 0 && (
+              <div 
+                onClick={() => {
+                  setActiveTab('logs');
+                  setQuickFilter('gps');
+                }}
+                className="bg-white border border-red-100 rounded-lg p-3 hover:border-red-300 hover:shadow-sm transition-all cursor-pointer flex items-start gap-2.5 select-none"
+              >
+                <div className="p-1.5 bg-red-50 rounded-md shrink-0 border border-red-100">
+                  <MapPin className="w-3.5 h-3.5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-navy-900 leading-tight">
+                    {realtimeData?.metrics.gpsAlerts} Geofence Violations
+                  </p>
+                  <p className="text-[10px] text-zinc-550 mt-0.5 leading-normal">
+                    Active sessions have breached geofence boundary coordinates.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Stale Sessions */}
+            {(realtimeData?.metrics.staleSessions ?? 0) > 0 && (
+              <div 
+                onClick={() => {
+                  setActiveTab('logs');
+                  setQuickFilter('stale');
+                }}
+                className="bg-white border border-red-100 rounded-lg p-3 hover:border-red-300 hover:shadow-sm transition-all cursor-pointer flex items-start gap-2.5 select-none"
+              >
+                <div className="p-1.5 bg-red-50 rounded-md shrink-0 border border-red-100">
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-650" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-navy-900 leading-tight">
+                    {realtimeData?.metrics.staleSessions} Stale Sessions
+                  </p>
+                  <p className="text-[10px] text-zinc-550 mt-0.5 leading-normal">
+                    Sessions active for &gt;12 hours. Requires compliance check out.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Pending Disputes */}
+            {(realtimeData?.metrics.pendingDisputes ?? 0) > 0 && (
+              <div 
+                onClick={() => {
+                  setActiveTab('logs');
+                  setQuickFilter('disputes');
+                }}
+                className="bg-white border border-red-100 rounded-lg p-3 hover:border-red-300 hover:shadow-sm transition-all cursor-pointer flex items-start gap-2.5 select-none"
+              >
+                <div className="p-1.5 bg-red-50 rounded-md shrink-0 border border-red-100">
+                  <Gavel className="w-3.5 h-3.5 text-red-605" />
+                </div>
+                <div>
+                  <p className="text-xs font-black text-navy-900 leading-tight">
+                    {realtimeData?.metrics.pendingDisputes} Pending Disputes
+                  </p>
+                  <p className="text-[10px] text-zinc-550 mt-0.5 leading-normal">
+                    WFH and manual entries awaiting verification.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {activeTab === 'logs' && (
         <div className="space-y-4">
@@ -973,7 +1139,14 @@ export default function AttendanceClient({
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
-                        <th className="w-8 px-1 py-1.5"></th>
+                        <th className="w-10 px-3 py-1.5 text-center">
+                          <input 
+                            type="checkbox"
+                            onChange={handleSelectAll}
+                            checked={paginatedItems.length > 0 && paginatedItems.every(r => selectedRows[r.id])}
+                            className="rounded border-zinc-350 text-primary-600 focus:ring-primary-500/30 w-3.5 h-3.5 cursor-pointer"
+                          />
+                        </th>
                         <th className="px-3 py-1.5">Employee Name</th>
                         <th className="px-3 py-1.5">Date</th>
                         <th className="px-3 py-1.5">Clock In</th>
@@ -996,152 +1169,57 @@ export default function AttendanceClient({
                         paginatedItems.map((record) => {
                           const times = getRealtimeDurations(record);
                           return (
-                            <Fragment key={record.id}>
-                              <tr 
-                                onClick={() => handleOpenDrawer(record)}
-                                className={cn(
-                                  "group hover:bg-zinc-50/30 transition-colors cursor-pointer",
-                                  expandedRows[record.id] && "bg-zinc-50/20"
-                                )}
-                              >
-                                <td className="w-8 px-1 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
-                                  <button 
-                                    onClick={(e) => toggleRow(record.id, e)}
-                                    className="p-0.5 rounded hover:bg-zinc-150 text-zinc-500 transition-colors"
-                                  >
-                                    {expandedRows[record.id] ? (
-                                      <ChevronDown className="w-3.5 h-3.5" />
-                                    ) : (
-                                      <ChevronRight className="w-3.5 h-3.5" />
-                                    )}
-                                  </button>
-                                </td>
-                                <td className="px-3 py-1.5 whitespace-nowrap">
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="w-5 h-5 rounded-full bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500 shrink-0">
-                                      <User className="w-3 h-3" />
-                                    </div>
-                                    <span className="text-[11px] font-bold text-navy-900 tracking-tight flex items-center gap-1">
-                                      {record.employee_name}
-                                      <span className="text-[9px]" title={record.device_label || 'Unknown device'}>
-                                        {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
-                                      </span>
+                            <tr 
+                              key={record.id}
+                              onClick={() => handleOpenDrawer(record)}
+                              className="group hover:bg-zinc-50 transition-colors cursor-pointer border-b border-zinc-100"
+                            >
+                              <td className="w-10 px-3 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                <input 
+                                  type="checkbox"
+                                  checked={!!selectedRows[record.id]}
+                                  onChange={() => handleSelectRow(record.id)}
+                                  className="rounded border-zinc-350 text-primary-600 focus:ring-primary-500/30 w-3.5 h-3.5 cursor-pointer"
+                                />
+                              </td>
+                              <td className="px-3 py-1.5 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-5 h-5 rounded-full bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-550 shrink-0">
+                                    <User className="w-3 h-3" />
+                                  </div>
+                                  <span className="text-[11px] font-bold text-navy-900 tracking-tight flex items-center gap-1">
+                                    {record.employee_name}
+                                    <span className="text-[9px]" title={record.device_label || 'Unknown device'}>
+                                      {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
                                     </span>
-                                  </div>
-                                </td>
-                                <td className="px-3 py-1.5 whitespace-nowrap">
-                                  <div className="text-[9px] font-semibold text-zinc-500 font-mono">
-                                    {!isNaN(new Date(record.date).getTime()) 
-                                      ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase() 
-                                      : record.date?.toUpperCase() || '—'}
-                                  </div>
-                                </td>
-                                <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-semibold text-zinc-600">
-                                  {record.check_in || '—'}
-                                </td>
-                                <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-semibold text-zinc-600">
-                                  {record.check_out || '—'}
-                                </td>
-                                <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-extrabold text-navy-900">
-                                  {times.productive}
-                                </td>
-                                <td className="px-3 py-1.5 whitespace-nowrap">
-                                  <StatusBadge status={record.status} className="text-[9px] px-1.5 py-0.25" />
-                                </td>
-                              </tr>
-                              {expandedRows[record.id] && (
-                                <tr className="bg-zinc-50/20" onClick={(e) => e.stopPropagation()}>
-                                  <td colSpan={7} className="px-4 py-3 border-b border-zinc-200">
-                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
-                                    <div className="space-y-1">
-                                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Geofence Telemetry</span>
-                                      <p className="font-semibold text-navy-900">Coordinates: {record.lat.toFixed(6)}, {record.lng.toFixed(6)}</p>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        <a 
-                                          href={`https://www.google.com/maps/search/?api=1&query=${record.lat},${record.lng}`}
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="text-[10px] text-primary-600 font-bold hover:underline inline-flex items-center gap-0.5"
-                                        >
-                                          Google Maps <ExternalLink className="w-2.5 h-2.5" />
-                                        </a>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="space-y-1">
-                                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Device Registry</span>
-                                      <p className="font-semibold text-navy-900 truncate max-w-xs">{record.device_label || 'Default Workstation'}</p>
-                                      <p className="text-[10px] text-zinc-450 mt-0.5 uppercase font-mono">{record.device_type || 'Desktop'}</p>
-                                    </div>
-
-                                    <div className="space-y-1">
-                                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Break Diagnostics</span>
-                                      <p className="font-semibold text-navy-900">Total Break: {Math.round((record.total_break_seconds ?? 0) / 60)} mins</p>
-                                      {record.current_break_start && (
-                                        <p className="text-[10px] text-amber-505 font-semibold animate-pulse mt-0.5">
-                                          Active Break since {new Date(record.current_break_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                                        </p>
-                                      )}
-                                    </div>
-
-                                    <div className="space-y-1.5 flex flex-col justify-center">
-                                      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Admin Override Actions</span>
-                                      <div className="flex flex-wrap gap-1.5">
-                                        <button
-                                          onClick={() => handleOpenDrawer(record)}
-                                          className="px-2 py-1 rounded bg-primary-50 hover:bg-primary-100 text-primary-600 font-bold text-[9px] uppercase tracking-wider transition-colors"
-                                        >
-                                          Open Drawer
-                                        </button>
-                                        <button
-                                          onClick={async (e) => {
-                                            e.stopPropagation();
-                                            try {
-                                              await rebuildSessionProjection(record.id);
-                                              toast.success('Session rebuilt successfully.');
-                                              router.refresh();
-                                            } catch (err) {
-                                              toast.error('Rebuild failed.');
-                                            }
-                                          }}
-                                          className="px-2 py-1 rounded bg-zinc-100 hover:bg-zinc-200 text-zinc-700 font-bold text-[9px] uppercase tracking-wider transition-colors"
-                                        >
-                                          Rebuild
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleOpenDrawer(record).then(() => {
-                                              setOverrideActionType('correct_clockout');
-                                            });
-                                          }}
-                                          className="px-2 py-1 rounded bg-teal-50 hover:bg-teal-100 text-teal-600 font-bold text-[9px] uppercase tracking-wider transition-colors"
-                                        >
-                                          Clockout
-                                        </button>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleOpenDrawer(record).then(() => {
-                                              setOverrideActionType('reverse_autobreak');
-                                            });
-                                          }}
-                                          className="px-2 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-600 font-bold text-[9px] uppercase tracking-wider transition-colors"
-                                        >
-                                          Rev Break
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </Fragment>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-1.5 whitespace-nowrap">
+                                <div className="text-[9px] font-semibold text-zinc-500 font-mono">
+                                  {!isNaN(new Date(record.date).getTime()) 
+                                    ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase() 
+                                    : record.date?.toUpperCase() || '—'}
+                                </div>
+                              </td>
+                              <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-semibold text-zinc-600">
+                                {record.check_in || '—'}
+                              </td>
+                              <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-semibold text-zinc-650">
+                                {record.check_out || '—'}
+                              </td>
+                              <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-extrabold text-navy-900">
+                                {times.productive}
+                              </td>
+                              <td className="px-3 py-1.5 whitespace-nowrap">
+                                <StatusBadge status={record.status} className="text-[9px] px-1.5 py-0.25" />
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </Card>
 
@@ -1537,7 +1615,7 @@ export default function AttendanceClient({
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
-              <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-55/40 space-y-2 text-xs">
+              <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50/40 space-y-2 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Date</span>
@@ -1573,6 +1651,60 @@ export default function AttendanceClient({
                     <span className="font-mono font-bold text-navy-900">
                       {selectedRecord.total_break_seconds !== undefined ? Math.round(selectedRecord.total_break_seconds / 60) : 0} mins
                     </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Diagnostics & Telemetry Panel */}
+              <div className="p-4 rounded-xl border border-zinc-200 bg-white space-y-4 shadow-sm text-xs">
+                <h4 className="text-[10px] font-black text-zinc-700 uppercase tracking-widest block border-b border-zinc-100 pb-1.5">
+                  Diagnostics & Telemetry
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Geofence Telemetry */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-zinc-400" /> Geofence Telemetry
+                    </span>
+                    <p className="font-semibold text-navy-900">
+                      {selectedRecord.lat?.toFixed(6)}, {selectedRecord.lng?.toFixed(6)}
+                    </p>
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${selectedRecord.lat},${selectedRecord.lng}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-primary-600 font-bold hover:underline inline-flex items-center gap-0.5 mt-0.5"
+                    >
+                      Google Maps <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+
+                  {/* Device Registry */}
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block flex items-center gap-1">
+                      <Smartphone className="w-3 h-3 text-zinc-400" /> Device Registry
+                    </span>
+                    <p className="font-semibold text-navy-900 truncate max-w-[180px]" title={selectedRecord.device_label || 'Default Workstation'}>
+                      {selectedRecord.device_label || 'Default Workstation'}
+                    </p>
+                    <p className="text-[9px] text-zinc-450 uppercase font-mono mt-0.5">
+                      Type: {selectedRecord.device_type || 'Desktop'}
+                    </p>
+                  </div>
+
+                  {/* Break Diagnostics */}
+                  <div className="space-y-1 col-span-2">
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block flex items-center gap-1">
+                      <Coffee className="w-3 h-3 text-zinc-400" /> Break Diagnostics
+                    </span>
+                    <p className="font-semibold text-navy-900">
+                      Total Break: {Math.round((selectedRecord.total_break_seconds ?? 0) / 60)} mins
+                    </p>
+                    {selectedRecord.current_break_start && (
+                      <p className="text-[10px] text-amber-500 font-semibold animate-pulse mt-0.5">
+                        Active Break since {new Date(selectedRecord.current_break_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1888,6 +2020,49 @@ export default function AttendanceClient({
             </div>
           </motion.div>
         </>
+      )}
+
+      {/* Floating Bulk Action Bar */}
+      {Object.keys(selectedRows).filter(id => selectedRows[id]).length > 0 && (
+        <motion.div 
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 50, opacity: 0 }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-navy-900/95 backdrop-blur-sm border border-navy-800 text-white rounded-2xl shadow-xl px-6 py-4 flex items-center gap-6 max-w-4xl w-[90%] sm:w-auto"
+        >
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <span className="text-xs font-black uppercase tracking-wider text-primary-200">
+              {Object.keys(selectedRows).filter(id => selectedRows[id]).length} Records Selected
+            </span>
+            <div className="h-4 w-[1px] bg-navy-700 hidden sm:block" />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => handleBulkExemption('late_approved', true)}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 shadow shadow-emerald-500/10"
+              >
+                Approve Late
+              </button>
+              <button
+                onClick={() => handleBulkExemption('permission_approved', true)}
+                className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 shadow shadow-teal-500/10"
+              >
+                Approve Permission
+              </button>
+              <button
+                onClick={() => handleBulkExemption('manager_exemption', true)}
+                className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-750 text-white text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 shadow shadow-violet-500/10"
+              >
+                Exempt All
+              </button>
+              <button
+                onClick={() => setSelectedRows({})}
+                className="px-3 py-1.5 rounded-lg bg-navy-800 hover:bg-navy-700 text-zinc-350 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        </motion.div>
       )}
     </div>
   );
