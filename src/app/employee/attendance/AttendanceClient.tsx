@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert, Bell, ChevronRight, ClipboardList, Briefcase, MoreHorizontal, Headset, MapPin } from 'lucide-react';
+import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert, Bell, ChevronLeft, ChevronRight, ClipboardList, Briefcase, MoreHorizontal, Headset, MapPin, Compass, LayoutGrid, Contact } from 'lucide-react';
 import Link from 'next/link';
 import Logo from '@/components/ui/Logo';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1037,9 +1037,39 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
 
   const monthStart = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
   const daysInMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0).getDate();
-  const calendarDays = [];
-  for (let i = 0; i < monthStart.getDay(); i++) calendarDays.push(null);
-  for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
+  
+  // Trailing days of previous month
+  const prevMonthDate = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 0);
+  const prevMonthDays = prevMonthDate.getDate();
+  const startDayOfWeek = monthStart.getDay();
+  
+  const calendarDays: { day: number; isCurrentMonth: boolean }[] = [];
+  
+  // Fill leading days from previous month
+  for (let i = startDayOfWeek - 1; i >= 0; i--) {
+    calendarDays.push({
+      day: prevMonthDays - i,
+      isCurrentMonth: false
+    });
+  }
+  
+  // Fill current month days
+  for (let d = 1; d <= daysInMonth; d++) {
+    calendarDays.push({
+      day: d,
+      isCurrentMonth: true
+    });
+  }
+  
+  // Fill trailing days from next month to complete the grid (up to 42 items for 6 weeks grid consistency)
+  const totalCells = Math.ceil(calendarDays.length / 7) * 7;
+  const nextMonthDaysCount = totalCells - calendarDays.length;
+  for (let d = 1; d <= nextMonthDaysCount; d++) {
+    calendarDays.push({
+      day: d,
+      isCurrentMonth: false
+    });
+  }
 
   // Dynamic statistics calculation for the selected month
   const selectedMonthRecords = records.filter(r => {
@@ -1054,7 +1084,27 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
   }).length;
 
   const lateMonthCount = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'late').length;
-  const absentCount = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'absent').length;
+
+  // Calculate dynamic absent count including past days with no attendance records (excluding Sundays)
+  const todayObj = new Date();
+  const todayMidnight = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+  let absentCount = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'absent').length;
+  
+  const lastDayToCheck = selectedMonthDate.getMonth() === todayObj.getMonth() && selectedMonthDate.getFullYear() === todayObj.getFullYear()
+    ? todayObj.getDate() - 1
+    : daysInMonth;
+
+  for (let d = 1; d <= lastDayToCheck; d++) {
+    const dateObj = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), d);
+    if (dateObj.getDay() !== 0) { // Non-Sunday
+      const dStr = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const hasRecord = records.some(r => r.date === dStr);
+      if (!hasRecord) {
+        absentCount++;
+      }
+    }
+  }
+
   const wfhCount = selectedMonthRecords.filter(r => r.status?.toLowerCase().includes('wfh')).length;
 
   const getWorkingDaysCount = (date: Date) => {
@@ -1432,25 +1482,25 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
             </div>
             
             {/* Navigation controls */}
-            <div className="flex items-center gap-1 bg-[#F7F8FA] p-0.5 rounded-lg border border-zinc-200/40">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => navigateMonth('prev')}
                 disabled={isPrevDisabled || isCalendarLoading}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-white disabled:opacity-30 text-slate-500 cursor-pointer text-xs font-bold transition-all border-0"
+                className="text-slate-500 hover:text-slate-800 disabled:opacity-30 cursor-pointer p-1 transition-all border-0 bg-transparent"
               >
-                &lt;
+                <ChevronLeft className="w-4.5 h-4.5" />
               </button>
-              <div className="px-2 py-0.5 text-[#64748B] text-[10px] font-bold uppercase tracking-wider font-mono min-w-[70px] text-center">
-                {selectedMonthDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }).toUpperCase()}
+              <div className="bg-[#EFF2F6] px-3.5 py-1 rounded-lg text-[#071B3A] text-xs font-black font-sans leading-none uppercase tracking-wide">
+                {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
               </div>
               <button
                 type="button"
                 onClick={() => navigateMonth('next')}
                 disabled={isNextDisabled || isCalendarLoading}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-white disabled:opacity-30 text-slate-500 cursor-pointer text-xs font-bold transition-all border-0"
+                className="text-slate-500 hover:text-slate-800 disabled:opacity-30 cursor-pointer p-1 transition-all border-0 bg-transparent"
               >
-                &gt;
+                <ChevronRight className="w-4.5 h-4.5" />
               </button>
             </div>
           </div>
@@ -1479,11 +1529,13 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
             </div>
           ) : (
             <div className="grid grid-cols-7 gap-y-[8px] justify-items-center text-center text-xs font-bold text-[#0F172A]">
-              {calendarDays.map((day, i) => {
-                const status = day ? getStatusForDay(day) : null;
-                const isToday = day === new Date().getDate() && selectedMonthDate.getMonth() === new Date().getMonth() && selectedMonthDate.getFullYear() === new Date().getFullYear();
+              {calendarDays.map((dayObj, i) => {
+                const { day, isCurrentMonth } = dayObj;
+                const status = isCurrentMonth ? getStatusForDay(day) : null;
+                const isToday = isCurrentMonth && day === new Date().getDate() && selectedMonthDate.getMonth() === new Date().getMonth() && selectedMonthDate.getFullYear() === new Date().getFullYear();
 
                 const getStatusDotColor = (s: string | null, dayNum: number) => {
+                  if (!isCurrentMonth) return null;
                   if (s) {
                     const statusLower = s.toLowerCase();
                     if (statusLower === 'present' || statusLower === 'working' || statusLower === 'logged out' || statusLower === 'break' || statusLower === 'break (auto)' || statusLower === 'desktop_active' || statusLower === 'desktop active') return 'bg-[#22C55E]';
@@ -1493,57 +1545,66 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                     if (statusLower === 'half-day') return 'bg-orange-500';
                     if (statusLower === 'holiday' || statusLower === 'off' || statusLower === 'weekly off') return 'bg-[#CBD5E1]';
                   }
+                  
+                  // For past days without records
                   const dateObj = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), dayNum);
-                  const isWeekend = dateObj.getDay() === 0; // Sunday off
-                  if (isWeekend) {
-                    return 'bg-[#CBD5E1]';
+                  const todayObj = new Date();
+                  const todayMidnight = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+                  
+                  if (dateObj < todayMidnight) {
+                    const dayOfWeek = dateObj.getDay();
+                    if (dayOfWeek === 0) {
+                      // Sunday: No dot (weekly off)
+                      return null;
+                    }
+                    // Weekday or Saturday in the past with no record -> Absent (gray dot)
+                    return 'bg-zinc-400';
                   }
+                  
                   return null;
                 };
 
-                const dotColor = day ? getStatusDotColor(status, day) : null;
+                const dotColor = getStatusDotColor(status, day);
 
                 // Border ring if active
-                const isSelectedState = day && (
+                const isSelectedState = isCurrentMonth && (
                   status === 'late' || status === 'present' || status === 'working' || status === 'logged out' || status?.includes('wfh') || status === 'half-day'
                 );
 
                 return (
                   <div key={i} className="flex flex-col items-center justify-center relative select-none">
-                    {day ? (
-                      <div className="flex flex-col items-center gap-[4px] relative">
-                        <div
-                          className={cn(
-                            "w-[32px] h-[32px] rounded-full flex items-center justify-center text-xs font-extrabold transition-all cursor-default",
-                            isToday && (status === 'present' || status === 'working' || status === 'logged out' || status === 'break')
-                              ? "bg-[#0B8B83] text-white"
-                              : isToday 
-                                ? "bg-[#071B3A] text-white" 
-                                : isSelectedState 
-                                  ? status === 'late' 
-                                    ? "border border-red-200 text-red-500 bg-red-50/20" 
-                                    : status?.includes('wfh')
-                                      ? "border border-blue-200 text-blue-500 bg-blue-50/20"
-                                      : status === 'half-day'
-                                        ? "border border-orange-200 text-orange-500 bg-orange-50/20"
-                                        : "border border-emerald-200 text-[#22C55E] bg-[#E6F8F2]/30"
+                    <div className="flex flex-col items-center gap-[4px] relative">
+                      <div
+                        className={cn(
+                          "w-[32px] h-[32px] rounded-full flex items-center justify-center text-xs font-extrabold transition-all cursor-default",
+                          isToday && (status === 'present' || status === 'working' || status === 'logged out' || status === 'break')
+                            ? "bg-[#0B8B83] text-white"
+                            : isToday 
+                              ? "bg-[#071B3A] text-white" 
+                              : isSelectedState 
+                                ? status === 'late' 
+                                  ? "border border-red-200 text-red-500 bg-red-50/20" 
+                                  : status?.includes('wfh')
+                                    ? "border border-blue-200 text-blue-500 bg-blue-50/20"
+                                    : status === 'half-day'
+                                      ? "border border-orange-200 text-orange-500 bg-orange-50/20"
+                                      : "border border-emerald-200 text-[#22C55E] bg-[#E6F8F2]/30"
+                                : !isCurrentMonth
+                                  ? "text-zinc-350 font-normal"
                                   : "text-[#071B3A]"
-                          )}
-                        >
-                          <span>{day}</span>
-                        </div>
-                        {/* Dot below date number */}
-                        <div className="h-[4px] flex items-center justify-center">
-                          {dotColor ? (
-                            <span className={cn("w-[4px] h-[4px] rounded-full", dotColor)} />
-                          ) : (
-                            <span className="w-[4px] h-[4px] rounded-full bg-transparent" />
-                          )}
-                        </div>
+                        )}
+                      >
+                        <span>{day}</span>
                       </div>
-                    ) : (
-                      <div className="w-[32px] h-[32px]" />
-                    )}
+                      {/* Dot below date number */}
+                      <div className="h-[4px] flex items-center justify-center">
+                        {dotColor ? (
+                          <span className={cn("w-[4px] h-[4px] rounded-full", dotColor)} />
+                        ) : (
+                          <span className="w-[4px] h-[4px] rounded-full bg-transparent" />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -1600,29 +1661,42 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
               return (
                 <div key={r.id} className="p-4 rounded-xl border border-[#E8EDF2] bg-white shadow-3xs flex justify-between items-center font-sans">
                   <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center border shrink-0",
-                      isWFH 
-                        ? "bg-[#EFF6FF] border-blue-100 text-[#3B82F6]" 
-                        : r.status?.toLowerCase() === 'late'
-                          ? "bg-red-50 border-red-100 text-red-500"
-                          : "bg-[#E6F8F2] border-emerald-100 text-[#22C55E]"
-                    )}>
-                      {isWFH ? <Home className="w-5 h-5" /> : <LogOut className="w-5 h-5" />}
-                    </div>
+                    {(() => {
+                      const s = r.status?.toLowerCase() || '';
+                      const disputeApproved = dispute && dispute.status === 'APPROVED';
+                      let bgClass = "bg-[#E6F8F2] border-emerald-100 text-[#22C55E]";
+                      let IconComponent = LogOut;
+                      
+                      if (isWFH) {
+                        IconComponent = Home;
+                        if (s.includes('approved') || disputeApproved) {
+                          bgClass = "bg-[#E6F8F2] border-emerald-100 text-[#22C55E]";
+                        } else {
+                          bgClass = "bg-slate-50 border-slate-200 text-slate-400";
+                        }
+                      } else if (s === 'late' || disputeApproved) {
+                        bgClass = "bg-orange-50 border-orange-100 text-orange-500";
+                      }
+                      
+                      return (
+                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center border shrink-0", bgClass)}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                      );
+                    })()}
                     
                     <div className="space-y-1">
                       <p className="font-extrabold text-[#071B3A] text-xs">
                         {new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
                       </p>
-                      <div className="flex items-center gap-1.5 text-[9px] text-[#64748B] font-mono">
+                      <div className="flex items-center gap-1.5 text-[9px] text-[#64748B] font-mono font-semibold">
                         <Clock className="w-3 h-3 text-[#94A3B8]" />
                         <span>{r.check_in || '--:--'} → {r.check_out || 'Active'}</span>
                       </div>
                       
                       {hasDispute && dispute && (
                         <div className={cn(
-                          "text-[9px] font-bold uppercase tracking-wider mt-1.5",
+                          "text-[9px] font-extrabold uppercase tracking-wider mt-1.5 font-mono",
                           dispute.status === 'APPROVED' ? "text-[#22C55E]" :
                           dispute.status === 'REJECTED' ? "text-red-500" : "text-amber-500"
                         )}>
@@ -1638,16 +1712,37 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                     </span>
                     
                     <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "text-[9px] font-bold py-0.5 px-2 rounded-full leading-none shrink-0 border border-transparent uppercase font-mono",
-                        r.status?.toLowerCase() === 'late' 
-                          ? "bg-red-50 text-red-500 border-red-200/20" 
-                          : isWFH
-                            ? "bg-[#EFF6FF] text-[#3B82F6] border-blue-200/20"
-                            : "bg-[#E6F8F2] text-[#22C55E]"
-                      )}>
-                        {r.status?.toLowerCase() === 'logged out' ? 'Logged Out' : r.status}
-                      </span>
+                      {(() => {
+                        const s = r.status?.toLowerCase() || '';
+                        const disputeApproved = dispute && dispute.status === 'APPROVED';
+                        let bgClass = "bg-[#F1F5F9] text-[#64748B]";
+                        let dotClass = "bg-[#64748B]";
+                        let labelText = "LOGGED OUT";
+                        
+                        if (isWFH && (s.includes('approved') || disputeApproved || s.includes('present') || s.includes('working') || s.includes('logged out'))) {
+                          bgClass = "bg-[#E6F8F2] text-[#22C55E]";
+                          dotClass = "bg-[#22C55E]";
+                          labelText = "APPROVED WFH";
+                        } else if (s === 'late') {
+                          bgClass = "bg-red-50 text-red-500";
+                          dotClass = "bg-red-500";
+                          labelText = "LATE";
+                        } else if (s === 'absent') {
+                          bgClass = "bg-slate-100 text-slate-500";
+                          dotClass = "bg-slate-400";
+                          labelText = "ABSENT";
+                        }
+                        
+                        return (
+                          <span className={cn(
+                            "text-[8px] font-black py-0.5 px-2 rounded-full leading-none shrink-0 border border-transparent uppercase font-mono flex items-center gap-1",
+                            bgClass
+                          )}>
+                            <span className={cn("w-1 h-1 rounded-full", dotClass)} />
+                            {labelText}
+                          </span>
+                        );
+                      })()}
                       
                       {!hasDispute && (
                         <button
@@ -1739,7 +1834,7 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
         <section className="bg-white rounded-[20px] p-4 border border-[#E8EDF2] shadow-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#E6F8F2] border border-[#0B8B83]/10 flex items-center justify-center text-[#0B8B83] shrink-0">
-              <Info className="w-5 h-5" />
+              <Compass className="w-5 h-5" />
             </div>
             <div>
               <h3 className="text-xs font-extrabold text-[#071B3A] leading-none">Need Help?</h3>
@@ -1762,7 +1857,7 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
         
         {/* Home */}
         <Link href="/employee/dashboard" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <Home className="w-5 h-5 stroke-[1.8]" />
+          <LayoutGrid className="w-5 h-5 stroke-[1.8]" />
           <span className="text-[10px] font-bold">Home</span>
         </Link>
 
@@ -1780,7 +1875,7 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
 
         {/* Profiles */}
         <Link href="/employee/assigned-profiles" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <Briefcase className="w-5 h-5 stroke-[1.8]" />
+          <Contact className="w-5 h-5 stroke-[1.8]" />
           <span className="text-[10px] font-bold">Profiles</span>
         </Link>
 
