@@ -393,8 +393,12 @@ export default function AttendanceClient({
     }
   };
 
-  const startDate = searchParams.get('startDate') || '';
-  const endDate = searchParams.get('endDate') || '';
+  const todayISTStr = useMemo(() => {
+    return getISTShiftDate(new Date());
+  }, []);
+
+  const startDate = searchParams.get('startDate') || todayISTStr;
+  const endDate = searchParams.get('endDate') || todayISTStr;
 
   const handleDateChange = (start: string, end: string) => {
     const params = new URLSearchParams(window.location.search);
@@ -404,10 +408,6 @@ export default function AttendanceClient({
     else params.delete('endDate');
     router.push(`/admin/attendance?${params.toString()}`);
   };
-
-  const todayISTStr = useMemo(() => {
-    return getISTShiftDate(new Date());
-  }, []);
 
   const filterCounts = useMemo(() => {
     return {
@@ -806,33 +806,6 @@ export default function AttendanceClient({
                 >
                   <option value="all">Personnel: ALL</option>
                   {employees.map((e) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
-                </select>
-                <select 
-                  value={statusFilter} 
-                  onChange={(e) => setStatusFilter(e.target.value)} 
-                  className="pl-3 pr-8 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm min-w-0 sm:min-w-[130px] appearance-none"
-                >
-                  <option value="all">Status: ALL</option>
-                  <option value="Working">WORKING</option>
-                  <option value="Idle">IDLE</option>
-                  <option value="Break">BREAK</option>
-                  <option value="Break (Auto)">BREAK (AUTO)</option>
-                  <option value="Logged Out">LOGGED OUT</option>
-                  <option value="Absent">ABSENT</option>
-                  <option value="Half-day">HALF-DAY</option>
-                  <option value="Pending WFH">WFH PENDING</option>
-                  <option value="Approved WFH">WFH APPROVED</option>
-                  <option value="Rejected WFH">WFH REJECTED</option>
-                </select>
-                <select 
-                  value={riskFilter} 
-                  onChange={(e) => setRiskFilter(e.target.value)} 
-                  className="pl-3 pr-8 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm min-w-0 sm:min-w-[130px] appearance-none col-span-2 sm:col-span-1"
-                >
-                  <option value="all">Trust: ALL</option>
-                  <option value="low">Trust: LOW RISK</option>
-                  <option value="medium">Trust: MEDIUM RISK</option>
-                  <option value="high">Trust: HIGH RISK</option>
                 </select>
                 <div className="grid grid-cols-9 items-center gap-1 col-span-2 sm:flex sm:col-span-1 sm:gap-1.5 w-full sm:w-auto">
                   <input

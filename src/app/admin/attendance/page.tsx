@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import AttendanceClientWrapper from './AttendanceClientWrapper';
 import { AttendanceSkeleton } from './skeletons';
+import { getISTShiftDate } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,8 +11,9 @@ interface PageProps {
 
 export default async function AdminAppAttendancePage(props: PageProps) {
   const resolvedParams = await props.searchParams;
-  const startDate = typeof resolvedParams.startDate === 'string' ? resolvedParams.startDate : undefined;
-  const endDate = typeof resolvedParams.endDate === 'string' ? resolvedParams.endDate : undefined;
+  const today = getISTShiftDate();
+  const startDate = typeof resolvedParams.startDate === 'string' ? resolvedParams.startDate : today;
+  const endDate = typeof resolvedParams.endDate === 'string' ? resolvedParams.endDate : today;
   const page = typeof resolvedParams.page === 'string' ? parseInt(resolvedParams.page, 10) : 1;
   const pageSize = typeof resolvedParams.pageSize === 'string' ? parseInt(resolvedParams.pageSize, 10) : 100;
 

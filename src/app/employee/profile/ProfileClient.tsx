@@ -219,36 +219,36 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
 
         {/* Info Side */}
         <div className="space-y-5">
-          <div className="p-5 rounded-lg bg-navy-900 text-white border border-navy-800">
-            <h3 className="text-sm font-bold mb-5">Work Details</h3>
+          <div className="p-5 rounded-lg bg-white border border-zinc-200 shadow-2xs">
+            <h3 className="text-sm font-bold mb-5 text-navy-900">Work Details</h3>
             <div className="space-y-5">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center shrink-0">
-                  <Briefcase className="w-4 h-4 text-primary-300" />
+                <div className="w-8 h-8 rounded bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100">
+                  <Briefcase className="w-4 h-4 text-primary-600" />
                 </div>
                 <div>
                   <p className="text-[8px] text-zinc-400 uppercase font-mono font-semibold tracking-wider mb-0.5">Current Role</p>
-                  <p className="text-xs font-semibold text-white">{employee.designation || 'Team Member'}</p>
+                  <p className="text-xs font-semibold text-navy-900">{employee.designation || 'Team Member'}</p>
                 </div>
               </div>
               
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center shrink-0">
-                  <Building2 className="w-4 h-4 text-primary-300" />
+                <div className="w-8 h-8 rounded bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100">
+                  <Building2 className="w-4 h-4 text-primary-600" />
                 </div>
                 <div>
                   <p className="text-[8px] text-zinc-400 uppercase font-mono font-semibold tracking-wider mb-0.5">Department</p>
-                  <p className="text-xs font-semibold text-white">{employee.department || 'Operations'}</p>
+                  <p className="text-xs font-semibold text-navy-900">{employee.department || 'Operations'}</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center shrink-0">
-                  <CalendarRange className="w-4 h-4 text-primary-300" />
+                <div className="w-8 h-8 rounded bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100">
+                  <CalendarRange className="w-4 h-4 text-primary-600" />
                 </div>
                 <div>
                   <p className="text-[8px] text-zinc-400 uppercase font-mono font-semibold tracking-wider mb-0.5">Member Since</p>
-                  <p className="text-xs font-semibold text-white">
+                  <p className="text-xs font-semibold text-navy-900">
                     {employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : '—'}
                   </p>
                 </div>
