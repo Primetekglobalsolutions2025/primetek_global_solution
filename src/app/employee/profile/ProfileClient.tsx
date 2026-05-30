@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Save, Loader2, CheckCircle2, Camera, Briefcase, Building2, CalendarRange } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Save, Loader2, CheckCircle2, Camera, Briefcase, Building2, CalendarRange, Download, Smartphone } from 'lucide-react';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -39,6 +39,37 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(employee.avatar_url);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches 
+        // @ts-ignore
+        || window.navigator.standalone;
+      setIsStandalone(isStandaloneMode);
+
+      const handleBeforeInstallPrompt = (e: any) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      toast.info('To install, tap the browser menu (or share button on Safari) and select "Add to Home Screen".');
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -228,6 +259,32 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
           <div className="p-5 rounded-lg bg-primary-50 border border-primary-100">
             <MFASetup initialEnabled={employee.mfa_enabled || false} />
           </div>
+
+          {!isStandalone && (
+            <div className="p-5 rounded-lg bg-white border border-zinc-200 shadow-2xs">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded bg-navy-950 text-white flex items-center justify-center shrink-0">
+                    <Smartphone className="w-4 h-4 text-primary-300" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-navy-900">Install Portal App</p>
+                    <p className="text-[11px] text-zinc-500 font-medium">
+                      Install app for better experience
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleInstallClick}
+                  className="p-2 rounded bg-navy-900 hover:bg-navy-800 text-white transition-all duration-200 flex items-center justify-center shrink-0 shadow-2xs hover:scale-105"
+                  title="Install App"
+                  aria-label="Install App"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="p-5 rounded-lg bg-zinc-50 border border-zinc-200">
             <div className="flex items-center gap-2.5 mb-2">
