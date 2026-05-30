@@ -1,181 +1,213 @@
 import type { Metadata } from 'next';
-import { Target, Eye, Award, Users, Lightbulb, Zap } from 'lucide-react';
-import SectionHeading from '@/components/ui/SectionHeading';
+import { Target, Eye, XCircle, Award, Users, Zap } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import CTASection from '@/components/sections/CTASection';
 import SchemaMarkup from '@/components/layout/SchemaMarkup';
 import { generateBreadcrumbSchema } from '@/lib/seo';
 
 export const metadata: Metadata = {
-  title: 'About Us',
+  title: 'About Us | US-Based IT Staffing Firm | Primetek Global Solutions',
   description:
-    'Learn about Primetek Global Solutions — our story, mission, vision, and the team behind world-class IT staffing and recruiting.',
+    'Learn about Primetek Global Solutions — a Birmingham, Alabama IT staffing firm founded in 2024, focused on placing IT professionals with US-based clients.',
   alternates: {
     canonical: 'https://www.primetekglobalsolutions.com/about',
   },
 };
 
-const values = [
-  { icon: <Award className="w-6 h-6" />, title: 'Excellence', description: 'Delivering thoroughly vetted, technically strong professionals.' },
-  { icon: <Users className="w-6 h-6" />, title: 'Partnership', description: 'Aligning with clients’ business goals, not just filling roles.' },
-  { icon: <Zap className="w-6 h-6" />, title: 'Speed', description: 'Fast‑track hiring while maintaining fit and quality.' },
-  { icon: <Lightbulb className="w-6 h-6" />, title: 'Innovation', description: 'Using modern sourcing and analytics‑driven recruiting methods.' },
+const approachItems = [
+  {
+    title: 'IT Only',
+    desc: 'We specialize in IT staffing exclusively. No generalist recruiting.'
+  },
+  {
+    title: 'US Market Only',
+    desc: 'We serve US-based clients only, with deep understanding of US hiring.'
+  },
+  {
+    title: 'Speed',
+    desc: 'Contract roles in 3-5 days. Full-time in 7-10 days.'
+  }
 ];
 
-const usps = [
-  "US‑focused IT staffing with deep market understanding.",
-  "Diverse client base: Fortune 500s, mid‑size enterprises, government, and startups.",
-  "Vetted, job‑ready talent with rigorous technical and cultural screening.",
-  "Flexible models: Contract, C2C, contract‑to‑hire, and full‑time.",
-  "Scalable solutions for both short‑term projects and long‑term growth."
+const blockers = [
+  "We don't pad candidate lists with unqualified profiles",
+  "We don't work with clients outside the US market",
+  "We don't offer non-IT staffing or general consulting"
 ];
 
 export default function AboutPage() {
   const aboutSchema = {
-    "@context": "https://schema.org",
-    "@type": "AboutPage",
-    "mainEntity": {
-      "@type": "Organization",
-      "name": "Primetek Global Solutions",
-      "url": "https://www.primetekglobalsolutions.com",
-      "description": "Primetek Global Solutions LLC is a US-based IT staffing and recruiting company founded in 2024, headquartered in Birmingham, Alabama.",
-      "foundingDate": "2024",
-      "knowsAbout": [
-        "IT Staffing",
-        "C2C Placements",
-        "Software Development Recruitment",
-        "DevOps Staffing",
-        "Data Science Recruitment"
-      ]
-    }
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    mainEntity: {
+      '@type': 'Organization',
+      name: 'Primetek Global Solutions',
+      url: 'https://www.primetekglobalsolutions.com',
+      description:
+        'Primetek Global Solutions LLC is a US-based IT staffing and recruiting company founded in 2024, headquartered in Birmingham, Alabama.',
+      foundingDate: '2024',
+      knowsAbout: [
+        'IT Staffing',
+        'C2C Placements',
+        'Software Development Recruitment',
+        'DevOps Staffing',
+        'Data Science Recruitment',
+      ],
+    },
   };
 
   const breadcrumbs = [
     { name: 'Home', path: '/' },
-    { name: 'About Us', path: '/about' }
+    { name: 'About Us', path: '/about' },
   ];
 
   return (
     <>
       <SchemaMarkup schema={aboutSchema} />
       <SchemaMarkup schema={generateBreadcrumbSchema(breadcrumbs)} />
-      {/* Hero */}
-      <section className="pt-32 pb-16 bg-gradient-to-b from-navy-900 to-navy-800">
-        <div className="container-wide text-center">
-          <span className="inline-block text-primary-300 font-semibold text-sm uppercase tracking-widest mb-3">
+
+      {/* Hero (Dark Navy) */}
+      <section className="pt-32 pb-20 bg-surface-dark text-white relative">
+        <div className="max-w-[1200px] mx-auto px-4 text-center">
+          <span className="inline-block text-teal-accent font-semibold text-xs uppercase tracking-wider mb-3">
             Company Overview
           </span>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-5 max-w-4xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-semibold text-white tracking-[-1.5px] leading-tight mb-5 max-w-3xl mx-auto">
             About Primetek Global Solutions
           </h1>
-          <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-            Primetek Global Solutions LLC is a US‑based IT staffing and recruiting company founded in 2024, headquartered in Birmingham, Alabama.
+          <p className="text-base text-zinc-300 max-w-2xl mx-auto leading-relaxed">
+            A US-based IT staffing firm founded in 2024, focused on connecting skilled IT professionals with US companies across contract, C2C, and full-time roles.
           </p>
         </div>
       </section>
 
-      {/* Story */}
-      <section className="section-padding bg-white">
-        <div className="container-wide">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <div>
-              <SectionHeading label="Who We Are" title="End-to-End IT Talent Solutions" centered={false} />
-              <div className="space-y-4 text-text-secondary leading-relaxed">
+      {/* Who We Are (White Canvas) */}
+      <section className="py-24 bg-white">
+        <div className="max-w-[1200px] mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            
+            <div className="lg:col-span-7">
+              <span className="text-sm font-semibold tracking-wider text-teal-primary uppercase block mb-3">
+                WHO WE ARE
+              </span>
+              <h2 className="text-2xl md:text-4xl font-semibold text-ink tracking-[-1px] leading-[1.1] mb-6">
+                End-to-End IT Talent Solutions
+              </h2>
+              <div className="space-y-4 text-body-text text-sm leading-relaxed max-w-xl">
                 <p>
-                  At Primetek Global Solutions, we provide end‑to‑end IT talent solutions, including contract, C2C, contract‑to‑hire, and full‑time placements.
+                  Primetek Global Solutions LLC provides focused IT recruitment, placing skilled software engineers, DevOps architects, data scientists, and specialized tech professionals.
                 </p>
                 <p>
-                  We specialize in placing highly skilled IT professionals with US‑based clients across Fortune 500 companies, mid‑size enterprises, government agencies, and startups.
+                  We operate with a direct, streamlined process tailored entirely to the domestic US market. By avoiding administrative bloat, we match technical roles and deliver candidate shortlists within days.
                 </p>
                 <p>
-                  Our team focuses on sourcing, screening, and deploying job‑ready professionals in software development, data science/AI/ML, cloud/DevOps, cybersecurity, QA/test automation, ERP technologies, and business/program management domains.
+                  Whether you are a startup needing specialized skills, a mid-market enterprise growing your team, or a tech group managing project spikes, we offer contract, C2C, contract-to-hire, and full-time staffing structures to fit your requirements.
                 </p>
               </div>
             </div>
-            <div className="relative">
-              <Card className="p-8 bg-surface-alt border-none shadow-xl">
-                <h3 className="text-xl font-heading font-bold text-navy-900 mb-6 border-b border-border pb-4">Company At a Glance</h3>
-                <ul className="space-y-4">
+
+            <div className="lg:col-span-5">
+              <div className="bg-surface-card rounded-xl border border-hairline p-8 shadow-sm">
+                <h3 className="text-lg font-semibold text-ink mb-6 border-b border-hairline pb-4">
+                  Company At a Glance
+                </h3>
+                <ul className="space-y-4 list-none p-0 m-0 text-sm">
                   <li className="flex justify-between">
-                    <span className="text-text-muted font-medium">Founded</span>
-                    <span className="text-navy-900 font-bold">2024</span>
+                    <span className="text-muted font-medium">Founded</span>
+                    <span className="text-ink font-semibold">2024</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-text-muted font-medium">Headquarters</span>
-                    <span className="text-navy-900 font-bold text-right">Birmingham, AL</span>
+                    <span className="text-muted font-medium">Headquarters</span>
+                    <span className="text-ink font-semibold">Birmingham, AL</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-text-muted font-medium">Company Size</span>
-                    <span className="text-navy-900 font-bold">11–50 employees</span>
+                    <span className="text-muted font-medium">Industry</span>
+                    <span className="text-ink font-semibold">IT Staffing & Recruiting</span>
                   </li>
                   <li className="flex justify-between">
-                    <span className="text-text-muted font-medium">Industry</span>
-                    <span className="text-navy-900 font-bold text-right">IT Staffing & Recruiting</span>
+                    <span className="text-muted font-medium">Market</span>
+                    <span className="text-ink font-semibold">United States Only</span>
                   </li>
                 </ul>
-              </Card>
+              </div>
             </div>
+
           </div>
         </div>
       </section>
 
-      {/* Vision & Mission */}
-      <section className="section-padding bg-surface-alt">
-        <div className="container-wide">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <Card className="p-8 md:p-10 border-l-4 border-l-primary-500">
-              <div className="flex items-center gap-3 mb-4">
-                <Target className="w-6 h-6 text-primary-500" />
-                <h3 className="text-2xl font-heading font-bold text-navy-900">Our Mission</h3>
-              </div>
-              <p className="text-text-secondary leading-relaxed">
-                To empower businesses with scalable, high‑quality IT talent solutions that drive innovation and growth.
-              </p>
-            </Card>
-            <Card className="p-8 md:p-10 border-l-4 border-l-gold-500">
-              <div className="flex items-center gap-3 mb-4">
-                <Eye className="w-6 h-6 text-gold-500" />
-                <h3 className="text-2xl font-heading font-bold text-navy-900">Our Vision</h3>
-              </div>
-              <p className="text-text-secondary leading-relaxed">
-                To become a trusted global partner for US‑facing IT staffing, known for speed, quality, and candidate‑centric service.
-              </p>
-            </Card>
+      {/* Our Approach (Surface Card #f5f5f5) */}
+      <section className="py-24 bg-surface-card border-y border-hairline">
+        <div className="max-w-[1200px] mx-auto px-4">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
+            <span className="text-sm font-semibold tracking-wider text-teal-primary uppercase block mb-3">
+              OUR APPROACH
+            </span>
+            <h2 className="text-3xl md:text-5xl font-semibold text-ink tracking-[-1.5px] leading-[1.1]">
+              How We Work
+            </h2>
           </div>
-        </div>
-      </section>
 
-      {/* Values */}
-      <section className="section-padding bg-white">
-        <div className="container-wide">
-          <SectionHeading label="Our Values" title="What Drives Us" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {values.map((value) => (
-              <Card key={value.title} className="text-center p-8">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-primary-50 text-primary-500 mb-5">
-                  {value.icon}
-                </div>
-                <h3 className="text-lg font-heading font-bold text-navy-900 mb-2">{value.title}</h3>
-                <p className="text-text-secondary text-sm leading-relaxed">{value.description}</p>
-              </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {approachItems.map((item) => (
+              <div key={item.title} className="bg-white rounded-xl border border-hairline p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-ink mb-3">{item.title}</h3>
+                <p className="text-sm text-body-text leading-relaxed">{item.desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* USP */}
-      <section className="section-padding bg-navy-900 text-white">
-        <div className="container-wide">
-          <div className="max-w-3xl mx-auto text-center mb-12">
-            <SectionHeading label="Why Choose Us" title="Why Choose Primetek Global Solutions" centered={true} light={true} />
+      {/* Mission & Vision (White Canvas) */}
+      <section className="py-24 bg-white">
+        <div className="max-w-[1200px] mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <div className="bg-white border-l-4 border-l-teal-primary border border-hairline rounded-r-xl p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <Target className="w-5 h-5 text-teal-primary" />
+                <h3 className="text-xl font-semibold text-ink">Our Mission</h3>
+              </div>
+              <p className="text-sm text-body-text leading-relaxed">
+                To connect US companies with skilled IT professionals through fast, reliable, and transparent staffing.
+              </p>
+            </div>
+
+            <div className="bg-white border-l-4 border-l-teal-primary border border-hairline rounded-r-xl p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <Eye className="w-5 h-5 text-teal-primary" />
+                <h3 className="text-xl font-semibold text-ink">Our Vision</h3>
+              </div>
+              <p className="text-sm text-body-text leading-relaxed">
+                To be the go-to IT staffing partner for US companies that need quality talent without enterprise agency overhead.
+              </p>
+            </div>
+
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {usps.map((usp, i) => (
-              <div key={i} className="flex items-start gap-4 p-6 rounded-xl bg-white/5 border border-white/10">
-                <div className="mt-1 w-6 h-6 shrink-0 rounded-full bg-primary-500/20 flex items-center justify-center text-primary-400">
-                  <CheckCircleIcon className="w-4 h-4" />
-                </div>
-                <p className="text-gray-300 leading-relaxed text-sm">{usp}</p>
+        </div>
+      </section>
+
+      {/* What We Don't Do (Surface Card #f5f5f5) */}
+      <section className="py-24 bg-surface-card border-y border-hairline">
+        <div className="max-w-[1200px] mx-auto px-4">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
+            <span className="text-sm font-semibold tracking-wider text-teal-primary uppercase block mb-3">
+              OUR BOUNDARIES
+            </span>
+            <h2 className="text-3xl md:text-5xl font-semibold text-ink tracking-[-1.5px] leading-[1.1] mb-4">
+              What We Don&apos;t Do
+            </h2>
+            <p className="text-base text-body-text leading-relaxed">
+              We believe in being direct about our scope.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {blockers.map((blocker, i) => (
+              <div key={i} className="bg-white rounded-xl border border-hairline p-6 flex gap-4 items-start shadow-sm">
+                <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                <p className="text-sm text-body-text font-medium leading-relaxed">{blocker}</p>
               </div>
             ))}
           </div>
@@ -184,13 +216,5 @@ export default function AboutPage() {
 
       <CTASection />
     </>
-  );
-}
-
-function CheckCircleIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
   );
 }

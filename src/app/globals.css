@@ -2,72 +2,84 @@
 
 
 @theme inline {
-  /* Brand Colors - Deep Navy + Electric Teal + Gold Accent */
-  --color-primary-50: #e6f7fa;
-  --color-primary-55: #e1f5f9;
-  --color-primary-100: #b3e8f2;
-  --color-primary-105: #addce6;
-  --color-primary-200: #80d9ea;
-  --color-primary-300: #4dcae2;
-  --color-primary-400: #1abbda;
-  --color-primary-500: #097d95;
-  --color-primary-600: #0b7189;
-  --color-primary-650: #096379;
-  --color-primary-700: #08536a;
-  --color-primary-750: #064457;
-  --color-primary-800: #05354b;
-  --color-primary-850: #03243a;
-  --color-primary-900: #021a2e;
+  /* Brand Colors - Cal.com Inspired White + Teal-Green adaptation */
+  --color-primary-50: #f0fdfa;
+  --color-primary-55: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-105: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-300: #5eead4;
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #0f766e;
+  --color-primary-600: #0d6460;
+  --color-primary-650: #0d6460;
+  --color-primary-700: #0f766e;
+  --color-primary-750: #0d6460;
+  --color-primary-800: #0d6460;
+  --color-primary-850: #0f172a;
+  --color-primary-900: #0f172a;
 
-  --color-navy-50: #e8ecf3;
-  --color-navy-100: #c5cfe0;
-  --color-navy-200: #9eafcc;
-  --color-navy-300: #7790b8;
-  --color-navy-400: #5a79a8;
-  --color-navy-500: #3d6199;
-  --color-navy-600: #2d4b78;
-  --color-navy-700: #162d49;
-  --color-navy-800: #0f2137;
-  --color-navy-900: #0a1628;
+  --color-primary: #0f766e;
+  --color-primary-active: #0d6460;
+  --color-teal-primary: #0f766e;
+  --color-teal-active: #0d6460;
+  --color-teal-accent: #14b8a6;
+  --color-surface-card: #f5f5f5;
+  --color-surface-dark: #0f172a;
+  --color-hairline: #e5e7eb;
+  --color-ink: #111111;
+  --color-body: #374151;
+  --color-muted: #6b7280;
+  --color-accent: #14b8a6;
+
+  --color-navy-50: #f8fafc;
+  --color-navy-100: #f1f5f9;
+  --color-navy-200: #e2e8f0;
+  --color-navy-300: #cbd5e1;
+  --color-navy-400: #94a3b8;
+  --color-navy-500: #64748b;
+  --color-navy-600: #475569;
+  --color-navy-700: #334155;
+  --color-navy-800: #1e293b;
+  --color-navy-900: #0f172a;
   --color-navy-950: #020617;
-  --color-navy-955: #050b14;
+  --color-navy-955: #020617;
 
-  --color-gold-300: #f5d98a;
-  --color-gold-400: #f0c75e;
-  --color-gold-500: #d4a843;
-  --color-gold-600: #b08a2e;
+  --color-gold-300: #fb923c;
+  --color-gold-400: #fb923c;
+  --color-gold-500: #f97316;
+  --color-gold-600: #ea580c;
 
-  --color-zinc-150: #efeff1;
-  --color-zinc-250: #dadade;
-  --color-zinc-450: #8e8e93;
-  --color-zinc-550: #5e5e66;
-  --color-zinc-650: #48484a;
+  --color-zinc-150: #f4f4f5;
+  --color-zinc-250: #e4e4e7;
+  --color-zinc-450: #a1a1aa;
+  --color-zinc-550: #71717a;
+  --color-zinc-650: #52525b;
 
-  --color-violet-650: #7429e3;
-  --color-emerald-150: #bbf7d0;
-  --color-emerald-650: #058f65;
+  --color-violet-650: #8b5cf6;
+  --color-emerald-150: #a7f3d0;
+  --color-emerald-650: #10b981;
   --color-amber-150: #fef08a;
-  --color-amber-605: #ca8a04;
-  --color-slate-655: #384252;
+  --color-amber-605: #f59e0b;
+  --color-slate-655: #475569;
 
   --color-surface: #ffffff;
-  --color-surface-alt: #f8fafc;
-  --color-surface-dark: #0a1628;
-  --color-text-primary: #0f2137;
-  --color-text-secondary: #4a5568;
-  --color-text-muted: #94a3b8;
-  --color-text-on-dark: #e2e8f0;
+  --color-surface-alt: #f8f9fa;
+  --color-text-primary: #374151;
+  --color-text-secondary: #4b5563;
+  --color-text-muted: #6b7280;
+  --color-text-on-dark: #a1a1aa;
 
-  --color-border: #e2e8f0;
-  --color-border-dark: #1e3a5f;
+  --color-border: #e5e7eb;
+  --color-border-dark: #334155;
 
-  --color-success: #22c55e;
+  --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
 
   /* Typography */
   --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
-  --font-heading: var(--font-playfair), Georgia, serif;
+  --font-heading: var(--font-inter), system-ui, -apple-system, sans-serif;
 
   /* Border radius */
   --radius-sm: 0.375rem;
@@ -85,7 +97,7 @@
 
   body {
     font-family: var(--font-sans);
-    color: var(--color-text-primary);
+    color: var(--color-body);
     background: var(--color-surface);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -93,9 +105,8 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
-    font-weight: 700;
-    line-height: 1.2;
-    color: var(--color-navy-900);
+    font-weight: 600;
+    color: var(--color-ink);
   }
 
   /* Dashboard Portal Heading Font Override (Employee/Admin pages) */
@@ -114,7 +125,7 @@
   input:focus-visible, select:focus-visible, textarea:focus-visible {
     outline: none !important;
     border-color: var(--color-primary-500) !important;
-    box-shadow: 0 0 0 2px rgba(9, 125, 149, 0.2) !important;
+    box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2) !important;
   }
 }
 

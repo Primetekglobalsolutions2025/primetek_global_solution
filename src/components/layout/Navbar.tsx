@@ -4,125 +4,320 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ArrowRight } from 'lucide-react';
+import * as NavigationMenu from '@radix-ui/react-navigation-menu';
+import { 
+  Menu, 
+  X, 
+  ArrowRight, 
+  ChevronDown, 
+  Briefcase, 
+  Building2, 
+  UserCheck, 
+  Users, 
+  Monitor, 
+  HeartPulse, 
+  Landmark 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import Logo from '@/components/ui/Logo';
-
-const navLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/about', label: 'About' },
-  { href: '/services', label: 'Services' },
-  { href: '/industries', label: 'Industries' },
-  { href: '/contact', label: 'Contact' },
-];
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
 
+  // Mobile Accordion state
+  const [activeAccordion, setActiveAccordion] = useState<string | null>(null);
+
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const [prevPathname, setPrevPathname] = useState(pathname);
-  if (prevPathname !== pathname) {
-    setPrevPathname(pathname);
-    if (isOpen) setIsOpen(false);
-  }
+  // Close mobile menu on pathname change
+  useEffect(() => {
+    setIsOpen(false);
+    setActiveAccordion(null);
+  }, [pathname]);
+
+  const toggleAccordion = (item: string) => {
+    setActiveAccordion(activeAccordion === item ? null : item);
+  };
 
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300 public-header',
-        isScrolled
-          ? 'bg-white/90 backdrop-blur-xl shadow-sm border-b border-border'
-          : 'bg-transparent'
+        'fixed top-0 left-0 right-0 z-50 h-16 transition-all duration-200 public-header border-b bg-white',
+        isScrolled ? 'border-hairline shadow-sm' : 'border-transparent'
       )}
     >
-      <nav className="container-wide flex items-center justify-between h-16 md:h-20">
-        {/* Logo */}
-        <Link href="/" className="flex items-center group">
-          <Logo className="w-56 h-auto" dark={!isScrolled} />
+      <div className="max-w-[1200px] mx-auto px-4 h-full flex items-center justify-between">
+        {/* Left: Logo */}
+        <Link href="/" className="flex items-center group shrink-0">
+          <Logo className="w-48 h-auto" dark={false} />
         </Link>
 
-        {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
-                pathname === link.href
-                  ? 'text-primary-500 bg-primary-50'
-                  : isScrolled
-                    ? 'text-text-secondary hover:text-primary-500 hover:bg-primary-50/50'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+        {/* Center: Desktop Navigation */}
+        <div className="hidden md:flex items-center h-full">
+          <NavigationMenu.Root className="relative z-50 flex items-center h-full">
+            <NavigationMenu.List className="flex items-center gap-1 list-none m-0 p-0 h-full">
+              
+              {/* Item: Services */}
+              <NavigationMenu.Item className="h-full flex items-center">
+                <NavigationMenu.Trigger className="group flex items-center gap-1 px-4 py-2 text-sm font-medium text-body-text hover:text-teal-primary transition-colors bg-transparent border-0 outline-none cursor-pointer">
+                  Services
+                  <ChevronDown className="w-4 h-4 text-muted group-data-[state=open]:rotate-180 transition-transform duration-200" />
+                </NavigationMenu.Trigger>
+                <NavigationMenu.Content className="absolute top-full left-0 w-[800px] bg-white border-x border-b border-hairline rounded-b-xl shadow-lg p-8 flex gap-8 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Left panel */}
+                  <div className="w-[260px] shrink-0 pr-8 border-r border-hairline flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xl font-semibold tracking-[-0.5px] text-teal-primary leading-tight mb-2">
+                        Staffing Services
+                      </h3>
+                      <p className="text-sm text-muted leading-relaxed mb-6">
+                        Contract, C2C, and full-time IT placement for US-based companies. Roles filled in 3-5 days.
+                      </p>
+                    </div>
+                    <Link href="/services" passHref legacyBehavior>
+                      <NavigationMenu.Link className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-teal-primary hover:bg-teal-active px-4 py-2 rounded-md transition-colors w-fit">
+                        View All Services <ArrowRight className="w-4 h-4" />
+                      </NavigationMenu.Link>
+                    </Link>
+                  </div>
+                  {/* Right panel - 2x2 grid */}
+                  <div className="flex-1 grid grid-cols-2 gap-4">
+                    <Link href="/services#staffing" className="p-3 rounded-lg border border-hairline hover:bg-surface-card transition-all group flex gap-3">
+                      <div className="w-10 h-10 rounded bg-teal-primary/5 text-teal-primary flex items-center justify-center shrink-0">
+                        <Briefcase className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-ink mb-0.5 group-hover:text-teal-primary transition-colors">Contract Staffing</h4>
+                        <p className="text-xs text-muted leading-relaxed">Short-to-mid term IT professionals for project-based work.</p>
+                      </div>
+                    </Link>
+                    <Link href="/services#staffing" className="p-3 rounded-lg border border-hairline hover:bg-surface-card transition-all group flex gap-3">
+                      <div className="w-10 h-10 rounded bg-teal-primary/5 text-teal-primary flex items-center justify-center shrink-0">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-ink mb-0.5 group-hover:text-teal-primary transition-colors">C2C Placements</h4>
+                        <p className="text-xs text-muted leading-relaxed">Independent contractors operating through their own corporate entities.</p>
+                      </div>
+                    </Link>
+                    <Link href="/services#staffing" className="p-3 rounded-lg border border-hairline hover:bg-surface-card transition-all group flex gap-3">
+                      <div className="w-10 h-10 rounded bg-teal-primary/5 text-teal-primary flex items-center justify-center shrink-0">
+                        <UserCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-ink mb-0.5 group-hover:text-teal-primary transition-colors">Contract-to-Hire</h4>
+                        <p className="text-xs text-muted leading-relaxed">Evaluate candidates on the job before committing permanently.</p>
+                      </div>
+                    </Link>
+                    <Link href="/services#staffing" className="p-3 rounded-lg border border-hairline hover:bg-surface-card transition-all group flex gap-3">
+                      <div className="w-10 h-10 rounded bg-teal-primary/5 text-teal-primary flex items-center justify-center shrink-0">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-ink mb-0.5 group-hover:text-teal-primary transition-colors">Full-Time Recruitment</h4>
+                        <p className="text-xs text-muted leading-relaxed">End-to-end permanent IT hiring for US-based enterprises.</p>
+                      </div>
+                    </Link>
+                  </div>
+                </NavigationMenu.Content>
+              </NavigationMenu.Item>
+
+              {/* Item: Industries */}
+              <NavigationMenu.Item className="h-full flex items-center">
+                <NavigationMenu.Trigger className="group flex items-center gap-1 px-4 py-2 text-sm font-medium text-body-text hover:text-teal-primary transition-colors bg-transparent border-0 outline-none cursor-pointer">
+                  Industries
+                  <ChevronDown className="w-4 h-4 text-muted group-data-[state=open]:rotate-180 transition-transform duration-200" />
+                </NavigationMenu.Trigger>
+                <NavigationMenu.Content className="absolute top-full left-0 w-[700px] bg-white border-x border-b border-hairline rounded-b-xl shadow-lg p-8 flex gap-8 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {/* Left panel */}
+                  <div className="w-[240px] shrink-0 pr-8 border-r border-hairline flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-xl font-semibold tracking-[-0.5px] text-teal-primary leading-tight mb-2">
+                        Industries We Serve
+                      </h3>
+                      <p className="text-sm text-muted leading-relaxed mb-6">
+                        Active placements in IT, Healthcare, and Banking & Finance across the US.
+                      </p>
+                    </div>
+                    <Link href="/industries" passHref legacyBehavior>
+                      <NavigationMenu.Link className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-teal-primary hover:bg-teal-active px-4 py-2 rounded-md transition-colors w-fit">
+                        View Industries <ArrowRight className="w-4 h-4" />
+                      </NavigationMenu.Link>
+                    </Link>
+                  </div>
+                  {/* Right panel - vertical list */}
+                  <div className="flex-1 flex flex-col gap-3">
+                    <Link href="/industries" className="p-2.5 rounded-lg border border-hairline hover:bg-surface-card transition-all group flex gap-3">
+                      <div className="w-9 h-9 rounded bg-teal-primary/5 text-teal-primary flex items-center justify-center shrink-0">
+                        <Monitor className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-ink mb-0.5 group-hover:text-teal-primary transition-colors">Information Technology</h4>
+                        <p className="text-xs text-muted leading-relaxed">Full-stack developers, cloud architects, cybersecurity experts.</p>
+                      </div>
+                    </Link>
+                    <Link href="/industries" className="p-2.5 rounded-lg border border-hairline hover:bg-surface-card transition-all group flex gap-3">
+                      <div className="w-9 h-9 rounded bg-teal-primary/5 text-teal-primary flex items-center justify-center shrink-0">
+                        <HeartPulse className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-ink mb-0.5 group-hover:text-teal-primary transition-colors">Healthcare</h4>
+                        <p className="text-xs text-muted leading-relaxed">Health IT, clinical systems, compliance-driven recruiting.</p>
+                      </div>
+                    </Link>
+                    <Link href="/industries" className="p-2.5 rounded-lg border border-hairline hover:bg-surface-card transition-all group flex gap-3">
+                      <div className="w-9 h-9 rounded bg-teal-primary/5 text-teal-primary flex items-center justify-center shrink-0">
+                        <Landmark className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-ink mb-0.5 group-hover:text-teal-primary transition-colors">Banking & Finance</h4>
+                        <p className="text-xs text-muted leading-relaxed">Fintech developers, risk analysts, compliance specialists.</p>
+                      </div>
+                    </Link>
+                  </div>
+                </NavigationMenu.Content>
+              </NavigationMenu.Item>
+
+              {/* Direct Link: About */}
+              <NavigationMenu.Item className="h-full flex items-center">
+                <Link href="/about" passHref legacyBehavior>
+                  <NavigationMenu.Link className={cn(
+                    'px-4 py-2 text-sm font-medium text-body-text hover:text-teal-primary transition-colors',
+                    pathname === '/about' && 'text-teal-primary font-semibold'
+                  )}>
+                    About
+                  </NavigationMenu.Link>
+                </Link>
+              </NavigationMenu.Item>
+
+              {/* Direct Link: Contact */}
+              <NavigationMenu.Item className="h-full flex items-center">
+                <Link href="/contact" passHref legacyBehavior>
+                  <NavigationMenu.Link className={cn(
+                    'px-4 py-2 text-sm font-medium text-body-text hover:text-teal-primary transition-colors',
+                    pathname === '/contact' && 'text-teal-primary font-semibold'
+                  )}>
+                    Contact
+                  </NavigationMenu.Link>
+                </Link>
+              </NavigationMenu.Item>
+
+            </NavigationMenu.List>
+            
+            {/* Nav Viewport anchor */}
+            <div className="absolute left-0 top-full flex justify-center w-full">
+              <NavigationMenu.Viewport className="relative mt-2 origin-[top_center] h-[var(--radix-navigation-menu-viewport-height)] w-full overflow-hidden rounded-b-xl border border-hairline bg-white shadow-lg md:w-[var(--radix-navigation-menu-viewport-width)] transition-[width,height] duration-200" />
+            </div>
+          </NavigationMenu.Root>
         </div>
 
-        {/* Desktop CTA */}
+        {/* Right: CTA Button */}
         <div className="hidden md:flex items-center gap-3">
           <Link href="/contact">
-            <Button size="sm">
+            <Button size="sm" className="bg-teal-primary hover:bg-teal-active text-white border-0">
               Get in Touch <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
         </div>
 
-        {/* Mobile Toggle */}
+        {/* Mobile Toggle Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={cn(
-            'md:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors',
-            isScrolled ? 'text-navy-900 hover:bg-gray-100' : 'text-white hover:bg-white/10'
-          )}
+          className="md:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-ink hover:bg-surface-card transition-colors border-0 bg-transparent cursor-pointer"
           aria-expanded={isOpen}
-          aria-controls="mobile-navigation"
+          aria-controls="mobile-navigation-sheet"
           aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
         >
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
-      </nav>
+      </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Full-Screen Menu Sheet */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            id="mobile-navigation"
-            className="md:hidden bg-white border-b border-border overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            id="mobile-navigation-sheet"
+            className="fixed inset-0 top-16 bg-white z-40 flex flex-col md:hidden border-t border-hairline overflow-y-auto"
           >
-            <div className="container-wide py-4 flex flex-col gap-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    'px-4 py-3 rounded-lg text-base font-medium transition-colors',
-                    pathname === link.href
-                      ? 'text-primary-500 bg-primary-50'
-                      : 'text-text-secondary hover:text-primary-500 hover:bg-primary-50/50'
-                  )}
+            <div className="flex-1 px-6 py-8 flex flex-col gap-4">
+              {/* Accordion Item: Services */}
+              <div className="border-b border-hairline pb-4">
+                <button
+                  onClick={() => toggleAccordion('services')}
+                  className="w-full flex items-center justify-between py-2 text-lg font-semibold text-ink border-0 bg-transparent text-left cursor-pointer"
                 >
-                  {link.label}
-                </Link>
-              ))}
-              <div className="pt-2 border-t border-border mt-2">
+                  Services
+                  <ChevronDown className={cn(
+                    'w-5 h-5 text-muted transition-transform duration-200',
+                    activeAccordion === 'services' && 'rotate-180 text-teal-primary'
+                  )} />
+                </button>
+                <AnimatePresence>
+                  {activeAccordion === 'services' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden pl-4 flex flex-col gap-3 mt-2"
+                    >
+                      <Link href="/services#staffing" className="text-sm font-medium text-body-text py-1.5 hover:text-teal-primary">Contract Staffing</Link>
+                      <Link href="/services#staffing" className="text-sm font-medium text-body-text py-1.5 hover:text-teal-primary">C2C Placements</Link>
+                      <Link href="/services#staffing" className="text-sm font-medium text-body-text py-1.5 hover:text-teal-primary">Contract-to-Hire</Link>
+                      <Link href="/services#staffing" className="text-sm font-medium text-body-text py-1.5 hover:text-teal-primary">Full-Time Recruitment</Link>
+                      <Link href="/services" className="text-sm font-semibold text-teal-primary py-1.5 border-t border-hairline mt-1">View All Services →</Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Accordion Item: Industries */}
+              <div className="border-b border-hairline pb-4">
+                <button
+                  onClick={() => toggleAccordion('industries')}
+                  className="w-full flex items-center justify-between py-2 text-lg font-semibold text-ink border-0 bg-transparent text-left cursor-pointer"
+                >
+                  Industries
+                  <ChevronDown className={cn(
+                    'w-5 h-5 text-muted transition-transform duration-200',
+                    activeAccordion === 'industries' && 'rotate-180 text-teal-primary'
+                  )} />
+                </button>
+                <AnimatePresence>
+                  {activeAccordion === 'industries' && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden pl-4 flex flex-col gap-3 mt-2"
+                    >
+                      <Link href="/industries" className="text-sm font-medium text-body-text py-1.5 hover:text-teal-primary">Information Technology</Link>
+                      <Link href="/industries" className="text-sm font-medium text-body-text py-1.5 hover:text-teal-primary">Healthcare</Link>
+                      <Link href="/industries" className="text-sm font-medium text-body-text py-1.5 hover:text-teal-primary">Banking & Finance</Link>
+                      <Link href="/industries" className="text-sm font-semibold text-teal-primary py-1.5 border-t border-hairline mt-1">View Industries →</Link>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Direct Links */}
+              <Link href="/about" className="text-lg font-semibold text-ink border-b border-hairline py-3 hover:text-teal-primary">About</Link>
+              <Link href="/contact" className="text-lg font-semibold text-ink border-b border-hairline py-3 hover:text-teal-primary">Contact</Link>
+
+              {/* Mobile CTA at bottom */}
+              <div className="mt-8">
                 <Link href="/contact">
-                  <Button className="w-full" size="md">
-                    Get in Touch <ArrowRight className="w-4 h-4" />
+                  <Button size="lg" className="w-full bg-teal-primary hover:bg-teal-active text-white border-0">
+                    Get in Touch <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>
               </div>

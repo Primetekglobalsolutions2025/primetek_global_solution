@@ -2,22 +2,6 @@ import Link from 'next/link';
 import { Mail, Phone, MapPin } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 
-const quickLinks = [
-  { href: '/', label: 'Home' },
-  { href: '/about', label: 'About Us' },
-  { href: '/services', label: 'Services' },
-  { href: '/industries', label: 'Industries' },
-  { href: '/contact', label: 'Contact' },
-];
-
-const serviceLinks = [
-  { href: '/services#staffing', label: 'Contract Staffing' },
-  { href: '/services#staffing', label: 'C2C Placements' },
-  { href: '/services#staffing', label: 'Contract-to-Hire' },
-  { href: '/services#staffing', label: 'Full-Time Recruitment' },
-  { href: '/services#domains', label: 'Technology Domains' },
-];
-
 function LinkedInIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -26,28 +10,20 @@ function LinkedInIcon({ className }: { className?: string }) {
   );
 }
 
-function TwitterIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-    </svg>
-  );
-}
-
 export default function Footer() {
   return (
-    <footer className="bg-navy-900 text-text-on-dark public-footer" itemScope itemType="https://schema.org/WPFooter">
-      {/* Main Footer */}
-      <div className="container-wide py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12">
-          {/* Brand Column */}
-          <div className="lg:col-span-1">
-            <Link href="/" className="flex items-center mb-4">
+    <footer className="bg-surface-dark text-text-on-dark public-footer" itemScope itemType="https://schema.org/WPFooter">
+      <div className="max-w-[1200px] mx-auto px-4 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+          
+          {/* Col 1 - Brand */}
+          <div>
+            <Link href="/" className="inline-block mb-4">
               <Logo className="w-48 h-auto" dark={true} />
             </Link>
-            <p className="text-gray-400 text-sm leading-relaxed mb-6">
-              Empowering businesses with world-class talent solutions. Your trusted partner for
-              IT staffing, consulting, and talent acquisition across the United States.
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+              US-Based IT Staffing.<br />
+              Contract, C2C, Full-Time.
             </p>
             <div className="flex gap-3">
               <a
@@ -55,101 +31,120 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Follow us on LinkedIn"
-                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-[#0A66C2] hover:bg-white/10 transition-all duration-200"
+                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-zinc-400 hover:text-[#0A66C2] hover:bg-white/10 transition-all"
               >
                 <LinkedInIcon className="w-4 h-4" />
               </a>
               <a
-                href="https://twitter.com/PrimetekGlobal"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Follow us on X (Twitter)"
-                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-200"
-              >
-                <TwitterIcon className="w-4 h-4" />
-              </a>
-              <a
                 href="mailto:hr@primetekglobalsolutions.com"
                 aria-label="Send us an email"
-                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-gray-400 hover:text-primary-400 hover:bg-white/10 transition-all duration-200"
+                className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-zinc-400 hover:text-teal-accent hover:bg-white/10 transition-all"
               >
                 <Mail className="w-4 h-4" />
               </a>
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Col 2 - Company */}
           <div>
-            <h3 className="font-heading text-white font-semibold text-base mb-5">Quick Links</h3>
-            <ul className="space-y-3">
-              {quickLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-gray-400 text-sm hover:text-primary-400 transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-white mb-5">Company</h3>
+            <ul className="space-y-3 list-none p-0 m-0">
+              <li>
+                <Link href="/about" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link href="/services" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  Services
+                </Link>
+              </li>
+              <li>
+                <Link href="/industries" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  Industries
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  Contact
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Services */}
+          {/* Col 3 - Services */}
           <div>
-            <h3 className="font-heading text-white font-semibold text-base mb-5">Services</h3>
-            <ul className="space-y-3">
-              {serviceLinks.map((link, i) => (
-                <li key={`${link.href}-${i}`}>
-                  <Link
-                    href={link.href}
-                    className="text-gray-400 text-sm hover:text-primary-400 transition-colors"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-white mb-5">Services</h3>
+            <ul className="space-y-3 list-none p-0 m-0">
+              <li>
+                <Link href="/services#staffing" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  Contract Staffing
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#staffing" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  C2C Placements
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#staffing" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  Contract-to-Hire
+                </Link>
+              </li>
+              <li>
+                <Link href="/services#staffing" className="text-zinc-400 hover:text-white text-sm transition-colors">
+                  Full-Time Recruitment
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Col 4 - Contact */}
           <div>
-            <h3 className="font-heading text-white font-semibold text-base mb-5">Get in Touch</h3>
-            <ul className="space-y-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-white mb-5">Contact</h3>
+            <ul className="space-y-4 list-none p-0 m-0">
               <li>
                 <a href="mailto:hr@primetekglobalsolutions.com" className="flex items-start gap-3 group">
-                  <Mail className="w-4 h-4 text-primary-400 mt-1 shrink-0" />
-                  <span className="text-gray-400 text-sm group-hover:text-primary-400 transition-colors">hr@primetekglobalsolutions.com</span>
+                  <Mail className="w-4 h-4 text-teal-accent mt-1 shrink-0" />
+                  <span className="text-zinc-400 group-hover:text-white text-sm transition-colors break-all">
+                    hr@primetekglobalsolutions.com
+                  </span>
                 </a>
               </li>
               <li>
                 <a href="tel:+12193456559" className="flex items-start gap-3 group">
-                  <Phone className="w-4 h-4 text-primary-400 mt-1 shrink-0" />
-                  <span className="text-gray-400 text-sm group-hover:text-primary-400 transition-colors">+1 (219) 345-6559</span>
+                  <Phone className="w-4 h-4 text-teal-accent mt-1 shrink-0" />
+                  <span className="text-zinc-400 group-hover:text-white text-sm transition-colors">
+                    +1 (219) 345-6559
+                  </span>
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-primary-400 mt-1 shrink-0" />
-                <span className="text-gray-400 text-sm">
+                <MapPin className="w-4 h-4 text-teal-accent mt-1 shrink-0" />
+                <span className="text-zinc-400 text-sm">
                   1680, Unit 2G, 14th Ave S<br />
                   Birmingham, AL 35205, USA
                 </span>
               </li>
             </ul>
           </div>
+
         </div>
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-white/10">
-        <div className="container-wide py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-gray-400 text-sm">
-            © {new Date().getFullYear()} Primetek Global Solutions. All rights reserved.
+      <div className="border-t border-white/5 py-6">
+        <div className="max-w-[1200px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-zinc-500 text-sm">
+            © 2024 Primetek Global Solutions. All rights reserved.
           </p>
-          <div className="flex gap-6 text-sm text-gray-400">
-            <Link href="/sitemap.xml" className="hover:text-primary-400 transition-colors">Sitemap</Link>
-            <Link href="/privacy" className="hover:text-primary-400 transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-primary-400 transition-colors">Terms of Service</Link>
+          <div className="flex gap-6 text-sm">
+            <Link href="/privacy" className="text-zinc-500 hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="text-zinc-500 hover:text-white transition-colors">
+              Terms of Service
+            </Link>
           </div>
         </div>
       </div>

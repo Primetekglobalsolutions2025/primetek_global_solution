@@ -1,32 +1,37 @@
-export const faqs = [
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+export const faqs: FAQItem[] = [
   {
-    question: 'What staffing services does Primetek Global Solutions offer?',
+    question: 'What staffing models do you offer?',
     answer:
-      'We offer Contract Staffing, C2C (Corp-to-Corp) Placements, Contract-to-Hire, Full-Time Recruitment, Talent Pipeline Building, and Bench-Ready Talent solutions. Our services cover all major IT domains including Software Development, Cloud & DevOps, Data Science & AI/ML, Cybersecurity, QA & Test Automation, and ERP Technologies.',
+      'We offer Contract Staffing, C2C (Corp-to-Corp), Contract-to-Hire, and Full-Time Recruitment. Each model is designed for different hiring needs — from short-term project work to permanent placements.',
   },
   {
-    question: 'Which industries does Primetek serve?',
+    question: 'How quickly can you fill a position?',
     answer:
-      'We serve clients across Information Technology, Healthcare, Banking & Finance, Manufacturing, and Retail & E-Commerce. Our recruiters have deep domain expertise in each vertical, ensuring we place candidates who understand your industry-specific challenges.',
+      'For contract and C2C roles, we typically present shortlisted candidates within 3-5 business days. For full-time placements, expect 7-10 business days. Timelines depend on role complexity and availability.',
   },
   {
-    question: 'How quickly can Primetek fill a position?',
+    question: 'What is C2C staffing?',
     answer:
-      'Our average time-to-fill for contract roles is 3–5 business days thanks to our pre-vetted bench of ready-to-deploy professionals. For full-time placements, we typically present shortlisted candidates within 7–10 business days.',
+      'C2C (Corp-to-Corp) is a model where an independent contractor operates through their own business entity and invoices the client company directly. It is commonly used for specialized, project-based IT engagements in the US market.',
   },
   {
-    question: 'What is C2C (Corp-to-Corp) staffing?',
+    question: 'Which technology domains do you cover?',
     answer:
-      'C2C staffing is a model where we place independent contractors who operate through their own business entity. This arrangement provides flexibility for both clients and candidates, often used for specialized, project-based engagements.',
+      'We place professionals in Software Development, Data Science & AI/ML, Cloud & DevOps, Cybersecurity, QA & Test Automation, ERP Technologies (SAP, Oracle, Workday), and Business Analysis & Project Management.',
   },
   {
-    question: 'Where is Primetek Global Solutions located?',
+    question: 'Where are you located and which markets do you serve?',
     answer:
-      'Primetek Global Solutions is headquartered in Birmingham, Alabama, USA. We serve clients across the entire United States, with a strong presence in major tech hubs and enterprise markets.',
+      'We are headquartered in Birmingham, Alabama, USA. We serve US-based clients exclusively — Fortune 500 companies, mid-size enterprises, government agencies, and startups across the United States.',
   },
   {
     question: 'How do I submit a staffing requirement?',
     answer:
-      'You can submit your staffing needs through our Contact page, email us at hr@primetekglobalsolutions.com, or call us at +1 (219) 345-6559. Our team will get back to you within 24 hours with a tailored staffing proposal.',
+      'Use the contact form on our Contact page, email us at hr@primetekglobalsolutions.com, or call +1 (219) 345-6559. We respond within 24 hours with a tailored proposal.',
   },
 ];

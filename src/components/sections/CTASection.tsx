@@ -1,32 +1,29 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function CTASection() {
   return (
-    <section className="relative py-20 md:py-28 overflow-hidden">
-      {/* Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary-600 via-primary-500 to-primary-700" />
-
-      {/* Decorative shapes */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-white/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gold-400/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
-
-      <div className="container-wide relative text-center">
-        <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-5 max-w-3xl mx-auto leading-tight">
-          Ready to Transform Your Workforce?
-        </h2>
-        <p className="text-lg text-white/80 max-w-xl mx-auto mb-10">
-          Let&apos;s discuss how Primetek can help you build high-performing teams and drive business growth.
-        </p>
-        <Link href="/contact">
-          <Button
-            size="lg"
-            className="bg-white text-primary-600 hover:bg-gray-50 hover:text-primary-700 shadow-xl hover:shadow-2xl"
-          >
-            Contact Us Today <ArrowRight className="w-5 h-5" />
-          </Button>
-        </Link>
+    <section className="py-24 bg-white">
+      <div className="max-w-[1200px] mx-auto px-4">
+        <div className="bg-surface-card rounded-[12px] p-12 border border-hairline max-w-[640px] mx-auto text-center shadow-sm hover:border-teal-primary/30 transition-colors">
+          <h2 className="text-2xl md:text-3xl font-semibold text-ink tracking-[-0.5px] leading-tight mb-4">
+            Have a Role to Fill?
+          </h2>
+          <p className="text-sm text-body-text leading-relaxed mb-8">
+            Submit your requirement and we&apos;ll respond within 24 hours with matched candidates.
+          </p>
+          <Link href="/contact" className="inline-block">
+            <Button
+              size="lg"
+              className="bg-teal-primary hover:bg-teal-active text-white border-0 px-6"
+            >
+              Submit a Requirement <ArrowRight className="w-4.5 h-4.5" />
+            </Button>
+          </Link>
+        </div>
       </div>
     </section>
   );

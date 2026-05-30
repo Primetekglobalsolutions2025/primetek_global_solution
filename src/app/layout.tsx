@@ -33,11 +33,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.primetekglobalsolutions.com'),
   title: {
-    default: 'Primetek Global Solutions | Staffing & Consulting',
+    default: 'Primetek Global Solutions | IT Staffing for US Companies',
     template: '%s | Primetek Global Solutions',
   },
   description:
-    'Leading US-based staffing and consulting firm specializing in IT, Healthcare, Finance, Manufacturing, and Talent Acquisition.',
+    'US-based IT staffing firm specializing in Contract, C2C, Contract-to-Hire, and Full-Time IT placement for US companies.',
   keywords: [
     'IT Staffing',
     'Recruiting Company',
@@ -87,11 +87,11 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://www.primetekglobalsolutions.com',
     siteName: 'Primetek Global Solutions',
-    title: 'Primetek Global Solutions | Staffing & Consulting',
-    description: 'Leading US-based staffing and consulting firm specializing in IT, Healthcare, Finance, Manufacturing, and Talent Acquisition.',
+    title: 'Primetek Global Solutions | IT Staffing for US Companies',
+    description: 'US-based IT staffing firm specializing in Contract, C2C, Contract-to-Hire, and Full-Time IT placement for US companies.',
     images: [
       {
-        url: '/opengraph-image.png',
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: 'Primetek Global Solutions — US-Based IT Staffing & Consulting',
@@ -100,9 +100,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Primetek Global Solutions | Staffing & Consulting',
-    description: 'Leading US-based staffing and consulting firm specializing in IT, Healthcare, Finance, Manufacturing, and Talent Acquisition.',
-    images: ['/opengraph-image.png'],
+    title: 'Primetek Global Solutions | IT Staffing for US Companies',
+    description: 'US-based IT staffing firm specializing in Contract, C2C, Contract-to-Hire, and Full-Time IT placement for US companies.',
+    images: ['/opengraph-image'],
   },
   robots: {
     index: true,
