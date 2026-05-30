@@ -219,36 +219,38 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
 
         {/* Info Side */}
         <div className="space-y-5">
-          <div className="p-5 rounded-lg bg-white border border-zinc-200 shadow-2xs">
-            <h3 className="text-sm font-bold mb-5 text-navy-900">Work Details</h3>
-            <div className="space-y-5">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100">
-                  <Briefcase className="w-4 h-4 text-primary-600" />
+          <div className="p-6 rounded-lg bg-white border border-zinc-200 shadow-2xs">
+            <div className="border-b border-zinc-100 pb-4 mb-5">
+              <h3 className="text-sm font-bold text-navy-900">Work Details</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3.5 p-2.5 rounded-lg hover:bg-zinc-50 transition-all duration-200 border border-transparent hover:border-zinc-100">
+                <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100 text-primary-600 shadow-2xs">
+                  <Briefcase className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-[8px] text-zinc-400 uppercase font-mono font-semibold tracking-wider mb-0.5">Current Role</p>
-                  <p className="text-xs font-semibold text-navy-900">{employee.designation || 'Team Member'}</p>
+                  <p className="text-[10px] text-zinc-400 uppercase font-mono font-bold tracking-wider mb-0.5">Current Role</p>
+                  <p className="text-xs font-bold text-navy-900">{employee.designation || 'Team Member'}</p>
                 </div>
               </div>
               
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100">
-                  <Building2 className="w-4 h-4 text-primary-600" />
+              <div className="flex items-center gap-3.5 p-2.5 rounded-lg hover:bg-zinc-50 transition-all duration-200 border border-transparent hover:border-zinc-100">
+                <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100 text-primary-600 shadow-2xs">
+                  <Building2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-[8px] text-zinc-400 uppercase font-mono font-semibold tracking-wider mb-0.5">Department</p>
-                  <p className="text-xs font-semibold text-navy-900">{employee.department || 'Operations'}</p>
+                  <p className="text-[10px] text-zinc-400 uppercase font-mono font-bold tracking-wider mb-0.5">Department</p>
+                  <p className="text-xs font-bold text-navy-900">{employee.department || 'Operations'}</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100">
-                  <CalendarRange className="w-4 h-4 text-primary-600" />
+              <div className="flex items-center gap-3.5 p-2.5 rounded-lg hover:bg-zinc-50 transition-all duration-200 border border-transparent hover:border-zinc-100">
+                <div className="w-9 h-9 rounded-lg bg-primary-50 flex items-center justify-center shrink-0 border border-primary-100 text-primary-600 shadow-2xs">
+                  <CalendarRange className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="text-[8px] text-zinc-400 uppercase font-mono font-semibold tracking-wider mb-0.5">Member Since</p>
-                  <p className="text-xs font-semibold text-navy-900">
+                  <p className="text-[10px] text-zinc-400 uppercase font-mono font-bold tracking-wider mb-0.5">Member Since</p>
+                  <p className="text-xs font-bold text-navy-900">
                     {employee.created_at ? new Date(employee.created_at).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : '—'}
                   </p>
                 </div>
