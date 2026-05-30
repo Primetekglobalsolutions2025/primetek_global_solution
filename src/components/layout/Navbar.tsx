@@ -53,7 +53,7 @@ export default function Navbar() {
         isScrolled ? 'border-hairline shadow-sm' : 'border-transparent'
       )}
     >
-      <div className="max-w-[1200px] mx-auto px-4 h-full flex items-center justify-between">
+      <div className="max-w-[1200px] mx-auto px-4 h-full flex items-center justify-between relative">
         {/* Left: Logo */}
         <Link href="/" className="flex items-center group shrink-0">
           <Logo className="w-48 h-auto" dark={false} />
@@ -61,7 +61,7 @@ export default function Navbar() {
 
         {/* Center: Desktop Navigation */}
         <div className="hidden md:flex items-center h-full">
-          <NavigationMenu.Root className="relative z-50 flex items-center h-full">
+          <NavigationMenu.Root className="z-50 flex items-center h-full">
             <NavigationMenu.List className="flex items-center gap-1 list-none m-0 p-0 h-full">
               
               {/* Item: Services */}
