@@ -38,12 +38,15 @@
 *   **Self-Service Disputes**: Added dispute request buttons and justification forms in the employee portal, linked to an approval queue tab in the Admin approvals hub.
 *   **Lates Lock Recalculator**: Deployed a PL/pgSQL row-locking mechanism using `FOR UPDATE` on employee and month tables to prevent race conditions during concurrent admin edits.
 
-### ✅ Phase 6: Operational Stabilization & QA Planning (100% Complete)
+### ✅ Phase 6: Operational Stabilization & QA Hardening (100% Complete)
 *   **QA Matrixes**: Designed runtime tests across Browser, Device, Network, GPS, Shift, and Admin modules.
 *   **False-Positive Optimization**: Configured safe buffers for geofence limits (120m), GPS check buffers (3 reads), idle timers (10m), auto-breaks (15m), and tab cooldowns (10s) with detailed failure/tradeoff analysis.
 *   **Onboarding & Privacy Copy**: Standardized transparent, non-surveillance policy copy to foster employee trust.
 *   **Live Stabilization Playbook**: Formulated lightweight alerting criteria, automated repair processes, and incident playbooks for projection corruption and mass GPS outages.
 *   **Phased Rollout**: Outlined a 4-phase rollout schedule, code freeze requirements, rollback triggers, and a 30-day calibration roadmap.
+*   **E2E Testing Repairs**: Resolved Playwright E2E test failures, fixed routing race conditions, and corrected viewport size checks.
+*   **CI/CD Deployment Streamlining**: Sanitized Vercel deployment secrets to strip trailing carriage returns/newlines, configured explicit CLI scope parameters, and retired redundant GitHub Actions workflows in favor of native Vercel-GitHub integration hooks.
+*   **Code Quality Hardening**: Resolved ESLint unused imports/variables and corrected TypeScript type definitions across approvals, applications, and about pages to achieve clean compilation.
 
 ### ✅ Phase 7: PWA, SEO & Visual Polish (100% Complete)
 *   **Admin Daily Reports Polish**: Aligned the administration Daily Reports layout, table metrics, row background shading, and sidebar submission tracker indicators with the Employee Daily Reports design system.
