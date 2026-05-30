@@ -288,15 +288,15 @@ export default function DailyReportsAdminClient({
                   <table className="w-full border-collapse text-left text-xs">
                     <thead>
                       <tr className="bg-zinc-50 text-zinc-650 border-b border-zinc-200 select-none">
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Assign Date</th>
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Consultant Name</th>
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-zinc-100/50">Apps Count</th>
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-zinc-100/50">Interviews</th>
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Assessments</th>
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Tech Rounds</th>
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Non-Tech</th>
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-primary-50/50 text-primary-750 font-bold">Self (Own)</th>
-                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-primary-50/50 text-primary-750 font-bold">Support</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px]">Assign Date</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px]">Consultant Name</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px] text-center w-28 bg-zinc-100/50">Apps Count</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px] text-center w-28 bg-zinc-100/50">Interviews</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px] text-center w-28">Assessments</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px] text-center w-28">Tech Rounds</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px] text-center w-28">Non-Tech</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px] text-center w-28 bg-primary-50/50 text-primary-750 font-bold">Self (Own)</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[10px] text-center w-28 bg-primary-50/50 text-primary-750 font-bold">Support</th>
                       </tr>
                     </thead>
 
@@ -323,7 +323,7 @@ export default function DailyReportsAdminClient({
                       <tbody key={empId} className="divide-y divide-zinc-150 border-b border-zinc-200 last:border-b-0">
                         {/* Employee Section Header Row */}
                         <tr className="bg-zinc-50/95 border-b border-zinc-200">
-                          <td colSpan={9} className="p-2.5 font-bold text-navy-900 uppercase tracking-wider text-[10px] border-l-4 border-primary-500">
+                          <td colSpan={9} className="p-2.5 font-semibold text-navy-900 uppercase tracking-wider text-xs border-l-4 border-primary-500">
                             <div className="flex items-center gap-2">
                               <Users className="w-3.5 h-3.5 text-primary-500" />
                               <span>{group.employeeName}</span>
@@ -340,15 +340,15 @@ export default function DailyReportsAdminClient({
 
                           return (
                             <tr key={item.id} className="hover:bg-zinc-50/30 transition-colors duration-150">
-                              <td className="p-3 text-zinc-500 font-mono whitespace-nowrap">{pDate}</td>
-                              <td className="p-3 font-semibold text-navy-900 font-sans text-xs">{cName}</td>
-                              <td className="p-3 text-center bg-zinc-50/30 font-mono text-navy-900">{item.applications_count}</td>
-                              <td className="p-3 text-center bg-zinc-50/30 font-mono text-navy-900">{item.interviews_count}</td>
-                              <td className="p-3 text-center font-mono text-navy-900">{item.assessments}</td>
-                              <td className="p-3 text-center font-mono text-navy-900">{item.technical_rounds}</td>
-                              <td className="p-3 text-center font-mono text-navy-900">{item.non_technical}</td>
-                              <td className="p-3 text-center bg-primary-50/30 font-mono font-bold text-primary-800">{item.self_submissions}</td>
-                              <td className="p-3 text-center bg-primary-50/30 font-mono font-bold text-primary-800">{item.support_submissions}</td>
+                              <td className="p-3 text-zinc-500 font-mono whitespace-nowrap text-xs font-normal">{pDate}</td>
+                              <td className="p-3 font-semibold text-navy-900 font-sans text-xs uppercase tracking-wider">{cName}</td>
+                              <td className="p-3 text-center bg-zinc-50/30 font-mono font-semibold text-navy-900 text-xs">{item.applications_count}</td>
+                              <td className="p-3 text-center bg-zinc-50/30 font-mono font-semibold text-navy-900 text-xs">{item.interviews_count}</td>
+                              <td className="p-3 text-center font-mono font-semibold text-navy-900 text-xs">{item.assessments}</td>
+                              <td className="p-3 text-center font-mono font-semibold text-navy-900 text-xs">{item.technical_rounds}</td>
+                              <td className="p-3 text-center font-mono font-semibold text-navy-900 text-xs">{item.non_technical}</td>
+                              <td className="p-3 text-center bg-primary-50/30 font-mono font-bold text-primary-800 text-xs">{item.self_submissions}</td>
+                              <td className="p-3 text-center bg-primary-50/30 font-mono font-bold text-primary-800 text-xs">{item.support_submissions}</td>
                             </tr>
                           );
                         })}
@@ -360,15 +360,15 @@ export default function DailyReportsAdminClient({
                   {Object.keys(groupedReports).length > 1 && (
                     <tbody className="border-t-2 border-primary-300">
                       <tr className="bg-gradient-to-r from-primary-50/30 to-primary-50/60 font-bold text-xs hover:from-primary-50/40 hover:to-primary-50/80 transition-colors duration-150">
-                        <td className="p-3 text-primary-900 rounded-bl-lg uppercase tracking-wider">Grand Total</td>
-                        <td className="p-3 text-primary-900">All Selected</td>
-                        <td className="p-3 text-center bg-primary-50/40 font-mono font-extrabold text-navy-950">{grandTotalApps}</td>
-                        <td className="p-3 text-center bg-primary-50/40 font-mono font-extrabold text-navy-950">{grandTotalInts}</td>
-                        <td className="p-3 text-center font-mono font-extrabold text-navy-950">{grandTotalAssess}</td>
-                        <td className="p-3 text-center font-mono font-extrabold text-navy-950">{grandTotalTech}</td>
-                        <td className="p-3 text-center font-mono font-extrabold text-navy-950">{grandTotalNonTech}</td>
-                        <td className="p-3 text-center bg-primary-50/30 font-mono font-extrabold text-primary-900">{grandTotalSelf}</td>
-                        <td className="p-3 text-center bg-primary-50/30 font-mono font-extrabold text-primary-900 rounded-br-lg">{grandTotalSupp}</td>
+                        <td className="p-3 text-primary-900 rounded-bl-lg uppercase tracking-wider text-xs font-bold">GRAND TOTAL</td>
+                        <td className="p-3 text-primary-900 text-xs font-bold">ALL SELECTED</td>
+                        <td className="p-3 text-center bg-primary-50/40 font-mono font-bold text-navy-950 text-xs">{grandTotalApps}</td>
+                        <td className="p-3 text-center bg-primary-50/40 font-mono font-bold text-navy-950 text-xs">{grandTotalInts}</td>
+                        <td className="p-3 text-center font-mono font-bold text-navy-950 text-xs">{grandTotalAssess}</td>
+                        <td className="p-3 text-center font-mono font-bold text-navy-950 text-xs">{grandTotalTech}</td>
+                        <td className="p-3 text-center font-mono font-bold text-navy-950 text-xs">{grandTotalNonTech}</td>
+                        <td className="p-3 text-center bg-primary-50/30 font-mono font-bold text-primary-900 text-xs">{grandTotalSelf}</td>
+                        <td className="p-3 text-center bg-primary-50/30 font-mono font-bold text-primary-900 rounded-br-lg text-xs">{grandTotalSupp}</td>
                       </tr>
                     </tbody>
                   )}
@@ -383,7 +383,7 @@ export default function DailyReportsAdminClient({
         <div className="xl:col-span-1 space-y-4">
           <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
             <div className="p-4 bg-zinc-50 text-navy-900 border-b border-zinc-200 flex items-center justify-between">
-              <h3 className="font-bold text-xs tracking-wider uppercase">Submission Tracker</h3>
+              <h3 className="font-bold text-[10px] tracking-wider uppercase">Submission Tracker</h3>
               <span className="text-[10px] font-mono font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
                 {submissionStatus.filter(s => s.submitted).length} / {submissionStatus.length}
               </span>
@@ -393,8 +393,8 @@ export default function DailyReportsAdminClient({
               {submissionStatus.map(emp => (
                 <div key={emp.id} className="py-2.5 flex items-center justify-between text-xs hover:bg-zinc-50/50 transition-colors rounded-lg px-2 -mx-2">
                   <div className="space-y-0.5">
-                    <h5 className="font-bold text-navy-900">{emp.name}</h5>
-                    <p className="text-[10px] text-zinc-400">{emp.department || 'Staffing Department'}</p>
+                    <h5 className="text-xs font-semibold uppercase tracking-wider text-navy-900">{emp.name}</h5>
+                    <p className="text-[10px] font-normal text-zinc-400">{emp.department || 'Staffing Department'}</p>
                   </div>
 
                   <div>
