@@ -4,7 +4,7 @@ export function EmployeesSkeleton() {
   return (
     <div className="space-y-6 animate-pulse">
       {/* 1. Stats Summary Skeleton */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {Array.from({ length: 3 }).map((_, idx) => (
           <div key={idx} className="rounded-xl p-3 border border-border/50 shadow-sm flex items-center gap-3 bg-white h-14">
             <div className="w-8 h-8 rounded-lg bg-slate-200" />

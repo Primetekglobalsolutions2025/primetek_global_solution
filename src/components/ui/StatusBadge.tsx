@@ -14,7 +14,7 @@ const getStatusTheme = (status: string) => {
   // Green / Success: active, working, present, approved, active desktop
   if (['working', 'present', 'approved', 'approved wfh', 'desktop_active', 'desktop active'].includes(s)) {
     return {
-      bg: 'bg-emerald-50 text-emerald-700 border-emerald-250',
+      bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       dot: 'bg-emerald-600',
     };
   }
@@ -22,7 +22,7 @@ const getStatusTheme = (status: string) => {
   // Yellow / Warning: idle, late, pending, pending wfh, break warning
   if (['idle', 'late', 'pending', 'pending wfh', 'idle_warning', 'idle warning'].includes(s)) {
     return {
-      bg: 'bg-amber-50 text-amber-800 border-amber-250',
+      bg: 'bg-amber-50 text-amber-800 border-amber-200',
       dot: 'bg-amber-600',
     };
   }
@@ -30,7 +30,7 @@ const getStatusTheme = (status: string) => {
   // Red / Error: absent, rejected, timer paused
   if (['absent', 'rejected', 'rejected wfh', 'productive_timer_paused', 'productive timer paused', 'timer paused'].includes(s)) {
     return {
-      bg: 'bg-red-50 text-red-700 border-red-250',
+      bg: 'bg-red-50 text-red-700 border-red-200',
       dot: 'bg-red-600',
     };
   }
@@ -38,7 +38,7 @@ const getStatusTheme = (status: string) => {
   // Orange / Heavy Warning: break (auto)
   if (['break (auto)', 'auto_break_triggered', 'auto break'].includes(s)) {
     return {
-      bg: 'bg-orange-50 text-orange-700 border-orange-250',
+      bg: 'bg-orange-50 text-orange-700 border-orange-200',
       dot: 'bg-orange-600',
     };
   }
@@ -46,7 +46,7 @@ const getStatusTheme = (status: string) => {
   // Blue / Info: break, lunch
   if (['break', 'lunch'].includes(s)) {
     return {
-      bg: 'bg-sky-50 text-sky-700 border-sky-250',
+      bg: 'bg-sky-50 text-sky-700 border-sky-200',
       dot: 'bg-sky-600',
     };
   }
@@ -54,7 +54,7 @@ const getStatusTheme = (status: string) => {
   // Purple / System Info: half-day
   if (['half-day', 'half_day', 'halfday'].includes(s)) {
     return {
-      bg: 'bg-indigo-50 text-indigo-700 border-indigo-250',
+      bg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
       dot: 'bg-indigo-600',
     };
   }
@@ -62,7 +62,7 @@ const getStatusTheme = (status: string) => {
   // Zinc / Neutral: logged out, force logged out, etc.
   if (['logged out', 'clocked_out', 'logged_out', 'force_logged_out', 'force_logout'].includes(s)) {
     return {
-      bg: 'bg-zinc-50 text-zinc-700 border-zinc-250',
+      bg: 'bg-zinc-50 text-zinc-700 border-zinc-200',
       dot: 'bg-zinc-500',
     };
   }

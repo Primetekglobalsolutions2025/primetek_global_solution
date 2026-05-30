@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '@/components/ui/Button';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { updateLeaveStatus, updateWFHStatus, resolveDispute } from './actions';
 import { getSessionEvents } from '../attendance/actions';
 import { useToast } from '@/components/ui/Toast';
@@ -30,23 +31,7 @@ const formatSafeDate = (dateStr: string | number | Date | null | undefined) => {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
-const statusColors: Record<string, string> = {
-  present: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20',
-  late: 'bg-amber-500/10 text-amber-450 border-amber-500/20',
-  absent: 'bg-red-500/10 text-red-400 border-red-500/20',
-  'half-day': 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  'pending wfh': 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  'approved wfh': 'bg-emerald-500/10 text-emerald-450 border-emerald-500/30',
-  'rejected wfh': 'bg-red-500/10 text-red-400 border-red-500/30',
-  working: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20',
-  break: 'bg-amber-500/10 text-amber-450 border-amber-500/20',
-  'break (auto)': 'bg-amber-500/10 text-amber-450 border-amber-500/20',
-  'logged out': 'bg-slate-500/10 text-zinc-500 border-slate-700/30',
-  mobile_clocked_in: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  awaiting_desktop: 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse',
-  desktop_active: 'bg-emerald-500/10 text-emerald-450 border-emerald-500/25',
-  productive_timer_paused: 'bg-red-500/10 text-red-400 border-red-500/20',
-};
+// statusColors map removed and replaced with standard StatusBadge component
 
 export interface LeaveRequestApproval {
   id: string;
@@ -303,15 +288,16 @@ export default function ApprovalsClient({
                             size="sm" 
                             onClick={() => handleLeaveAction(leave.id, 'Rejected')} 
                             disabled={processing === leave.id} 
-                            className="border-red-200 text-red-600 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                            className="border-red-200 text-red-600 hover:bg-red-55 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer uppercase tracking-wider"
                           >
                             Deny
                           </Button>
                           <Button 
+                            variant="primary"
                             size="sm" 
                             onClick={() => handleLeaveAction(leave.id, 'Approved')} 
                             disabled={processing === leave.id} 
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                            className="text-[9px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-md cursor-pointer"
                           >
                             {processing === leave.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Authorize'}
                           </Button>
@@ -362,15 +348,16 @@ export default function ApprovalsClient({
                             size="sm" 
                             onClick={() => handleWFHAction(request.id, 'Rejected WFH')} 
                             disabled={processing === request.id} 
-                            className="border-red-200 text-red-600 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                            className="border-red-200 text-red-600 hover:bg-red-55 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer uppercase tracking-wider"
                           >
                             Reject
                           </Button>
                           <Button 
+                            variant="primary"
                             size="sm" 
                             onClick={() => handleWFHAction(request.id, 'Approved WFH')} 
                             disabled={processing === request.id} 
-                            className="bg-primary-600 hover:bg-primary-700 text-white py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                            className="text-[9px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-md cursor-pointer"
                           >
                             {processing === request.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Authorize'}
                           </Button>
@@ -444,12 +431,7 @@ export default function ApprovalsClient({
                             </div>
                             <div>
                               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wider block">Status</span>
-                              <span className={cn(
-                                "inline-flex px-1.5 rounded text-[8px] font-bold tracking-wider border uppercase mt-0.5",
-                                statusColors[dispute.attendance_status?.toLowerCase()] || statusColors.present
-                              )}>
-                                {dispute.attendance_status || 'Unknown'}
-                              </span>
+                              <StatusBadge status={dispute.attendance_status || 'Unknown'} className="mt-0.5 text-[8px] px-1.5 py-0.5 font-bold" />
                             </div>
                             <div>
                               <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-wider block">Clock In</span>
@@ -502,18 +484,19 @@ export default function ApprovalsClient({
                                   setResolutionStatus('REJECTED');
                                   setDisputeResolutionText('');
                                 }} 
-                                className="border-red-200 text-red-600 hover:bg-red-50 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                                className="border-red-200 text-red-600 hover:bg-red-55 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer uppercase tracking-wider"
                               >
                                 Deny
                               </Button>
                               <Button 
+                                variant="primary"
                                 size="sm"
                                 onClick={() => {
                                   setResolvingDisputeId(dispute.id);
                                   setResolutionStatus('APPROVED');
                                   setDisputeResolutionText('');
                                 }} 
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer"
+                                className="text-[9px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-md cursor-pointer"
                               >
                                 Approve
                               </Button>
@@ -538,27 +521,31 @@ export default function ApprovalsClient({
                             />
                           </div>
                           <div className="flex justify-end gap-2">
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="sm"
                               onClick={() => {
                                 setResolvingDisputeId(null);
                                 setResolutionStatus(null);
                                 setDisputeResolutionText('');
                               }}
-                              className="px-2.5 py-1 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-md text-[9px] font-bold text-zinc-500 hover:text-navy-950 transition-colors uppercase cursor-pointer"
+                              className="text-[9px] font-bold text-zinc-500 hover:text-navy-950 uppercase border-zinc-200 px-2.5 py-1"
                             >
                               Cancel
-                            </button>
+                            </Button>
                             <Button
+                              variant="primary"
+                              size="sm"
                               onClick={() => handleResolveDisputeSubmit(dispute.id, resolutionStatus)}
                               disabled={processing === dispute.id}
                               className={cn(
-                                "px-3 py-1 text-[9px] uppercase font-bold text-white rounded-md flex items-center gap-1 shadow-2xs active:scale-95 transition-all cursor-pointer",
-                                resolutionStatus === 'APPROVED' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'
+                                "text-[9px] uppercase font-bold text-white",
+                                resolutionStatus === 'APPROVED' ? 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-500' : 'bg-red-650 hover:bg-red-700 focus:ring-red-500'
                               )}
                             >
                               {processing === dispute.id ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <Loader2 className="w-3 h-3 animate-spin" />
                               ) : (
                                 `Confirm ${resolutionStatus === 'APPROVED' ? 'Approval' : 'Denial'}`
                               )}
@@ -611,14 +598,7 @@ export default function ApprovalsClient({
                                 : formatDate(item.date || '')}
                             </td>
                             <td className="p-4 whitespace-nowrap">
-                              <span className={cn(
-                                'inline-flex px-2 py-0.5 rounded-full text-[8px] font-mono font-medium border uppercase tracking-wider',
-                                item.status === 'Approved' || item.status === 'Approved WFH'
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : 'bg-red-50 text-red-600 border-red-200'
-                              )}>
-                                {item.status}
-                              </span>
+                              <StatusBadge status={item.status} className="text-[8px] px-2 py-0.5 rounded-full" />
                             </td>
                             <td className="p-4 whitespace-nowrap text-[9px] text-zinc-450 font-mono text-right">
                               {formatSafeDate(item.created_at)}
@@ -633,14 +613,7 @@ export default function ApprovalsClient({
                       <div key={item.id} className="p-4 hover:bg-zinc-50/50 transition-colors space-y-2 text-zinc-650">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-bold text-navy-900 tracking-tight">{item.employee_name}</p>
-                          <span className={cn(
-                            'inline-flex px-2 py-0.5 rounded-full text-[8px] font-mono font-medium border uppercase tracking-wider',
-                            item.status === 'Approved' || item.status === 'Approved WFH'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : 'bg-red-50 text-red-600 border-red-200'
-                          )}>
-                            {item.status}
-                          </span>
+                          <StatusBadge status={item.status} className="text-[8px] px-2 py-0.5 rounded-full" />
                         </div>
                         <div className="flex items-center justify-between text-[8px] text-zinc-450 font-bold uppercase tracking-wider font-mono">
                           <span>
@@ -714,12 +687,7 @@ export default function ApprovalsClient({
                   </div>
                   <div>
                     <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">Current State</span>
-                    <span className={cn(
-                      "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase mt-0.5",
-                      statusColors[selectedDispute.attendance_status?.toLowerCase()] || statusColors.present
-                    )}>
-                      {selectedDispute.attendance_status || 'Unknown'}
-                    </span>
+                    <StatusBadge status={selectedDispute.attendance_status || 'Unknown'} className="mt-0.5 text-[8px] px-1.5 py-0.5 font-bold" />
                   </div>
                   <div>
                     <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block">Clock-In Time</span>

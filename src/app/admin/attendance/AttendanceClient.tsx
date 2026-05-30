@@ -622,7 +622,7 @@ export default function AttendanceClient({
 
   const renderActivityFeed = () => (
     <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-4 flex flex-col h-full max-h-[600px] overflow-hidden">
-      <div className="flex items-center justify-between pb-3 border-b border-zinc-155 mb-3">
+      <div className="flex items-center justify-between pb-3 border-b border-zinc-150 mb-3">
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -818,8 +818,6 @@ export default function AttendanceClient({
                   <option value="Break">BREAK</option>
                   <option value="Break (Auto)">BREAK (AUTO)</option>
                   <option value="Logged Out">LOGGED OUT</option>
-                  <option value="Present">PRESENT</option>
-                  <option value="Late">LATE</option>
                   <option value="Absent">ABSENT</option>
                   <option value="Half-day">HALF-DAY</option>
                   <option value="Pending WFH">WFH PENDING</option>
@@ -954,7 +952,7 @@ export default function AttendanceClient({
                         </div>
                         <StatusBadge status={record.status} />
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-zinc-505 font-medium">
+                      <div className="flex items-center justify-between text-[10px] text-zinc-500 font-medium">
                         <span>
                           {!isNaN(new Date(record.date).getTime())
                             ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'short' }).toUpperCase()
@@ -967,7 +965,7 @@ export default function AttendanceClient({
                             return (
                               <span className={cn(
                                 "px-1.5 py-0.5 rounded border text-[9px] font-mono",
-                                times.isClockedOut ? "bg-zinc-105 text-zinc-650 border-zinc-200" : "bg-emerald-50 text-emerald-600 border-emerald-25"
+                                times.isClockedOut ? "bg-zinc-100 text-zinc-650 border-zinc-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"
                               )}>
                                 {times.productive}
                               </span>
@@ -1008,18 +1006,17 @@ export default function AttendanceClient({
                         <th className="px-4 py-2.5">Clock In</th>
                         <th className="px-4 py-2.5">Clock Out</th>
                         <th className="px-4 py-2.5">Total Hours</th>
-                        <th className="px-4 py-2.5 hidden xl:table-cell">Break Time</th>
                         <th className="px-4 py-2.5">Final Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100/60">
                       {filtered.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="px-4 py-12 text-center">
+                          <td colSpan={7} className="px-4 py-12 text-center">
                             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-3">
                               <Calendar className="w-5 h-5 text-slate-655" />
                             </div>
-                            <p className="text-xs text-zinc-505 font-bold">No synchronization logs found for this period.</p>
+                            <p className="text-xs text-zinc-500 font-bold">No synchronization logs found for this period.</p>
                           </td>
                         </tr>
                       ) : (
@@ -1037,7 +1034,7 @@ export default function AttendanceClient({
                                 <td className="w-10 px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
                                   <button 
                                     onClick={(e) => toggleRow(record.id, e)}
-                                    className="p-1 rounded hover:bg-zinc-150 text-zinc-505 transition-colors"
+                                    className="p-1 rounded hover:bg-zinc-150 text-zinc-500 transition-colors"
                                   >
                                     {expandedRows[record.id] ? (
                                       <ChevronDown className="w-4 h-4" />
@@ -1060,7 +1057,7 @@ export default function AttendanceClient({
                                   </div>
                                 </td>
                                 <td className="px-4 py-2.5 whitespace-nowrap">
-                                  <div className="text-[10px] font-semibold text-zinc-505 font-mono">
+                                  <div className="text-[10px] font-semibold text-zinc-500 font-mono">
                                     {!isNaN(new Date(record.date).getTime()) 
                                       ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase() 
                                       : record.date?.toUpperCase() || '—'}
@@ -1075,16 +1072,13 @@ export default function AttendanceClient({
                                 <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-bold text-navy-900">
                                   {times.productive}
                                 </td>
-                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-bold text-navy-900 hidden xl:table-cell">
-                                  {times.break}
-                                </td>
                                 <td className="px-4 py-2.5 whitespace-nowrap">
                                   <StatusBadge status={record.status} />
                                 </td>
                               </tr>
                               {expandedRows[record.id] && (
                                 <tr className="bg-zinc-50/20" onClick={(e) => e.stopPropagation()}>
-                                  <td colSpan={8} className="px-6 py-4 border-b border-zinc-200">
+                                  <td colSpan={7} className="px-6 py-4 border-b border-zinc-200">
                                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
                                     <div className="space-y-1">
                                       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Geofence Telemetry</span>
@@ -1358,7 +1352,7 @@ export default function AttendanceClient({
                 <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider mb-4">Lateness Trend (This Month)</h3>
                 <div className="space-y-4">
                   {employeeLatesTrend.length === 0 ? (
-                    <p className="text-xs text-zinc-505 font-bold italic py-8 text-center">No lates recorded this month.</p>
+                    <p className="text-xs text-zinc-500 font-bold italic py-8 text-center">No lates recorded this month.</p>
                   ) : (
                     employeeLatesTrend.slice(0, 5).map((t) => {
                       const maxLates = Math.max(...employeeLatesTrend.map(x => x.total));
@@ -1370,7 +1364,7 @@ export default function AttendanceClient({
                         <div key={t.employee_name} className="space-y-1">
                           <div className="flex items-center justify-between text-xs">
                             <span className="font-bold text-navy-900">{t.employee_name}</span>
-                            <span className="font-semibold text-zinc-505">
+                            <span className="font-semibold text-zinc-500">
                               {t.total} Lates ({t.unexempted} Active)
                             </span>
                           </div>
@@ -1391,7 +1385,7 @@ export default function AttendanceClient({
                   )}
                 </div>
               </div>
-              <p className="text-[9px] text-zinc-505 mt-6 font-bold leading-normal uppercase tracking-wider border-t border-zinc-200/50 pt-4">
+              <p className="text-[9px] text-zinc-500 mt-6 font-bold leading-normal uppercase tracking-wider border-t border-zinc-200/50 pt-4">
                 💡 3+ Active Lates triggers a 0.5 Day deduction. 6+ Active Lates triggers a 1.0 Day deduction.
               </p>
             </Card>
@@ -1404,18 +1398,18 @@ export default function AttendanceClient({
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-zinc-200 bg-zinc-50/50">
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Staff Member</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Date</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Check In</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Delay</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505">Deduction</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-505 text-center">Exemption Toggles</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Staff Member</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Date</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Check In</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Delay</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Deduction</th>
+                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500 text-center">Exemption Toggles</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100/60">
                     {lateRecords.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-xs text-zinc-505 font-bold">
+                        <td colSpan={6} className="px-4 py-12 text-center text-xs text-zinc-500 font-bold">
                           No late check-in instances found in this period.
                         </td>
                       </tr>
@@ -1428,7 +1422,7 @@ export default function AttendanceClient({
                               <span className="text-xs font-semibold text-navy-900 tracking-tight">{record.employee_name}</span>
                             </td>
                             <td className="px-4 py-2.5 whitespace-nowrap">
-                              <span className="text-[10px] font-semibold text-zinc-505">
+                              <span className="text-[10px] font-semibold text-zinc-500">
                                 {!isNaN(new Date(record.date).getTime()) 
                                   ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }).toUpperCase() 
                                   : record.date}
@@ -1494,7 +1488,7 @@ export default function AttendanceClient({
 
       {/* System Health Footer */}
       {realtimeData?.systemHealth && realtimeData.systemHealth.length > 0 && (
-        <div className="mt-8 pt-4 border-t border-zinc-200/60 flex flex-wrap items-center justify-between gap-4 text-[10px] text-zinc-505 font-bold uppercase tracking-wider">
+        <div className="mt-8 pt-4 border-t border-zinc-200/60 flex flex-wrap items-center justify-between gap-4 text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
           <div className="flex items-center gap-1.5">
             <Wifi className="w-3.5 h-3.5 text-zinc-400" />
             <span>System Infrastructure Health:</span>
@@ -1542,11 +1536,11 @@ export default function AttendanceClient({
                 <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider">
                   Session Details
                 </h3>
-                <p className="text-[10px] font-bold text-zinc-505 uppercase tracking-wider mt-0.5">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-0.5">
                   {selectedRecord.employee_name}
                 </p>
                 <div className="flex items-center gap-2 mt-1.5">
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border bg-zinc-100 text-zinc-505 border-zinc-200">
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider border bg-zinc-100 text-zinc-500 border-zinc-200">
                     {selectedRecord.device_type === 'mobile' || selectedRecord.device_type === 'tablet' 
                       ? <><Smartphone className="w-2.5 h-2.5" /> {selectedRecord.device_label || 'Mobile'}</>
                       : <><Monitor className="w-2.5 h-2.5" /> {selectedRecord.device_label || 'Desktop'}</>
@@ -1573,36 +1567,36 @@ export default function AttendanceClient({
               <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-55/40 space-y-2 text-xs">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Date</span>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Date</span>
                     <span className="font-semibold text-navy-900">
                       {selectedRecord.date}
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">State</span>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">State</span>
                     <div className="mt-0.5">
                       <StatusBadge status={selectedRecord.status} />
                     </div>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Check-in</span>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Check-in</span>
                     <span className="font-semibold text-navy-900">{selectedRecord.check_in || '—'}</span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Check-out</span>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Check-out</span>
                     <span className="font-semibold text-navy-900">{selectedRecord.check_out || '—'}</span>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-zinc-200/40 grid grid-cols-2 gap-2">
                   <div>
-                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Productive Hours</span>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Productive Hours</span>
                     <span className="font-mono font-bold text-navy-900">
                       {selectedRecord.productive_hours !== undefined ? selectedRecord.productive_hours.toFixed(1) : selectedRecord.duration_hours.toFixed(1)} hrs
                     </span>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">Break Time</span>
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Break Time</span>
                     <span className="font-mono font-bold text-navy-900">
                       {selectedRecord.total_break_seconds !== undefined ? Math.round(selectedRecord.total_break_seconds / 60) : 0} mins
                     </span>
@@ -1610,26 +1604,6 @@ export default function AttendanceClient({
                 </div>
               </div>
 
-              {selectedRecordEvents.length > 0 && (
-                <div className="p-3 rounded-xl border border-zinc-200/60 bg-zinc-55/30 grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <span className="text-[8px] font-black text-zinc-505 uppercase tracking-widest block">Events</span>
-                    <span className="text-sm font-bold text-navy-900">{selectedRecordEvents.length}</span>
-                  </div>
-                  <div>
-                    <span className="text-[8px] font-black text-zinc-505 uppercase tracking-widest block">Heartbeats</span>
-                    <span className="text-sm font-bold text-navy-900">
-                      {selectedRecordEvents.filter(e => e.event_type === 'HEARTBEAT_RECEIVED').length}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[8px] font-black text-zinc-505 uppercase tracking-widest block">GPS Pings</span>
-                    <span className="text-sm font-bold text-navy-900">
-                      {selectedRecordEvents.filter(e => e.event_type === 'GPS_EXIT' || e.event_type === 'GPS_REENTRY').length}
-                    </span>
-                  </div>
-                </div>
-              )}
 
               <div className="space-y-4 relative">
                 <h4 className="text-[10px] font-black text-zinc-700 uppercase tracking-widest block mb-4 border-b border-zinc-200/40 pb-1">
@@ -1637,7 +1611,7 @@ export default function AttendanceClient({
                 </h4>
 
                 {isLoadingEvents ? (
-                  <div className="py-12 flex flex-col items-center justify-center text-zinc-505 text-xs font-bold gap-2">
+                  <div className="py-12 flex flex-col items-center justify-center text-zinc-500 text-xs font-bold gap-2">
                     <Loader2 className="w-6 h-6 animate-spin text-primary-400" />
                     <span>Retrieving event stream logs...</span>
                   </div>
@@ -1804,30 +1778,38 @@ export default function AttendanceClient({
                     Operational Administrative Controls
                   </h4>
                   <div className="grid grid-cols-2 gap-2">
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => setOverrideActionType('reverse_autobreak')}
-                      className="px-2.5 py-2 rounded-lg bg-amber-500 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm shadow-amber-500/10 hover:bg-amber-600 active:scale-95 transition-all text-center cursor-pointer"
+                      className="bg-amber-500 hover:bg-amber-600 focus:ring-amber-400 text-[10px] tracking-tight uppercase"
                     >
                       Reverse Auto-Break
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => setOverrideActionType('correct_clockout')}
-                      className="px-2.5 py-2 rounded-lg bg-teal-600 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm shadow-teal-500/10 hover:bg-teal-700 active:scale-95 transition-all text-center cursor-pointer"
+                      className="bg-teal-600 hover:bg-teal-700 focus:ring-teal-550 text-[10px] tracking-tight uppercase"
                     >
                       Correct Clock-Out
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => setOverrideActionType('override_validation')}
-                      className="px-2.5 py-2 rounded-lg bg-violet-600 text-white font-semibold text-[10px] tracking-tight uppercase shadow-sm shadow-violet-500/10 hover:bg-violet-700 active:scale-95 transition-all text-center cursor-pointer"
+                      className="bg-violet-600 hover:bg-violet-700 focus:ring-violet-550 text-[10px] tracking-tight uppercase"
                     >
                       Device Override
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => setOverrideActionType('rebuild')}
-                      className="px-2.5 py-2 rounded-lg bg-zinc-100 text-navy-900 border border-zinc-200 font-semibold text-[10px] tracking-tight uppercase shadow-sm hover:bg-zinc-200 active:scale-95 transition-all text-center cursor-pointer"
+                      className="border-zinc-200 text-navy-900 hover:bg-zinc-100 focus:ring-zinc-400 text-[10px] tracking-tight uppercase bg-transparent"
                     >
                       Rebuild Session
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
@@ -1840,18 +1822,20 @@ export default function AttendanceClient({
                         {overrideActionType === 'override_validation' && 'Action: Device validation override'}
                         {overrideActionType === 'rebuild' && 'Action: Force Projection Rebuild'}
                       </span>
-                      <button 
+                      <Button 
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setOverrideActionType(null)}
-                        className="text-[10px] text-zinc-550 font-bold hover:text-navy-900 uppercase"
+                        className="text-[10px] text-zinc-500 font-bold hover:text-navy-900 uppercase min-h-0 py-0.5 px-2"
                       >
                         Cancel
-                      </button>
+                      </Button>
                     </div>
 
                     {overrideActionType === 'correct_clockout' && (
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">
+                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">
                           Adjusted Clock-out Time (Local Time)
                         </label>
                         <input
@@ -1866,7 +1850,7 @@ export default function AttendanceClient({
 
                     {overrideActionType === 'override_validation' && (
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">
+                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">
                           Validation Override Type
                         </label>
                         <select
@@ -1884,7 +1868,7 @@ export default function AttendanceClient({
 
                     {overrideActionType !== 'rebuild' && (
                       <div className="space-y-1">
-                        <label className="text-[9px] font-black text-zinc-505 uppercase tracking-widest block">
+                        <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">
                           Override Justification Reason (Mandatory)
                         </label>
                         <textarea
@@ -1899,20 +1883,21 @@ export default function AttendanceClient({
                     )}
 
                     {overrideActionType === 'rebuild' && (
-                      <p className="text-[10px] text-zinc-505 leading-relaxed">
+                      <p className="text-[10px] text-zinc-500 leading-relaxed">
                         This will delete the daily attendance cache projections for this session and fully recalculate them by replaying the event telemetry stream sequentially. Use this if the dashboard counters are out of sync.
                       </p>
                     )}
 
-                    <button
+                    <Button
                       type="submit"
                       disabled={isSubmittingOverride}
+                      fullWidth
+                      size="sm"
                       className={cn(
-                        "w-full text-[10px] uppercase font-bold py-2 rounded-lg text-white shadow-sm flex items-center justify-center gap-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer",
-                        overrideActionType === 'reverse_autobreak' ? 'bg-amber-500 hover:bg-amber-600' :
-                        overrideActionType === 'correct_clockout' ? 'bg-teal-600 hover:bg-teal-700' :
-                        overrideActionType === 'override_validation' ? 'bg-violet-600 hover:bg-violet-750' :
-                        'bg-primary-500 hover:bg-primary-600'
+                        "text-[10px] uppercase font-bold tracking-wider",
+                        overrideActionType === 'reverse_autobreak' && 'bg-amber-500 hover:bg-amber-600 focus:ring-amber-400',
+                        overrideActionType === 'correct_clockout' && 'bg-teal-600 hover:bg-teal-700 focus:ring-teal-500',
+                        overrideActionType === 'override_validation' && 'bg-violet-600 hover:bg-violet-750 focus:ring-violet-500'
                       )}
                     >
                       {isSubmittingOverride ? (
@@ -1923,7 +1908,7 @@ export default function AttendanceClient({
                       ) : (
                         'Apply Override & Replay Ledgers'
                       )}
-                    </button>
+                    </Button>
                   </div>
                 </form>
               )}

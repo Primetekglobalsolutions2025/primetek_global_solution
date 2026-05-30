@@ -304,7 +304,7 @@ export default function EmployeesClient({
   return (
     <div className="space-y-6 text-zinc-700">
       {/* 1. Stats Summary */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {[
           { label: 'Total Staff', value: stats.total, icon: Users, color: 'text-navy-900', bg: 'bg-white border-zinc-200' },
           { label: 'Active', value: stats.active, icon: ShieldCheck, color: 'text-emerald-500', bg: 'bg-emerald-500/[0.03] border-emerald-500/20' },

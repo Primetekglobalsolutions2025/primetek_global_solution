@@ -5,6 +5,7 @@ import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, H
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
@@ -42,42 +43,6 @@ export interface EmployeeDispute {
   created_at: string;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const s = status?.toLowerCase();
-  const getTheme = () => {
-    if (['working', 'present', 'approved wfh', 'desktop_active', 'desktop active'].includes(s)) {
-      return { bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' };
-    }
-    if (['idle', 'late', 'pending wfh'].includes(s)) {
-      return { bg: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500' };
-    }
-    if (['break (auto)', 'rejected wfh', 'absent', 'productive_timer_paused', 'productive timer paused', 'timer paused'].includes(s)) {
-      return { bg: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
-    }
-    if (['break'].includes(s)) {
-      return { bg: 'bg-primary-50 text-primary-700 border-primary-200', dot: 'bg-primary-500' };
-    }
-    if (['logged out', 'logged_out', 'force_logged_out'].includes(s)) {
-      return { bg: 'bg-zinc-50 text-zinc-650 border-zinc-200', dot: 'bg-zinc-400' };
-    }
-    if (s === 'half-day') {
-      return { bg: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500' };
-    }
-    return { bg: 'bg-zinc-50 text-zinc-700 border-zinc-200', dot: 'bg-zinc-400' };
-  };
-
-  const theme = getTheme();
-
-  return (
-    <span className={cn(
-      'inline-flex items-center px-2 py-0.5 rounded text-[9px] font-mono font-medium border uppercase tracking-wider',
-      theme.bg
-    )}>
-      <span className={cn('w-1.5 h-1.5 rounded-full mr-1.5 shrink-0', theme.dot)} />
-      {status}
-    </span>
-  );
-}
 
 export default function AttendanceClient({ employeeId, initialRecords, wasAutoLoggedOut = false }: { employeeId: string; initialRecords: AttendanceRecord[]; wasAutoLoggedOut?: boolean }) {
   const [currentTime, setCurrentTime] = useState(new Date());

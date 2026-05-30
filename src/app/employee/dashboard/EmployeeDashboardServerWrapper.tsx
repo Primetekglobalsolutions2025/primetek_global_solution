@@ -99,17 +99,6 @@ export default async function EmployeeDashboardServerWrapper() {
     { label: 'Absences', value: String(absent), icon: CalendarX, color: 'text-red-650', iconBg: 'bg-red-500/10 border-red-500/10' },
   ];
 
-  const statusColors: Record<string, string> = {
-    present: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    late: 'bg-amber-50 text-amber-700 border-amber-200',
-    absent: 'bg-red-50 text-red-700 border-red-200',
-    'pending wfh': 'bg-violet-50 text-violet-750 border-violet-200',
-    'approved wfh': 'bg-emerald-50 text-emerald-750 border-emerald-250',
-    'rejected wfh': 'bg-red-50 text-red-700 border-red-200',
-    'break': 'bg-primary-50 text-primary-700 border-primary-200',
-    'break (auto)': 'bg-primary-50 text-primary-700 border-primary-200',
-  };
-
   const firstName = employee?.name?.split(' ')[0] || 'Employee';
 
   return (
