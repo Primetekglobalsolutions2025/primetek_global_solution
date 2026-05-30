@@ -165,15 +165,15 @@ export default function DailyReportsAdminClient({
   });
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-12 font-sans">
       {/* Header Panel */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-border shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-lg border border-zinc-200 shadow-2xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <ClipboardList className="w-5 h-5 text-primary-500" />
-            <h1 className="text-xl font-bold text-navy-900 tracking-tight font-display">Daily Recruitment Reports</h1>
+            <h1 className="text-xl font-bold text-navy-900 tracking-tight">Daily Recruitment Reports</h1>
           </div>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-zinc-450">
             View, track submission status, and export daily metrics from employees.
           </p>
         </div>
@@ -183,7 +183,7 @@ export default function DailyReportsAdminClient({
             onClick={handleExportExcel}
             disabled={exporting || reports.length === 0}
             variant="outline"
-            className="border-amber-400 text-amber-600 hover:bg-amber-50 cursor-pointer min-h-[40px] text-xs font-bold font-sans"
+            className="border-amber-300 text-amber-700 hover:bg-amber-50/60 bg-white cursor-pointer min-h-[40px] text-xs font-bold transition-colors duration-200"
           >
             {exporting ? (
               <>
@@ -207,19 +207,19 @@ export default function DailyReportsAdminClient({
         <div className="xl:col-span-3 space-y-6">
           
           {/* Filters Card */}
-          <Card className="p-4 rounded-2xl border border-border/80 shadow-sm bg-white" hover={false}>
+          <Card className="p-4 rounded-lg border border-zinc-200 shadow-2xs bg-white" hover={false}>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {/* Date Filter */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-navy-900">Select Date</label>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-text-muted" />
+                  <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
                   <input
                     type="date"
                     value={date}
                     max={todayISTStr}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-border rounded-xl focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 text-xs font-medium text-navy-900 cursor-pointer bg-white"
+                    className="w-full pl-9 pr-3 py-2 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-xs font-semibold text-navy-900 cursor-pointer bg-white"
                   />
                 </div>
               </div>
@@ -228,11 +228,11 @@ export default function DailyReportsAdminClient({
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-navy-900">Filter By Employee</label>
                 <div className="relative">
-                  <Users className="absolute left-3 top-2.5 w-4 h-4 text-text-muted" />
+                  <Users className="absolute left-3 top-2.5 w-4 h-4 text-zinc-400" />
                   <select
                     value={selectedEmployee}
                     onChange={(e) => setSelectedEmployee(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-border rounded-xl focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400 text-xs font-medium text-navy-900 cursor-pointer bg-white"
+                    className="w-full pl-9 pr-3 py-2 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-xs font-semibold text-navy-900 cursor-pointer bg-white"
                   >
                     <option value="all">All Employees</option>
                     {initialEmployees.map(emp => (
@@ -244,21 +244,21 @@ export default function DailyReportsAdminClient({
 
               {/* Summary Stats Overview */}
               <div className="sm:col-span-2 md:col-span-1 flex items-center justify-end">
-                <div className="w-full bg-slate-50 border border-border rounded-xl p-3 flex justify-between items-center">
+                <div className="w-full bg-zinc-50 border border-zinc-200 rounded-md p-3 flex justify-between items-center">
                   <div className="text-left">
-                    <span className="text-[10px] uppercase font-bold tracking-wider text-text-muted">Total Submissions Today</span>
-                    <h4 className="text-lg font-extrabold text-navy-900 mt-0.5">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500">Total Submissions Today</span>
+                    <h4 className="text-lg font-extrabold text-navy-900 mt-0.5 font-mono">
                       {submissionStatus.filter(s => s.submitted).length} / {submissionStatus.length}
                     </h4>
                   </div>
-                  <div className="h-8 w-1 bg-primary-400 rounded-full" />
+                  <div className="h-8 w-1 bg-primary-500 rounded-full" />
                 </div>
               </div>
             </div>
           </Card>
 
           {/* Reports Table Area */}
-          <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden min-h-[300px] relative">
+          <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden min-h-[300px] relative">
             {loading && (
               <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] z-10 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-2">
@@ -270,28 +270,35 @@ export default function DailyReportsAdminClient({
 
             {reports.length === 0 ? (
               <div className="text-center py-20">
-                <ClipboardList className="w-12 h-12 text-text-muted mx-auto mb-3 opacity-25" />
+                <ClipboardList className="w-12 h-12 text-zinc-400 mx-auto mb-3 opacity-25" />
                 <h4 className="text-sm font-bold text-navy-900">No Reports Found</h4>
-                <p className="text-xs text-text-secondary max-w-sm mx-auto mt-1">
+                <p className="text-xs text-zinc-500 max-w-sm mx-auto mt-1">
                   There are no daily metrics reports submitted for the selected criteria on this date.
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-xs overflow-hidden rounded-2xl shadow-sm border border-border/80">
-                  <thead>
-                    <tr className="bg-surface-alt/60 text-[10px] font-bold text-text-muted uppercase tracking-wider border-b border-border/80">
-                      <th className="p-4 rounded-tl-xl select-none">Assign Date</th>
-                      <th className="p-4 select-none">Consultant Name</th>
-                      <th className="p-4 text-center bg-surface-alt/80 select-none">Apps Count</th>
-                      <th className="p-4 text-center bg-surface-alt/80 select-none">Interviews</th>
-                      <th className="p-4 text-center select-none">Assessments</th>
-                      <th className="p-4 text-center select-none">Tech Rounds</th>
-                      <th className="p-4 text-center select-none">Non-Tech</th>
-                      <th className="p-4 text-center bg-amber-500/10 text-amber-700 font-bold select-none">Self</th>
-                      <th className="p-4 text-center bg-amber-500/10 text-amber-700 font-bold rounded-tr-xl select-none">Support</th>
-                    </tr>
-                  </thead>
+              <>
+                <div className="px-4 py-2 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between text-[10px] font-bold text-zinc-500 uppercase tracking-widest select-none">
+                  <span>Employee Metrics Matrix</span>
+                  <span className="flex items-center gap-1 text-primary-500 font-semibold tracking-wider normal-case animate-pulse">
+                    ↔ Swipe horizontally to view all columns
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead>
+                      <tr className="bg-zinc-50 text-zinc-650 border-b border-zinc-200 select-none">
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Assign Date</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Consultant Name</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-zinc-100/50">Apps Count</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-zinc-100/50">Interviews</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Assessments</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Tech Rounds</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28">Non-Tech</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-primary-50/50 text-primary-750 font-bold">Self (Own)</th>
+                        <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-primary-50/50 text-primary-750 font-bold">Support</th>
+                      </tr>
+                    </thead>
 
                   {Object.entries(groupedReports).map(([empId, group]) => {
                     let empApps = 0;
@@ -313,12 +320,12 @@ export default function DailyReportsAdminClient({
                     });
 
                     return (
-                      <tbody key={empId} className="divide-y divide-border border-b border-border/80 last:border-b-0">
+                      <tbody key={empId} className="divide-y divide-zinc-150 border-b border-zinc-200 last:border-b-0">
                         {/* Employee Section Header Row */}
-                        <tr className="bg-slate-50/80 border-b border-border/60">
-                          <td colSpan={9} className="p-3.5 font-black text-primary-600 uppercase tracking-wider text-[10px] bg-slate-50/90 border-l-4 border-primary-500">
+                        <tr className="bg-zinc-50/95 border-b border-zinc-200">
+                          <td colSpan={9} className="p-2.5 font-bold text-navy-900 uppercase tracking-wider text-[10px] border-l-4 border-primary-500">
                             <div className="flex items-center gap-2">
-                              <span>👤</span>
+                              <Users className="w-3.5 h-3.5 text-primary-500" />
                               <span>{group.employeeName}</span>
                             </div>
                           </td>
@@ -332,32 +339,32 @@ export default function DailyReportsAdminClient({
                           const cName = item.profile?.client_name || 'Deleted Consultant';
 
                           return (
-                            <tr key={item.id} className="hover:bg-slate-50/40 transition-colors duration-150">
-                              <td className="p-4 text-text-secondary whitespace-nowrap">{pDate}</td>
-                              <td className="p-4 font-semibold text-navy-900">{cName}</td>
-                              <td className="p-4 text-center bg-slate-50/10 font-bold text-navy-900">{item.applications_count}</td>
-                              <td className="p-4 text-center bg-slate-50/10 font-bold text-navy-900">{item.interviews_count}</td>
-                              <td className="p-4 text-center font-medium text-navy-900">{item.assessments}</td>
-                              <td className="p-4 text-center font-medium text-navy-900">{item.technical_rounds}</td>
-                              <td className="p-4 text-center font-medium text-navy-900">{item.non_technical}</td>
-                              <td className="p-4 text-center bg-amber-500/[0.04] font-bold text-amber-800">{item.self_submissions}</td>
-                              <td className="p-4 text-center bg-amber-500/[0.04] font-bold text-amber-800">{item.support_submissions}</td>
+                            <tr key={item.id} className="hover:bg-zinc-50/30 transition-colors duration-150">
+                              <td className="p-3 text-zinc-500 font-mono whitespace-nowrap">{pDate}</td>
+                              <td className="p-3 font-semibold text-navy-900 font-sans text-xs">{cName}</td>
+                              <td className="p-3 text-center bg-zinc-50/30 font-mono text-navy-900">{item.applications_count}</td>
+                              <td className="p-3 text-center bg-zinc-50/30 font-mono text-navy-900">{item.interviews_count}</td>
+                              <td className="p-3 text-center font-mono text-navy-900">{item.assessments}</td>
+                              <td className="p-3 text-center font-mono text-navy-900">{item.technical_rounds}</td>
+                              <td className="p-3 text-center font-mono text-navy-900">{item.non_technical}</td>
+                              <td className="p-3 text-center bg-primary-50/30 font-mono font-bold text-primary-800">{item.self_submissions}</td>
+                              <td className="p-3 text-center bg-primary-50/30 font-mono font-bold text-primary-800">{item.support_submissions}</td>
                             </tr>
                           );
                         })}
 
                         {/* Employee Group Summary Row */}
                         {group.items.length > 1 && (
-                          <tr className="bg-slate-50/40 font-semibold border-t border-border">
-                            <td className="p-3.5 text-text-secondary text-[11px] italic">Group Total</td>
-                            <td className="p-3.5 font-extrabold text-navy-900 text-[11px]">{group.employeeName}</td>
-                            <td className="p-3.5 text-center text-[11px] bg-slate-100/50 font-black text-navy-950">{empApps}</td>
-                            <td className="p-3.5 text-center text-[11px] bg-slate-100/50 font-black text-navy-950">{empInts}</td>
-                            <td className="p-3.5 text-center text-[11px] font-black text-navy-950">{empAssess}</td>
-                            <td className="p-3.5 text-center text-[11px] font-black text-navy-950">{empTech}</td>
-                            <td className="p-3.5 text-center text-[11px] font-black text-navy-950">{empNonTech}</td>
-                            <td className="p-3.5 text-center text-[11px] bg-amber-500/[0.06] font-black text-amber-800">{empSelf}</td>
-                            <td className="p-3.5 text-center text-[11px] bg-amber-500/[0.06] font-black text-amber-800">{empSupp}</td>
+                          <tr className="bg-zinc-50/30 font-semibold border-t border-zinc-150">
+                            <td className="p-2.5 text-zinc-500 text-[11px] italic">Group Total</td>
+                            <td className="p-2.5 font-bold text-navy-900 text-[11px]">{group.employeeName}</td>
+                            <td className="p-2.5 text-center text-[11px] bg-zinc-100/30 font-mono font-bold text-navy-950">{empApps}</td>
+                            <td className="p-2.5 text-center text-[11px] bg-zinc-100/30 font-mono font-bold text-navy-950">{empInts}</td>
+                            <td className="p-2.5 text-center text-[11px] font-mono font-bold text-navy-950">{empAssess}</td>
+                            <td className="p-2.5 text-center text-[11px] font-mono font-bold text-navy-950">{empTech}</td>
+                            <td className="p-2.5 text-center text-[11px] font-mono font-bold text-navy-950">{empNonTech}</td>
+                            <td className="p-2.5 text-center text-[11px] bg-primary-50/20 font-mono font-bold text-primary-850">{empSelf}</td>
+                            <td className="p-2.5 text-center text-[11px] bg-primary-50/20 font-mono font-bold text-primary-850">{empSupp}</td>
                           </tr>
                         )}
                       </tbody>
@@ -366,53 +373,54 @@ export default function DailyReportsAdminClient({
 
                   {/* Table Grand Summary Row */}
                   {Object.keys(groupedReports).length > 1 && (
-                    <tbody className="border-t-2 border-amber-300">
-                      <tr className="bg-gradient-to-r from-amber-500/[0.04] to-amber-500/[0.08] font-black text-[12px] hover:from-amber-500/[0.06] hover:to-amber-500/[0.12] transition-colors duration-150">
-                        <td className="p-4 text-amber-900 rounded-bl-xl">GRAND TOTAL</td>
-                        <td className="p-4 text-amber-900">ALL SELECTED</td>
-                        <td className="p-4 text-center bg-amber-100/40 text-amber-950">{grandTotalApps}</td>
-                        <td className="p-4 text-center bg-amber-100/40 text-amber-950">{grandTotalInts}</td>
-                        <td className="p-4 text-center text-amber-950">{grandTotalAssess}</td>
-                        <td className="p-4 text-center text-amber-950">{grandTotalTech}</td>
-                        <td className="p-4 text-center text-amber-950">{grandTotalNonTech}</td>
-                        <td className="p-4 text-center bg-amber-100/20 text-amber-900">{grandTotalSelf}</td>
-                        <td className="p-4 text-center bg-amber-100/20 text-amber-900 rounded-br-xl">{grandTotalSupp}</td>
+                    <tbody className="border-t-2 border-primary-300">
+                      <tr className="bg-gradient-to-r from-primary-50/30 to-primary-50/60 font-bold text-xs hover:from-primary-50/40 hover:to-primary-50/80 transition-colors duration-150">
+                        <td className="p-3 text-primary-900 rounded-bl-lg uppercase tracking-wider">Grand Total</td>
+                        <td className="p-3 text-primary-900">All Selected</td>
+                        <td className="p-3 text-center bg-primary-50/40 font-mono font-extrabold text-navy-950">{grandTotalApps}</td>
+                        <td className="p-3 text-center bg-primary-50/40 font-mono font-extrabold text-navy-950">{grandTotalInts}</td>
+                        <td className="p-3 text-center font-mono font-extrabold text-navy-950">{grandTotalAssess}</td>
+                        <td className="p-3 text-center font-mono font-extrabold text-navy-950">{grandTotalTech}</td>
+                        <td className="p-3 text-center font-mono font-extrabold text-navy-950">{grandTotalNonTech}</td>
+                        <td className="p-3 text-center bg-primary-50/30 font-mono font-extrabold text-primary-900">{grandTotalSelf}</td>
+                        <td className="p-3 text-center bg-primary-50/30 font-mono font-extrabold text-primary-900 rounded-br-lg">{grandTotalSupp}</td>
                       </tr>
                     </tbody>
                   )}
                 </table>
               </div>
+            </>
             )}
           </div>
         </div>
 
         {/* Sidebar tracker: submission status */}
         <div className="xl:col-span-1 space-y-4">
-          <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+          <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
             <div className="p-4 bg-zinc-50 text-navy-900 border-b border-zinc-200 flex items-center justify-between">
               <h3 className="font-bold text-xs tracking-wider uppercase">Submission Tracker</h3>
-              <span className="text-[10px] bg-amber-400 text-navy-950 font-extrabold px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-mono font-bold bg-amber-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider">
                 {submissionStatus.filter(s => s.submitted).length} / {submissionStatus.length}
               </span>
             </div>
 
-            <div className="p-4 divide-y divide-border max-h-[600px] overflow-y-auto">
+            <div className="p-4 divide-y divide-zinc-150 max-h-[600px] overflow-y-auto">
               {submissionStatus.map(emp => (
-                <div key={emp.id} className="py-2.5 flex items-center justify-between text-xs hover:bg-slate-50/50 transition-colors rounded-lg px-2 -mx-2">
+                <div key={emp.id} className="py-2.5 flex items-center justify-between text-xs hover:bg-zinc-50/50 transition-colors rounded-lg px-2 -mx-2">
                   <div className="space-y-0.5">
                     <h5 className="font-bold text-navy-900">{emp.name}</h5>
-                    <p className="text-[10px] text-text-muted">{emp.department || 'Staffing Department'}</p>
+                    <p className="text-[10px] text-zinc-400">{emp.department || 'Staffing Department'}</p>
                   </div>
 
                   <div>
                     {emp.submitted ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
-                        <CheckCircle2 className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-emerald-50 text-emerald-700 border border-emerald-250 uppercase tracking-wider">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                         <span>Submitted</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-100">
-                        <XCircle className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-rose-50 text-rose-600 border border-rose-200 uppercase tracking-wider">
+                        <XCircle className="w-3 h-3 text-rose-500" />
                         <span>Pending</span>
                       </span>
                     )}
