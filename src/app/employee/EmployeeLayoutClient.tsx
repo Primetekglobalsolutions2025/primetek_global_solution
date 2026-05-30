@@ -158,17 +158,13 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
     return <>{children}</>;
   }
 
-  const isCustomHeaderPage = pathname === '/employee/dashboard' || pathname === '/employee/attendance';
-
   return (
     <div className="employee-portal fixed inset-0 flex bg-zinc-50 overflow-hidden">
       {session && <AppSidebar role={session.role} userName={session.name} />}
       <div className="flex-1 flex flex-col min-w-0">
-        {!isCustomHeaderPage && <AppHeader userName={session?.name} />}
-        <main className={isCustomHeaderPage 
-          ? "flex-1 overflow-y-auto p-0" 
-          : "flex-1 overflow-y-auto p-4 md:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6"}>
-          <div className={isCustomHeaderPage ? "max-w-7xl mx-auto" : "max-w-7xl mx-auto space-y-4"}>
+        <AppHeader userName={session?.name} />
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6">
+          <div className="max-w-7xl mx-auto space-y-4">
             <OfflineSyncBanner />
             {children}
           </div>

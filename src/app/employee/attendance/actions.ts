@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession, verifyActiveSession } from '@/lib/auth';
 import { assessAttendanceRisk } from '@/lib/security/risk-engine';
 import { headers } from 'next/headers';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { revalidatePath } from 'next/cache';
 import { calculateDistance, getISTShiftDate } from '@/lib/utils';
 import { getCachedActiveOfficeLocation } from '@/lib/cache/office-location';
 
@@ -1447,37 +1447,6 @@ export async function submitOfflineRecoveryRequest(
     return { success: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Failed to submit recovery request';
-    return { success: false, error: errorMsg };
-  }
-}
-
-export async function updatePortalHolidays(holidaysJson: string) {
-  try {
-    const session = await getSession();
-    if (!session || !session.id) {
-      return { success: false, error: 'Unauthorized' };
-    }
-    // Allow admins and hr to manage portal holidays
-    const isAdmin = session.role === 'admin' || session.role === 'hr';
-    if (!isAdmin) {
-      return { success: false, error: 'Unauthorized: Admins only' };
-    }
-
-    const { error } = await supabaseAdmin
-      .from('portal_config')
-      .upsert({
-        config_key: 'holidays_list',
-        config_value: holidaysJson,
-        description: 'Office holidays list calendar'
-      }, { onConflict: 'config_key' });
-
-    if (error) throw error;
-
-    revalidatePath('/employee/dashboard');
-    (revalidateTag as any)('portal-config');
-    return { success: true };
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : 'Failed to update holidays';
     return { success: false, error: errorMsg };
   }
 }

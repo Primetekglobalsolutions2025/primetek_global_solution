@@ -251,16 +251,4 @@
   scroll-behavior: smooth;
 }
 
-/* Hide Next.js Development Indicators / Dev Overlay */
-nextjs-portal,
-next-dev-overlay, 
-.next-dev-overlay, 
-#__next-route-announcer__ {
-  display: none !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  visibility: hidden !important;
-}
-
-
 
