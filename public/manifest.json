@@ -1,8 +1,8 @@
 {
   "name": "Primetek Global Solutions",
   "short_name": "Primetek",
-  "description": "Enterprise HR Portal for Primetek Global Solutions",
-  "start_url": "/employee/login",
+  "description": "Primetek Global Solutions — Leading US-based IT Staffing & Consulting",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#020617",

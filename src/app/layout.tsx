@@ -25,7 +25,7 @@ const playfair = Playfair_Display({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
   viewportFit: 'cover',
   themeColor: '#020617',
 };
@@ -89,11 +89,20 @@ export const metadata: Metadata = {
     siteName: 'Primetek Global Solutions',
     title: 'Primetek Global Solutions | Staffing & Consulting',
     description: 'Leading US-based staffing and consulting firm specializing in IT, Healthcare, Finance, Manufacturing, and Talent Acquisition.',
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Primetek Global Solutions — US-Based IT Staffing & Consulting',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Primetek Global Solutions | Staffing & Consulting',
     description: 'Leading US-based staffing and consulting firm specializing in IT, Healthcare, Finance, Manufacturing, and Talent Acquisition.',
+    images: ['/opengraph-image.png'],
   },
   robots: {
     index: true,
@@ -151,6 +160,12 @@ export default function RootLayout({
 
   return (
     <html lang="en" className={`h-full antialiased overflow-x-hidden ${inter.variable} ${playfair.variable}`}>
+      <head>
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body className="h-full flex flex-col overflow-x-hidden w-full">
         {/* Google Analytics 4 */}
         {gaId && (

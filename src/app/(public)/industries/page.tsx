@@ -60,8 +60,22 @@ export default function IndustriesPage() {
     { name: 'Industries', path: '/industries' }
   ];
 
+  const industriesListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Industries Served by Primetek Global Solutions",
+    "numberOfItems": industries.length,
+    "itemListElement": industries.map((industry, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "name": industry.title,
+      "description": industry.description,
+    })),
+  };
+
   return (
     <>
+      <SchemaMarkup schema={industriesListSchema} />
       <SchemaMarkup schema={generateBreadcrumbSchema(breadcrumbs)} />
       {/* Hero */}
       <section className="pt-32 pb-16 bg-gradient-to-b from-navy-900 to-navy-800">
