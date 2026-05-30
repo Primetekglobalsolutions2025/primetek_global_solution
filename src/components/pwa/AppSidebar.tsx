@@ -7,7 +7,8 @@ import {
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
-  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2
+  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2,
+  Home, Contact
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -106,7 +107,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
 
   // Mobile navigation arrays
   const mobileAdminBottom = [
-    { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { href: '/admin/dashboard', icon: Home, label: 'Dashboard' },
     { href: '/admin/attendance', icon: Clock, label: 'Attendance' },
     { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals' },
     { href: '/admin/employees', icon: Users, label: 'Employees' },
@@ -124,10 +125,10 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
   ];
 
   const mobileEmployeeBottom = [
-    { href: '/employee/dashboard', icon: LayoutDashboard, label: 'Home' },
+    { href: '/employee/dashboard', icon: Home, label: 'Home' },
     { href: '/employee/attendance', icon: Clock, label: 'Attendance' },
     { href: '/employee/daily-report', icon: ClipboardList, label: 'Daily Report' },
-    { href: '/employee/assigned-profiles', icon: FileUser, label: 'Profiles' },
+    { href: '/employee/assigned-profiles', icon: Contact, label: 'Profiles' },
   ];
 
   const mobileEmployeeMore = [
@@ -271,24 +272,25 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
       </aside>
 
       {/* ─── Mobile Bottom Navigation Bar ─── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-around h-16 px-2 pb-[env(safe-area-inset-bottom)] flex-row">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[78px] bg-white border-t border-[#E8EDF2] flex items-center justify-around z-50 px-4 pb-safe max-w-[430px] mx-auto shadow-md">
+        <div className="flex items-center justify-around w-full h-full flex-row">
           {bottomBarItems.map((item) => {
             const isActive = pathname === item.href.split('#')[0];
+            const isAttendanceActive = item.label === 'Attendance' && isActive;
+            
             return (
               <Link 
                 key={item.href} 
                 href={item.href} 
-                className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 rounded-xl transition-all',
-                  isActive 
-                    ? 'text-primary-505 text-primary-500' 
-                    : 'text-gray-400 active:text-gray-600'
-                )}
+                className="flex flex-col items-center justify-center gap-0.5 cursor-pointer flex-1 h-full"
               >
                 <div className={cn(
-                  'p-1.5 rounded-xl transition-all relative',
-                  isActive && 'bg-primary-50'
+                  'w-9 h-9 rounded-full flex items-center justify-center transition-all relative',
+                  isAttendanceActive 
+                    ? 'bg-[#0B8B83] text-white shadow-sm' 
+                    : isActive 
+                      ? 'text-[#0B8B83]' 
+                      : 'text-[#94A3B8]'
                 )}>
                   <item.icon className="w-5 h-5" />
                   {item.label === 'Approvals' && pendingCount > 0 && (
@@ -296,8 +298,8 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
                   )}
                 </div>
                 <span className={cn(
-                  'text-[10px] leading-none font-medium',
-                  isActive && 'font-bold'
+                  'text-[10px] font-bold transition-colors',
+                  isActive ? 'text-[#0B8B83]' : 'text-[#94A3B8]'
                 )}>
                   {item.label}
                 </span>
@@ -309,23 +311,18 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
           {hasOverflow ? (
             <button 
               onClick={() => setIsMoreOpen(true)}
-              className={cn(
-                'flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 transition-all',
-                isOverflowActive 
-                  ? 'text-primary-500' 
-                  : 'text-gray-400 active:text-gray-600'
-              )}
+              className="flex flex-col items-center justify-center gap-0.5 cursor-pointer flex-1 h-full"
               aria-label="More navigation options"
             >
               <div className={cn(
-                'p-1.5 rounded-xl transition-all relative',
-                isOverflowActive && 'bg-primary-50'
+                'w-9 h-9 rounded-full flex items-center justify-center transition-all relative',
+                isOverflowActive ? 'text-[#0B8B83]' : 'text-[#94A3B8]'
               )}>
                 <MoreHorizontal className="w-5 h-5" />
               </div>
               <span className={cn(
-                'text-[10px] leading-none font-medium',
-                isOverflowActive && 'font-bold'
+                'text-[10px] font-bold transition-colors',
+                isOverflowActive ? 'text-[#0B8B83]' : 'text-[#94A3B8]'
               )}>
                 More
               </span>
@@ -333,12 +330,12 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
           ) : (
             <button 
               onClick={handleLogout}
-              className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] py-1 transition-all text-gray-400 active:text-red-500"
+              className="flex flex-col items-center justify-center gap-0.5 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-red-500 transition-colors"
             >
-              <div className="p-1.5 rounded-xl">
+              <div className="w-9 h-9 flex items-center justify-center">
                 <LogOut className="w-5 h-5" />
               </div>
-              <span className="text-[10px] leading-none font-medium">Exit</span>
+              <span className="text-[10px] font-bold">Exit</span>
             </button>
           )}
         </div>

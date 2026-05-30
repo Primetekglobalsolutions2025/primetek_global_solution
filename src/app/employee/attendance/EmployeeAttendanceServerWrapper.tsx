@@ -13,22 +13,11 @@ export default async function EmployeeAttendanceServerWrapper() {
 
   await closeStaleSessions();
 
-  // Fetch employee details and attendance records in parallel
-  const [
-    { data: employee },
-    { data: records }
-  ] = await Promise.all([
-    supabaseAdmin
-      .from('employees')
-      .select('name, employee_id, role, department, designation')
-      .eq('id', session.id)
-      .single(),
-    supabaseAdmin
-      .from('attendance')
-      .select('*')
-      .eq('employee_id', session.id)
-      .order('date', { ascending: false })
-  ]);
+  const { data: records } = await supabaseAdmin
+    .from('attendance')
+    .select('*')
+    .eq('employee_id', session.id)
+    .order('date', { ascending: false });
 
   const empRecords = (records || []).map(r => {
     const checkIn = r.check_in ? new Date(r.check_in) : null;
@@ -83,11 +72,12 @@ export default async function EmployeeAttendanceServerWrapper() {
   }
 
   return (
-    <AttendanceClient 
-      employee={employee}
-      employeeId={session.id} 
-      initialRecords={empRecords} 
-      wasAutoLoggedOut={wasAutoLoggedOut} 
-    />
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">Attendance</h1>
+        <p className="text-zinc-550 text-sm">Clock in and out using GPS.</p>
+      </div>
+      <AttendanceClient employeeId={session.id} initialRecords={empRecords} wasAutoLoggedOut={wasAutoLoggedOut} />
+    </div>
   );
 }
