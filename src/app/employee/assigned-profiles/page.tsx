@@ -13,7 +13,7 @@ export default async function EmployeeAssignedProfilesPage() {
   const profiles = await getAssignedProfiles();
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto pb-24">
       <AssignedProfilesClient initialProfiles={profiles} />
     </div>
   );

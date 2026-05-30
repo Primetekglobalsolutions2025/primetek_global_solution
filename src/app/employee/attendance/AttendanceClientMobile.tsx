@@ -1182,8 +1182,8 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
           <button type="button" className="w-[44px] h-[44px] rounded-full flex items-center justify-center text-[#64748B] hover:bg-zinc-50 active:scale-95 transition-all border-0 bg-transparent cursor-pointer">
             <Bell className="w-5 h-5 stroke-[1.8]" />
           </button>
-          
-          <div className="w-10 h-10 rounded-full bg-[#E6F8F2] border border-[#0B8B83]/20 flex items-center justify-center text-[#0B8B83] text-[15px] font-bold shadow-sm">
+          {/* Avatar Profile Box */}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#071B3A] to-[#0B8B83] flex items-center justify-center text-white text-[15px] font-bold shadow-sm">
             {employee?.name ? employee.name.charAt(0).toUpperCase() : 'J'}
           </div>
         </div>
@@ -1566,11 +1566,10 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                   if (!isCurrentMonth) return null;
                   if (s) {
                     const statusLower = s.toLowerCase();
-                    if (statusLower === 'present' || statusLower === 'working' || statusLower === 'logged out' || statusLower === 'break' || statusLower === 'break (auto)' || statusLower === 'desktop_active' || statusLower === 'desktop active') return 'bg-[#22C55E]';
-                    if (statusLower === 'late') return 'bg-red-500';
-                    if (statusLower === 'absent' || statusLower === 'rejected wfh') return 'bg-zinc-400';
-                    if (statusLower.includes('wfh')) return 'bg-[#3B82F6]';
-                    if (statusLower === 'half-day') return 'bg-orange-500';
+                    if (statusLower === 'present' || statusLower === 'working' || statusLower === 'logged out' || statusLower === 'break' || statusLower === 'break (auto)' || statusLower === 'desktop_active' || statusLower === 'desktop active') return 'bg-[#10B981]';
+                    if (statusLower === 'late') return 'bg-[#F59E0B]';
+                    if (statusLower === 'absent' || statusLower === 'rejected wfh') return 'bg-[#EF4444]';
+                    if (statusLower.includes('wfh') || statusLower === 'half-day') return 'bg-[#3B82F6]';
                     if (statusLower === 'holiday' || statusLower === 'off' || statusLower === 'weekly off') return 'bg-[#CBD5E1]';
                   }
                   
@@ -1585,8 +1584,8 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                       // Sunday: No dot (weekly off)
                       return null;
                     }
-                    // Weekday or Saturday in the past with no record -> Absent (gray dot)
-                    return 'bg-zinc-400';
+                    // Weekday or Saturday in the past with no record -> Absent (red dot)
+                    return 'bg-[#EF4444]';
                   }
                   
                   return null;
@@ -1605,31 +1604,29 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
                       <div
                         className={cn(
                           "w-[32px] h-[32px] rounded-full flex items-center justify-center text-xs font-extrabold transition-all cursor-default",
-                          isToday && (status === 'present' || status === 'working' || status === 'logged out' || status === 'break')
+                          isToday
                             ? "bg-[#0B8B83] text-white"
-                            : isToday 
-                              ? "bg-[#071B3A] text-white" 
-                              : isSelectedState 
-                                ? status === 'late' 
-                                  ? "border border-red-200 text-red-500 bg-red-50/20" 
-                                  : status?.includes('wfh')
-                                    ? "border border-blue-200 text-blue-500 bg-blue-50/20"
-                                    : status === 'half-day'
-                                      ? "border border-orange-200 text-orange-500 bg-orange-50/20"
-                                      : "border border-emerald-200 text-[#22C55E] bg-[#E6F8F2]/30"
-                                : !isCurrentMonth
-                                  ? "text-zinc-350 font-normal"
-                                  : "text-[#071B3A]"
+                            : isSelectedState 
+                              ? status === 'late' 
+                                ? "border border-red-200 text-red-500 bg-red-50/20" 
+                                : status?.includes('wfh')
+                                  ? "border border-blue-200 text-blue-500 bg-blue-50/20"
+                                  : status === 'half-day'
+                                    ? "border border-orange-200 text-orange-500 bg-orange-50/20"
+                                    : "border border-emerald-200 text-[#22C55E] bg-[#E6F8F2]/30"
+                              : !isCurrentMonth
+                                ? "text-zinc-400 font-normal"
+                                : "text-[#071B3A]"
                         )}
                       >
                         <span>{day}</span>
                       </div>
                       {/* Dot below date number */}
-                      <div className="h-[4px] flex items-center justify-center">
+                      <div className="h-[5px] flex items-center justify-center">
                         {dotColor ? (
-                          <span className={cn("w-[4px] h-[4px] rounded-full", dotColor)} />
+                          <span className={cn("w-[5px] h-[5px] rounded-full", dotColor)} />
                         ) : (
-                          <span className="w-[4px] h-[4px] rounded-full bg-transparent" />
+                          <span className="w-[5px] h-[5px] rounded-full bg-transparent" />
                         )}
                       </div>
                     </div>
@@ -1645,15 +1642,15 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
           {/* Legend Footer */}
           <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-3 text-[9px] font-bold text-[#64748B] uppercase px-1">
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
               <span>Present ({presentCount})</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
               <span>Late ({lateMonthCount})</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444]" />
               <span>Absent ({absentCount})</span>
             </div>
             <div className="flex items-center gap-1">
@@ -1661,7 +1658,7 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
               <span>WFH ({wfhCount})</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#3B82F6]" />
               <span>Half Day ({selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'half-day').length})</span>
             </div>
           </div>
@@ -1796,64 +1793,29 @@ export default function AttendanceClient({ employee, employeeId, initialRecords,
         <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
           <h2 className="text-[14px] font-extrabold text-[#071B3A]">Attendance Summary</h2>
           
-          <div className="flex items-center justify-between gap-4">
-            {/* SVG Circular Progress */}
-            <div className="relative w-24 h-24 shrink-0 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  stroke="#E8EDF2"
-                  strokeWidth="8"
-                  fill="transparent"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  stroke="#0B8B83"
-                  strokeWidth="8"
-                  fill="transparent"
-                  strokeDasharray={`${2 * Math.PI * 40}`}
-                  strokeDashoffset={`${2 * Math.PI * 40 * (1 - (presentCount + wfhCount + selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'half-day').length * 0.5) / (selectedMonthRecords.length || 1))}`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-[18px] font-extrabold text-[#071B3A] leading-none">
-                  {presentCount + lateMonthCount + absentCount + wfhCount + selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'half-day').length}
-                </span>
-                <span className="text-[8px] font-bold text-[#64748B] uppercase tracking-wider mt-1">
-                  Total Days
-                </span>
-              </div>
+          <div className="grid grid-cols-4 gap-2">
+            {/* Present Card */}
+            <div className="bg-white border border-[#E8EDF2] rounded-[20px] p-3 flex flex-col items-center justify-center text-center shadow-3xs">
+              <span className="text-[16px] font-extrabold text-[#10B981] block leading-none">{presentCount}</span>
+              <span className="text-[8px] font-bold text-[#64748B] mt-2 block uppercase tracking-wider">Present</span>
             </div>
-            
-            {/* Columns split by vertical border lines */}
-            <div className="flex-1 grid grid-cols-5 gap-1 text-center divide-x divide-zinc-100">
-              <div className="pl-1">
-                <span className="text-[16px] font-extrabold text-[#22C55E] block leading-none">{presentCount}</span>
-                <span className="text-[8px] font-bold text-[#64748B] mt-1.5 block">Present</span>
-              </div>
-              <div className="pl-1">
-                <span className="text-[16px] font-extrabold text-red-500 block leading-none">{lateMonthCount}</span>
-                <span className="text-[8px] font-bold text-[#64748B] mt-1.5 block">Late</span>
-              </div>
-              <div className="pl-1">
-                <span className="text-[16px] font-extrabold text-zinc-400 block leading-none">{absentCount}</span>
-                <span className="text-[8px] font-bold text-[#64748B] mt-1.5 block">Absent</span>
-              </div>
-              <div className="pl-1">
-                <span className="text-[16px] font-extrabold text-[#3B82F6] block leading-none">{wfhCount}</span>
-                <span className="text-[8px] font-bold text-[#64748B] mt-1.5 block">WFH</span>
-              </div>
-              <div className="pl-1">
-                <span className="text-[16px] font-extrabold text-orange-500 block leading-none font-mono">
-                  {selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'half-day').length}
-                </span>
-                <span className="text-[8px] font-bold text-[#64748B] mt-1.5 block">Half Day</span>
-              </div>
+
+            {/* Absent Card */}
+            <div className="bg-white border border-[#E8EDF2] rounded-[20px] p-3 flex flex-col items-center justify-center text-center shadow-3xs">
+              <span className="text-[16px] font-extrabold text-[#EF4444] block leading-none">{absentCount}</span>
+              <span className="text-[8px] font-bold text-[#64748B] mt-2 block uppercase tracking-wider">Absent</span>
+            </div>
+
+            {/* Late Card */}
+            <div className="bg-white border border-[#E8EDF2] rounded-[20px] p-3 flex flex-col items-center justify-center text-center shadow-3xs">
+              <span className="text-[16px] font-extrabold text-[#F59E0B] block leading-none">{lateMonthCount}</span>
+              <span className="text-[8px] font-bold text-[#64748B] mt-2 block uppercase tracking-wider">Late</span>
+            </div>
+
+            {/* Leave Card */}
+            <div className="bg-white border border-[#E8EDF2] rounded-[20px] p-3 flex flex-col items-center justify-center text-center shadow-3xs">
+              <span className="text-[16px] font-extrabold text-[#3B82F6] block leading-none">{leaveTaken}</span>
+              <span className="text-[8px] font-bold text-[#64748B] mt-2 block uppercase tracking-wider">Leave</span>
             </div>
           </div>
         </section>

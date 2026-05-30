@@ -9,5 +9,5 @@ export default async function LeavesPage() {
     getLeaveBalances()
   ]);
 
-  return <LeavesClient initialLeaves={leaves} initialBalances={balances} />;
+  return <div className="pb-24"><LeavesClient initialLeaves={leaves} initialBalances={balances} /></div>;
 }

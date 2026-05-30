@@ -24,7 +24,7 @@ export default async function EmployeeAppProfilePage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pt-4 md:pt-0 pb-24">
       <div>
         <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">My Profile</h1>
         <p className="text-zinc-500 text-sm">View and update your personal information.</p>

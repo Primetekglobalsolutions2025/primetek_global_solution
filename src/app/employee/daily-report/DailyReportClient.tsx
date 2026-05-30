@@ -149,11 +149,11 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Header section with state */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-lg border border-zinc-200 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 md:p-6 rounded-lg border border-zinc-200 shadow-2xs">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-primary-500" />
-            <h1 className="text-xl font-bold text-navy-900 tracking-tight">Daily Recruitment Report</h1>
+            <h1 className="text-base md:text-xl font-bold text-navy-900 tracking-tight">Daily Recruitment Report</h1>
           </div>
           <p className="text-xs text-zinc-450">
             Report your daily client staffing metrics. Filled daily per consultant profile.

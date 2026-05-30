@@ -143,6 +143,9 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
   // Check if any overflow item is currently active (to highlight the "More" button)
   const isOverflowActive = overflowItems.some((item) => pathname === item.href.split('#')[0]);
 
+  // Hide AppSidebar bottom nav on pages that have their own mobile bottom tab bar
+  const hideMobileNav = pathname === '/employee/dashboard' || pathname === '/employee/attendance';
+
   const handleLogout = async () => {
     setIsMoreOpen(false);
     setConfirmLogout(true);
@@ -271,7 +274,8 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
       </aside>
 
       {/* ─── Mobile Bottom Navigation Bar ─── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      {/* Hidden on dashboard & attendance — those pages have their own bottom tab bar */}
+      {!hideMobileNav && <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-around h-16 px-2 pb-[env(safe-area-inset-bottom)] flex-row">
           {bottomBarItems.map((item) => {
             const isActive = pathname === item.href.split('#')[0];
@@ -342,11 +346,11 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
             </button>
           )}
         </div>
-      </nav>
+      </nav>}
  
       {/* ─── Mobile "More" Bottom Sheet Drawer ─── */}
       <AnimatePresence>
-        {isMoreOpen && (
+        {!hideMobileNav && isMoreOpen && (
           <>
             {/* Backdrop */}
             <motion.div

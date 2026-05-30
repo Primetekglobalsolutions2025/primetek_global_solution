@@ -232,7 +232,7 @@ export default function EmployeeDashboardClient({
             <div>
               <p className="text-white/80 text-sm">Good Morning,</p>
               <h1 className="text-3xl font-extrabold text-white tracking-tight mt-0.5 flex items-center gap-1.5">
-                {employee?.name ? employee.name.split(' ')[0] : 'Janu'} <span className="animate-bounce">≡ƒæï</span>
+                {employee?.name ? employee.name.split(' ')[0] : 'Janu'} <span className="animate-bounce">👋</span>
               </h1>
               <p className="text-white/60 text-[11px] mt-1.5 leading-relaxed">
                 Welcome back! Here's what's happening today.
