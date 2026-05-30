@@ -11,6 +11,7 @@ import Button from '@/components/ui/Button';
 import { updateInterviewStatus } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 interface InterviewRequest {
   id: string;
@@ -30,13 +31,6 @@ interface InterviewRequest {
   employee?: { name: string };
   profile?: { resume_url: string };
 }
-
-const statusColors: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-800 border-amber-200',
-  acknowledged: 'bg-blue-100 text-blue-800 border-blue-200',
-  completed: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  cancelled: 'bg-gray-100 text-gray-800 border-gray-200',
-};
 
 export default function InterviewRequestsClient({ initialRequests }: { initialRequests: InterviewRequest[] }) {
   const [requests, setRequests] = useState<InterviewRequest[]>(initialRequests);
@@ -211,12 +205,7 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
                           </div>
                         </td>
                         <td className="p-4 whitespace-nowrap">
-                          <span className={cn(
-                            "text-[8px] px-2.5 py-0.5 rounded-full font-mono font-medium border uppercase tracking-wider",
-                            statusColors[req.status] || statusColors.pending
-                          )}>
-                            {req.status}
-                          </span>
+                          <StatusBadge status={req.status} className="text-[8px] px-2.5 py-0.5" />
                         </td>
                         <td className="p-4 whitespace-nowrap text-right text-xs">
                           <div className="flex justify-end gap-1.5">
@@ -297,12 +286,7 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
                           {req.consultant_technology}
                         </span>
                       </div>
-                      <span className={cn(
-                        "text-[8px] px-2.5 py-0.5 rounded-full font-mono font-medium border uppercase tracking-wider",
-                        statusColors[req.status] || statusColors.pending
-                      )}>
-                        {req.status}
-                      </span>
+                      <StatusBadge status={req.status} className="text-[8px] px-2.5 py-0.5" />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 bg-zinc-50/50 p-2.5 rounded border border-zinc-200/60 text-[10px]">

@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/components/ui/Toast';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 interface Inquiry {
   id: string;
@@ -27,13 +28,6 @@ interface InquiryTableProps {
 }
 
 const statusOptions = ['all', 'new', 'contacted', 'qualified', 'closed'] as const;
-
-const statusColors: Record<string, string> = {
-  new: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  contacted: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  qualified: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  closed: 'bg-gray-500/10 text-gray-500 border-gray-500/20',
-};
 
 const ITEMS_PER_PAGE = 8;
 
@@ -242,12 +236,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
                     <p className="text-[10px] text-text-muted font-medium mt-0.5">{inquiry.email}</p>
                   </div>
                 </div>
-                <div className={cn(
-                  "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase shrink-0",
-                  statusColors[inquiry.status]
-                )}>
-                  {inquiry.status}
-                </div>
+                <StatusBadge status={inquiry.status} className="text-[8px] px-1.5 py-0.5" />
               </div>
 
               <div className="grid grid-cols-2 gap-2 bg-surface-alt/40 p-2.5 rounded-lg text-[10px] mb-3">
@@ -365,12 +354,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
                       </p>
                     </td>
                     <td className="px-4 py-2.5">
-                      <div className={cn(
-                        "inline-flex px-1.5 py-0.5 rounded text-[8px] font-bold tracking-wider border uppercase",
-                        statusColors[inquiry.status]
-                      )}>
-                        {inquiry.status}
-                      </div>
+                      <StatusBadge status={inquiry.status} className="text-[8px] px-1.5 py-0.5" />
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -518,7 +502,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
                         className={cn(
                           "px-4 py-2.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all border text-center cursor-pointer",
                           selectedInquiry.status === s
-                            ? "bg-white text-white border-navy-900 shadow-sm scale-[1.01]"
+                            ? "bg-navy-900 text-white border-navy-900 shadow-sm scale-[1.01]"
                             : "bg-white text-gray-500 border-border hover:border-navy-200"
                         )}
                       >

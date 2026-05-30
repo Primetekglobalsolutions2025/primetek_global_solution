@@ -11,6 +11,7 @@ import Button from '@/components/ui/Button';
 import { updateApplicationStatus, assignApplication, getAllEmployees } from './actions';
 import AddApplicationForm from '@/components/admin/AddApplicationForm';
 import { useToast } from '@/components/ui/Toast';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 export interface ApplicationRecord {
   id: string;
@@ -28,12 +29,21 @@ export interface ApplicationRecord {
   assigned_to?: string;
 }
 
-const statusColors: Record<string, string> = {
-  new: 'bg-zinc-50 text-zinc-700 border-zinc-200',
-  pending: 'bg-amber-50 text-amber-800 border-amber-200',
-  reviewed: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  shortlisted: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  rejected: 'bg-red-50 text-red-700 border-red-200',
+const getStatusSelectClass = (status: string) => {
+  const s = status?.toLowerCase() || '';
+  if (['shortlisted', 'completed', 'qualified'].includes(s)) {
+    return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  }
+  if (['pending', 'contacted', 'processing'].includes(s)) {
+    return 'bg-amber-50 text-amber-850 border-amber-200';
+  }
+  if (['rejected'].includes(s)) {
+    return 'bg-red-50 text-red-700 border-red-200';
+  }
+  if (['reviewed'].includes(s)) {
+    return 'bg-indigo-55 text-indigo-800 border-indigo-200';
+  }
+  return 'bg-zinc-50 text-zinc-700 border-zinc-200';
 };
 
 const statusOptions = ['all', 'pending', 'reviewed', 'shortlisted', 'rejected'] as const;
@@ -239,7 +249,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
                   <select
                     value={app.status}
                     onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
-                    className={`w-fit px-1.5 py-0.5 rounded text-[10px] font-semibold border cursor-pointer ${statusColors[app.status] || statusColors.new} focus:outline-none`}
+                    className={`w-fit px-1.5 py-0.5 rounded text-[10px] font-semibold border cursor-pointer ${getStatusSelectClass(app.status)} focus:outline-none`}
                   >
                     {statusOptions.filter((s) => s !== 'all').map((s) => (
                       <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
@@ -309,7 +319,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
                       <select
                         value={app.status}
                         onChange={(e) => handleUpdateStatus(app.id, e.target.value)}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border cursor-pointer ${statusColors[app.status] || statusColors.new} focus:outline-none`}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border cursor-pointer ${getStatusSelectClass(app.status)} focus:outline-none`}
                       >
                         {statusOptions.filter((s) => s !== 'all').map((s) => (
                           <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>

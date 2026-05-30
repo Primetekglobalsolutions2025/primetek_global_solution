@@ -11,27 +11,35 @@ interface StatusBadgeProps {
 const getStatusTheme = (status: string) => {
   const s = status?.toLowerCase() || '';
 
-  // Green / Success: active, working, present, approved, active desktop
-  if (['working', 'present', 'approved', 'approved wfh', 'desktop_active', 'desktop active'].includes(s)) {
+  // Red / Error: delete, remove, absent, rejected, timer paused
+  if (s.includes('delete') || s.includes('remove') || ['absent', 'rejected', 'rejected wfh', 'productive_timer_paused', 'productive timer paused', 'timer paused'].includes(s)) {
+    return {
+      bg: 'bg-red-50 text-red-700 border-red-200',
+      dot: 'bg-red-600',
+    };
+  }
+
+  // Green / Success: create, onboard, add, working, present, approved, shortlisted, completed
+  if (s.includes('create') || s.includes('onboard') || s.includes('add') || ['working', 'present', 'approved', 'approved wfh', 'desktop_active', 'desktop active', 'shortlisted', 'qualified', 'completed'].includes(s)) {
     return {
       bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       dot: 'bg-emerald-600',
     };
   }
 
-  // Yellow / Warning: idle, late, pending, pending wfh, break warning
-  if (['idle', 'late', 'pending', 'pending wfh', 'idle_warning', 'idle warning'].includes(s)) {
+  // Purple / System Info: override, reverse, correct, rebuild, reset, update, reviewed, half-day
+  if (s.includes('override') || s.includes('reverse') || s.includes('correct') || s.includes('rebuild') || s.includes('reset') || s.includes('update') || ['half-day', 'half_day', 'halfday', 'reviewed'].includes(s)) {
     return {
-      bg: 'bg-amber-50 text-amber-800 border-amber-200',
-      dot: 'bg-amber-600',
+      bg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      dot: 'bg-indigo-600',
     };
   }
 
-  // Red / Error: absent, rejected, timer paused
-  if (['absent', 'rejected', 'rejected wfh', 'productive_timer_paused', 'productive timer paused', 'timer paused'].includes(s)) {
+  // Yellow / Warning: idle, late, pending, contacted, processing
+  if (['idle', 'late', 'pending', 'pending wfh', 'idle_warning', 'idle warning', 'contacted', 'processing'].includes(s)) {
     return {
-      bg: 'bg-red-50 text-red-700 border-red-200',
-      dot: 'bg-red-600',
+      bg: 'bg-amber-50 text-amber-800 border-amber-200',
+      dot: 'bg-amber-600',
     };
   }
 
@@ -43,24 +51,16 @@ const getStatusTheme = (status: string) => {
     };
   }
 
-  // Blue / Info: break, lunch
-  if (['break', 'lunch'].includes(s)) {
+  // Blue / Info: break, lunch, acknowledged, assigned
+  if (['break', 'lunch', 'acknowledged', 'assigned'].includes(s)) {
     return {
       bg: 'bg-sky-50 text-sky-700 border-sky-200',
       dot: 'bg-sky-600',
     };
   }
 
-  // Purple / System Info: half-day
-  if (['half-day', 'half_day', 'halfday'].includes(s)) {
-    return {
-      bg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      dot: 'bg-indigo-600',
-    };
-  }
-
   // Zinc / Neutral: logged out, force logged out, etc.
-  if (['logged out', 'clocked_out', 'logged_out', 'force_logged_out', 'force_logout'].includes(s)) {
+  if (['logged out', 'clocked_out', 'logged_out', 'force_logged_out', 'force_logout', 'new', 'closed', 'cancelled'].includes(s)) {
     return {
       bg: 'bg-zinc-50 text-zinc-700 border-zinc-200',
       dot: 'bg-zinc-500',

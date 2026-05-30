@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Card from '@/components/ui/Card';
 import { History, User, Clock, ShieldCheck, Search, Activity, LogIn, LogOut, Home, AlertTriangle, RefreshCw, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 const formatSafeDateTime = (dateStr: any) => {
   if (!dateStr) return 'N/A';
@@ -81,27 +82,8 @@ export default async function AuditLogsPage(props: PageProps) {
   const totalCount = count || 0;
   const totalPages = Math.ceil(totalCount / limit) || 1;
 
-  // Fetch recent activity (last 24h attendance events)
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  let recentActivity: any[] | null = null;
-  try {
-    const { data } = await supabaseAdmin
-      .from('attendance')
-      .select('id, employee_id, date, check_in, check_out, status')
-      .gte('date', yesterday)
-      .order('date', { ascending: false })
-      .limit(15);
-    recentActivity = data;
-  } catch (e) {
-    console.error('Error fetching recent activity:', e);
-  }
-
   // Batch query to resolve user emails and names
-  const activityEmpIds = Array.from(new Set(recentActivity?.map(a => a.employee_id) || [])).filter(Boolean);
-  const userIds = Array.from(new Set([
-    ...(logs?.map(log => log.user_id) || []),
-    ...activityEmpIds,
-  ])).filter(Boolean);
+  const userIds = Array.from(new Set(logs?.map(log => log.user_id) || [])).filter(Boolean);
   const [{ data: admins }, { data: emps }] = await Promise.all([
     supabaseAdmin.from('admin_users').select('id, email').in('id', userIds.length ? userIds : ['_']),
     supabaseAdmin.from('employees').select('id, name, email').in('id', userIds.length ? userIds : ['_'])
@@ -140,69 +122,6 @@ export default async function AuditLogsPage(props: PageProps) {
           />
         </form>
       </div>
-
-      {/* Activity Monitoring Section */}
-      <div id="activity" className="scroll-mt-20 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-5 bg-primary-500 rounded-full" />
-            <h2 className="text-sm font-semibold text-navy-900 tracking-tight font-sans">Activity Monitoring</h2>
-          </div>
-          <span className="text-[9px] font-mono font-medium text-zinc-500 uppercase tracking-wider bg-zinc-150/50 border border-zinc-200 px-3 py-1 rounded transition-all">
-            {recentActivity?.length || 0} events
-          </span>
-        </div>
-
-        <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs overflow-hidden">
-          {(!recentActivity || recentActivity.length === 0) ? (
-            <div className="p-12 text-center font-sans">
-              <div className="w-10 h-10 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center mx-auto mb-3 text-zinc-400">
-                <Activity className="w-5 h-5" />
-              </div>
-              <p className="text-xs font-semibold text-navy-900 uppercase tracking-wider font-mono">No Recent Activity</p>
-              <p className="text-[11px] text-zinc-400 mt-0.5">No attendance events recorded in the last 24 hours.</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-zinc-100 max-h-[320px] overflow-y-auto">
-              {recentActivity.map((act) => {
-                const name = actorMap[act.employee_id]?.name || 'Unknown';
-                const isWFH = act.status?.includes('WFH');
-                const hasCheckOut = !!act.check_out;
-                const isPending = act.status === 'Pending WFH';
-                const Icon = isWFH ? Home : hasCheckOut ? LogOut : LogIn;
-                const iconColor = isWFH ? 'text-violet-650' : hasCheckOut ? 'text-amber-650' : 'text-emerald-650';
-                const iconBg = isWFH ? 'bg-violet-500/10 border-violet-500/10' : hasCheckOut ? 'bg-amber-500/10 border-amber-500/10' : 'bg-emerald-500/10 border-emerald-500/10';
-                const label = isWFH
-                  ? (isPending ? 'WFH Request (Pending)' : `WFH ${act.status?.replace(' WFH', '')}`)
-                  : hasCheckOut ? 'Checked Out' : 'Checked In';
-                const time = hasCheckOut 
-                  ? formatSafeTimeOnly(act.check_out) 
-                  : formatSafeTimeOnly(act.check_in);
-                return (
-                  <div key={act.id} className="flex items-center gap-3.5 px-5 py-3.5 hover:bg-zinc-50/50 transition-all group">
-                    <div className={cn('w-8 h-8 rounded-md flex items-center justify-center shrink-0 border transition-transform duration-300 group-hover:scale-105', iconBg, iconColor)}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-navy-900 truncate font-sans">{name}</p>
-                      <p className="text-[10px] text-zinc-550 mt-0.5 font-medium font-sans">
-                        {label}{time ? ` · ${time}` : ''} · {act.date}
-                      </p>
-                    </div>
-                    {isPending && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[8px] font-mono font-medium bg-amber-50 text-amber-700 border border-amber-250 uppercase tracking-wider shrink-0">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        Pending
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Mobile view */}
       <div className="block md:hidden space-y-3">
         {(!logs || logs.length === 0) ? (
@@ -214,10 +133,6 @@ export default async function AuditLogsPage(props: PageProps) {
           </div>
         ) : (
           logs.map((log) => {
-            const isDelete = log.action.includes('DELETE');
-            const isCreate = log.action.includes('CREATE') || log.action.includes('ONBOARD');
-            const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
-            
             return (
               <div key={log.id} className="bg-white rounded-lg border border-zinc-200 shadow-2xs p-5 space-y-4 text-zinc-650">
                 <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
@@ -225,15 +140,7 @@ export default async function AuditLogsPage(props: PageProps) {
                     <Clock className="w-3.5 h-3.5 text-zinc-350" />
                     <span>{formatSafeDateTime(log.created_at)}</span>
                   </div>
-                  <span className={cn(
-                    "inline-flex px-2 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider",
-                    isDelete ? 'bg-red-50 text-red-700 border-red-200' :
-                    isCreate ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    isOverride ? 'bg-violet-50 text-violet-750 border-violet-200' :
-                    'bg-blue-50 text-blue-700 border-blue-200'
-                  )}>
-                    {log.action}
-                  </span>
+                  <StatusBadge status={log.action} />
                 </div>
                 <div className="grid grid-cols-2 gap-4 bg-zinc-50/50 p-3 rounded-lg border border-zinc-200/60 text-[10px]">
                   <div>
@@ -317,15 +224,7 @@ export default async function AuditLogsPage(props: PageProps) {
                       </div>
                     </td>
                     <td className="p-4 whitespace-nowrap">
-                      <span className={cn(
-                        "inline-flex px-2 py-0.5 rounded text-[8px] font-mono font-medium border uppercase tracking-wider",
-                        isDelete ? 'bg-red-50 text-red-700 border-red-200' :
-                        isCreate ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        isOverride ? 'bg-violet-50 text-violet-750 border-violet-200' :
-                        'bg-blue-50 text-blue-700 border-blue-200'
-                      )}>
-                        {log.action}
-                      </span>
+                      <StatusBadge status={log.action} />
                     </td>
                     <td className="p-4 whitespace-nowrap text-[9px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
                       {log.entity_type}

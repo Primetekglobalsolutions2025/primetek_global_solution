@@ -16,14 +16,7 @@ import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
-
-const statusColors: Record<string, string> = {
-  assigned: 'bg-blue-100 text-blue-700',
-  processing: 'bg-amber-100 text-amber-700',
-  completed: 'bg-emerald-100 text-emerald-700',
-  rejected: 'bg-red-100 text-red-600',
-  pending: 'bg-violet-100 text-violet-700',
-};
+import StatusBadge from '@/components/ui/StatusBadge';
 
 const IT_KEYWORDS = [
   'developer', 'engineer', 'architect', 'programmer', 'coder', 'analyst',
@@ -388,12 +381,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                           </span>
                         </td>
                         <td className="p-4 whitespace-nowrap">
-                          <span className={cn(
-                            "text-[8px] px-2 py-0.5 rounded-full font-mono font-medium border uppercase tracking-wider",
-                            statusColors[profile.status?.toLowerCase() || ''] || 'bg-blue-50 text-blue-700 border-blue-200'
-                          )}>
-                            {profile.status || 'Pending'}
-                          </span>
+                          <StatusBadge status={profile.status || 'Pending'} className="text-[8px] px-2 py-0.5" />
                         </td>
                         <td className="p-4 whitespace-nowrap">
                           {profile.resume_url ? (
@@ -466,12 +454,7 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                     </div>
 
                     <div className="flex items-center justify-between pt-1">
-                      <span className={cn(
-                        "text-[8px] px-2 py-0.5 rounded-full font-mono font-medium border uppercase tracking-wider",
-                        statusColors[profile.status?.toLowerCase() || ''] || 'bg-blue-50 text-blue-700 border-blue-200'
-                      )}>
-                        {profile.status || 'Pending'}
-                      </span>
+                      <StatusBadge status={profile.status || 'Pending'} className="text-[8px] px-2 py-0.5" />
                       {profile.resume_url && (
                         <a href={profile.resume_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider">
                           <Download className="w-3.5 h-3.5" /> DOCX Resume
