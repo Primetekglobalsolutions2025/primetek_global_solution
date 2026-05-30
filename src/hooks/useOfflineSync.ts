@@ -9,7 +9,7 @@ import {
   clearSyncedEntries,
   type OfflineAttendanceEntry,
 } from '@/lib/offline-queue';
-import { checkIn, checkOut, requestWFH, startBreak, endBreak } from '@/app/employee/attendance/actions';
+import { checkIn, checkOut, requestWFH, startBreak, endBreak, submitOfflineRecoveryRequest } from '@/app/employee/attendance/actions';
 
 const MAX_RETRIES = 3;
 
@@ -38,6 +38,15 @@ export function useOfflineSync() {
 
     for (const entry of pending) {
       if (entry.retryCount >= MAX_RETRIES) {
+        await submitOfflineRecoveryRequest(
+          entry.action,
+          entry.timestamp,
+          entry.lat,
+          entry.lng,
+          entry.fingerprint,
+          entry.errorMessage || 'Max retries exceeded'
+        );
+        removeFromQueue(entry.id);
         failCount++;
         continue;
       }
@@ -49,7 +58,17 @@ export function useOfflineSync() {
 
         switch (entry.action) {
           case 'check_in':
-            result = await checkIn(entry.lat, entry.lng, undefined, undefined, entry.fingerprint, entry.timestamp);
+            result = await checkIn(
+              entry.lat,
+              entry.lng,
+              undefined,
+              undefined,
+              entry.fingerprint,
+              entry.timestamp,
+              undefined,
+              undefined,
+              true // isOfflineSync
+            );
             if (result.success && result.recordId) {
               const queue = getOfflineQueue();
               const checkoutEntry = queue.find(e => e.action === 'check_out' && e.recordId === entry.id);
@@ -71,7 +90,15 @@ export function useOfflineSync() {
             }
             break;
           case 'wfh_request':
-            result = await requestWFH(entry.lat, entry.lng, undefined, undefined, entry.fingerprint, entry.timestamp);
+            result = await requestWFH(
+              entry.lat,
+              entry.lng,
+              undefined,
+              undefined,
+              entry.fingerprint,
+              entry.timestamp,
+              true // isOfflineSync
+            );
             if (result.success && result.recordId) {
               const queue = getOfflineQueue();
               const checkoutEntry = queue.find(e => e.action === 'check_out' && e.recordId === entry.id);
@@ -94,19 +121,46 @@ export function useOfflineSync() {
           updateQueueEntry(entry.id, { status: 'synced' });
           successCount++;
         } else {
-          updateQueueEntry(entry.id, {
-            status: 'failed',
-            retryCount: entry.retryCount + 1,
-            errorMessage: result.error || 'Sync failed',
-          });
+          const nextRetry = entry.retryCount + 1;
+          if (nextRetry >= MAX_RETRIES) {
+            await submitOfflineRecoveryRequest(
+              entry.action,
+              entry.timestamp,
+              entry.lat,
+              entry.lng,
+              entry.fingerprint,
+              result.error || 'Sync failed'
+            );
+            removeFromQueue(entry.id);
+          } else {
+            updateQueueEntry(entry.id, {
+              status: 'failed',
+              retryCount: nextRetry,
+              errorMessage: result.error || 'Sync failed',
+            });
+          }
           failCount++;
         }
-      } catch {
-        updateQueueEntry(entry.id, {
-          status: 'failed',
-          retryCount: entry.retryCount + 1,
-          errorMessage: 'Network error during sync',
-        });
+      } catch (err) {
+        const nextRetry = entry.retryCount + 1;
+        const errStr = err instanceof Error ? err.message : 'Network error during sync';
+        if (nextRetry >= MAX_RETRIES) {
+          await submitOfflineRecoveryRequest(
+            entry.action,
+            entry.timestamp,
+            entry.lat,
+            entry.lng,
+            entry.fingerprint,
+            errStr
+          );
+          removeFromQueue(entry.id);
+        } else {
+          updateQueueEntry(entry.id, {
+            status: 'failed',
+            retryCount: nextRetry,
+            errorMessage: errStr,
+          });
+        }
         failCount++;
       }
     }

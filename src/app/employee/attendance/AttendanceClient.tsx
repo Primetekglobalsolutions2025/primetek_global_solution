@@ -436,6 +436,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
 
     const handleVisibility = async () => {
       if (!isMountedRef.current) return;
+      if (!isLeaderRef.current) return; // Only leader tab processes visibility/auto-break
 
       if (document.hidden) {
         if (checkedIn && !isCheckedOut && currentStatus === 'Working' && todayRecord) {
@@ -486,6 +487,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
       worker = new SharedWorker('/workers/idle-worker.js');
       worker.port.onmessage = async (e) => {
         const { type, state: workerState } = e.data;
+        if (!isLeaderRef.current) return; // Only leader tab writes status transitions to DB
         if (type === 'STATE_CHANGED') {
           await handleStateTransition(workerState);
         } else if (type === 'TRIGGER_AUTO_BREAK') {
@@ -498,15 +500,24 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
       fallbackBc = new BroadcastChannel('idle_sync');
       fallbackBc.onmessage = async (e) => {
         const { type, state: workerState } = e.data;
-        if (type === 'STATE_CHANGED') {
-          await handleStateTransition(workerState);
-        } else if (type === 'TRIGGER_AUTO_BREAK') {
-          await handleStateTransition('Break (Auto)');
+        if (type === 'USER_ACTIVITY') {
+          lastAct = Date.now();
+          if (isLeaderRef.current && (currentStatus === 'Idle' || currentStatus === 'Break (Auto)')) {
+            await handleStateTransition('Working');
+            if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Working' });
+          }
+        } else if (isLeaderRef.current) {
+          if (type === 'STATE_CHANGED') {
+            await handleStateTransition(workerState);
+          } else if (type === 'TRIGGER_AUTO_BREAK') {
+            await handleStateTransition('Break (Auto)');
+          }
         }
       };
 
       let lastAct = Date.now();
       localInterval = setInterval(async () => {
+        if (!isLeaderRef.current) return; // Only leader runs the tick check
         const delta = Date.now() - lastAct;
         // 3 minutes (180,000 ms) idle threshold
         if (delta >= 180000 && delta < 300000 && currentStatus === 'Working') {
@@ -523,6 +534,10 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
       
       const onActivity = async () => {
         lastAct = Date.now();
+        if (!isLeaderRef.current) {
+          if (fallbackBc) fallbackBc.postMessage({ type: 'USER_ACTIVITY' });
+          return;
+        }
         if (currentStatus === 'Idle' || currentStatus === 'Break (Auto)') {
           await handleStateTransition('Working');
           if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Working' });

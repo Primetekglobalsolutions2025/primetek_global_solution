@@ -59,7 +59,8 @@ export async function checkIn(
   deviceFingerprint?: string,
   clientTimestamp?: string,
   deviceInfo?: { deviceType: string; deviceLabel: string },
-  tabId?: string
+  tabId?: string,
+  isOfflineSync?: boolean
 ) {
   try {
     const session = await getSession();
@@ -76,16 +77,24 @@ export async function checkIn(
       if (diff > 60 * 1000) {
         throw new Error('Future timestamp detected. Anti-tampering block triggered.');
       }
-      // Reject timestamps more than 10 minutes in the past
-      if (diff < -10 * 60 * 1000) {
-        throw new Error('Stale timestamp detected. Anti-tampering block triggered.');
-      }
 
-      // Check if client timestamp matches server shift date
-      const { shiftDateStr: serverShiftDate } = getShiftInfo();
-      const { shiftDateStr: clientShiftDate } = getShiftInfo(parsedTime);
-      if (clientShiftDate !== serverShiftDate) {
-        throw new Error('Timestamp shift date mismatch.');
+      if (isOfflineSync) {
+        // For offline sync, allow up to 72 hours (TTL) historical inserts
+        if (diff < -72 * 60 * 60 * 1000) {
+          throw new Error('Stale offline sync timestamp detected (exceeds 72h TTL).');
+        }
+      } else {
+        // Reject timestamps more than 10 minutes in the past for live attempts
+        if (diff < -10 * 60 * 1000) {
+          throw new Error('Stale timestamp detected. Anti-tampering block triggered.');
+        }
+
+        // Check if client timestamp matches server shift date
+        const { shiftDateStr: serverShiftDate } = getShiftInfo();
+        const { shiftDateStr: clientShiftDate } = getShiftInfo(parsedTime);
+        if (clientShiftDate !== serverShiftDate) {
+          throw new Error('Timestamp shift date mismatch.');
+        }
       }
       
       shiftDateRef = parsedTime; // Only used for shift date detection
@@ -180,13 +189,14 @@ export async function checkIn(
     }
 
     // 4. Record Check-in & Calculate Lateness
-    // 6:45 PM IST is 13:15 UTC. Check-in is late if now >= shiftStart + 15 minutes
+    // 6:45 PM IST is 13:15 UTC. Check-in is late if check-in time >= shiftStart + 15 minutes
     const lateThreshold = new Date(shiftStart.getTime() + 15 * 60 * 1000);
-    const isLate = serverNow.getTime() >= lateThreshold.getTime();
+    const checkInTime = clientTimestamp ? new Date(clientTimestamp) : serverNow;
+    const isLate = checkInTime.getTime() >= lateThreshold.getTime();
     
     // Calculate late minutes relative to shift start (6:30 PM IST = 13:00 UTC)
     const lateMinutes = isLate 
-      ? Math.max(0, Math.floor((serverNow.getTime() - shiftStart.getTime()) / (1000 * 60)))
+      ? Math.max(0, Math.floor((checkInTime.getTime() - shiftStart.getTime()) / (1000 * 60)))
       : 0;
 
     const isMobile = deviceInfo?.deviceType === 'mobile' || deviceInfo?.deviceType === 'tablet';
@@ -197,7 +207,7 @@ export async function checkIn(
       .insert([{
         employee_id: session.id,
         date: shiftDateStr,
-        check_in: serverNow.toISOString(),
+        check_in: checkInTime.toISOString(),
         lat: Number(lat),
         lng: Number(lng),
         status: initialStatus,
@@ -229,6 +239,7 @@ export async function checkIn(
         session_id: attRecord.id,
         employee_id: session.id,
         event_type: eventType,
+        event_timestamp: checkInTime.toISOString(),
         sequence_number: 1,
         idempotency_key: `clk-in-${attRecord.id}`,
         client_ip: ip === 'unknown' ? '0.0.0.0' : ip,
@@ -264,7 +275,8 @@ export async function requestWFH(
   ipAddress?: string,
   userAgent?: string,
   deviceFingerprint?: string,
-  clientTimestamp?: string
+  clientTimestamp?: string,
+  isOfflineSync?: boolean
 ) {
   try {
     const reqHeaders = await headers();
@@ -281,16 +293,24 @@ export async function requestWFH(
       if (diff > 60 * 1000) {
         throw new Error('Future timestamp detected. Anti-tampering block triggered.');
       }
-      // Reject timestamps more than 10 minutes in the past
-      if (diff < -10 * 60 * 1000) {
-        throw new Error('Stale timestamp detected. Anti-tampering block triggered.');
-      }
 
-      // Check if client timestamp matches server shift date
-      const { shiftDateStr: serverShiftDate } = getShiftInfo();
-      const { shiftDateStr: clientShiftDate } = getShiftInfo(parsedTime);
-      if (clientShiftDate !== serverShiftDate) {
-        throw new Error('Timestamp shift date mismatch.');
+      if (isOfflineSync) {
+        // For offline sync, allow up to 72 hours (TTL) historical inserts
+        if (diff < -72 * 60 * 60 * 1000) {
+          throw new Error('Stale offline sync timestamp detected (exceeds 72h TTL).');
+        }
+      } else {
+        // Reject timestamps more than 10 minutes in the past for live attempts
+        if (diff < -10 * 60 * 1000) {
+          throw new Error('Stale timestamp detected. Anti-tampering block triggered.');
+        }
+
+        // Check if client timestamp matches server shift date
+        const { shiftDateStr: serverShiftDate } = getShiftInfo();
+        const { shiftDateStr: clientShiftDate } = getShiftInfo(parsedTime);
+        if (clientShiftDate !== serverShiftDate) {
+          throw new Error('Timestamp shift date mismatch.');
+        }
       }
       
       shiftDateRef = parsedTime; // Only used for shift date detection
@@ -358,9 +378,10 @@ export async function requestWFH(
 
     // Record WFH request & Lateness
     const lateThreshold = new Date(shiftStart.getTime() + 15 * 60 * 1000);
-    const isLate = serverNow.getTime() >= lateThreshold.getTime();
+    const checkInTime = clientTimestamp ? new Date(clientTimestamp) : serverNow;
+    const isLate = checkInTime.getTime() >= lateThreshold.getTime();
     const lateMinutes = isLate 
-      ? Math.max(0, Math.floor((serverNow.getTime() - shiftStart.getTime()) / (1000 * 60)))
+      ? Math.max(0, Math.floor((checkInTime.getTime() - shiftStart.getTime()) / (1000 * 60)))
       : 0;
 
     const { data: attRecord, error } = await supabaseAdmin
@@ -368,7 +389,7 @@ export async function requestWFH(
       .insert([{
         employee_id: session.id,
         date: shiftDateStr,
-        check_in: serverNow.toISOString(),
+        check_in: checkInTime.toISOString(),
         lat: Number(lat),
         lng: Number(lng),
         status: 'Pending WFH',
@@ -390,6 +411,7 @@ export async function requestWFH(
         session_id: attRecord.id,
         employee_id: session.id,
         event_type: eventType,
+        event_timestamp: checkInTime.toISOString(),
         sequence_number: 1,
         idempotency_key: `wfh-clk-in-${attRecord.id}`,
         client_ip: ip === 'unknown' ? '0.0.0.0' : ip,
@@ -1387,6 +1409,45 @@ export async function getAttendanceForMonth(year: number, month: number) {
   } catch (err) {
     console.error('Error fetching attendance for month:', err);
     return { success: false, error: 'Failed to fetch records' };
+  }
+}
+
+export async function submitOfflineRecoveryRequest(
+  action: string,
+  timestamp: string,
+  lat: number,
+  lng: number,
+  deviceFingerprint?: string,
+  errorMessage?: string
+) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    await verifyActiveSession(session.id);
+
+    const { error } = await supabaseAdmin
+      .from('attendance_recovery_queue')
+      .insert([{
+        employee_id: session.id,
+        action,
+        original_timestamp: timestamp,
+        gps_lat: Number(lat),
+        gps_lng: Number(lng),
+        device_fingerprint: deviceFingerprint || null,
+        error_message: errorMessage || null,
+        status: 'PENDING'
+      }]);
+
+    if (error) throw error;
+
+    revalidatePath('/employee/attendance');
+    revalidatePath('/admin/attendance');
+    return { success: true };
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : 'Failed to submit recovery request';
+    return { success: false, error: errorMsg };
   }
 }
 

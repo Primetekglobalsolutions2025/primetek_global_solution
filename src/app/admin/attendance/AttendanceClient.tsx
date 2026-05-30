@@ -25,7 +25,8 @@ import {
   Activity,
   Signal,
   Info,
-  ExternalLink
+  ExternalLink,
+  RefreshCw
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -38,7 +39,9 @@ import {
   rebuildSessionProjection, 
   overrideDeviceValidation,
   getRealtimeAttendanceUpdates,
-  getSingleAdminAttendanceRecord
+  getSingleAdminAttendanceRecord,
+  getAttendanceRecoveryQueue,
+  resolveRecoveryRequest
 } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { cn, getISTShiftDate } from '@/lib/utils';
@@ -174,6 +177,47 @@ export default function AttendanceClient({
   const lastActiveTimeRef = useRef<number>(Date.now());
   const isPollingPausedRef = useRef<boolean>(false);
   const { toast } = useToast();
+
+  // Recovery Queue State & Callbacks
+  const [recoveryQueue, setRecoveryQueue] = useState<any[]>([]);
+  const [isRecoveryQueueLoading, setIsRecoveryQueueLoading] = useState(false);
+
+  const fetchRecoveryQueue = useCallback(async () => {
+    try {
+      setIsRecoveryQueueLoading(true);
+      const queue = await getAttendanceRecoveryQueue();
+      setRecoveryQueue(queue);
+    } catch (err) {
+      console.error('Failed to fetch recovery queue:', err);
+    } finally {
+      setIsRecoveryQueueLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRecoveryQueue();
+  }, [fetchRecoveryQueue]);
+
+  const handleResolveRecovery = async (requestId: string, status: 'APPROVED' | 'REJECTED') => {
+    const justification = window.prompt(`Enter justification for ${status.toLowerCase()} this recovery request:`);
+    if (justification === null) return; // user cancelled
+
+    try {
+      toast.success(`Resolving recovery request...`);
+      const res = await resolveRecoveryRequest(requestId, status, justification);
+      if (res.success) {
+        toast.success(`Request successfully ${status.toLowerCase()}.`);
+        await fetchRecoveryQueue();
+        await fetchRealtimeUpdates();
+        router.refresh();
+      } else {
+        toast.error('Failed to resolve request.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Error resolving request.');
+    }
+  };
 
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
   const [selectedRecordEvents, setSelectedRecordEvents] = useState<AttendanceEvent[]>([]);
@@ -318,10 +362,11 @@ export default function AttendanceClient({
     try {
       const data = await getRealtimeAttendanceUpdates();
       setRealtimeData(data);
+      await fetchRecoveryQueue();
     } catch (err) {
       console.error('Failed to fetch realtime updates:', err);
     }
-  }, []);
+  }, [fetchRecoveryQueue]);
 
   // Set up polling and synchronization loop with visibility & inactivity checks
   useEffect(() => {
@@ -857,9 +902,7 @@ export default function AttendanceClient({
             Clear Filter
           </button>
         )}
-      </div>
-
-      {/* Attention Center (Exceptions Banner) */}
+      </div>      {/* Attention Center (Exceptions Banner) */}
       {((realtimeData?.metrics.gpsAlerts ?? 0) > 0 || 
         (realtimeData?.metrics.staleSessions ?? 0) > 0 || 
         (realtimeData?.metrics.pendingDisputes ?? 0) > 0) && (
@@ -910,7 +953,7 @@ export default function AttendanceClient({
                 className="bg-white border border-red-100 rounded-lg p-3 hover:border-red-300 hover:shadow-sm transition-all cursor-pointer flex items-start gap-2.5 select-none"
               >
                 <div className="p-1.5 bg-red-50 rounded-md shrink-0 border border-red-100">
-                  <ShieldAlert className="w-3.5 h-3.5 text-red-650" />
+                  <ShieldAlert className="w-3.5 h-3.5 text-red-655" />
                 </div>
                 <div>
                   <p className="text-xs font-black text-navy-900 leading-tight">
@@ -933,7 +976,7 @@ export default function AttendanceClient({
                 className="bg-white border border-red-100 rounded-lg p-3 hover:border-red-300 hover:shadow-sm transition-all cursor-pointer flex items-start gap-2.5 select-none"
               >
                 <div className="p-1.5 bg-red-50 rounded-md shrink-0 border border-red-100">
-                  <Gavel className="w-3.5 h-3.5 text-red-605" />
+                  <Gavel className="w-3.5 h-3.5 text-red-655" />
                 </div>
                 <div>
                   <p className="text-xs font-black text-navy-900 leading-tight">
@@ -945,6 +988,59 @@ export default function AttendanceClient({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Recovery Queue Approvals Panel */}
+      {recoveryQueue.filter(r => r.status === 'PENDING').length > 0 && (
+        <div className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm space-y-3">
+          <div className="flex items-center justify-between border-b border-zinc-150 pb-2">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-primary-600 animate-spin" style={{ animationDuration: '3s' }} />
+              <h4 className="font-heading font-black text-xs text-navy-900 uppercase tracking-wider">
+                Offline Sync Recovery Queue ({recoveryQueue.filter(r => r.status === 'PENDING').length})
+              </h4>
+            </div>
+            <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[8px] font-black uppercase tracking-widest border border-blue-200/40">
+              Needs Review
+            </span>
+          </div>
+
+          <div className="divide-y divide-zinc-150 max-h-[300px] overflow-y-auto pr-1">
+            {recoveryQueue
+              .filter(r => r.status === 'PENDING')
+              .map((req) => (
+                <div key={req.id} className="py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-navy-900">{req.employee_name}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-zinc-100 border border-zinc-200 text-zinc-650">
+                        {req.action.replace('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-zinc-500 font-medium flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span>Time: {new Date(req.original_timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</span>
+                      <span>GPS: {req.gps_lat.toFixed(4)}, {req.gps_lng.toFixed(4)}</span>
+                      {req.error_message && <span className="text-red-500 font-semibold">Error: {req.error_message}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => handleResolveRecovery(req.id, 'APPROVED')}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleResolveRecovery(req.id, 'REJECTED')}
+                      className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-wider transition-all active:scale-95 cursor-pointer"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       )}

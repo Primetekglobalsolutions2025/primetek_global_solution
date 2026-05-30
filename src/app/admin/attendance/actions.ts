@@ -14,6 +14,17 @@ declare module 'exceljs' {
   }
 }
 
+async function sweepActiveSessionsTelemetry(): Promise<void> {
+  try {
+    const { error } = await supabaseAdmin.rpc('sweep_active_sessions_telemetry');
+    if (error) {
+      console.error('[TelemetrySweeper] RPC error:', error.message);
+    }
+  } catch (err) {
+    console.error('[TelemetrySweeper] Unexpected error:', err);
+  }
+}
+
 /**
  * Proactively sweep and close all stale active sessions across the entire
  * workforce. Invokes the database-level sweeper which appends FORCE_LOGOUT
@@ -43,7 +54,9 @@ export async function getAdminAttendance(startDate?: string, endDate?: string, p
   if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
   await verifyActiveAdmin(session.id);
 
-  // Proactively sweep stale sessions before fetching — guarantees live monitor accuracy
+  // Proactively sweep active telemetry heartbeats and stale sessions before fetching — guarantees live monitor accuracy
+  await sweepActiveSessionsTelemetry();
+  
   const todayIST = getISTShiftDate();
   const includesToday = (!startDate || startDate <= todayIST) && (!endDate || endDate >= todayIST);
   if (includesToday) {
@@ -875,6 +888,9 @@ export async function getRealtimeAttendanceUpdates() {
   if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
   await verifyActiveAdmin(session.id);
 
+  // Proactively sweep active telemetry heartbeats before returning KPIs
+  await sweepActiveSessionsTelemetry();
+
   const activeShiftDate = getISTShiftDate();
   
   // Shift start in UTC is 13:00 (18:30 IST) of the activeShiftDate
@@ -1078,4 +1094,197 @@ export async function getSingleAdminAttendanceRecord(sessionId: string) {
     awaiting_desktop_deadline: record.awaiting_desktop_deadline || null,
     last_heartbeat_at: proj?.last_heartbeat_at || null,
   };
+}
+
+export async function getAttendanceRecoveryQueue() {
+  const session = await getSession();
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
+
+  const { data, error } = await supabaseAdmin
+    .from('attendance_recovery_queue')
+    .select(`
+      *,
+      employees (
+        name
+      )
+    `)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching attendance recovery queue:', error);
+    return [];
+  }
+
+  return (data || []).map((r: any) => ({
+    id: r.id,
+    employee_id: r.employee_id,
+    employee_name: r.employees?.name || 'Unknown',
+    action: r.action,
+    original_timestamp: r.original_timestamp,
+    gps_lat: Number(r.gps_lat),
+    gps_lng: Number(r.gps_lng),
+    device_fingerprint: r.device_fingerprint,
+    error_message: r.error_message,
+    status: r.status,
+    resolved_by: r.resolved_by,
+    resolved_at: r.resolved_at,
+    created_at: r.created_at
+  }));
+}
+
+export async function resolveRecoveryRequest(
+  requestId: string,
+  status: 'APPROVED' | 'REJECTED',
+  justification?: string
+) {
+  const session = await getSession();
+  if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
+  await verifyActiveAdmin(session.id);
+
+  // 1. Fetch recovery request details
+  const { data: request, error: fetchErr } = await supabaseAdmin
+    .from('attendance_recovery_queue')
+    .select('*')
+    .eq('id', requestId)
+    .single();
+
+  if (fetchErr || !request) {
+    throw new Error('Recovery request not found');
+  }
+
+  if (request.status !== 'PENDING') {
+    throw new Error('Request has already been resolved');
+  }
+
+  // 2. Update recovery request status
+  const { error: updateErr } = await supabaseAdmin
+    .from('attendance_recovery_queue')
+    .update({
+      status,
+      resolved_by: session.id,
+      resolved_at: new Date().toISOString(),
+      error_message: justification || request.error_message
+    })
+    .eq('id', requestId);
+
+  if (updateErr) throw updateErr;
+
+  // 3. If approved, apply the recovery action to attendance
+  if (status === 'APPROVED') {
+    const lat = Number(request.gps_lat);
+    const lng = Number(request.gps_lng);
+    const ts = request.original_timestamp;
+    const fingerprint = request.device_fingerprint;
+    const empId = request.employee_id;
+
+    const dateStr = getISTShiftDate(new Date(ts));
+
+    if (request.action === 'check_in' || request.action === 'wfh_request') {
+      const isWFH = request.action === 'wfh_request';
+      const initStatus = isWFH ? 'Approved WFH' : 'Working';
+
+      // Insert attendance record
+      const { data: attRecord, error: attErr } = await supabaseAdmin
+        .from('attendance')
+        .insert([{
+          employee_id: empId,
+          date: dateStr,
+          check_in: ts,
+          lat,
+          lng,
+          status: initStatus,
+          is_late: false,
+          late_minutes: 0,
+          device_type: 'desktop',
+          device_label: 'Offline Synced (Approved)',
+          active_device_fingerprint: fingerprint || null,
+        }])
+        .select('id')
+        .single();
+
+      if (attErr) {
+        console.error('Error inserting attendance for approved recovery:', attErr);
+      } else if (attRecord) {
+        // Insert event
+        await supabaseAdmin
+          .from('attendance_events')
+          .insert([{
+            session_id: attRecord.id,
+            employee_id: empId,
+            event_type: 'CLOCK_IN',
+            sequence_number: 1,
+            idempotency_key: `recovery-clkin-${attRecord.id}`,
+            client_ip: '0.0.0.0',
+            gps_lat: lat,
+            gps_lng: lng,
+            payload: { is_recovery: true, approved_by: session.id, justification }
+          }]);
+
+        // Rebuild projection
+        await supabaseAdmin.rpc('rebuild_attendance_projection', {
+          p_session_id: attRecord.id
+        });
+      }
+    } else if (request.action === 'check_out') {
+      // Find active attendance record for that employee on that shift date
+      const { data: record } = await supabaseAdmin
+        .from('attendance')
+        .select('*')
+        .eq('employee_id', empId)
+        .eq('date', dateStr)
+        .is('check_out', null)
+        .maybeSingle();
+
+      if (record) {
+        // Append CLOCK_OUT event
+        const { data: lastEvent } = await supabaseAdmin
+          .from('attendance_events')
+          .select('sequence_number')
+          .eq('session_id', record.id)
+          .order('sequence_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+          
+        const nextSequence = (lastEvent?.sequence_number || 1) + 1;
+
+        await supabaseAdmin
+          .from('attendance_events')
+          .insert([{
+            session_id: record.id,
+            employee_id: empId,
+            event_type: 'CLOCK_OUT',
+            sequence_number: nextSequence,
+            idempotency_key: `recovery-clkout-${record.id}-${nextSequence}`,
+            client_ip: '0.0.0.0',
+            gps_lat: lat,
+            gps_lng: lng,
+            payload: { is_recovery: true, approved_by: session.id, justification, event_timestamp: ts }
+          }]);
+
+        // Rebuild projection
+        await supabaseAdmin.rpc('rebuild_attendance_projection', {
+          p_session_id: record.id
+        });
+      }
+    }
+
+    // Recalculate lates for the employee for that month
+    const requestDate = new Date(ts);
+    const year = requestDate.getFullYear();
+    const month = requestDate.getMonth() + 1;
+    await recalculateEmployeeLates(empId, year, month);
+  }
+
+  await logAuditAction(
+    'RESOLVE_RECOVERY_REQUEST',
+    'attendance',
+    requestId,
+    null,
+    { status, justification }
+  );
+
+  const { revalidatePath: nextRevalidatePath } = await import('next/cache');
+  nextRevalidatePath('/admin/attendance');
+  return { success: true };
 }

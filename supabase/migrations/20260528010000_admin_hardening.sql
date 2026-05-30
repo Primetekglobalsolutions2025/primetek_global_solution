@@ -77,13 +77,19 @@ BEGIN
   WHERE id = p_employee_id 
   FOR UPDATE;
 
-  -- Lock monthly attendance rows for employee
-  SELECT COALESCE(array_agg(id ORDER BY date ASC), '{}') INTO v_all_ids
-  FROM public.attendance
+  -- Lock monthly attendance rows for employee first (without aggregate)
+  PERFORM id FROM public.attendance
   WHERE employee_id = p_employee_id 
     AND date >= v_start_date 
     AND date < v_end_date
   FOR UPDATE;
+
+  -- Now aggregate the IDs safely
+  SELECT COALESCE(array_agg(id ORDER BY date ASC), '{}') INTO v_all_ids
+  FROM public.attendance
+  WHERE employee_id = p_employee_id 
+    AND date >= v_start_date 
+    AND date < v_end_date;
 
   -- Fetch unexempted lates
   SELECT COALESCE(array_agg(id ORDER BY date ASC), '{}') INTO v_unexempted_ids
