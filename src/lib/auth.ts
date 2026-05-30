@@ -180,16 +180,19 @@ export async function getSession(): Promise<TokenPayload | null> {
 
   try {
     const headerStore = await headers();
-    const referer = headerStore.get('referer');
-    const nextUrl = headerStore.get('next-url');
+    let pathname = headerStore.get('x-pathname') || '';
 
-    let pathname = '';
-    if (nextUrl) {
-      pathname = nextUrl;
-    } else if (referer) {
-      try {
-        pathname = new URL(referer).pathname;
-      } catch {}
+    if (!pathname) {
+      const referer = headerStore.get('referer');
+      const nextUrl = headerStore.get('next-url');
+
+      if (nextUrl) {
+        pathname = nextUrl;
+      } else if (referer) {
+        try {
+          pathname = new URL(referer).pathname;
+        } catch {}
+      }
     }
 
     if (pathname) {

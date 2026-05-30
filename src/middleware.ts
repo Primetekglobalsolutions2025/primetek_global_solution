@@ -124,6 +124,7 @@ export async function middleware(request: NextRequest) {
 
   const runMiddleware = async (): Promise<NextResponse> => {
     const { pathname } = request.nextUrl;
+    requestHeaders.set('x-pathname', pathname);
 
     // CSRF Protection: Validate Origin / Referer for state-mutating requests
     if (pathname.startsWith('/api') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
