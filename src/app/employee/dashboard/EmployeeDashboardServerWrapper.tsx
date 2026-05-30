@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { Clock, CalendarCheck, CalendarX, AlertTriangle, ArrowRight, Briefcase, LogIn, LogOut, CheckCircle2, Plane, Sparkles, User, MapPin, Compass, History, ClipboardList } from 'lucide-react';
+import { Clock, CalendarCheck, CalendarX, AlertTriangle, ArrowRight, Briefcase, LogIn, LogOut, CheckCircle2, Plane, User, MapPin, Compass, History, ClipboardList } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -8,8 +8,7 @@ import { cn, getISTShiftDate } from '@/lib/utils';
 import { closeStaleSessions } from '../attendance/actions';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { getCachedPortalConfig } from '@/lib/cache/portal-config';
-
-// StatusBadge inline function removed in favor of shared component import
+import EmployeeDashboardClient from './EmployeeDashboardClient';
 
 export default async function EmployeeDashboardServerWrapper() {
   const session = await getSession();
@@ -30,7 +29,7 @@ export default async function EmployeeDashboardServerWrapper() {
     configData,
     { data: dailyReportData }
   ] = await Promise.all([
-    supabaseAdmin.from('employees').select('name, employee_id, role, department').eq('id', session.id).single(),
+    supabaseAdmin.from('employees').select('name, employee_id, role, department, designation').eq('id', session.id).single(),
     (() => {
       const now = new Date();
       const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -100,9 +99,57 @@ export default async function EmployeeDashboardServerWrapper() {
   ];
 
   const firstName = employee?.name?.split(' ')[0] || 'Employee';
+  const isAdmin = session.role === 'admin' || session.role === 'hr';
+
+  // Parse holidays for mobile view
+  let holidays: { id: string; title: string; date: string; type: 'Company Holiday' | 'Optional Holiday' | 'Public Holiday' }[] = [];
+  try {
+    if (configMap['holidays_list']) {
+      holidays = JSON.parse(configMap['holidays_list']);
+    } else {
+      holidays = [{ id: 'independence-day-2025', title: 'Independence Day', date: '2025-08-15', type: 'Company Holiday' }];
+    }
+  } catch {
+    holidays = [{ id: 'independence-day-2025', title: 'Independence Day', date: '2025-08-15', type: 'Company Holiday' }];
+  }
+
+  // Mobile today record
+  const rawTodayRecord = (records || []).find((r) => r.date === todayStr);
+  const mobileTodayRecord = rawTodayRecord ? {
+    check_in: rawTodayRecord.check_in
+      ? new Date(rawTodayRecord.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
+      : '',
+    check_out: rawTodayRecord.check_out
+      ? new Date(rawTodayRecord.check_out).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
+      : null,
+    duration_hours: rawTodayRecord.check_in && rawTodayRecord.check_out
+      ? (new Date(rawTodayRecord.check_out).getTime() - new Date(rawTodayRecord.check_in).getTime()) / (1000 * 60 * 60)
+      : 0,
+    status: rawTodayRecord.status || '',
+  } : null;
 
   return (
-    <div className="space-y-6 pb-6">
+    <>
+      {/* ── MOBILE VIEW (hidden on md+) ── */}
+      <div className="block md:hidden">
+        <EmployeeDashboardClient
+          employee={employee ? {
+            name: employee.name,
+            employee_id: employee.employee_id,
+            role: employee.role,
+            department: employee.department,
+            designation: (employee as { designation?: string }).designation,
+          } : null}
+          todayRecord={mobileTodayRecord}
+          totalRemainingLeaves={totalRemainingLeaves}
+          initialHolidays={holidays}
+          isAdmin={isAdmin}
+        />
+      </div>
+
+      {/* ── DESKTOP VIEW (hidden on mobile) ── */}
+      <div className="hidden md:block">
+        <div className="space-y-6 pb-6">
       {/* Vercel layout Hero panel + Brand Navy Background */}
       <div className="relative overflow-hidden rounded-lg bg-navy-900 p-6 md:p-8 text-white shadow-md shadow-navy-900/15">
         {/* Subtle Decorative mesh highlights */}
@@ -360,6 +407,8 @@ export default async function EmployeeDashboardServerWrapper() {
           </div>
         </div>
       </div>
-    </div>
+        </div>
+      </div>
+    </>
   );
 }

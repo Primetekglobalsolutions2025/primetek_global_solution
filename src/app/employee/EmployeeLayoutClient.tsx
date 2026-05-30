@@ -160,12 +160,14 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
 
   return (
     <div className="employee-portal fixed inset-0 flex bg-zinc-50 overflow-hidden">
-      {session && <AppSidebar role={session.role} userName={session.name} />}
+      {/* Sidebar — desktop only */}
+      {session && <div className="hidden md:flex"><AppSidebar role={session.role} userName={session.name} /></div>}
       <div className="flex-1 flex flex-col min-w-0">
-        <AppHeader userName={session?.name} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6">
-          <div className="max-w-7xl mx-auto space-y-4">
-            <OfflineSyncBanner />
+        {/* Header — desktop only */}
+        <div className="hidden md:block"><AppHeader userName={session?.name} /></div>
+        <main className="flex-1 overflow-y-auto md:p-6 md:pb-6">
+          <div className="md:max-w-7xl md:mx-auto md:space-y-4">
+            <div className="hidden md:block"><OfflineSyncBanner /></div>
             {children}
           </div>
         </main>
