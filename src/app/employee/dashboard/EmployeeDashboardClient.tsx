@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useTransition } from 'react';
 import { 
-  Home, 
   Clock, 
   ClipboardList, 
   User, 
@@ -17,7 +16,9 @@ import {
   Loader2, 
   Users, 
   Megaphone,
-  Briefcase
+  LayoutGrid,
+  Contact,
+  Headset
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -63,6 +64,7 @@ export default function EmployeeDashboardClient({
 
   // Calendar state
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isHelpdeskOpen, setIsHelpdeskOpen] = useState(false);
   const [holidays, setHolidays] = useState<Holiday[]>(initialHolidays);
   const [currentDate, setCurrentDate] = useState(new Date(2025, 7, 1)); // Default to August 2025 to show Independence Day
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date(2025, 7, 15)); // Default to Aug 15, 2025
@@ -276,7 +278,7 @@ export default function EmployeeDashboardClient({
           {/* Floating 3D Attendance Illustration */}
           <div className="absolute top-4 right-1.5 w-[112px] h-[112px] opacity-90 select-none pointer-events-none">
             <Image 
-              src="/attendance_illustration.png" 
+              src="/attendance_illustration_v3.png" 
               alt="Attendance" 
               width={112} 
               height={112} 
@@ -350,48 +352,48 @@ export default function EmployeeDashboardClient({
         <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
           <h2 className="text-[14px] font-extrabold text-[#071B3A]">Quick Access</h2>
           
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-5 gap-1">
             {/* My Tasks */}
-            <Link href="/employee/assigned-profiles" className="flex flex-col items-center text-center">
+            <Link href="/employee/assigned-profiles" className="flex flex-col items-center text-center w-full min-w-0">
               <div className="w-[50px] h-[50px] rounded-[16px] bg-[#E6F3F2] flex items-center justify-center text-[#0B8B83] active:scale-95 transition-all">
                 <ClipboardList className="w-5 h-5" />
               </div>
-              <span className="text-[9px] font-bold text-[#64748B] mt-2 leading-none">My Tasks</span>
+              <span className="text-[9px] font-medium text-[#64748B] mt-2 text-center leading-tight tracking-tight w-full break-words">My Tasks</span>
             </Link>
 
             {/* My Clients */}
-            <Link href="/employee/assigned-profiles" className="flex flex-col items-center text-center">
+            <Link href="/employee/assigned-profiles" className="flex flex-col items-center text-center w-full min-w-0">
               <div className="w-[50px] h-[50px] rounded-[16px] bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6] active:scale-95 transition-all">
                 <Users className="w-5 h-5" />
               </div>
-              <span className="text-[9px] font-bold text-[#64748B] mt-2 leading-none">My Clients</span>
+              <span className="text-[9px] font-medium text-[#64748B] mt-2 text-center leading-tight tracking-tight w-full break-words">My Clients</span>
             </Link>
 
             {/* Daily Report */}
-            <Link href="/employee/daily-report" className="flex flex-col items-center text-center">
+            <Link href="/employee/daily-report" className="flex flex-col items-center text-center w-full min-w-0">
               <div className="w-[50px] h-[50px] rounded-[16px] bg-[#F3E8FF] flex items-center justify-center text-[#8B5CF6] active:scale-95 transition-all">
                 <ClipboardList className="w-5 h-5" />
               </div>
-              <span className="text-[9px] font-bold text-[#64748B] mt-2 leading-none">Daily Report</span>
+              <span className="text-[9px] font-medium text-[#64748B] mt-2 text-center leading-tight tracking-tight w-full break-words">Daily Report</span>
             </Link>
 
             {/* Announcements */}
-            <div className="flex flex-col items-center text-center cursor-pointer">
+            <div className="flex flex-col items-center text-center cursor-pointer w-full min-w-0">
               <div className="w-[50px] h-[50px] rounded-[16px] bg-[#FFF7EB] flex items-center justify-center text-[#F59E0B] active:scale-95 transition-all">
                 <Megaphone className="w-5 h-5" />
               </div>
-              <span className="text-[9px] font-bold text-[#64748B] mt-2 leading-none">Announcements</span>
+              <span className="text-[9px] font-medium text-[#64748B] mt-2 text-center leading-tight tracking-tight w-full break-words">Announcements</span>
             </div>
 
-            {/* Calendar */}
+            {/* Helpdesk */}
             <div 
-              onClick={() => setIsCalendarOpen(true)}
-              className="flex flex-col items-center text-center cursor-pointer"
+              onClick={() => setIsHelpdeskOpen(true)}
+              className="flex flex-col items-center text-center cursor-pointer w-full min-w-0"
             >
               <div className="w-[50px] h-[50px] rounded-[16px] bg-[#FFF1F2] flex items-center justify-center text-[#F43F5E] active:scale-95 transition-all">
-                <Calendar className="w-5 h-5" />
+                <Headset className="w-5 h-5" />
               </div>
-              <span className="text-[9px] font-bold text-[#64748B] mt-2 leading-none">Calendar</span>
+              <span className="text-[9px] font-medium text-[#64748B] mt-2 text-center leading-tight tracking-tight w-full break-words">Helpdesk</span>
             </div>
           </div>
         </section>
@@ -480,7 +482,7 @@ export default function EmployeeDashboardClient({
         
         {/* Home */}
         <Link href="/employee/dashboard" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full">
-          <Home className="w-5 h-5 text-[#0B8B83] stroke-[2.2]" />
+          <LayoutGrid className="w-5 h-5 text-[#0B8B83] stroke-[2.2]" />
           <span className="text-[10px] font-bold text-[#0B8B83]">Home</span>
         </Link>
 
@@ -498,7 +500,7 @@ export default function EmployeeDashboardClient({
 
         {/* Profiles */}
         <Link href="/employee/assigned-profiles" className="flex flex-col items-center justify-center gap-1 cursor-pointer flex-1 h-full text-[#94A3B8] hover:text-[#0B8B83] transition-colors">
-          <Briefcase className="w-5 h-5 stroke-[1.8]" />
+          <Contact className="w-5 h-5 stroke-[1.8]" />
           <span className="text-[10px] font-bold">Profiles</span>
         </Link>
 
@@ -715,6 +717,75 @@ export default function EmployeeDashboardClient({
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 9. HELPDESK & SUPPORT MODAL */}
+      {isHelpdeskOpen && (
+        <div className="fixed inset-0 bg-[#071B3A]/45 backdrop-blur-xs flex items-end justify-center z-50 p-4 max-w-[430px] mx-auto animate-fade-in">
+          <div className="bg-white rounded-t-[28px] w-full p-6 space-y-5 shadow-xl border-t border-[#E8EDF2] flex flex-col justify-between animate-slide-up">
+            
+            {/* Header */}
+            <div className="flex justify-between items-center pb-2 border-b border-[#EEF2F6]">
+              <div className="flex items-center gap-2">
+                <Headset className="w-5 h-5 text-[#0B8B83]" />
+                <h3 className="text-base font-extrabold text-[#071B3A]">HR Helpdesk & Support</h3>
+              </div>
+              <button 
+                onClick={() => setIsHelpdeskOpen(false)}
+                className="text-xs font-bold text-[#64748B] hover:text-[#071B3A] py-1 px-3 bg-[#F7F8FA] rounded-full active:scale-95 transition-all border-0 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-4 text-left">
+              <p className="text-xs text-[#64748B] font-medium leading-relaxed">
+                Need assistance with your shifts, salary discrepancies, or system access? Reach out to our HR Helpdesk.
+              </p>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-[#F7F8FA] rounded-xl border border-[#EEF2F6]">
+                  <div className="w-8 h-8 rounded-lg bg-[#E6F3F2] flex items-center justify-center text-[#0B8B83] shrink-0">
+                    <User className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-[#94A3B8] uppercase">HR Representative</p>
+                    <p className="text-xs font-extrabold text-[#071B3A]">Sarah Jenkins (HR Ops)</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-[#F7F8FA] rounded-xl border border-[#EEF2F6]">
+                  <div className="w-8 h-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6] shrink-0">
+                    <Headset className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-[#94A3B8] uppercase">Support Helpline</p>
+                    <a href="tel:+15550192834" className="text-xs font-extrabold text-[#0B8B83] hover:underline">+1 (555) 019-2834</a>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-[#F7F8FA] rounded-xl border border-[#EEF2F6]">
+                  <div className="w-8 h-8 rounded-lg bg-[#F3E8FF] flex items-center justify-center text-[#8B5CF6] shrink-0">
+                    <Bell className="w-4.5 h-4.5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-[#94A3B8] uppercase">Email Support</p>
+                    <a href="mailto:support@primetekglobal.com?subject=HR%20Helpdesk%20Inquiry" className="text-xs font-extrabold text-[#0B8B83] hover:underline">support@primetekglobal.com</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <a 
+              href="mailto:support@primetekglobal.com?subject=HR%20Helpdesk%20Inquiry"
+              className="w-full bg-[#0B8B83] hover:bg-[#0d6460] text-white text-xs font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer no-underline text-center"
+            >
+              <Headset className="w-4 h-4" />
+              SEND EMAIL REQUEST
+            </a>
           </div>
         </div>
       )}
