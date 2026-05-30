@@ -1,5 +1,5 @@
 const CACHE_NAME = 'primetek-app-%BUILD_ID%';
-const SCOPES = ['/employee/', '/admin/'];
+const SCOPES = ['/employee', '/admin'];
 
 // Utility to bound dynamic caches to prevent storage exhaustion
 function limitCacheSize(cacheName, maxItems) {
@@ -113,7 +113,7 @@ self.addEventListener('fetch', (event) => {
             // Offline fallback: serve cached page or matching login portal shell
             return caches.match(event.request).then((cachedResponse) => {
               if (cachedResponse) return cachedResponse;
-              if (url.pathname.startsWith('/admin/')) {
+              if (url.pathname.startsWith('/admin')) {
                 return caches.match('/admin/login');
               }
               return caches.match('/employee/login');
