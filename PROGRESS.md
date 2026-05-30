@@ -49,7 +49,7 @@
 *   **Code Quality Hardening**: Resolved ESLint unused imports/variables and corrected TypeScript type definitions across approvals, applications, and about pages to achieve clean compilation.
 
 ### ✅ Phase 7: PWA, SEO & Visual Polish (100% Complete)
-*   **Admin Daily Reports Polish**: Aligned the administration Daily Reports layout, table metrics, row background shading, and sidebar submission tracker indicators with the Employee Daily Reports design system.
+*   **Admin Daily Reports Polish**: Aligned the administration Daily Reports layout, table metrics, row background shading, and sidebar submission tracker indicators with the Employee Daily Reports design system, and removed the redundant group total row calculations.
 *   **PWA Install Integration**: Added an interactive, conditional "Install App" banner on the employee profile page to prompt service worker installation on supported browsers.
 *   **SEO & Analytics Verification**: Configured Google Analytics script loading inside the root layout `<head>` tag for immediate domain ownership validation and verified crawlers with IndexNow verification assets.
 
