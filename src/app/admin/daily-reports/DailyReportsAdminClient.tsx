@@ -352,21 +352,6 @@ export default function DailyReportsAdminClient({
                             </tr>
                           );
                         })}
-
-                        {/* Employee Group Summary Row */}
-                        {group.items.length > 1 && (
-                          <tr className="bg-zinc-50/30 font-semibold border-t border-zinc-150">
-                            <td className="p-2.5 text-zinc-500 text-[11px] italic">Group Total</td>
-                            <td className="p-2.5 font-bold text-navy-900 text-[11px]">{group.employeeName}</td>
-                            <td className="p-2.5 text-center text-[11px] bg-zinc-100/30 font-mono font-bold text-navy-950">{empApps}</td>
-                            <td className="p-2.5 text-center text-[11px] bg-zinc-100/30 font-mono font-bold text-navy-950">{empInts}</td>
-                            <td className="p-2.5 text-center text-[11px] font-mono font-bold text-navy-950">{empAssess}</td>
-                            <td className="p-2.5 text-center text-[11px] font-mono font-bold text-navy-950">{empTech}</td>
-                            <td className="p-2.5 text-center text-[11px] font-mono font-bold text-navy-950">{empNonTech}</td>
-                            <td className="p-2.5 text-center text-[11px] bg-primary-50/20 font-mono font-bold text-primary-850">{empSelf}</td>
-                            <td className="p-2.5 text-center text-[11px] bg-primary-50/20 font-mono font-bold text-primary-850">{empSupp}</td>
-                          </tr>
-                        )}
                       </tbody>
                     );
                   })}
