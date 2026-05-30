@@ -96,7 +96,7 @@ export default function DailyReportsAdminClient({
     if (date !== initialDate || selectedEmployee !== 'all') {
       updateData();
     }
-  }, [date, selectedEmployee]);
+  }, [date, selectedEmployee, initialDate, toast]);
 
   const handleExportExcel = async () => {
     setExporting(true);

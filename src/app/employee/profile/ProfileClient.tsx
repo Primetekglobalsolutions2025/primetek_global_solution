@@ -46,7 +46,7 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches 
-        // @ts-ignore
+        // @ts-expect-error - navigator.standalone is a non-standard iOS Safari property
         || window.navigator.standalone;
       setIsStandalone(isStandaloneMode);
 

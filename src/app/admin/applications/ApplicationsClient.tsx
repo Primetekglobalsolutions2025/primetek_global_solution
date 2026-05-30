@@ -29,11 +29,11 @@ export interface ApplicationRecord {
 }
 
 const statusColors: Record<string, string> = {
-  new: 'bg-blue-50 text-blue-600 border-blue-200',
-  pending: 'bg-blue-50 text-blue-600 border-blue-200',
-  reviewed: 'bg-amber-50 text-amber-600 border-amber-200',
-  shortlisted: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-  rejected: 'bg-red-50 text-red-500 border-red-200',
+  new: 'bg-zinc-50 text-zinc-700 border-zinc-200',
+  pending: 'bg-amber-50 text-amber-800 border-amber-200',
+  reviewed: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  shortlisted: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  rejected: 'bg-red-50 text-red-700 border-red-200',
 };
 
 const statusOptions = ['all', 'pending', 'reviewed', 'shortlisted', 'rejected'] as const;
@@ -281,20 +281,20 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
         )}
       </div>
 
-      <Card hover={false} className="p-0 overflow-hidden border border-border/60 rounded-xl shadow-sm bg-white hidden md:block">
+      <Card hover={false} className="p-0 overflow-hidden border border-zinc-200 rounded-xl shadow-2xs bg-white hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border bg-surface-alt/50">
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Applicant</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Job</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Status</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Assigned To</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Date</th>
-                <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-text-muted">Actions</th>
+              <tr className="border-b border-zinc-200 bg-zinc-50/50">
+                <th className="text-left px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Applicant</th>
+                <th className="text-left px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Job</th>
+                <th className="text-left px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Status</th>
+                <th className="text-left px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Assigned To</th>
+                <th className="text-left px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Date</th>
+                <th className="text-left px-4 py-2.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/60">
+            <tbody className="divide-y divide-zinc-150">
               {filtered.length === 0 ? (
                 <tr><td colSpan={6} className="px-4 py-12 text-center text-text-muted text-xs">No applications found.</td></tr>
               ) : (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Calendar, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Sparkles, Coffee, Hourglass, TrendingUp } from 'lucide-react';
+import { Calendar, Plus, X, Clock, CheckCircle2, XCircle, AlertCircle, Coffee, Hourglass, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';

@@ -11,7 +11,8 @@ const formatSafeDateTime = (dateStr: any) => {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return String(dateStr);
   return d.toLocaleString('en-IN', { 
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Asia/Kolkata', hour12: true
   });
 };
 
@@ -19,7 +20,10 @@ const formatSafeTimeOnly = (dateStr: any) => {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString('en-IN', { 
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'Asia/Kolkata', hour12: true
+  });
 };
 
 interface PageProps {
@@ -171,7 +175,9 @@ export default async function AuditLogsPage(props: PageProps) {
                 const label = isWFH
                   ? (isPending ? 'WFH Request (Pending)' : `WFH ${act.status?.replace(' WFH', '')}`)
                   : hasCheckOut ? 'Checked Out' : 'Checked In';
-                const time = formatSafeTimeOnly(act.check_in);
+                const time = hasCheckOut 
+                  ? formatSafeTimeOnly(act.check_out) 
+                  : formatSafeTimeOnly(act.check_in);
                 return (
                   <div key={act.id} className="flex items-center gap-3.5 px-5 py-3.5 hover:bg-zinc-50/50 transition-all group">
                     <div className={cn('w-8 h-8 rounded-md flex items-center justify-center shrink-0 border transition-transform duration-300 group-hover:scale-105', iconBg, iconColor)}>

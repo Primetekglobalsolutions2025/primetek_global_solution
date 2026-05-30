@@ -24,12 +24,15 @@ export async function getOfficeLocation() {
   return data && data.length > 0 ? data[0] : null;
 }
 
-export async function saveOfficeLocation(data: {
-  name: string;
-  lat: number;
-  lng: number;
-  radius_meters: number;
-}) {
+export async function saveOfficeLocation(
+  data: {
+    name: string;
+    lat: number;
+    lng: number;
+    radius_meters: number;
+  },
+  password?: string
+) {
   try {
     const session = await getSession();
     if (!session || session.role !== 'admin') return { success: false, error: 'Unauthorized' };
@@ -41,6 +44,32 @@ export async function saveOfficeLocation(data: {
       .select('*')
       .eq('is_active', true);
     const oldLocation = oldLocations && oldLocations.length > 0 ? oldLocations[0] : null;
+
+    const coordsChanged = oldLocation 
+      ? (oldLocation.lat !== data.lat || oldLocation.lng !== data.lng)
+      : true;
+
+    if (coordsChanged) {
+      if (!password) {
+        return { success: false, error: 'Password is required to change geofence coordinates.' };
+      }
+
+      const { createClient } = await import('@supabase/supabase-js');
+      const { env } = await import('@/lib/env');
+
+      const authClient = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      });
+
+      const { error: authError } = await authClient.auth.signInWithPassword({
+        email: session.email,
+        password: password,
+      });
+
+      if (authError) {
+        return { success: false, error: 'Invalid admin password. Authorization failed.' };
+      }
+    }
 
     // Deactivate existing locations
     const { error: updateError } = await supabaseAdmin

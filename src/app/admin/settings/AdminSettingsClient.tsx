@@ -21,6 +21,10 @@ export default function AdminSettingsClient() {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [origLat, setOrigLat] = useState(String(OFFICE_LOCATION.lat));
+  const [origLng, setOrigLng] = useState(String(OFFICE_LOCATION.lng));
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordVerifyInput, setPasswordVerifyInput] = useState('');
   interface SystemNodeStatus {
     node_name: string;
     status: string;
@@ -87,8 +91,12 @@ export default function AdminSettingsClient() {
           getNotificationPreferences()
         ]);
         if (office) {
-          setLat(String(office.lat || OFFICE_LOCATION.lat));
-          setLng(String(office.lng || OFFICE_LOCATION.lng));
+          const latVal = String(office.lat || OFFICE_LOCATION.lat);
+          const lngVal = String(office.lng || OFFICE_LOCATION.lng);
+          setLat(latVal);
+          setLng(lngVal);
+          setOrigLat(latVal);
+          setOrigLng(lngVal);
           setName(office.name || OFFICE_LOCATION.name);
           setRadius(String(office.radius_meters || OFFICE_LOCATION.radiusMeters));
         }
@@ -110,6 +118,44 @@ export default function AdminSettingsClient() {
     loadSettings();
   }, []);
 
+  const handleSaveConfirm = async () => {
+    if (!passwordVerifyInput) {
+      showNotification('Please enter your admin password.', 'error');
+      return;
+    }
+
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+    const parsedRadius = parseInt(radius);
+
+    setSaving(true);
+    try {
+      const res = await saveOfficeLocation({
+        name,
+        lat: parsedLat,
+        lng: parsedLng,
+        radius_meters: parsedRadius
+      }, passwordVerifyInput);
+      
+      if (res && res.success) {
+        setSaved(true);
+        setOrigLat(lat);
+        setOrigLng(lng);
+        setShowPasswordModal(false);
+        setPasswordVerifyInput('');
+        showNotification('Settings saved successfully.', 'success');
+        setTimeout(() => setSaved(false), 4000);
+      } else {
+        showNotification(res?.error || 'Failed to save settings', 'error');
+      }
+    } catch (err: any) {
+      console.error('Failed to save settings:', err);
+      showNotification(err instanceof Error ? err.message : 'Failed to save settings', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     const parsedLat = parseFloat(lat);
     const parsedLng = parseFloat(lng);
@@ -125,6 +171,13 @@ export default function AdminSettingsClient() {
     }
     if (isNaN(parsedRadius) || parsedRadius < 50 || parsedRadius > 5000) {
       showNotification('Please enter a valid radius between 50 and 5000 meters.', 'error');
+      return;
+    }
+
+    const coordsChanged = (parsedLat !== parseFloat(origLat)) || (parsedLng !== parseFloat(origLng));
+    
+    if (coordsChanged) {
+      setShowPasswordModal(true);
       return;
     }
 
@@ -631,6 +684,75 @@ export default function AdminSettingsClient() {
               </button>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Geofence Password Verification Modal */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <div
+            onClick={() => {
+              setShowPasswordModal(false);
+              setPasswordVerifyInput('');
+            }}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-6 bg-navy-900/60 backdrop-blur-md cursor-pointer text-navy-900"
+          >
+            <motion.div
+              onClick={(e) => e.stopPropagation()}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: 'spring', duration: 0.4 }}
+              className="w-full max-w-sm cursor-default"
+            >
+              <Card hover={false} className="p-5 rounded-xl border border-border shadow-2xl bg-white relative overflow-hidden">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-red-50 text-red-600 border border-red-200 flex items-center justify-center">
+                      <AlertCircle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-navy-900 tracking-tight">Confirm Location Change</h3>
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Authorization Required</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    You are changing the active geofence coordinates. Please enter your administrator password to authorize this action.
+                  </p>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Admin Password</label>
+                    <input
+                      type="password"
+                      value={passwordVerifyInput}
+                      onChange={(e) => setPasswordVerifyInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all text-xs font-semibold"
+                    />
+                  </div>
+                  <div className="flex w-full gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPasswordModal(false);
+                        setPasswordVerifyInput('');
+                      }}
+                      className="flex-1 py-2 px-3 rounded-lg bg-surface-alt hover:bg-border/60 text-navy-900 text-xs font-semibold transition-all cursor-pointer border border-border"
+                    >
+                      Cancel
+                    </button>
+                    <Button
+                      onClick={handleSaveConfirm}
+                      disabled={saving}
+                      size="sm"
+                      className="flex-1 bg-navy-900 hover:bg-navy-800 border border-navy-950 text-white text-xs font-semibold"
+                    >
+                      Authorize & Save
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

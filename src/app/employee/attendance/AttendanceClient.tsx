@@ -120,10 +120,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
   const [isLeader, setIsLeader] = useState(false);
   const isLeaderRef = useRef(false);
   
-  const [gpsWarningSeconds, setGpsWarningSeconds] = useState<number | null>(null);
-  const [gpsConfidence, setGpsConfidence] = useState<number>(100); // 100 -> 60 (suspicious) -> 30 (critical retry) -> 0 (auto-break)
-  const [gpsWarningSuspended, setGpsWarningSuspended] = useState(false);
-  const [isVerifyingLocation, setIsVerifyingLocation] = useState(false);
+
   const [syncBannerVisible, setSyncBannerVisible] = useState(false);
   const [heartbeatPulse, setHeartbeatPulse] = useState(false);
 
@@ -317,64 +314,7 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
     }
   };
 
-  const handleVerifyLocation = async () => {
-    setIsVerifyingLocation(true);
-    if (!navigator.geolocation) {
-      setIsVerifyingLocation(false);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-        try {
-          const { checkGeofence } = await import('./actions');
-          const checkRes = await checkGeofence(lat, lng);
-          if (checkRes.success && checkRes.withinRange) {
-            setGpsWarningSeconds(null);
-            setGpsConfidence(100);
-            geofenceOutsideHistory.current = [];
-            showNotification('Location verified successfully. Active status restored.', 'success');
-          } else {
-            showNotification('Verification failed. Still outside range.', 'error');
-          }
-        } catch (err) {
-          showNotification('Error checking geofence coordinates.', 'error');
-        } finally {
-          setIsVerifyingLocation(false);
-        }
-      },
-      (error) => {
-        showNotification('Could not access geolocation. Please check permissions.', 'error');
-        setIsVerifyingLocation(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
 
-  const handleDismissGpsWarning = async () => {
-    if (!todayRecord) return;
-    let lat = 0;
-    let lng = 0;
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          lat = pos.coords.latitude;
-          lng = pos.coords.longitude;
-          logGPSDismissEvent(todayRecord.id, lat, lng);
-        },
-        () => {
-          logGPSDismissEvent(todayRecord.id, lat, lng);
-        }
-      );
-    } else {
-      await logGPSDismissEvent(todayRecord.id, lat, lng);
-    }
-    gpsSuppressionUntil.current = Date.now() + 5 * 60 * 1000;
-    setGpsWarningSeconds(null);
-    setGpsConfidence(100);
-    showNotification('GPS warning dismissed for 5 minutes.', 'info');
-  };
 
   // 1. Lease-based Leader Election
   useEffect(() => {
@@ -693,23 +633,10 @@ export default function AttendanceClient({ employeeId, initialRecords, wasAutoLo
                   const allOutside = lastThree.every(Boolean);
 
                   if (allOutside) {
-                    setGpsConfidence((prev) => {
-                      if (prev === 100) return 60;
-                      return prev;
-                    });
-                    setGpsWarningSeconds((prev) => {
-                      if (prev === null) return 60;
-                      return prev;
-                    });
-                  } else if (res.withinRange) {
-                    setGpsWarningSeconds(null);
-                    setGpsConfidence(100);
+                    // Obsolete warning triggered but modal removed
                   }
                 } else if (outside) {
                   showNotification("We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal.", 'info');
-                } else {
-                  setGpsWarningSeconds(null);
-                  setGpsConfidence(100);
                 }
               }
 
