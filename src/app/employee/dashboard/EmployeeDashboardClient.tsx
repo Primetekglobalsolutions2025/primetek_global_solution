@@ -300,53 +300,49 @@ export default function EmployeeDashboardClient({
             </Link>
           </div>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-1.5">
             {/* Hours Worked */}
-            <div className="bg-white border border-[#EEF2F6] rounded-[20px] p-2.5 flex flex-col items-center justify-center text-center shadow-3xs">
-              <div className="w-8 h-8 rounded-full bg-[#E6F3F2] flex items-center justify-center text-[#0B8B83] mb-2.5">
-                <Clock className="w-4 h-4" />
-              </div>
-              <span className="text-[13px] font-extrabold text-[#071B3A] tracking-tight">{liveHours}</span>
-              <span className="text-[8px] font-bold text-[#64748B] mt-1.5 leading-none">Hours Worked</span>
-              <span className="text-[7px] font-semibold text-[#94A3B8] mt-0.5">Today</span>
+            <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
+              <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Hours Worked</span>
+              <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">{liveHours}</span>
+              <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-[#E6F8F2] text-[#0B8B83] border border-[#0B8B83]/10 uppercase font-mono">
+                Today
+              </span>
             </div>
 
             {/* Leaves Available */}
-            <div className="bg-white border border-[#EEF2F6] rounded-[20px] p-2.5 flex flex-col items-center justify-center text-center shadow-3xs">
-              <div className="w-8 h-8 rounded-full bg-[#FFF7EB] flex items-center justify-center text-[#F59E0B] mb-2.5">
-                <Calendar className="w-4 h-4" />
-              </div>
-              <span className="text-[13px] font-extrabold text-[#071B3A] tracking-tight">{totalRemainingLeaves}</span>
-              <span className="text-[8px] font-bold text-[#64748B] mt-1.5 leading-none">Leaves Available</span>
-              <span className="text-[7px] font-semibold text-[#94A3B8] mt-0.5">Balance</span>
+            <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
+              <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Leaves Available</span>
+              <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">{totalRemainingLeaves}</span>
+              <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-amber-50 text-[#F59E0B] border border-amber-100/30 uppercase font-mono">
+                Balance
+              </span>
             </div>
 
             {/* Last Check In */}
-            <div className="bg-white border border-[#EEF2F6] rounded-[20px] p-2.5 flex flex-col items-center justify-center text-center shadow-3xs">
-              <div className="w-8 h-8 rounded-full bg-[#F3E8FF] flex items-center justify-center text-[#8B5CF6] mb-2.5">
-                <Clock className="w-4 h-4" />
-              </div>
-              <span className="text-[13px] font-extrabold text-[#071B3A] tracking-tight">
+            <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
+              <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Last Check In</span>
+              <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
                 {todayRecord && todayRecord.check_in 
                   ? new Date(todayRecord.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) 
                   : '--:--'}
               </span>
-              <span className="text-[8px] font-bold text-[#64748B] mt-1.5 leading-none">Last Check In</span>
-              <span className="text-[7px] font-semibold text-[#94A3B8] mt-0.5">Today</span>
+              <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-purple-50 text-[#8B5CF6] border border-purple-100/30 uppercase font-mono">
+                Today
+              </span>
             </div>
 
             {/* Last Check Out */}
-            <div className="bg-white border border-[#EEF2F6] rounded-[20px] p-2.5 flex flex-col items-center justify-center text-center shadow-3xs">
-              <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6] mb-2.5">
-                <Calendar className="w-4 h-4" />
-              </div>
-              <span className="text-[13px] font-extrabold text-[#071B3A] tracking-tight">
+            <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
+              <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Last Check Out</span>
+              <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
                 {todayRecord && todayRecord.check_out 
                   ? new Date(todayRecord.check_out).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) 
                   : '--:--'}
               </span>
-              <span className="text-[8px] font-bold text-[#64748B] mt-1.5 leading-none">Last Check Out</span>
-              <span className="text-[7px] font-semibold text-[#94A3B8] mt-0.5">Today</span>
+              <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-blue-50 text-[#3B82F6] border border-blue-100/30 uppercase font-mono">
+                Today
+              </span>
             </div>
           </div>
         </section>

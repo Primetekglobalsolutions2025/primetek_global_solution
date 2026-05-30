@@ -1312,40 +1312,34 @@ export default function AttendanceClient({
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5">
               {/* Clock In */}
-              <div className="bg-white border border-[#EEF2F6] rounded-[20px] p-2.5 flex flex-col items-center justify-center text-center shadow-3xs">
-                <div className="w-8 h-8 rounded-full bg-[#E6F3F2] flex items-center justify-center text-[#0B8B83] mb-2.5">
-                  <LogIn className="w-4 h-4" />
-                </div>
-                <span className="text-[8px] font-bold text-[#64748B] mb-1 leading-none uppercase">Clock In</span>
-                <span className="text-[12px] font-extrabold text-[#071B3A] tracking-tight">
+              <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
+                <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Clock In</span>
+                <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
                   {todayRecord?.check_in ? todayRecord.check_in.replace(/\s?[AP]M/i, '') : '--:--'}
-                  {todayRecord?.check_in && <span className="text-[8px] ml-0.5">{todayRecord.check_in.slice(-2)}</span>}
+                  {todayRecord?.check_in && <span className="text-[8px] ml-0.5 font-extrabold">{todayRecord.check_in.slice(-2)}</span>}
                 </span>
                 {checkedIn ? (
                   <span className={cn(
-                    "text-[8px] font-bold py-0.5 px-2 rounded-full mt-2.5 leading-none shrink-0 border border-transparent",
+                    "text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 border border-transparent uppercase font-mono",
                     todayRecord?.status?.toLowerCase() === 'late' 
-                      ? "bg-red-50 text-red-650 border-red-200/20" 
-                      : "bg-[#E6F8F2] text-[#22C55E]"
+                      ? "bg-red-50 text-red-600 border-red-100" 
+                      : "bg-[#E6F8F2] text-[#0B8B83] border-[#0B8B83]/10"
                   )}>
                     {todayRecord?.status?.toLowerCase() === 'late' ? 'Late' : 'On Time'}
                   </span>
                 ) : (
-                  <span className="text-[8px] font-bold py-0.5 px-2 rounded-full mt-2.5 leading-none shrink-0 bg-[#F1F5F9] text-[#94A3B8]">
+                  <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-[#F1F5F9] text-[#94A3B8] uppercase font-mono">
                     Not Yet
                   </span>
                 )}
               </div>
 
               {/* Total Hours */}
-              <div className="bg-white border border-[#EEF2F6] rounded-[20px] p-2.5 flex flex-col items-center justify-center text-center shadow-3xs">
-                <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6] mb-2.5">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <span className="text-[8px] font-bold text-[#64748B] mb-1 leading-none uppercase">Total Hours</span>
-                <span className="text-[12px] font-extrabold text-[#071B3A] tracking-tight">
+              <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
+                <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Total Hours</span>
+                <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
                   {checkedIn ? (
                     !isCheckedOut ? (
                       `${String(elapsedHrs).padStart(2, '0')}h ${String(elapsedMin).padStart(2, '0')}m`
@@ -1354,38 +1348,35 @@ export default function AttendanceClient({
                     )
                   ) : '00h 00m'}
                 </span>
-                <span className="text-[7px] font-bold text-[#94A3B8] mt-2.5 leading-none">
+                <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-blue-50 text-[#3B82F6] border border-blue-100/30 uppercase font-mono">
                   Till Now
                 </span>
               </div>
 
               {/* Break Time */}
-              <div className="bg-white border border-[#EEF2F6] rounded-[20px] p-2.5 flex flex-col items-center justify-center text-center shadow-3xs">
-                <div className="w-8 h-8 rounded-full bg-[#F3E8FF] flex items-center justify-center text-[#8B5CF6] mb-2.5">
-                  <Coffee className="w-4 h-4" />
-                </div>
-                <span className="text-[8px] font-bold text-[#64748B] mb-1 leading-none uppercase">Break Time</span>
-                <span className="text-[12px] font-extrabold text-[#071B3A] tracking-tight">
+              <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
+                <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Break Time</span>
+                <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
                   {checkedIn 
                     ? `${String(Math.floor(breakUsedSeconds / 3600)).padStart(2, '0')}h ${String(Math.floor((breakUsedSeconds % 3600) / 60)).padStart(2, '0')}m` 
                     : '00h 00m'}
                 </span>
-                <span className="text-[7px] font-bold text-[#94A3B8] mt-2.5 leading-none">
+                <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-purple-50 text-[#8B5CF6] border border-purple-100/30 uppercase font-mono">
                   {breakUsedSeconds > 0 ? `${Math.ceil(breakUsedSeconds / 60)}m` : '0 Break'}
                 </span>
               </div>
 
               {/* Clock Out */}
-              <div className="bg-white border border-[#EEF2F6] rounded-[20px] p-2.5 flex flex-col items-center justify-center text-center shadow-3xs">
-                <div className="w-8 h-8 rounded-full bg-[#FFF7EB] flex items-center justify-center text-[#F59E0B] mb-2.5">
-                  <LogOut className="w-4 h-4" />
-                </div>
-                <span className="text-[8px] font-bold text-[#64748B] mb-1 leading-none uppercase">Clock Out</span>
-                <span className="text-[12px] font-extrabold text-[#071B3A] tracking-tight">
+              <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
+                <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Clock Out</span>
+                <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
                   {todayRecord?.check_out ? todayRecord.check_out.replace(/\s?[AP]M/i, '') : '--:--'}
-                  {todayRecord?.check_out && <span className="text-[8px] ml-0.5">{todayRecord.check_out.slice(-2)}</span>}
+                  {todayRecord?.check_out && <span className="text-[8px] ml-0.5 font-extrabold">{todayRecord.check_out.slice(-2)}</span>}
                 </span>
-                <span className="text-[7px] font-bold text-[#94A3B8] mt-2.5 leading-none">
+                <span className={cn(
+                  "text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 uppercase font-mono border border-transparent",
+                  isCheckedOut ? "bg-amber-50 text-[#F59E0B]" : "bg-[#F1F5F9] text-[#94A3B8]"
+                )}>
                   {isCheckedOut ? 'Done' : 'Not Yet'}
                 </span>
               </div>
