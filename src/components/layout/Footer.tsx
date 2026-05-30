@@ -51,7 +51,7 @@ export default function Footer() {
             </p>
             <div className="flex gap-3">
               <a
-                href="https://www.linkedin.com/company/primetek-global-solutions"
+                href="https://www.linkedin.com/company/primetek-global-solutions-llc"
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Follow us on LinkedIn"

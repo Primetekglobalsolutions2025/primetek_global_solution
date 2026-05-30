@@ -68,7 +68,7 @@ export default function HomePage() {
       "closes": "18:00"
     },
     "sameAs": [
-      "https://www.linkedin.com/company/primetek-global-solutions"
+      "https://www.linkedin.com/company/primetek-global-solutions-llc"
     ],
     "priceRange": "$$",
     "areaServed": {

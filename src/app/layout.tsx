@@ -131,7 +131,7 @@ const orgSchema = {
   "url": "https://www.primetekglobalsolutions.com",
   "logo": "https://www.primetekglobalsolutions.com/favicon.svg",
   "sameAs": [
-    "https://www.linkedin.com/company/primetek-global-solutions"
+    "https://www.linkedin.com/company/primetek-global-solutions-llc"
   ],
   "contactPoint": {
     "@type": "ContactPoint",
