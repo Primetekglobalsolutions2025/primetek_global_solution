@@ -972,14 +972,14 @@ export default function AttendanceClient({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
-                        <th className="w-10 px-2 py-2.5"></th>
-                        <th className="px-4 py-2.5">Employee Name</th>
-                        <th className="px-4 py-2.5">Date</th>
-                        <th className="px-4 py-2.5">Clock In</th>
-                        <th className="px-4 py-2.5">Clock Out</th>
-                        <th className="px-4 py-2.5">Total Hours</th>
-                        <th className="px-4 py-2.5">Final Status</th>
+                      <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
+                        <th className="w-8 px-1 py-1.5"></th>
+                        <th className="px-3 py-1.5">Employee Name</th>
+                        <th className="px-3 py-1.5">Date</th>
+                        <th className="px-3 py-1.5">Clock In</th>
+                        <th className="px-3 py-1.5">Clock Out</th>
+                        <th className="px-3 py-1.5">Total Hours</th>
+                        <th className="px-3 py-1.5">Final Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100/60">
@@ -1004,54 +1004,54 @@ export default function AttendanceClient({
                                   expandedRows[record.id] && "bg-zinc-50/20"
                                 )}
                               >
-                                <td className="w-10 px-2 py-2.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                <td className="w-8 px-1 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
                                   <button 
                                     onClick={(e) => toggleRow(record.id, e)}
-                                    className="p-1 rounded hover:bg-zinc-150 text-zinc-500 transition-colors"
+                                    className="p-0.5 rounded hover:bg-zinc-150 text-zinc-500 transition-colors"
                                   >
                                     {expandedRows[record.id] ? (
-                                      <ChevronDown className="w-4 h-4" />
+                                      <ChevronDown className="w-3.5 h-3.5" />
                                     ) : (
-                                      <ChevronRight className="w-4 h-4" />
+                                      <ChevronRight className="w-3.5 h-3.5" />
                                     )}
                                   </button>
                                 </td>
-                                <td className="px-4 py-2.5 whitespace-nowrap">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded bg-white flex items-center justify-center text-zinc-700 transition-colors">
-                                      <User className="w-3.5 h-3.5" />
+                                <td className="px-3 py-1.5 whitespace-nowrap">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="w-5 h-5 rounded-full bg-zinc-50 border border-zinc-150 flex items-center justify-center text-zinc-500 shrink-0">
+                                      <User className="w-3 h-3" />
                                     </div>
-                                    <span className="text-xs font-semibold text-navy-900 tracking-tight flex items-center gap-1.5">
+                                    <span className="text-[11px] font-bold text-navy-900 tracking-tight flex items-center gap-1">
                                       {record.employee_name}
-                                      <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                                      <span className="text-[9px]" title={record.device_label || 'Unknown device'}>
                                         {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
                                       </span>
                                     </span>
                                   </div>
                                 </td>
-                                <td className="px-4 py-2.5 whitespace-nowrap">
-                                  <div className="text-[10px] font-semibold text-zinc-500 font-mono">
+                                <td className="px-3 py-1.5 whitespace-nowrap">
+                                  <div className="text-[9px] font-semibold text-zinc-500 font-mono">
                                     {!isNaN(new Date(record.date).getTime()) 
                                       ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase() 
                                       : record.date?.toUpperCase() || '—'}
                                   </div>
                                 </td>
-                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-semibold text-zinc-650">
+                                <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-semibold text-zinc-600">
                                   {record.check_in || '—'}
                                 </td>
-                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-semibold text-zinc-650">
+                                <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-semibold text-zinc-600">
                                   {record.check_out || '—'}
                                 </td>
-                                <td className="px-4 py-2.5 whitespace-nowrap font-mono text-xs font-bold text-navy-900">
+                                <td className="px-3 py-1.5 whitespace-nowrap font-mono text-[10px] font-extrabold text-navy-900">
                                   {times.productive}
                                 </td>
-                                <td className="px-4 py-2.5 whitespace-nowrap">
-                                  <StatusBadge status={record.status} />
+                                <td className="px-3 py-1.5 whitespace-nowrap">
+                                  <StatusBadge status={record.status} className="text-[9px] px-1.5 py-0.25" />
                                 </td>
                               </tr>
                               {expandedRows[record.id] && (
                                 <tr className="bg-zinc-50/20" onClick={(e) => e.stopPropagation()}>
-                                  <td colSpan={7} className="px-6 py-4 border-b border-zinc-200">
+                                  <td colSpan={7} className="px-4 py-3 border-b border-zinc-200">
                                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
                                     <div className="space-y-1">
                                       <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block">Geofence Telemetry</span>
@@ -1225,19 +1225,19 @@ export default function AttendanceClient({
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left border-collapse">
                   <thead>
-                    <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-mono font-semibold text-zinc-500 uppercase tracking-wider">
-                      <th className="px-6 py-4">Employee Name</th>
-                      <th className="px-6 py-4">Current Status</th>
-                      <th className="px-6 py-4">Clock In (IST)</th>
-                      <th className="px-6 py-4">Work Duration</th>
-                      <th className="px-6 py-4">Break Duration</th>
-                      <th className="px-6 py-4">Last Activity</th>
+                    <tr className="bg-zinc-50 border-b border-zinc-200 text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
+                      <th className="px-3 py-1.5">Employee Name</th>
+                      <th className="px-3 py-1.5">Current Status</th>
+                      <th className="px-3 py-1.5">Clock In (IST)</th>
+                      <th className="px-3 py-1.5">Work Duration</th>
+                      <th className="px-3 py-1.5">Break Duration</th>
+                      <th className="px-3 py-1.5">Last Activity</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-150/60 font-sans">
                     {liveRecords.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-8 text-center text-zinc-400 italic">
+                        <td colSpan={6} className="px-3 py-8 text-center text-zinc-400 italic">
                           No active check-ins detected today.
                         </td>
                       </tr>
@@ -1252,34 +1252,34 @@ export default function AttendanceClient({
                             onClick={() => handleOpenDrawer(record)}
                             className={cn("transition-colors cursor-pointer border-b border-zinc-100", rowClass)}
                           >
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-7 h-7 rounded-lg bg-zinc-50 flex items-center justify-center text-zinc-700 font-bold border border-zinc-200/40 text-xs">
+                            <td className="px-3 py-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded bg-zinc-550 flex items-center justify-center text-zinc-700 font-bold border border-zinc-200/40 text-[9px]">
                                   {record.employee_name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase()}
                                 </div>
                                 <div>
-                                  <span className="font-bold text-navy-900 text-xs flex items-center gap-1.5">
+                                  <span className="font-bold text-navy-900 text-[11px] flex items-center gap-1">
                                     {record.employee_name}
-                                    <span className="text-[10px]" title={record.device_label || 'Unknown device'}>
+                                    <span className="text-[9px]" title={record.device_label || 'Unknown device'}>
                                       {record.device_type === 'mobile' || record.device_type === 'tablet' ? '📱' : '💻'}
                                     </span>
                                   </span>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-4">
-                              <StatusBadge status={record.status} />
+                            <td className="px-3 py-1.5">
+                              <StatusBadge status={record.status} className="text-[9px] px-1.5 py-0.25" />
                             </td>
-                            <td className="px-6 py-4 font-mono text-xs font-semibold text-zinc-600">
+                            <td className="px-3 py-1.5 font-mono text-[10px] font-semibold text-zinc-600">
                               {record.check_in || '—'}
                             </td>
-                            <td className="px-6 py-4 font-mono text-xs font-bold text-navy-900">
+                            <td className="px-3 py-1.5 font-mono text-[10px] font-bold text-navy-900">
                               {times.productive}
                             </td>
-                            <td className="px-6 py-4 font-mono text-xs font-bold text-navy-900">
+                            <td className="px-3 py-1.5 font-mono text-[10px] font-bold text-navy-900">
                               {times.break}
                             </td>
-                            <td className="px-6 py-4 text-xs font-medium text-zinc-500">
+                            <td className="px-3 py-1.5 text-[10px] font-medium text-zinc-550">
                               {formatRelativeTime(record.last_heartbeat_at)}
                             </td>
                           </tr>
@@ -1370,19 +1370,19 @@ export default function AttendanceClient({
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-zinc-200 bg-zinc-50/50">
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Staff Member</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Date</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Check In</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Delay</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500">Deduction</th>
-                      <th className="px-4 py-2.5 text-[9px] font-black uppercase tracking-wider text-zinc-500 text-center">Exemption Toggles</th>
+                    <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-500">
+                      <th className="px-3 py-1.5">Staff Member</th>
+                      <th className="px-3 py-1.5">Date</th>
+                      <th className="px-3 py-1.5">Check In</th>
+                      <th className="px-3 py-1.5">Delay</th>
+                      <th className="px-3 py-1.5">Deduction</th>
+                      <th className="px-3 py-1.5 text-center">Exemption Toggles</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100/60">
                     {lateRecords.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-xs text-zinc-500 font-bold">
+                        <td colSpan={6} className="px-3 py-12 text-center text-xs text-zinc-500 font-bold">
                           No late check-in instances found in this period.
                         </td>
                       </tr>
@@ -1391,34 +1391,34 @@ export default function AttendanceClient({
                         const hasDeduction = (record.deduction_applied || 0) > 0;
                         return (
                           <tr key={record.id} className="group hover:bg-zinc-50/30 transition-colors">
-                            <td className="px-4 py-2.5 whitespace-nowrap">
-                              <span className="text-xs font-semibold text-navy-900 tracking-tight">{record.employee_name}</span>
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-[11px] font-bold text-navy-900 tracking-tight">{record.employee_name}</span>
                             </td>
-                            <td className="px-4 py-2.5 whitespace-nowrap">
-                              <span className="text-[10px] font-semibold text-zinc-500">
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-[9px] font-semibold text-zinc-500">
                                 {!isNaN(new Date(record.date).getTime()) 
                                   ? new Date(record.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }).toUpperCase() 
                                   : record.date}
                               </span>
                             </td>
-                            <td className="px-4 py-2.5 whitespace-nowrap">
-                              <span className="text-xs font-medium text-navy-900">{record.check_in}</span>
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-[10px] font-semibold text-zinc-600 font-mono">{record.check_in}</span>
                             </td>
-                            <td className="px-4 py-2.5 whitespace-nowrap">
-                              <span className="text-xs font-black text-amber-400 font-mono">
+                            <td className="px-3 py-1.5 whitespace-nowrap">
+                              <span className="text-[10px] font-extrabold text-amber-500 font-mono">
                                 +{record.late_minutes}m
                               </span>
                             </td>
-                            <td className="px-4 py-2.5 whitespace-nowrap">
+                            <td className="px-3 py-1.5 whitespace-nowrap">
                               {hasDeduction ? (
-                                <span className="bg-red-500/15 text-red-400 border border-red-500/20 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest animate-pulse">
+                                <span className="bg-red-500/15 text-red-400 border border-red-500/20 px-1.5 py-0.25 rounded text-[8px] font-extrabold uppercase tracking-widest animate-pulse">
                                   -{record.deduction_applied} Day
                                 </span>
                               ) : (
                                 <span className="text-slate-650 text-xs font-bold font-mono">—</span>
                               )}
                             </td>
-                            <td className="px-4 py-2.5 whitespace-nowrap">
+                            <td className="px-3 py-1.5 whitespace-nowrap">
                               <div className="flex items-center justify-center gap-1">
                                 {[
                                   { key: 'late_approved', label: 'Appr. Late' },
@@ -1435,7 +1435,7 @@ export default function AttendanceClient({
                                       disabled={isLoading}
                                       onClick={() => handleToggleExemption(record.id, ex.key, val)}
                                       className={cn(
-                                        "px-2 py-1 rounded text-[8px] font-black uppercase tracking-wider border cursor-pointer select-none transition-all disabled:opacity-50",
+                                        "px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wider border cursor-pointer select-none transition-all disabled:opacity-50",
                                         val 
                                           ? "bg-emerald-600 text-white border-emerald-700 shadow-sm shadow-emerald-500/10"
                                           : "bg-white text-zinc-700 border-zinc-200 hover:bg-navy-800 hover:text-navy-900"
