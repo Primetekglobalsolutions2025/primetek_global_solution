@@ -62,6 +62,15 @@ vi.mock('next/cache', () => ({
   unstable_cache: vi.fn((fn: any) => fn),
 }));
 
+vi.mock('@/lib/cache/office-location', () => ({
+  getCachedActiveOfficeLocation: vi.fn(async () => ({
+    name: 'Primetek HQ, Hyderabad',
+    lat: 17.385,
+    lng: 78.4867,
+    radius_meters: 500,
+  })),
+}));
+
 // Reset vi mocks after each test
 afterEach(() => {
   vi.clearAllMocks();
@@ -71,57 +80,8 @@ afterEach(() => {
   } catch {}
 });
 
-/**
- * Ensures the test DB has an office_locations row matching the hardcoded OFFICE_LOCATION.
- * This is critical because checkIn() reads coordinates from the DB, not from the constant.
- * Wrapped in try/catch so pure tests (no DB env vars) don't fail during setup.
- */
-beforeAll(async () => {
-  try {
-    await ensureOfficeLocation();
-  } catch {
-    // Pure tests without DB credentials — skip office location seeding
-  }
-});
-
-async function ensureOfficeLocation() {
-  // Check if a matching office location already exists
-  const { data: existing } = await supabaseAdmin
-    .from('office_locations')
-    .select('id, lat, lng')
-    .eq('is_active', true)
-    .limit(1)
-    .maybeSingle();
-
-  if (existing) {
-    const latMatch = Math.abs(Number(existing.lat) - OFFICE_LOCATION.lat) < 0.001;
-    const lngMatch = Math.abs(Number(existing.lng) - OFFICE_LOCATION.lng) < 0.001;
-    if (latMatch && lngMatch) return; // Already correct
-
-    // Update existing to match
-    await supabaseAdmin
-      .from('office_locations')
-      .update({
-        lat: OFFICE_LOCATION.lat,
-        lng: OFFICE_LOCATION.lng,
-        radius_meters: OFFICE_LOCATION.radiusMeters,
-        name: OFFICE_LOCATION.name,
-      })
-      .eq('id', existing.id);
-    return;
-  }
-
-  // Insert new office location
-  await supabaseAdmin
-    .from('office_locations')
-    .insert({
-      name: OFFICE_LOCATION.name,
-      lat: OFFICE_LOCATION.lat,
-      lng: OFFICE_LOCATION.lng,
-      radius_meters: OFFICE_LOCATION.radiusMeters,
-      is_active: true,
-    });
-}
+// Office locations DB mutating logic removed to protect user data from tests.
+// The active office location cache helper is now mocked above in setup.ts.
 
 /**
  * Creates a real employee in the test database.
@@ -292,6 +252,7 @@ export async function cleanupTestData(employeeId: string) {
     'leave_requests',
     'leave_balances',
     'trusted_devices',
+    'wfh_requests',
   ];
 
   for (const table of employeeFkTables) {

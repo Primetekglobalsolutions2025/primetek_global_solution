@@ -12,6 +12,8 @@ describe('Attendance Integration Tests — Actions & Event Sourcing', () => {
 
   beforeEach(async () => {
     employee = await createTestEmployee();
+    // Delete any global WFH overrides that interfere with attendance status and geofencing
+    await supabaseAdmin.from('wfh_requests').delete().is('employee_id', null);
   });
 
   afterEach(async () => {
