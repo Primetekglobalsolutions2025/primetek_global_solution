@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Megaphone, AlertTriangle, Info, Plus, Trash2, Clock, Users, User, Loader2 } from 'lucide-react';
+import { Megaphone, AlertTriangle, Info, Plus, Trash2, Clock, Users, User, Loader2, Pin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import Button from '@/components/ui/Button';
@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { useToast } from '@/components/ui/Toast';
-import { SentNotification, createNotification, deleteNotification } from './actions';
+import { SentNotification, createNotification, deleteNotification, togglePinNotification, deleteMultipleNotifications } from './actions';
 
 interface EmployeeSummary {
   id: string;
@@ -35,6 +35,12 @@ export default function AdminNotificationsClient({
   const [isPending, startTransition] = useTransition();
   const [deleteTarget, setDeleteTarget] = useState<SentNotification | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // States for pinning and multi-select deletion
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isTogglingPin, setIsTogglingPin] = useState<string | null>(null);
+  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   
   const { toast } = useToast();
 
@@ -76,6 +82,7 @@ export default function AdminNotificationsClient({
           employee_id: res.notification.employee_id,
           sender_name: res.notification.sender_name,
           is_read: res.notification.is_read,
+          is_pinned: false,
           created_at: res.notification.created_at,
           employees: matchedEmp
         };
@@ -98,6 +105,12 @@ export default function AdminNotificationsClient({
       if (res.success) {
         toast.success('Notification deleted successfully.');
         setNotifications(prev => prev.filter(n => n.id !== deleteTarget.id));
+        // Clear selection if it was selected
+        if (selectedIds.has(deleteTarget.id)) {
+          const newSelected = new Set(selectedIds);
+          newSelected.delete(deleteTarget.id);
+          setSelectedIds(newSelected);
+        }
       } else {
         toast.error(res.error || 'Failed to delete notification');
       }
@@ -109,14 +122,83 @@ export default function AdminNotificationsClient({
     }
   };
 
+  const handleTogglePin = async (id: string) => {
+    setIsTogglingPin(id);
+    try {
+      const res = await togglePinNotification(id);
+      if (res.success) {
+        setNotifications(prev =>
+          prev.map(n => (n.id === id ? { ...n, is_pinned: res.isPinned ?? !n.is_pinned } : n))
+        );
+        toast.success(res.isPinned ? 'Notification pinned.' : 'Notification unpinned.');
+      } else {
+        toast.error(res.error || 'Failed to toggle pin state');
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsTogglingPin(null);
+    }
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    setIsBulkDeleting(true);
+    try {
+      const idsToDelete = Array.from(selectedIds);
+      const res = await deleteMultipleNotifications(idsToDelete);
+      if (res.success) {
+        toast.success('Selected notifications deleted.');
+        setNotifications(prev => prev.filter(n => !selectedIds.has(n.id)));
+        setSelectedIds(new Set());
+      } else {
+        toast.error(res.error || 'Failed to delete selected notifications');
+      }
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsBulkDeleting(false);
+      setIsBulkDeleteConfirmOpen(false);
+    }
+  };
+
+  const getExpiryText = (createdAtStr: string) => {
+    const createdAt = new Date(createdAtStr);
+    const expiryTime = createdAt.getTime() + 3 * 24 * 60 * 60 * 1000;
+    const remainingMs = expiryTime - Date.now();
+    if (remainingMs <= 0) return 'Expired';
+    const remainingHours = Math.ceil(remainingMs / (1000 * 60 * 60));
+    if (remainingHours >= 24) {
+      const days = Math.floor(remainingHours / 24);
+      return `Expires in ${days}d`;
+    }
+    return `Expires in ${remainingHours}h`;
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
       {/* Sent History Column */}
       <div className="lg:col-span-8 flex flex-col space-y-6">
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-extrabold text-navy-900 text-base tracking-tight font-sans">Dispatch Logs</h2>
-            <span className="bg-primary-50 text-primary-600 text-[10px] font-bold px-2.5 py-1 rounded-full">
+            <div className="flex items-center gap-3">
+              {notifications.length > 0 && (
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === notifications.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedIds(new Set(notifications.map(n => n.id)));
+                    } else {
+                      setSelectedIds(new Set());
+                    }
+                  }}
+                  className="w-4 h-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  title="Select all notifications"
+                />
+              )}
+              <h2 className="font-extrabold text-navy-900 text-base tracking-tight font-sans">Dispatch Logs</h2>
+            </div>
+            <span className="bg-primary-50 text-primary-600 text-[10px] font-bold px-2.5 py-1 rounded-full font-sans">
               {notifications.length} dispatched
             </span>
           </div>
@@ -159,8 +241,33 @@ export default function AdminNotificationsClient({
                 return (
                   <div
                     key={notif.id}
-                    className="p-4 rounded-xl border border-[#E8EDF2] bg-white flex gap-3.5 shadow-3xs relative overflow-hidden select-none"
+                    className={cn(
+                      "p-4 rounded-xl border flex gap-3.5 shadow-3xs relative overflow-hidden transition-all duration-200 select-none",
+                      notif.is_pinned
+                        ? "border-amber-250 bg-amber-50/20 shadow-amber-50/10"
+                        : selectedIds.has(notif.id)
+                          ? "border-primary-200 bg-primary-50/5"
+                          : "border-[#E8EDF2] bg-white hover:border-[#CBD5E1]"
+                    )}
                   >
+                    {/* Checkbox */}
+                    <div className="flex items-center justify-center shrink-0 pr-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(notif.id)}
+                        onChange={(e) => {
+                          const newSelected = new Set(selectedIds);
+                          if (e.target.checked) {
+                            newSelected.add(notif.id);
+                          } else {
+                            newSelected.delete(notif.id);
+                          }
+                          setSelectedIds(newSelected);
+                        }}
+                        className="w-4 h-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                      />
+                    </div>
+
                     {/* Type Icon */}
                     <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0 border", iconConfig.bg)}>
                       {iconConfig.icon}
@@ -182,7 +289,7 @@ export default function AdminNotificationsClient({
                         {notif.message}
                       </p>
 
-                      <div className="flex items-center gap-2 pt-1">
+                      <div className="flex items-center gap-2 pt-1 flex-wrap">
                         <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border bg-zinc-100 text-zinc-550">
                           {isBroadcast ? (
                             <><Users className="w-2.5 h-2.5 text-zinc-400" /> Broadcast</>
@@ -199,15 +306,41 @@ export default function AdminNotificationsClient({
                             {notif.is_read ? 'Read' : 'Unread'}
                           </span>
                         )}
+
+                        {notif.is_pinned ? (
+                          <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                            📌 Pinned
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border bg-zinc-50 text-zinc-500 border-zinc-200">
+                            <Clock className="w-2 h-2 text-zinc-450" /> {getExpiryText(notif.created_at)}
+                          </span>
+                        )}
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-start self-start pl-2 shrink-0">
+                    <div className="flex items-center gap-1.5 self-start pl-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePin(notif.id)}
+                        disabled={isTogglingPin === notif.id}
+                        className={cn(
+                          "p-1 rounded active:scale-95 transition-all cursor-pointer border-0 bg-transparent",
+                          notif.is_pinned
+                            ? "text-amber-500 hover:text-amber-700 hover:bg-amber-50"
+                            : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100"
+                        )}
+                        title={notif.is_pinned ? "Unpin Notification" : "Pin Notification"}
+                      >
+                        <Pin className={cn("w-3.5 h-3.5", notif.is_pinned && "fill-amber-500")} />
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(notif)}
                         className="p-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50 active:scale-95 transition-all cursor-pointer border-0 bg-transparent"
+                        title="Delete Notification"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -344,6 +477,50 @@ export default function AdminNotificationsClient({
         variant="danger"
         isLoading={isDeleting}
       />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isBulkDeleteConfirmOpen}
+        onClose={() => setIsBulkDeleteConfirmOpen(false)}
+        onConfirm={handleBulkDeleteConfirm}
+        title="Delete Multiple Notifications?"
+        message={`Are you sure you want to delete the ${selectedIds.size} selected notifications? This action cannot be undone.`}
+        confirmLabel="Delete All Selected"
+        cancelLabel="Cancel"
+        variant="danger"
+        isLoading={isBulkDeleting}
+      />
+
+      {/* Floating Action Bar for Bulk Deletion */}
+      {selectedIds.size > 0 && (
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 50, opacity: 0 }}
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-navy-900 border border-navy-800 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-6 z-50"
+        >
+          <span className="text-xs font-bold font-sans">
+            {selectedIds.size} {selectedIds.size === 1 ? 'notification' : 'notifications'} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsBulkDeleteConfirmOpen(true)}
+              className="bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold px-4 py-2 rounded-full flex items-center gap-1.5 cursor-pointer border-0 active:scale-95 transition-all shadow-md font-sans"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete Selected
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-xs font-semibold text-zinc-300 hover:text-white px-3 py-2 cursor-pointer bg-transparent border-0 font-sans"
+            >
+              Cancel
+            </button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

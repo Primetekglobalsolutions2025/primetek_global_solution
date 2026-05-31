@@ -13,6 +13,7 @@ export interface SentNotification {
   employee_id: string | null;
   sender_name: string;
   is_read: boolean;
+  is_pinned: boolean;
   created_at: string;
   employees?: {
     name: string;
@@ -27,9 +28,14 @@ export async function getSentNotifications() {
     const isAdmin = session.role === 'admin' || session.role === 'hr';
     if (!isAdmin) return { success: false, error: 'Unauthorized: Admins only', notifications: [] };
 
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const threeDaysAgoIso = threeDaysAgo.toISOString();
+
     const { data, error } = await supabaseAdmin
       .from('notifications')
       .select('*, employees:employee_id(name, employee_id)')
+      .or(`is_pinned.eq.true,created_at.gte.${threeDaysAgoIso}`)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -129,5 +135,95 @@ export async function deleteNotification(id: string) {
   } catch (err) {
     console.error('Error deleting notification:', err);
     return { success: false, error: err instanceof Error ? err.message : 'Failed to delete notification' };
+  }
+}
+
+export async function togglePinNotification(id: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    const isAdmin = session.role === 'admin' || session.role === 'hr';
+    if (!isAdmin) return { success: false, error: 'Unauthorized: Admins only' };
+
+    const { data: notif, error: fetchErr } = await supabaseAdmin
+      .from('notifications')
+      .select('is_pinned')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !notif) throw new Error('Notification not found');
+
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .update({ is_pinned: !notif.is_pinned })
+      .eq('id', id);
+
+    if (error) throw error;
+
+    revalidatePath('/employee/dashboard');
+    revalidatePath('/employee/attendance');
+    revalidatePath('/admin/notifications');
+
+    return { success: true, isPinned: !notif.is_pinned };
+  } catch (err) {
+    console.error('Error toggling pin state:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to toggle pin state' };
+  }
+}
+
+export async function deleteMultipleNotifications(ids: string[]) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    const isAdmin = session.role === 'admin' || session.role === 'hr';
+    if (!isAdmin) return { success: false, error: 'Unauthorized: Admins only' };
+
+    if (!ids || ids.length === 0) return { success: true };
+
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .in('id', ids);
+
+    if (error) throw error;
+
+    revalidatePath('/employee/dashboard');
+    revalidatePath('/employee/attendance');
+    revalidatePath('/admin/notifications');
+
+    return { success: true };
+  } catch (err) {
+    console.error('Error deleting multiple notifications:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to delete notifications' };
+  }
+}
+
+export async function cleanupExpiredNotifications() {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    const isAdmin = session.role === 'admin' || session.role === 'hr';
+    if (!isAdmin) return { success: false, error: 'Unauthorized: Admins only' };
+
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const threeDaysAgoIso = threeDaysAgo.toISOString();
+
+    const { error, count } = await supabaseAdmin
+      .from('notifications')
+      .delete({ count: 'exact' })
+      .eq('is_pinned', false)
+      .lt('created_at', threeDaysAgoIso);
+
+    if (error) throw error;
+
+    revalidatePath('/employee/dashboard');
+    revalidatePath('/employee/attendance');
+    revalidatePath('/admin/notifications');
+
+    return { success: true, deletedCount: count || 0 };
+  } catch (err) {
+    console.error('Error cleaning up notifications:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to run cleanup' };
   }
 }

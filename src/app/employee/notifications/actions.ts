@@ -12,6 +12,7 @@ export interface AppNotification {
   employee_id: string | null;
   sender_name: string;
   is_read: boolean;
+  is_pinned: boolean;
   created_at: string;
 }
 
@@ -40,8 +41,17 @@ export async function getNotificationsForEmployee(employeeId: string) {
 
     const readIds = new Set((reads || []).map((r: any) => r.notification_id));
 
-    // 3. Map notifications and calculate is_read
-    const notifications: AppNotification[] = (notifs || []).map((n: any) => {
+    // 3. Filter by 3-day expiry (unless pinned)
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const activeNotifs = (notifs || []).filter((n: any) => {
+      if (n.is_pinned) return true;
+      return new Date(n.created_at) >= threeDaysAgo;
+    });
+
+    // 4. Map notifications and calculate is_read
+    const notifications: AppNotification[] = activeNotifs.map((n: any) => {
       const isBroadcast = n.employee_id === null;
       const isRead = isBroadcast ? readIds.has(n.id) : n.is_read;
 
@@ -53,6 +63,7 @@ export async function getNotificationsForEmployee(employeeId: string) {
         employee_id: n.employee_id,
         sender_name: n.sender_name || 'Admin',
         is_read: isRead,
+        is_pinned: n.is_pinned || false,
         created_at: n.created_at
       };
     });
