@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 export const dynamic = 'force-dynamic';
 
 async function ApprovalsLoader() {
-  const [{ leaves, wfh }, history, disputes] = await Promise.all([
+  const [approvalsData, history, disputes] = await Promise.all([
     getPendingApprovals(),
     getApprovalHistory(),
     getPendingDisputes()
@@ -14,8 +14,9 @@ async function ApprovalsLoader() {
 
   return (
     <ApprovalsClient 
-      initialLeaves={leaves} 
-      initialWFH={wfh} 
+      initialLeaves={approvalsData.leaves} 
+      initialWFH={approvalsData.wfh} 
+      initialWFHRequests={approvalsData.wfhRequests}
       initialHistory={history} 
       initialDisputes={disputes} 
     />

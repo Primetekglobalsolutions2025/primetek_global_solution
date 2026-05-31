@@ -1190,10 +1190,10 @@ export default function AttendanceClient({
   };
 
   return (
-    <div data-testid="attendance-mobile" className="relative w-full font-sans">
+    <div data-testid="attendance-mobile" className="relative w-full font-sans px-4">
 
       {/* Main Content Area */}
-      <main className="flex-1 p-5 space-y-5 overflow-y-auto">
+      <div className="flex-1 space-y-5 pt-4">
         {/* Playwright E2E test status helper */}
         <div className="absolute top-0 left-0 w-[1px] h-[1px] opacity-[0.01] overflow-hidden pointer-events-none select-none flex">
           <span>{currentStatus === 'Break' || currentStatus === 'Break (Auto)' ? 'Break' : currentStatus}</span>
@@ -1920,7 +1920,7 @@ export default function AttendanceClient({
           </a>
         </section>
 
-      </main>
+      </div>
 
       {/* 5. FIXED BOTTOM TAB BAR (Attendance active) removed - managed by layout sidebar */}
 

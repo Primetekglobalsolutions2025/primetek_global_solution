@@ -176,8 +176,8 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
         <div className="flex-1 flex flex-col min-w-0 bg-[#F7F8FA] md:bg-zinc-50 max-w-[430px] md:max-w-none mx-auto md:mx-0 w-full border-x border-[#E8EDF2] md:border-x-0 shadow-lg md:shadow-none relative">
           {/* Header — desktop & mobile */}
           <AppHeader userName={session?.name} role={session?.role} />
-          <main className="flex-1 overflow-y-auto pb-24 md:p-6 md:pb-6">
-            <div className="md:max-w-7xl md:mx-auto md:space-y-4 px-4 md:px-0">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden pb-24 md:p-6 md:pb-6 scroll-smooth">
+            <div className="md:max-w-7xl md:mx-auto md:space-y-4">
               <div className="hidden md:block"><OfflineSyncBanner /></div>
               {children}
             </div>

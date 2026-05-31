@@ -14,8 +14,9 @@ import { updateLeaveStatus, updateWFHStatus, resolveDispute } from './actions';
 import { getSessionEvents } from '../attendance/actions';
 import { useToast } from '@/components/ui/Toast';
 import { formatDate, cn } from '@/lib/utils';
+import { updateWFHRequestStatus, type AdminWFHRequest } from '../wfh/actions';
 
-type Tab = 'leaves' | 'wfh' | 'disputes' | 'history';
+type Tab = 'leaves' | 'wfh' | 'wfhRequests' | 'disputes' | 'history';
 
 const formatSafeTime = (timeStr: string | number | Date | null | undefined) => {
   if (!timeStr) return '--:--';
@@ -102,16 +103,19 @@ export interface DisputeEventTimeline {
 export default function ApprovalsClient({ 
   initialLeaves, 
   initialWFH,
+  initialWFHRequests = [],
   initialHistory,
   initialDisputes = [],
 }: { 
   initialLeaves: LeaveRequestApproval[];
   initialWFH: WFHRequestApproval[];
+  initialWFHRequests?: AdminWFHRequest[];
   initialHistory: ApprovalHistoryItem[];
   initialDisputes?: DisputeApproval[];
 }) {
   const [leaves, setLeaves] = useState<LeaveRequestApproval[]>(initialLeaves);
   const [wfh, setWfh] = useState<WFHRequestApproval[]>(initialWFH);
+  const [wfhRequests, setWfhRequests] = useState<AdminWFHRequest[]>(initialWFHRequests);
   const [disputes, setDisputes] = useState<DisputeApproval[]>(initialDisputes);
   const [activeTab, setActiveTab] = useState<Tab>('leaves');
   const [processing, setProcessing] = useState<string | null>(null);
@@ -206,9 +210,27 @@ export default function ApprovalsClient({
     }
   };
 
+  const handleWFHRequestAction = async (id: string, status: 'Approved' | 'Rejected') => {
+    setProcessing(id);
+    try {
+      const res = await updateWFHRequestStatus(id, status);
+      if (res && !res.success) {
+        toast.error(res.error || 'Failed to update remote work request status.');
+      } else {
+        setWfhRequests(prev => prev.filter(w => w.id !== id));
+        toast.success(`Remote work request ${status === 'Approved' ? 'approved' : 'rejected'} successfully.`);
+      }
+    } catch {
+      toast.error('Failed to update remote work request status.');
+    } finally {
+      setProcessing(null);
+    }
+  };
+
   const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }>; count?: number }[] = [
     { id: 'leaves', label: 'Time Off', icon: Calendar, count: leaves.length || undefined },
-    { id: 'wfh', label: 'Remote Work', icon: Home, count: wfh.length || undefined },
+    { id: 'wfh', label: 'Daily WFH', icon: Home, count: wfh.length || undefined },
+    { id: 'wfhRequests', label: 'WFH Requests', icon: Calendar, count: wfhRequests.length || undefined },
     { id: 'disputes', label: 'Disputes Queue', icon: AlertTriangle, count: disputes.length || undefined },
     { id: 'history', label: 'History', icon: History },
   ];
@@ -356,6 +378,65 @@ export default function ApprovalsClient({
                             variant="primary"
                             size="sm" 
                             onClick={() => handleWFHAction(request.id, 'Approved WFH')} 
+                            disabled={processing === request.id} 
+                            className="text-[9px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-md cursor-pointer"
+                          >
+                            {processing === request.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Authorize'}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'wfhRequests' && (
+            <motion.div key="wfhRequests" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+              {wfhRequests.length === 0 ? (
+                <div className="p-12 text-center rounded-lg border border-dashed border-zinc-250 bg-white">
+                  <div className="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center mx-auto mb-3 border border-zinc-200">
+                    <Calendar className="w-5 h-5 text-zinc-400" />
+                  </div>
+                  <p className="text-xs font-semibold text-navy-900 uppercase tracking-wider font-mono">Queue Clear: No WFH Requests</p>
+                  <p className="text-[11px] text-zinc-450 mt-0.5">All pre-planned WFH requests have been processed.</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs divide-y divide-zinc-150 overflow-hidden">
+                  {wfhRequests.map((request) => (
+                    <div key={request.id} className="p-4 hover:bg-zinc-50/50 transition-colors text-zinc-650">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-md bg-primary-50/50 border border-primary-200/50 text-primary-600 flex items-center justify-center shrink-0">
+                            <Home className="w-4 h-4" />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap text-xs">
+                              <span className="font-bold text-navy-900">{request.employee_name}</span>
+                              <span className="text-[10px] text-zinc-450 font-mono">
+                                {formatDate(request.start_date)} — {formatDate(request.end_date)}
+                              </span>
+                            </div>
+                            {request.reason && (
+                              <p className="text-xs text-zinc-500 font-medium italic mt-0.5">&quot;{request.reason}&quot;</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleWFHRequestAction(request.id, 'Rejected')} 
+                            disabled={processing === request.id} 
+                            className="border-red-200 text-red-600 hover:bg-red-55 py-1 px-2.5 rounded-md text-[9px] font-bold cursor-pointer uppercase tracking-wider"
+                          >
+                            Deny
+                          </Button>
+                          <Button 
+                            variant="primary"
+                            size="sm" 
+                            onClick={() => handleWFHRequestAction(request.id, 'Approved')} 
                             disabled={processing === request.id} 
                             className="text-[9px] font-bold uppercase tracking-wider py-1 px-2.5 rounded-md cursor-pointer"
                           >

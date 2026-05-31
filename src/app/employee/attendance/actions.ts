@@ -118,6 +118,20 @@ export async function checkIn(
 
     const { shiftDateStr, shiftStart } = getShiftInfo(shiftDateRef);
 
+    // Check if WFH is active for this employee on today's shift date (pre-approved or global override)
+    let isWFHActive = false;
+    try {
+      const { data: wfhData, error: wfhError } = await supabaseAdmin.rpc('check_active_wfh', {
+        p_employee_id: session.id,
+        p_date: shiftDateStr
+      });
+      if (!wfhError && wfhData !== null) {
+        isWFHActive = !!wfhData;
+      }
+    } catch (err) {
+      console.error('Error checking active WFH status in checkIn:', err);
+    }
+
     // Close stale sessions (auto logout yesterday's sessions)
     await closeStaleSessionsForEmployee(session.id, shiftDateStr);
 
@@ -135,7 +149,7 @@ export async function checkIn(
     // 2. GPS Validation
     const distance = calculateDistance(lat, lng, officeLat, officeLng);
     
-    if (distance > radius) {
+    if (distance > radius && !isWFHActive) {
       return { 
         success: false, 
         outOfRadius: true,
@@ -204,7 +218,7 @@ export async function checkIn(
       : 0;
 
     const isMobile = deviceInfo?.deviceType === 'mobile' || deviceInfo?.deviceType === 'tablet';
-    const initialStatus = 'Working';
+    const initialStatus = isWFHActive ? 'Approved WFH' : 'Working';
 
     const { data: attRecord, error } = await supabaseAdmin
       .from('attendance')
@@ -254,7 +268,8 @@ export async function checkIn(
           is_late: isLate, 
           late_minutes: lateMinutes,
           device_type: deviceInfo?.deviceType || 'desktop',
-          device_label: deviceInfo?.deviceLabel || 'Desktop'
+          device_label: deviceInfo?.deviceLabel || 'Desktop',
+          is_pre_approved_wfh: isWFHActive
         }
       }]);
 
@@ -266,7 +281,7 @@ export async function checkIn(
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     revalidatePath('/admin/attendance');
-    return { success: true, recordId: attRecord.id };
+    return { success: true, recordId: attRecord.id, isWFHActive };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Internal server error';
     return { success: false, error: errorMsg };
@@ -337,6 +352,20 @@ export async function requestWFH(
     
     const { shiftDateStr, shiftStart } = getShiftInfo(shiftDateRef);
 
+    // Check if WFH is active for this employee on today's shift date (pre-approved or global override)
+    let isWFHActive = false;
+    try {
+      const { data: wfhData, error: wfhError } = await supabaseAdmin.rpc('check_active_wfh', {
+        p_employee_id: session.id,
+        p_date: shiftDateStr
+      });
+      if (!wfhError && wfhData !== null) {
+        isWFHActive = !!wfhData;
+      }
+    } catch (err) {
+      console.error('Error checking active WFH status in requestWFH:', err);
+    }
+
     // Close stale sessions (auto logout yesterday's sessions)
     await closeStaleSessionsForEmployee(session.id, shiftDateStr);
 
@@ -388,6 +417,8 @@ export async function requestWFH(
       ? Math.max(0, Math.floor((checkInTime.getTime() - shiftStart.getTime()) / (1000 * 60)))
       : 0;
 
+    const initialStatus = isWFHActive ? 'Approved WFH' : 'Pending WFH';
+
     const { data: attRecord, error } = await supabaseAdmin
       .from('attendance')
       .insert([{
@@ -396,7 +427,7 @@ export async function requestWFH(
         check_in: checkInTime.toISOString(),
         lat: Number(lat),
         lng: Number(lng),
-        status: 'Pending WFH',
+        status: initialStatus,
         is_late: isLate,
         late_minutes: lateMinutes,
       }])
@@ -427,7 +458,8 @@ export async function requestWFH(
           late_minutes: lateMinutes,
           device_type: isMobile ? 'mobile' : 'desktop',
           device_label: isMobile ? 'Mobile' : 'Desktop',
-          is_wfh_request: true
+          is_wfh_request: !isWFHActive,
+          is_pre_approved_wfh: isWFHActive
         }
       }]);
 
@@ -436,20 +468,22 @@ export async function requestWFH(
       p_session_id: attRecord.id
     });
 
-    // Trigger notification to admin
-    try {
-      const { data: employee } = await supabaseAdmin
-        .from('employees')
-        .select('name')
-        .eq('id', session.id)
-        .single();
-      const employeeName = employee?.name || 'An employee';
+    // Trigger notification to admin if WFH is NOT pre-approved
+    if (!isWFHActive) {
+      try {
+        const { data: employee } = await supabaseAdmin
+          .from('employees')
+          .select('name')
+          .eq('id', session.id)
+          .single();
+        const employeeName = employee?.name || 'An employee';
 
-      const { getAdminWFHRequestTemplate, notifyAdminsIfEnabled } = await import('@/lib/notifications');
-      const html = getAdminWFHRequestTemplate(employeeName, shiftDateStr);
-      await notifyAdminsIfEnabled('notif_wfh', `New WFH Request - ${employeeName}`, html);
-    } catch (notifErr) {
-      console.error('Failed to send WFH notification:', notifErr);
+        const { getAdminWFHRequestTemplate, notifyAdminsIfEnabled } = await import('@/lib/notifications');
+        const html = getAdminWFHRequestTemplate(employeeName, shiftDateStr);
+        await notifyAdminsIfEnabled('notif_wfh', `New WFH Request - ${employeeName}`, html);
+      } catch (notifErr) {
+        console.error('Failed to send WFH notification:', notifErr);
+      }
     }
 
     if (risk && risk.riskEventId && attRecord) {
@@ -462,7 +496,7 @@ export async function requestWFH(
     revalidatePath('/employee/attendance');
     revalidatePath('/employee/dashboard');
     revalidatePath('/admin/attendance');
-    return { success: true, recordId: attRecord.id };
+    return { success: true, recordId: attRecord.id, isWFHActive };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : 'Failed to request WFH';
     return { success: false, error: errorMsg };

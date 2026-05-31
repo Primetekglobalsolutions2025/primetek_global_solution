@@ -9,7 +9,7 @@ import { sendNotificationEmail, getLeaveStatusTemplate, getWFHStatusTemplate } f
 export async function getPendingApprovals() {
   const session = await getSession();
   if (!session || session.role !== 'admin' || !session.id) {
-    return { leaves: [], wfh: [] };
+    return { leaves: [], wfh: [], wfhRequests: [] };
   }
   await verifyActiveAdmin(session.id);
 
@@ -23,7 +23,7 @@ export async function getPendingApprovals() {
 
     if (leavesError) throw leavesError;
 
-    // 2. Fetch Pending WFH
+    // 2. Fetch Pending WFH Sessions
     const { data: wfh, error: wfhError } = await supabaseAdmin
       .from('attendance')
       .select('*')
@@ -32,10 +32,27 @@ export async function getPendingApprovals() {
 
     if (wfhError) throw wfhError;
 
-    // 3. Enrich with Employee Names (Batch query to avoid join issues)
+    // 3. Fetch Pending WFH Date Requests
+    let wfhRequests = [];
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('wfh_requests')
+        .select('*')
+        .ilike('status', 'Pending')
+        .order('start_date', { ascending: false });
+      
+      if (!error && data) {
+        wfhRequests = data;
+      }
+    } catch (wfhReqErr) {
+      console.warn('wfh_requests table query failed. It might not be migrated yet.');
+    }
+
+    // 4. Enrich with Employee Names (Batch query to avoid join issues)
     const allEmpIds = Array.from(new Set([
       ...(leaves || []).map(l => l.employee_id),
-      ...(wfh || []).map(w => w.employee_id)
+      ...(wfh || []).map(w => w.employee_id),
+      ...wfhRequests.map(r => r.employee_id)
     ])).filter(Boolean);
 
     const { data: employees } = allEmpIds.length > 0
@@ -62,11 +79,16 @@ export async function getPendingApprovals() {
         employee_email: empMap[w.employee_id]?.email,
         lat: w.lat !== null && w.lat !== undefined ? Number(w.lat) : 0,
         lng: w.lng !== null && w.lng !== undefined ? Number(w.lng) : 0,
+      })),
+      wfhRequests: wfhRequests.map((r: any) => ({
+        ...r,
+        employee_name: empMap[r.employee_id]?.name || 'Unknown Employee',
+        employee_email: empMap[r.employee_id]?.email
       }))
     };
   } catch (error) {
     console.error('Error in getPendingApprovals:', error);
-    return { leaves: [], wfh: [] };
+    return { leaves: [], wfh: [], wfhRequests: [] };
   }
 }
 
@@ -358,7 +380,18 @@ export async function getPendingCountOnly() {
         .eq('status', 'PENDING')
     ]);
 
-    return (leavesCount.count || 0) + (wfhCount.count || 0) + (disputesCount.count || 0);
+    let wfhRequestsCount = 0;
+    try {
+      const { count } = await supabaseAdmin
+        .from('wfh_requests')
+        .select('*', { count: 'exact', head: true })
+        .ilike('status', 'Pending');
+      wfhRequestsCount = count || 0;
+    } catch (wfhErr) {
+      // Table doesn't exist yet
+    }
+
+    return (leavesCount.count || 0) + (wfhCount.count || 0) + (disputesCount.count || 0) + wfhRequestsCount;
   } catch (err) {
     console.error('Error fetching pending counts:', err);
     return 0;

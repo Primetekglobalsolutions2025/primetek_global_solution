@@ -266,7 +266,7 @@ export default function AdminLayoutClient({
       )}
       <div className="flex-1 flex flex-col min-w-0 bg-zinc-50">
         <AppHeader userName={session?.name} role={session?.role} notificationCount={session?.role === 'admin' ? pendingCount : 0} />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6 scroll-smooth">
           <div className="max-w-7xl mx-auto space-y-4">
             <OfflineSyncBanner />
             {children}
