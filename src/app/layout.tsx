@@ -5,6 +5,7 @@ import './globals.css';
 
 import PWAStandaloneGuard from '@/components/pwa/PWAStandaloneGuard';
 import PWAInstallPrompt from '@/components/pwa/PWAInstallPrompt';
+import PushPermissionPrompt from '@/components/pwa/PushPermissionPrompt';
 import { ToastProvider } from '@/components/ui/Toast';
 import SchemaMarkup from '@/components/layout/SchemaMarkup';
 
@@ -197,9 +198,10 @@ export default function RootLayout({
         <SchemaMarkup schema={orgSchema} />
         <ToastProvider>
           {children}
+          <PWAStandaloneGuard />
+          <PWAInstallPrompt />
+          <PushPermissionPrompt />
         </ToastProvider>
-        <PWAStandaloneGuard />
-        <PWAInstallPrompt />
       </body>
     </html>
   );

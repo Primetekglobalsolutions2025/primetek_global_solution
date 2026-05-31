@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { getISTShiftDate } from '@/lib/utils';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 
 export async function getAssignedProfilesWithMetrics() {
   const session = await getSession();
@@ -117,6 +118,37 @@ export async function submitDailyMetrics(entries: Array<{
     if (error) {
       console.error('Submit Metrics Error:', error);
       return { success: false, error: error.message || 'Database error occurred' };
+    }
+
+    // Fetch employee name for the notification
+    let employeeName = 'An employee';
+    try {
+      const { data: emp } = await supabaseAdmin
+        .from('employees')
+        .select('name')
+        .eq('id', session.id)
+        .single();
+      if (emp?.name) employeeName = emp.name;
+    } catch (err) {
+      console.warn('Failed to fetch employee name for daily metrics push:', err);
+    }
+
+    // Dispatch Web Push notification to admins
+    try {
+      const { data: admins } = await supabaseAdmin.from('admin_users').select('id');
+      if (admins && admins.length > 0) {
+        for (const admin of admins) {
+          await dispatchNotification({
+            title: `Daily Metrics Submitted`,
+            message: `${employeeName} has submitted daily metrics for ${todayStr}.`,
+            type: 'daily_reports_submitted',
+            adminId: admin.id,
+            clickActionUrl: '/admin/dashboard'
+          });
+        }
+      }
+    } catch (pushErr: any) {
+      console.warn(`[Push Delivery Failed] action: submitDailyMetrics, error: ${pushErr.message}`);
     }
 
     revalidatePath('/employee/daily-report');

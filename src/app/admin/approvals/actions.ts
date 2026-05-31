@@ -5,6 +5,7 @@ import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
 import { sendNotificationEmail, getLeaveStatusTemplate, getWFHStatusTemplate } from '@/lib/notifications';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 
 export async function getPendingApprovals() {
   const session = await getSession();
@@ -187,6 +188,20 @@ export async function updateLeaveStatus(id: string, status: 'Approved' | 'Reject
       }
     }
 
+    // Dispatch Web Push notification to the employee
+    try {
+      const notificationType = status === 'Approved' ? 'leave_approved' : 'leave_rejected';
+      await dispatchNotification({
+        title: `Leave Request ${status}`,
+        message: `Your ${request.type} leave request from ${request.start_date} to ${request.end_date} has been ${status.toLowerCase()}.`,
+        type: notificationType,
+        employeeId: request.employee_id,
+        clickActionUrl: '/employee/leaves'
+      });
+    } catch (err: any) {
+      console.warn(`[Push Delivery Failed] action: updateLeaveStatus, error: ${err.message}`);
+    }
+
     revalidatePath('/admin/approvals');
     revalidatePath('/employee/leaves');
     return { success: true };
@@ -264,6 +279,21 @@ export async function updateWFHStatus(id: string, status: 'Approved WFH' | 'Reje
           error: emailResAsAny.error || emailResAsAny.reason
         });
       }
+    }
+
+    // Dispatch Web Push notification to the employee
+    try {
+      const notificationType = status.includes('Approved') ? 'leave_approved' : 'leave_rejected';
+      const cleanStatus = status.includes('Approved') ? 'Approved' : 'Rejected';
+      await dispatchNotification({
+        title: `WFH Request ${cleanStatus}`,
+        message: `Your Work From Home request for ${request.date} has been ${cleanStatus.toLowerCase()}.`,
+        type: notificationType,
+        employeeId: request.employee_id,
+        clickActionUrl: '/employee/attendance'
+      });
+    } catch (err: any) {
+      console.warn(`[Push Delivery Failed] action: updateWFHStatus, error: ${err.message}`);
     }
 
     revalidatePath('/admin/approvals');

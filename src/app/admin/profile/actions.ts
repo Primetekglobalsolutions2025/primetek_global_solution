@@ -144,3 +144,38 @@ export async function updateAdminProfile(data: { name: string }) {
     return { success: false, error: err.message || 'Failed to update profile' };
   }
 }
+
+export async function updateAdminNotificationPreferences(preferences: {
+  leave_approval_required: boolean;
+  attendance_issues: boolean;
+  daily_reports_submitted: boolean;
+  new_applications: boolean;
+  system_alerts: boolean;
+}) {
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') {
+      return { success: false, error: 'Unauthorized' };
+    }
+    await verifyActiveAdmin(session.id);
+
+    const { data, error } = await supabaseAdmin
+      .from('admin_users')
+      .update({ notification_preferences: preferences })
+      .eq('id', session.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating admin notification preferences:', error);
+      return { success: false, error: 'Failed to update preferences' };
+    }
+
+    revalidatePath('/admin/profile');
+
+    return { success: true, preferences: data.notification_preferences };
+  } catch (err: any) {
+    console.error('updateAdminNotificationPreferences crashed:', err);
+    return { success: false, error: err.message || 'Failed to update preferences' };
+  }
+}

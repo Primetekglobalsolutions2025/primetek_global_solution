@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession, verifyActiveSession } from '@/lib/auth';
 import { assessAttendanceRisk } from '@/lib/security/risk-engine';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { calculateDistance, getISTShiftDate } from '@/lib/utils';
@@ -503,6 +504,24 @@ export async function requestWFH(
         const { getAdminWFHRequestTemplate, notifyAdminsIfEnabled } = await import('@/lib/notifications');
         const html = getAdminWFHRequestTemplate(employeeName, shiftDateStr);
         await notifyAdminsIfEnabled('notif_wfh', `New WFH Request - ${employeeName}`, html);
+
+        // Web Push notification to admins
+        try {
+          const { data: admins } = await supabaseAdmin.from('admin_users').select('id');
+          if (admins && admins.length > 0) {
+            for (const admin of admins) {
+              await dispatchNotification({
+                title: `New WFH Request`,
+                message: `${employeeName} requested WFH for ${shiftDateStr}.`,
+                type: 'leave_approval_required',
+                adminId: admin.id,
+                clickActionUrl: '/admin/approvals'
+              });
+            }
+          }
+        } catch (pushErr: any) {
+          console.warn(`[Push Delivery Failed] action: clockInWFH, error: ${pushErr.message}`);
+        }
       } catch (notifErr) {
         console.error('Failed to send WFH notification:', notifErr);
       }

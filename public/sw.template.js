@@ -176,3 +176,54 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// Push event handler - receive and display Web Push notifications
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  try {
+    const payload = event.data.json();
+    const title = payload.title || 'Primetek Portal';
+    const options = {
+      body: payload.message,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      vibrate: [100, 50, 100],
+      data: {
+        url: payload.clickActionUrl || '/employee/dashboard'
+      },
+      tag: payload.tag || 'primetek-notification',
+      renotify: true
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(title, options)
+    );
+  } catch (err) {
+    console.error('Error handling service worker push event:', err);
+  }
+});
+
+// Notification click event handler - open/navigate client standalone window
+self.addEventListener('notificationclick', (event) => {
+  const notification = event.notification;
+  const clickActionUrl = (notification.data && notification.data.url) ? notification.data.url : '/employee/dashboard';
+
+  notification.close();
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // If a window is already open, navigate to the target URL and focus it
+      for (const client of clientList) {
+        const url = new URL(client.url);
+        if (url.origin === self.location.origin) {
+          return client.focus().then(() => client.navigate(clickActionUrl));
+        }
+      }
+      // If no window is open, open a new client standalone window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(clickActionUrl);
+      }
+    })
+  );
+});

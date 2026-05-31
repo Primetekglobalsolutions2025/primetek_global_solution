@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 
 export interface SentNotification {
   id: string;
@@ -79,6 +80,21 @@ export async function createNotification(
       .single();
 
     if (error) throw error;
+
+    // Dispatch Web Push notification
+    try {
+      await dispatchNotification({
+        title,
+        message,
+        type: 'company_announcement',
+        employeeId: employeeId || null,
+        clickActionUrl: '/employee/dashboard',
+        senderName,
+        skipInApp: true
+      });
+    } catch (pushErr: any) {
+      console.warn(`[Push Delivery Failed] action: createNotification, error: ${pushErr.message}`);
+    }
 
     revalidatePath('/employee/dashboard');
     revalidatePath('/employee/attendance');

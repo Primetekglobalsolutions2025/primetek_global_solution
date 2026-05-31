@@ -142,3 +142,48 @@ export async function updateAvatar(formData: FormData) {
   }
 }
 
+export async function updateNotificationPreferences(preferences: {
+  leave_approved: boolean;
+  leave_rejected: boolean;
+  attendance_reminder: boolean;
+  daily_report_reminder: boolean;
+  holiday_reminder: boolean;
+  company_announcement: boolean;
+}) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    await verifyActiveSession(session.id);
+
+    const { data, error } = await supabaseAdmin
+      .from('employees')
+      .update({ notification_preferences: preferences })
+      .eq('id', session.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating notification preferences:', error);
+      return { success: false, error: 'Failed to update preferences' };
+    }
+
+    revalidatePath('/employee/profile');
+    revalidatePath('/employee/dashboard');
+
+    await logAuditAction(
+      'UPDATE_NOTIFICATION_PREFERENCES',
+      'employees',
+      session.id,
+      null,
+      preferences
+    );
+
+    return { success: true, preferences: data.notification_preferences };
+  } catch (err: any) {
+    console.error('updateNotificationPreferences crashed:', err);
+    return { success: false, error: err.message || 'Failed to update preferences' };
+  }
+}
+

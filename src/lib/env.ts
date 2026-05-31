@@ -4,6 +4,7 @@ const publicSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
   NEXT_PUBLIC_GEOAPIFY_API_KEY: z.string().optional(),
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().min(1).optional(),
 });
 
 const serverSchema = publicSchema.extend({
@@ -12,6 +13,8 @@ const serverSchema = publicSchema.extend({
   JWT_SECRET: z.string().min(1, 'JWT_SECRET environment variable is required'),
   MFA_ENCRYPTION_SECRET: z.string().min(1).optional(),
   CRON_SECRET: z.string().min(1).optional().or(z.literal("").transform(() => undefined)),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  VAPID_SUBJECT: z.string().min(1).optional(),
 }).superRefine((data, ctx) => {
   if (process.env.NODE_ENV === 'production') {
     if (!data.JWT_SECRET || data.JWT_SECRET === 'primetek-fallback-secret-key-2026') {
@@ -56,11 +59,14 @@ function createLazyEnv() {
           NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
           NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
           NEXT_PUBLIC_GEOAPIFY_API_KEY: process.env.NEXT_PUBLIC_GEOAPIFY_API_KEY,
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
           SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
           RESEND_API_KEY: process.env.RESEND_API_KEY,
           JWT_SECRET: process.env.JWT_SECRET,
           MFA_ENCRYPTION_SECRET: process.env.MFA_ENCRYPTION_SECRET,
           CRON_SECRET: process.env.CRON_SECRET,
+          VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+          VAPID_SUBJECT: process.env.VAPID_SUBJECT,
         };
 
         // During `next build` page-data collection, env vars may not be

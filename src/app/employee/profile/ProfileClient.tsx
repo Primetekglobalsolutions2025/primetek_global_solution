@@ -8,9 +8,10 @@ import Button from '@/components/ui/Button';
 import PasswordChangeForm from '@/components/profile/PasswordChangeForm';
 import MFASetup from '@/components/profile/MFASetup';
 import { useRouter } from 'next/navigation';
-import { updateProfile, updateAvatar } from './actions';
+import { updateProfile, updateAvatar, updateNotificationPreferences } from './actions';
 import { useToast } from '@/components/ui/Toast';
 import { typography } from '@/styles/design-system';
+import { Bell, ToggleLeft, ToggleRight } from 'lucide-react';
 
 export interface EmployeeProfile {
   id: string;
@@ -23,6 +24,14 @@ export interface EmployeeProfile {
   created_at?: string;
   mfa_enabled?: boolean;
   employee_id?: string;
+  notification_preferences?: {
+    leave_approved: boolean;
+    leave_rejected: boolean;
+    attendance_reminder: boolean;
+    daily_report_reminder: boolean;
+    holiday_reminder: boolean;
+    company_announcement: boolean;
+  };
 }
 
 export default function ProfileClient({ employee }: { employee: EmployeeProfile }) {
@@ -40,6 +49,19 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [currentAvatarUrl, setCurrentAvatarUrl] = useState(employee.avatar_url);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [preferences, setPreferences] = useState(() => {
+    const defaults = {
+      leave_approved: true,
+      leave_rejected: true,
+      attendance_reminder: true,
+      daily_report_reminder: true,
+      holiday_reminder: true,
+      company_announcement: true
+    };
+    return employee.notification_preferences || defaults;
+  });
+  const [savingPrefs, setSavingPrefs] = useState(false);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -89,6 +111,24 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
       toast.error('Failed to save profile details.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSavePreferences = async (updatedPrefs: typeof preferences) => {
+    setSavingPrefs(true);
+    try {
+      const res = await updateNotificationPreferences(updatedPrefs);
+      if (res && res.success) {
+        toast.success('Notification preferences updated successfully.');
+        router.refresh();
+      } else {
+        toast.error(res?.error || 'Failed to update preferences.');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update preferences.');
+    } finally {
+      setSavingPrefs(false);
     }
   };
 
@@ -261,6 +301,48 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
 
           <div className="p-5 rounded-lg bg-primary-50 border border-primary-100">
             <MFASetup initialEnabled={employee.mfa_enabled || false} />
+          </div>
+
+          <div className="p-6 rounded-lg bg-white border border-zinc-200 shadow-2xs">
+            <div className="border-b border-zinc-100 pb-4 mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-primary-500" />
+                <h3 className="text-sm font-bold text-navy-900">Notification Alerts</h3>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {[
+                { key: 'leave_approved', label: 'Leave Approvals' },
+                { key: 'leave_rejected', label: 'Leave Rejections' },
+                { key: 'attendance_reminder', label: 'Attendance Reminders' },
+                { key: 'daily_report_reminder', label: 'Daily Report Reminders' },
+                { key: 'holiday_reminder', label: 'Holiday Reminders' },
+                { key: 'company_announcement', label: 'Company Announcements' },
+              ].map((item) => {
+                const isEnabled = (preferences as any)[item.key];
+                return (
+                  <div key={item.key} className="flex items-center justify-between py-1 border-b border-zinc-50 last:border-0">
+                    <span className="text-xs font-semibold text-zinc-650">{item.label}</span>
+                    <button
+                      onClick={() => {
+                        const newPrefs = { ...preferences, [item.key]: !isEnabled };
+                        setPreferences(newPrefs);
+                        handleSavePreferences(newPrefs);
+                      }}
+                      disabled={savingPrefs}
+                      className="text-primary-600 hover:text-primary-700 transition-all border-0 bg-transparent p-1 cursor-pointer"
+                      title={isEnabled ? 'Disable' : 'Enable'}
+                    >
+                      {isEnabled ? (
+                        <ToggleRight className="w-7 h-7 text-primary-600" />
+                      ) : (
+                        <ToggleLeft className="w-7 h-7 text-zinc-400" />
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {!isStandalone && (

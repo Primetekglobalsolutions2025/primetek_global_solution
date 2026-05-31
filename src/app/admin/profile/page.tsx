@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import PasswordChangeForm from '@/components/profile/PasswordChangeForm';
 import AdminProfileForm from '@/components/profile/AdminProfileForm';
+import AdminNotificationPreferences from '@/components/profile/AdminNotificationPreferences';
 import Card from '@/components/ui/Card';
 import { User } from 'lucide-react';
 
@@ -13,12 +14,21 @@ export default async function AdminProfilePage() {
     redirect('/admin/login');
   }
 
-  // Admin user data comes from the session/JWT which gets populated by Supabase Auth metadata
+  // Admin user data comes from the session/JWT
   const admin = {
     name: session.name || 'Administrator',
     email: session.email || 'admin@primetek.com',
     role: session.role
   };
+
+  // Fetch preferences from DB
+  const { data: dbAdmin } = await supabaseAdmin
+    .from('admin_users')
+    .select('notification_preferences')
+    .eq('id', session.id)
+    .maybeSingle();
+
+  const preferences = dbAdmin?.notification_preferences || undefined;
 
   return (
     <div className="space-y-6">
@@ -54,6 +64,11 @@ export default async function AdminProfilePage() {
         {/* Password Change */}
         <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white">
           <PasswordChangeForm />
+        </Card>
+
+        {/* Notification Alerts Settings */}
+        <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white">
+          <AdminNotificationPreferences initialPreferences={preferences} />
         </Card>
       </div>
     </div>

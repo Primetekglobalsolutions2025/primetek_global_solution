@@ -3,6 +3,7 @@
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { revalidatePath } from 'next/cache';
 import { getSession, verifyActiveAdmin } from '@/lib/auth';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 import type { ApplicationRecord } from './ApplicationsClient';
 import { fullApplicationSchema } from '@/lib/validations';
 
@@ -135,6 +136,34 @@ export async function createFullApplication(formData: unknown) {
     console.error('Error creating application via RPC:', error || data?.error);
     throw new Error('Failed to create application');
   }
+
+    // Fetch job title and notify other admins
+    try {
+      const { data: job } = await supabaseAdmin
+        .from('jobs')
+        .select('title')
+        .eq('id', validated.job_id)
+        .single();
+      const jobTitle = job?.title || 'a position';
+
+      const { data: admins } = await supabaseAdmin.from('admin_users').select('id');
+      if (admins && admins.length > 0) {
+        for (const admin of admins) {
+          // Skip notifying the current admin creator to avoid redundancy
+          if (admin.id === session.id) continue;
+
+          await dispatchNotification({
+            title: `New Candidate Application`,
+            message: `A new application has been submitted by ${validated.name} for the role of ${jobTitle}.`,
+            type: 'new_applications',
+            adminId: admin.id,
+            clickActionUrl: '/admin/applications'
+          });
+        }
+      }
+    } catch (pushErr: any) {
+      console.warn(`[Push Delivery Failed] action: createFullApplication, error: ${pushErr.message}`);
+    }
 
   revalidatePath('/admin/applications');
   revalidatePath('/admin/client-profiles');
