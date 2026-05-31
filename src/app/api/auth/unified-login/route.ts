@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
-    const { email, password, fingerprint } = body;
+    const { email, password, fingerprint, portal } = body;
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
@@ -69,15 +69,32 @@ export async function POST(request: NextRequest) {
     const isEmail = cleanEmail.includes('@');
 
     // 3. Admin Check (Database-first for reliability)
-    // First, check if this email exists in the admin_users table
-    const { data: adminRecord } = await supabaseAdmin
-      .from('admin_users')
-      .select('id, email')
-      .ilike('email', cleanEmail)
-      .single();
+    const shouldCheckAdmin = portal !== 'employee';
+    let isAdmin = false;
+    let adminRecord = null;
 
-    const ADMIN_EMAIL_ENV = (process.env.ADMIN_EMAIL || 'admin@primetekglobalsolutions.com').trim().toLowerCase();
-    const isAdmin = adminRecord || cleanEmail === ADMIN_EMAIL_ENV;
+    if (shouldCheckAdmin) {
+      const { data: record } = await supabaseAdmin
+        .from('admin_users')
+        .select('id, email')
+        .ilike('email', cleanEmail)
+        .single();
+      adminRecord = record;
+
+      const ADMIN_EMAIL_ENV = (process.env.ADMIN_EMAIL || 'admin@primetekglobalsolutions.com').trim().toLowerCase();
+      isAdmin = !!adminRecord || cleanEmail === ADMIN_EMAIL_ENV;
+    }
+
+    if (portal === 'admin' && !isAdmin) {
+      const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
+      const failedAttempts = 5 - (currentRes.remainingPoints || 0);
+      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string; nonce: string } } = { error: 'Invalid credentials' };
+      if (failedAttempts >= CAPTCHA_THRESHOLD) {
+        responseData.showCaptcha = true;
+        responseData.captcha = await generateCaptchaChallenge();
+      }
+      return NextResponse.json(responseData, { status: 401 });
+    }
 
     if (isAdmin) {
       if (process.env.NODE_ENV !== 'production') {

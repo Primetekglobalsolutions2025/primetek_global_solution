@@ -43,6 +43,7 @@ export default function LoginForm() {
           captchaToken,
           captchaAnswer,
           captchaNonce,
+          portal: 'admin',
         }),
       });
 

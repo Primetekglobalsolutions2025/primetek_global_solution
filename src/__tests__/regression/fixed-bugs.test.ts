@@ -138,4 +138,39 @@ describe('Regression Tests for Remediated Vulnerabilities & Bugs', () => {
 
     vi.useRealTimers();
   });
+
+  it('REGRESSION-7: Admin login portal rejects employee credentials', async () => {
+    // Attempt login with portal: 'admin' using an employee's credentials
+    const req = new NextRequest('http://localhost:3000/api/auth/unified-login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: employeeA.email,
+        password: 'TestPass123!',
+        portal: 'admin',
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe('Invalid credentials');
+  });
+
+  it('REGRESSION-8: Employee login portal rejects admin credentials', async () => {
+    // Attempt login with portal: 'employee' using an admin's credentials
+    const ADMIN_EMAIL_ENV = 'test_admin@primetek.com';
+    const req = new NextRequest('http://localhost:3000/api/auth/unified-login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: ADMIN_EMAIL_ENV,
+        password: 'TestPass123!',
+        portal: 'employee',
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.error).toBe('Invalid credentials');
+  });
 });

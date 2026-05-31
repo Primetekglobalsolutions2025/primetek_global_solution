@@ -31,7 +31,7 @@ export default function EmployeeLoginForm() {
       const res = await fetch('/api/auth/unified-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, captchaToken, captchaAnswer, captchaNonce }),
+        body: JSON.stringify({ email, password, captchaToken, captchaAnswer, captchaNonce, portal: 'employee' }),
       });
 
       const data = await res.json();
