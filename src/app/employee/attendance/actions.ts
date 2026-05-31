@@ -1410,6 +1410,37 @@ export async function submitDispute(attendanceId: string, category: string, reas
       return { success: false, error: 'Failed to submit dispute.' };
     }
 
+    // Fetch employee name for the notification
+    let employeeName = 'An employee';
+    try {
+      const { data: emp } = await supabaseAdmin
+        .from('employees')
+        .select('name')
+        .eq('id', session.id)
+        .single();
+      if (emp?.name) employeeName = emp.name;
+    } catch (err) {
+      console.warn('Failed to fetch employee name for dispute push:', err);
+    }
+
+    // Web Push notification to admins
+    try {
+      const { data: admins } = await supabaseAdmin.from('admin_users').select('id');
+      if (admins && admins.length > 0) {
+        for (const admin of admins) {
+          await dispatchNotification({
+            title: `New Dispute Submitted`,
+            message: `${employeeName} submitted a dispute for ${category.replace(/_/g, ' ')}. Reason: "${reason}".`,
+            type: 'leave_approval_required',
+            adminId: admin.id,
+            clickActionUrl: '/admin/approvals'
+          });
+        }
+      }
+    } catch (pushErr: any) {
+      console.warn(`[Push Delivery Failed] action: submitDispute, error: ${pushErr.message}`);
+    }
+
     return { success: true, dispute: data };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Failed to submit dispute' };

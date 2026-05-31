@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { revalidatePath } from 'next/cache';
 import { logAuditAction } from '@/lib/audit';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 
 export interface AdminWFHRequest {
   id: string;
@@ -214,6 +215,20 @@ export async function updateWFHRequestStatus(id: string, status: 'Approved' | 'R
       }
     } catch (emailErr) {
       console.error('Failed to notify employee of WFH request status change:', emailErr);
+    }
+
+    // Dispatch Web Push notification to the employee
+    try {
+      const notificationType = status === 'Approved' ? 'leave_approved' : 'leave_rejected';
+      await dispatchNotification({
+        title: `WFH Date Request ${status}`,
+        message: `Your pre-planned Work From Home request for ${request.start_date} to ${request.end_date} has been ${status.toLowerCase()}.`,
+        type: notificationType,
+        employeeId: request.employee_id,
+        clickActionUrl: '/employee/leaves'
+      });
+    } catch (pushErr: any) {
+      console.warn(`[Push Delivery Failed] action: updateWFHRequestStatus, error: ${pushErr.message}`);
     }
 
     revalidatePath('/admin/approvals');

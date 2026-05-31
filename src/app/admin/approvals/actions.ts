@@ -605,6 +605,30 @@ export async function resolveDispute(
       { status, justification }
     );
 
+    // Dispatch Web Push notification to the employee
+    try {
+      const { data: attendanceRecord } = await supabaseAdmin
+        .from('attendance')
+        .select('date')
+        .eq('id', dispute.attendance_id)
+        .maybeSingle();
+
+      const recordDate = attendanceRecord?.date 
+        ? new Date(attendanceRecord.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) 
+        : 'shift';
+      const notificationType = status === 'APPROVED' ? 'leave_approved' : 'leave_rejected';
+      const cleanStatus = status === 'APPROVED' ? 'Approved' : 'Rejected';
+      await dispatchNotification({
+        title: `Dispute ${cleanStatus}`,
+        message: `Your dispute for attendance on ${recordDate} has been ${cleanStatus.toLowerCase()}. Reason: "${justification}".`,
+        type: notificationType,
+        employeeId: dispute.employee_id,
+        clickActionUrl: '/employee/attendance'
+      });
+    } catch (pushErr: any) {
+      console.warn(`[Push Delivery Failed] action: resolveDispute, error: ${pushErr.message}`);
+    }
+
     revalidatePath('/admin/approvals');
     revalidatePath('/admin/attendance');
     revalidatePath('/employee/attendance');
