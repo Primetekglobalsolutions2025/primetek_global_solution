@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Bell, X, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getNotificationPermissionState, subscribeUserToPush } from '@/lib/notifications/push-helper';
@@ -8,6 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import Button from '@/components/ui/Button';
 
 export default function PushPermissionPrompt() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const { toast } = useToast();
@@ -15,6 +17,14 @@ export default function PushPermissionPrompt() {
   useEffect(() => {
     // Only run on client side and check permission state
     if (typeof window === 'undefined') return;
+
+    // Restrict visibility to authenticated pages only
+    const isAuthRoute = (pathname.startsWith('/employee') && pathname !== '/employee/login') ||
+                        (pathname.startsWith('/admin') && pathname !== '/admin/login');
+    if (!isAuthRoute) {
+      setIsVisible(false);
+      return;
+    }
 
     const state = getNotificationPermissionState();
 
@@ -26,7 +36,7 @@ export default function PushPermissionPrompt() {
       return;
     }
 
-    const isDismissed = localStorage.getItem('primetek_push_prompt_dismissed') === 'true';
+    const isDismissed = localStorage.getItem('primetek_push_prompt_dismissed_v2') === 'true';
 
     // Show if permission is 'default' and not dismissed recently
     if (state === 'default' && !isDismissed) {
@@ -36,7 +46,7 @@ export default function PushPermissionPrompt() {
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [pathname]);
 
   const handleAllow = async () => {
     setIsSubscribing(true);
@@ -44,7 +54,7 @@ export default function PushPermissionPrompt() {
     setIsSubscribing(false);
 
     // Save choice to localStorage to prevent spamming prompt on failure/reloads
-    localStorage.setItem('primetek_push_prompt_dismissed', 'true');
+    localStorage.setItem('primetek_push_prompt_dismissed_v2', 'true');
 
     if (res.success) {
       toast.success('Push notifications enabled successfully.');
@@ -56,7 +66,7 @@ export default function PushPermissionPrompt() {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem('primetek_push_prompt_dismissed', 'true');
+    localStorage.setItem('primetek_push_prompt_dismissed_v2', 'true');
     setIsVisible(false);
   };
 

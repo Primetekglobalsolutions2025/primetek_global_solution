@@ -134,19 +134,27 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
       
       subscriptions = empSubs || [];
     } else {
-      // Broadcast / Announcement to all active employees
-      // Verify preferences for company_announcement
-      const { data: activeSubs } = await supabaseAdmin
+      // Broadcast / Announcement to all active employees and admins
+      // 1. Fetch active employee subscriptions and filter by preferences
+      const { data: employeeSubs } = await supabaseAdmin
         .from('push_subscriptions')
         .select('*, employees!inner(status, notification_preferences)')
         .eq('is_active', true)
         .eq('employees.status', 'Active');
 
-      // Filter by preference mapping
-      subscriptions = (activeSubs || []).filter((sub: any) => {
+      const filteredEmployeeSubs = (employeeSubs || []).filter((sub: any) => {
         const preferences = sub.employees?.notification_preferences || {};
         return preferences[type] !== false;
       });
+
+      // 2. Fetch active admin subscriptions (exclude none unless toggled)
+      const { data: adminSubs } = await supabaseAdmin
+        .from('push_subscriptions')
+        .select('*')
+        .eq('is_active', true)
+        .not('admin_id', 'is', null);
+
+      subscriptions = [...filteredEmployeeSubs, ...(adminSubs || [])];
     }
   } catch (err) {
     console.error('Failed to resolve target subscriptions and preferences:', err);
