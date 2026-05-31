@@ -65,8 +65,8 @@ vi.mock('next/cache', () => ({
 vi.mock('@/lib/cache/office-location', () => ({
   getCachedActiveOfficeLocation: vi.fn(async () => ({
     name: 'Primetek HQ, Hyderabad',
-    lat: 17.385,
-    lng: 78.4867,
+    lat: 17.44569123225756,
+    lng: 78.38649648531063,
     radius_meters: 500,
   })),
 }));

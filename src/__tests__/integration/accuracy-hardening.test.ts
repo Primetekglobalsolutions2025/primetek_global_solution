@@ -3,6 +3,7 @@ import { createTestEmployee, createTestAdmin, cleanupTestData, getTestSession } 
 import { checkIn, requestWFH, submitOfflineRecoveryRequest } from '@/app/employee/attendance/actions';
 import { resolveRecoveryRequest } from '@/app/admin/attendance/actions';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { OFFICE_LOCATION } from '@/lib/location';
 import * as nextHeaders from 'next/headers';
 
 const { __mockSetCookie } = nextHeaders as any;
@@ -29,8 +30,8 @@ describe('Attendance Accuracy Hardening Integration Tests', () => {
     
     // Try checkIn with offline sync flag
     const res = await checkIn(
-      17.3850,
-      78.4867,
+      OFFICE_LOCATION.lat,
+      OFFICE_LOCATION.lng,
       '127.0.0.1',
       'Mozilla/5.0',
       'test-fingerprint',
@@ -63,8 +64,8 @@ describe('Attendance Accuracy Hardening Integration Tests', () => {
     const res = await submitOfflineRecoveryRequest(
       'check_in',
       originalTime,
-      17.3850,
-      78.4867,
+      OFFICE_LOCATION.lat,
+      OFFICE_LOCATION.lng,
       'test-fingerprint-recovery',
       'Out of radius check-in failed'
     );
@@ -93,8 +94,8 @@ describe('Attendance Accuracy Hardening Integration Tests', () => {
     const recoveryRes = await submitOfflineRecoveryRequest(
       'check_in',
       originalTime,
-      17.3850,
-      78.4867,
+      OFFICE_LOCATION.lat,
+      OFFICE_LOCATION.lng,
       'test-fingerprint-resolve',
       'Offline network lost'
     );

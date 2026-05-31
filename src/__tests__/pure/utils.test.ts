@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getISTShiftDate, calculateDistance, formatDate, ATTENDANCE_STATUS } from '@/lib/utils';
-import { isWithinOffice } from '@/lib/location';
+import { isWithinOffice, OFFICE_LOCATION } from '@/lib/location';
 
 describe('Utility Functions — utils.ts', () => {
   describe('getISTShiftDate() boundaries', () => {
@@ -64,8 +64,8 @@ describe('Utility Functions — utils.ts', () => {
   });
 
   describe('calculateDistance() and isWithinOffice()', () => {
-    const officeLat = 17.385;
-    const officeLng = 78.4867;
+    const officeLat = OFFICE_LOCATION.lat;
+    const officeLng = OFFICE_LOCATION.lng;
 
     it('Distance to itself is 0', () => {
       expect(calculateDistance(officeLat, officeLng, officeLat, officeLng)).toBe(0);
