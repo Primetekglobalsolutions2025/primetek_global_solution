@@ -36,9 +36,11 @@ CREATE INDEX IF NOT EXISTS idx_push_subscriptions_is_active ON public.push_subsc
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- Set up RLS Policies for Push Subscriptions
+DROP POLICY IF EXISTS "Admins have full access to push_subscriptions" ON public.push_subscriptions;
 CREATE POLICY "Admins have full access to push_subscriptions" ON public.push_subscriptions 
     FOR ALL USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Employees can manage their own subscriptions" ON public.push_subscriptions;
 CREATE POLICY "Employees can manage their own subscriptions" ON public.push_subscriptions
     FOR ALL USING (
         employee_id = auth.uid()
@@ -46,6 +48,7 @@ CREATE POLICY "Employees can manage their own subscriptions" ON public.push_subs
         employee_id = auth.uid()
     );
 
+DROP POLICY IF EXISTS "Admins can manage their own subscriptions" ON public.push_subscriptions;
 CREATE POLICY "Admins can manage their own subscriptions" ON public.push_subscriptions
     FOR ALL USING (
         admin_id = auth.uid()
