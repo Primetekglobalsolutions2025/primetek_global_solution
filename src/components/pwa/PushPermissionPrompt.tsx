@@ -17,6 +17,15 @@ export default function PushPermissionPrompt() {
     if (typeof window === 'undefined') return;
 
     const state = getNotificationPermissionState();
+
+    if (state === 'granted') {
+      // Silently sync/renew the push subscription in the background
+      subscribeUserToPush().catch((err) => {
+        console.warn('Background push subscription sync failed:', err);
+      });
+      return;
+    }
+
     const isDismissed = localStorage.getItem('primetek_push_prompt_dismissed') === 'true';
 
     // Show if permission is 'default' and not dismissed recently
@@ -34,12 +43,14 @@ export default function PushPermissionPrompt() {
     const res = await subscribeUserToPush();
     setIsSubscribing(false);
 
+    // Save choice to localStorage to prevent spamming prompt on failure/reloads
+    localStorage.setItem('primetek_push_prompt_dismissed', 'true');
+
     if (res.success) {
       toast.success('Push notifications enabled successfully.');
       setIsVisible(false);
     } else {
       toast.error(res.error || 'Failed to enable push notifications.');
-      // Dismiss for now on error so we don't spam the user
       setIsVisible(false);
     }
   };
