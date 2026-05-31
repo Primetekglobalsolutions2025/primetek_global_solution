@@ -20,7 +20,7 @@ export default async function AdminAppAttendancePage(props: PageProps) {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl md:text-2xl font-heading font-bold text-navy-900 tracking-tight">Attendance Reports</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">Attendance Reports</h1>
         <p className="text-text-secondary text-sm">Track and review employee attendance.</p>
       </div>
       <Suspense fallback={<AttendanceSkeleton />}>

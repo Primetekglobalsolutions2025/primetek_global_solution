@@ -21,7 +21,7 @@ export default function EmployeeError({
         <AlertCircle className="w-8 h-8" />
       </div>
 
-      <h1 className="font-heading font-black text-2xl text-navy-900 tracking-tight mb-2">
+      <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900 mb-2">
         Something Went Wrong
       </h1>
       

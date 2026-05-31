@@ -1209,7 +1209,7 @@ export default function AttendanceClient({
 
         {/* Title area */}
         <div className="space-y-1">
-          <h1 className="text-[24px] font-extrabold text-[#071B3A] tracking-tight">Attendance</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">Attendance</h1>
           <p className="text-[#64748B] text-[12px] font-semibold">Track your attendance and work hours.</p>
         </div>
 
@@ -1277,17 +1277,17 @@ export default function AttendanceClient({
             className="flex flex-col gap-2 p-4 rounded-[20px] border border-emerald-200 bg-emerald-50/40 text-xs font-semibold font-sans shadow-sm"
           >
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#E6F8F2] border border-emerald-100 flex items-center justify-center shrink-0 text-[#22C55E]">
+              <div className="w-8 h-8 rounded-full bg-primary-50 border border-emerald-100 flex items-center justify-center shrink-0 text-[#22C55E]">
                 <ShieldAlert className="w-4.5 h-4.5" />
               </div>
               <div className="flex-1">
-                <p className="font-bold text-[#0B8B83]">Late Penalty Warning</p>
+                <p className="font-bold text-primary-600">Late Penalty Warning</p>
                 <p className="text-[#64748B] text-[10px] mt-0.5 leading-relaxed font-medium">
                   {lateStats.warningMessage || "2 more late logins will deduct Half Day attendance."}
                 </p>
               </div>
             </div>
-            <div className="border-t border-emerald-200/50 pt-2 flex items-center justify-between text-[10px] font-bold tracking-wider font-mono text-[#0B8B83]">
+            <div className="border-t border-emerald-200/50 pt-2 flex items-center justify-between text-[10px] font-bold tracking-wider font-mono text-primary-600">
               <span>LATES: {lateStats.lateCount}</span>
               <span>DEDUCTIONS: <span className="text-red-500">{lateStats.deduction} DAY</span></span>
             </div>
@@ -1298,12 +1298,12 @@ export default function AttendanceClient({
         {checkedIn && (
           <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-[14px] font-extrabold text-[#071B3A]">Today's Overview</h2>
+              <h2 className="text-[14px] font-extrabold text-navy-900">Today's Overview</h2>
               <div 
                 onClick={() => {
                   document.getElementById('monthly-calendar-section')?.scrollIntoView({ behavior: 'smooth' });
                 }}
-                className="text-[11px] font-bold text-[#0B8B83] hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-bold text-primary-600 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <CalendarIcon className="w-3.5 h-3.5" />
                 View Calendar
@@ -1314,7 +1314,7 @@ export default function AttendanceClient({
               {/* Clock In */}
               <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
                 <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Clock In</span>
-                <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
+                <span className="text-[12px] font-bold text-navy-900 tracking-tight leading-none mb-2">
                   {todayRecord?.check_in ? todayRecord.check_in.replace(/\s?[AP]M/i, '') : '--:--'}
                   {todayRecord?.check_in && <span className="text-[8px] ml-0.5 font-extrabold">{todayRecord.check_in.slice(-2)}</span>}
                 </span>
@@ -1323,7 +1323,7 @@ export default function AttendanceClient({
                     "text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 border border-transparent uppercase font-mono",
                     todayRecord?.status?.toLowerCase() === 'late' 
                       ? "bg-red-50 text-red-600 border-red-100" 
-                      : "bg-[#E6F8F2] text-[#0B8B83] border-[#0B8B83]/10"
+                      : "bg-primary-50 text-primary-600 border-primary-600/10"
                   )}>
                     {todayRecord?.status?.toLowerCase() === 'late' ? 'Late' : 'On Time'}
                   </span>
@@ -1337,7 +1337,7 @@ export default function AttendanceClient({
               {/* Total Hours */}
               <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
                 <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Total Hours</span>
-                <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
+                <span className="text-[12px] font-bold text-navy-900 tracking-tight leading-none mb-2">
                   {checkedIn ? (
                     !isCheckedOut ? (
                       `${String(elapsedHrs).padStart(2, '0')}h ${String(elapsedMin).padStart(2, '0')}m`
@@ -1354,7 +1354,7 @@ export default function AttendanceClient({
               {/* Break Time */}
               <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
                 <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Break Time</span>
-                <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
+                <span className="text-[12px] font-bold text-navy-900 tracking-tight leading-none mb-2">
                   {checkedIn 
                     ? `${String(Math.floor(breakUsedSeconds / 3600)).padStart(2, '0')}h ${String(Math.floor((breakUsedSeconds % 3600) / 60)).padStart(2, '0')}m` 
                     : '00h 00m'}
@@ -1367,7 +1367,7 @@ export default function AttendanceClient({
               {/* Clock Out */}
               <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
                 <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Clock Out</span>
-                <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
+                <span className="text-[12px] font-bold text-navy-900 tracking-tight leading-none mb-2">
                   {todayRecord?.check_out ? todayRecord.check_out.replace(/\s?[AP]M/i, '') : '--:--'}
                   {todayRecord?.check_out && <span className="text-[8px] ml-0.5 font-extrabold">{todayRecord.check_out.slice(-2)}</span>}
                 </span>
@@ -1386,7 +1386,7 @@ export default function AttendanceClient({
         <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4 relative overflow-hidden">
             {/* Background Map Graphic Accent */}
             <div className="absolute right-4 top-4 opacity-[0.08] select-none pointer-events-none w-28 h-28">
-              <svg viewBox="0 0 100 100" className="w-full h-full text-[#0B8B83]">
+              <svg viewBox="0 0 100 100" className="w-full h-full text-primary-600">
                 <path d="M10 50 Q 30 20, 50 50 T 90 50" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="3 3" />
                 <circle cx="50" cy="50" r="10" fill="currentColor" fillOpacity="0.2" />
                 <circle cx="50" cy="50" r="3" fill="currentColor" />
@@ -1395,13 +1395,13 @@ export default function AttendanceClient({
             
             <div className="space-y-4">
               <div>
-                <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#0B8B83] block">
+                <span className="text-[9px] font-extrabold uppercase tracking-widest text-primary-600 block">
                   CURRENT SESSION
                 </span>
                 <div className="flex items-center justify-between mt-2">
                   <div className="space-y-1">
                     <span className="text-[11px] font-bold text-[#64748B] block leading-none">Live Status</span>
-                    <h3 className="text-[18px] font-extrabold text-[#071B3A] flex items-center gap-1.5 leading-none">
+                    <h3 className="text-[18px] font-extrabold text-navy-900 flex items-center gap-1.5 leading-none">
                       {checkedIn ? (
                         currentStatus === 'Break' || currentStatus === 'Break (Auto)' ? 'On Break' :
                         currentStatus === 'Idle' ? 'Idle' : 'Active'
@@ -1436,7 +1436,7 @@ export default function AttendanceClient({
                 <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#94A3B8] block leading-none">
                   LIVE SYSTEM TIME (ACTIVE SYNC)
                 </span>
-                <div className="text-[28px] font-black text-[#071B3A] font-mono tracking-wider leading-none pt-1">
+                <div className="text-[28px] font-black text-navy-900 font-mono tracking-wider leading-none pt-1">
                   {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
                 </div>
               </div>
@@ -1457,7 +1457,7 @@ export default function AttendanceClient({
                     data-testid="clock-in-btn"
                     onClick={handleCheckIn}
                     disabled={gpsStatus === 'loading'}
-                    className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider bg-[#0B8B83] hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 border-0"
+                    className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider bg-primary-600 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 border-0"
                   >
                     {gpsStatus === 'loading' ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
@@ -1471,7 +1471,7 @@ export default function AttendanceClient({
                       type="button"
                       onClick={handleCheckOut}
                       disabled={gpsStatus === 'loading'}
-                      className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider bg-[#0B8B83] hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 border-0"
+                      className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider bg-primary-600 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 border-0"
                     >
                       {gpsStatus === 'loading' ? (
                         <><Loader2 className="w-4 h-4 animate-spin animate-pulse" /> Locating GPS...</>
@@ -1487,7 +1487,7 @@ export default function AttendanceClient({
                           type="button"
                           disabled={isBreakActionLoading}
                           onClick={handleResumeWork}
-                          className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl bg-[#0B8B83] hover:opacity-90 text-white active:scale-[0.98] transition-all shadow-3xs cursor-pointer border-0"
+                          className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl bg-primary-600 hover:opacity-90 text-white active:scale-[0.98] transition-all shadow-3xs cursor-pointer border-0"
                         >
                           {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : 'Resume Work'}
                         </button>
@@ -1504,13 +1504,13 @@ export default function AttendanceClient({
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-[#E6F8F2] border border-[#22C55E]/10 rounded-xl p-4 text-center">
+                  <div className="bg-primary-50 border border-[#22C55E]/10 rounded-xl p-4 text-center">
                     <p className="text-xs font-extrabold text-[#22C55E] uppercase tracking-wider">Clock Out Complete</p>
                     <p className="text-[10px] text-zinc-500 mt-1 font-semibold font-sans">Your shift attendance has been recorded successfully.</p>
                     <button 
                       type="button"
                       onClick={handleResume} 
-                      className="mt-3 text-[10px] font-bold text-[#0B8B83] hover:underline uppercase tracking-wider font-mono cursor-pointer bg-transparent border-0"
+                      className="mt-3 text-[10px] font-bold text-primary-600 hover:underline uppercase tracking-wider font-mono cursor-pointer bg-transparent border-0"
                     >
                       Undo Clock Out
                     </button>
@@ -1530,7 +1530,7 @@ export default function AttendanceClient({
         <section id="monthly-calendar-section" className="bg-[#FFFFFF] rounded-[20px] p-5 border border-[#E2E8F0] shadow-sm relative flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CalendarIcon className="w-[18px] h-[18px] text-[#0B8B83]" />
+              <CalendarIcon className="w-[18px] h-[18px] text-primary-600" />
               <h2 className="font-extrabold text-[#0F172A] text-[14px] tracking-tight font-sans">Monthly Attendance</h2>
             </div>
             
@@ -1540,18 +1540,18 @@ export default function AttendanceClient({
                 type="button"
                 onClick={() => navigateMonth('prev')}
                 disabled={isPrevDisabled || isCalendarLoading}
-                className="text-slate-500 hover:text-slate-800 disabled:opacity-30 cursor-pointer p-1 transition-all border-0 bg-transparent"
+                className="text-zinc-500 hover:text-zinc-800 disabled:opacity-30 cursor-pointer p-1 transition-all border-0 bg-transparent"
               >
                 <ChevronLeft className="w-4.5 h-4.5" />
               </button>
-              <div className="bg-[#EFF2F6] px-3.5 py-1 rounded-lg text-[#071B3A] text-xs font-black font-sans leading-none uppercase tracking-wide">
+              <div className="bg-navy-50 px-3.5 py-1 rounded-lg text-navy-900 text-xs font-black font-sans leading-none uppercase tracking-wide">
                 {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
               </div>
               <button
                 type="button"
                 onClick={() => navigateMonth('next')}
                 disabled={isNextDisabled || isCalendarLoading}
-                className="text-slate-500 hover:text-slate-800 disabled:opacity-30 cursor-pointer p-1 transition-all border-0 bg-transparent"
+                className="text-zinc-500 hover:text-zinc-800 disabled:opacity-30 cursor-pointer p-1 transition-all border-0 bg-transparent"
               >
                 <ChevronRight className="w-4.5 h-4.5" />
               </button>
@@ -1636,7 +1636,7 @@ export default function AttendanceClient({
                         className={cn(
                           "w-[32px] h-[32px] rounded-full flex items-center justify-center text-xs font-extrabold transition-all cursor-default",
                           isToday
-                            ? "bg-[#0B8B83] text-white"
+                            ? "bg-primary-600 text-white"
                             : isSelectedState 
                               ? status === 'late' 
                                 ? "border border-red-200 text-red-500 bg-red-50/20" 
@@ -1644,12 +1644,12 @@ export default function AttendanceClient({
                                   ? "border border-blue-200 text-blue-500 bg-blue-50/20"
                                   : status === 'half-day'
                                     ? "border border-orange-200 text-orange-500 bg-orange-50/20"
-                                    : "border border-emerald-200 text-[#22C55E] bg-[#E6F8F2]/30"
+                                    : "border border-emerald-200 text-[#22C55E] bg-primary-50/30"
                               : isHoliday
-                                ? "bg-[#E6F8F2] text-[#22C55E] border border-emerald-200"
+                                ? "bg-primary-50 text-[#22C55E] border border-emerald-200"
                               : !isCurrentMonth
                                 ? "text-zinc-400 font-normal"
-                                : "text-[#071B3A]"
+                                : "text-navy-900"
                         )}
                       >
                         <span>{day}</span>
@@ -1707,7 +1707,7 @@ export default function AttendanceClient({
           return (
             <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4 font-sans">
               <div className="flex items-center justify-between">
-                <h2 className="text-[14px] font-extrabold text-[#071B3A]">Holidays in {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long' })}</h2>
+                <h2 className="text-[14px] font-extrabold text-navy-900">Holidays in {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long' })}</h2>
               </div>
               
               {currentMonthHolidays.length === 0 ? (
@@ -1719,17 +1719,17 @@ export default function AttendanceClient({
                   {currentMonthHolidays.map(holiday => (
                     <div key={holiday.id} className="flex items-center justify-between border border-[#EEF2F6] rounded-[20px] p-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#E6F8F2] flex items-center justify-center text-[#22C55E] shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-[#22C55E] shrink-0">
                           <CalendarIcon className="w-4 h-4" />
                         </div>
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-[11px] font-extrabold text-[#071B3A]">{holiday.title}</span>
+                          <span className="text-[11px] font-extrabold text-navy-900">{holiday.title}</span>
                           <span className="text-[9px] font-bold text-[#64748B]">
                             {new Date(holiday.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', weekday: 'long' })}
                           </span>
                         </div>
                       </div>
-                      <span className="bg-[#E6F8F2] text-[#22C55E] text-[8px] font-bold py-1 px-2.5 rounded-full uppercase shrink-0 border border-[#22C55E]/10">
+                      <span className="bg-primary-50 text-[#22C55E] text-[8px] font-bold py-1 px-2.5 rounded-full uppercase shrink-0 border border-[#22C55E]/10">
                         {holiday.type}
                       </span>
                     </div>
@@ -1744,11 +1744,11 @@ export default function AttendanceClient({
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-1 h-5 bg-[#0B8B83] rounded-full" />
-              <h2 className="font-extrabold text-[#071B3A] text-[14px] tracking-tight font-sans">Attendance History</h2>
+              <div className="w-1 h-5 bg-primary-600 rounded-full" />
+              <h2 className="font-extrabold text-navy-900 text-[14px] tracking-tight font-sans">Attendance History</h2>
             </div>
             {/* View All link */}
-            <span className="text-[11px] font-bold text-[#0B8B83] hover:underline flex items-center gap-0.5 cursor-pointer">
+            <span className="text-[11px] font-bold text-primary-600 hover:underline flex items-center gap-0.5 cursor-pointer">
               View All <ChevronRight className="w-3 h-3" />
             </span>
           </div>
@@ -1765,15 +1765,15 @@ export default function AttendanceClient({
                     {(() => {
                       const s = r.status?.toLowerCase() || '';
                       const disputeApproved = dispute && dispute.status === 'APPROVED';
-                      let bgClass = "bg-[#E6F8F2] border-emerald-100 text-[#22C55E]";
+                      let bgClass = "bg-primary-50 border-emerald-100 text-[#22C55E]";
                       let IconComponent = LogOut;
                       
                       if (isWFH) {
                         IconComponent = Home;
                         if (s.includes('approved') || disputeApproved) {
-                          bgClass = "bg-[#E6F8F2] border-emerald-100 text-[#22C55E]";
+                          bgClass = "bg-primary-50 border-emerald-100 text-[#22C55E]";
                         } else {
-                          bgClass = "bg-slate-50 border-slate-200 text-slate-400";
+                          bgClass = "bg-zinc-50 border-zinc-200 text-zinc-400";
                         }
                       } else if (s === 'late' || disputeApproved) {
                         bgClass = "bg-orange-50 border-orange-100 text-orange-500";
@@ -1787,7 +1787,7 @@ export default function AttendanceClient({
                     })()}
                     
                     <div className="space-y-1">
-                      <p className="font-extrabold text-[#071B3A] text-xs">
+                      <p className="font-extrabold text-navy-900 text-xs">
                         {new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
                       </p>
                       <div className="flex items-center gap-1.5 text-[9px] text-[#64748B] font-mono font-semibold">
@@ -1808,7 +1808,7 @@ export default function AttendanceClient({
                   </div>
                   
                   <div className="flex flex-col items-end gap-1.5">
-                    <span className="text-[10px] font-extrabold text-[#071B3A] font-mono leading-none">
+                    <span className="text-[10px] font-extrabold text-navy-900 font-mono leading-none">
                       {Math.floor(r.duration_hours)}h {String(Math.round((r.duration_hours % 1) * 60)).padStart(2, '0')}m
                     </span>
                     
@@ -1821,7 +1821,7 @@ export default function AttendanceClient({
                         let labelText = "LOGGED OUT";
                         
                         if (isWFH && (s.includes('approved') || disputeApproved || s.includes('present') || s.includes('working') || s.includes('logged out'))) {
-                          bgClass = "bg-[#E6F8F2] text-[#22C55E]";
+                          bgClass = "bg-primary-50 text-[#22C55E]";
                           dotClass = "bg-[#22C55E]";
                           labelText = "APPROVED WFH";
                         } else if (s === 'late') {
@@ -1829,8 +1829,8 @@ export default function AttendanceClient({
                           dotClass = "bg-red-500";
                           labelText = "LATE";
                         } else if (s === 'absent') {
-                          bgClass = "bg-slate-100 text-slate-500";
-                          dotClass = "bg-slate-400";
+                          bgClass = "bg-zinc-100 text-zinc-500";
+                          dotClass = "bg-zinc-400";
                           labelText = "ABSENT";
                         }
                         
@@ -1852,7 +1852,7 @@ export default function AttendanceClient({
                             setDisputeRecord(r);
                             setDisputeReason('');
                           }}
-                          className="px-2 py-0.5 bg-[#F7F8FA] border border-[#E8EDF2] rounded-[6px] text-[9px] font-extrabold text-[#071B3A] hover:bg-zinc-100 transition-colors uppercase tracking-wider font-mono cursor-pointer"
+                          className="px-2 py-0.5 bg-[#F7F8FA] border border-[#E8EDF2] rounded-[6px] text-[9px] font-extrabold text-navy-900 hover:bg-zinc-100 transition-colors uppercase tracking-wider font-mono cursor-pointer"
                         >
                           FILE DISPUTE
                         </button>
@@ -1867,7 +1867,7 @@ export default function AttendanceClient({
 
         {/* 5. Attendance Summary section */}
         <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
-          <h2 className="text-[14px] font-extrabold text-[#071B3A]">Attendance Summary</h2>
+          <h2 className="text-[14px] font-extrabold text-navy-900">Attendance Summary</h2>
           
           <div className="grid grid-cols-4 gap-2">
             {/* Present Card */}
@@ -1899,17 +1899,17 @@ export default function AttendanceClient({
         {/* 6. Need Help Support Banner */}
         <section className="bg-white rounded-[20px] p-4 border border-[#E8EDF2] shadow-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#E6F8F2] border border-[#0B8B83]/10 flex items-center justify-center text-[#0B8B83] shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-primary-50 border border-primary-600/10 flex items-center justify-center text-primary-600 shrink-0">
               <Compass className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-xs font-extrabold text-[#071B3A] leading-none">Need Help?</h3>
+              <h3 className="text-xs font-extrabold text-navy-900 leading-none">Need Help?</h3>
               <p className="text-[10px] text-[#64748B] mt-1 font-semibold leading-none">Facing issues with attendance?</p>
             </div>
           </div>
           <a
             href="mailto:support@primetekglobal.com?subject=Attendance%20Portal%20Issue"
-            className="flex items-center gap-1.5 px-3 py-2 bg-[#E6F8F2] border border-[#0B8B83]/20 hover:bg-[#0B8B83]/10 rounded-xl text-[10px] font-bold text-[#0B8B83] uppercase tracking-wider transition-colors shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 bg-primary-50 border border-primary-600/20 hover:bg-primary-600/10 rounded-xl text-[10px] font-bold text-primary-600 uppercase tracking-wider transition-colors shrink-0"
           >
             <Headset className="w-3.5 h-3.5" />
             Contact Support
@@ -1934,7 +1934,7 @@ export default function AttendanceClient({
             >
               <div className="flex items-center gap-3 text-amber-600">
                 <AlertTriangle className="w-6 h-6 text-amber-500" />
-                <h3 className="text-sm font-bold text-[#071B3A] tracking-tight leading-tight">Session Active on Another Device</h3>
+                <h3 className="text-sm font-bold text-navy-900 tracking-tight leading-tight">Session Active on Another Device</h3>
               </div>
               <p className="text-xs text-zinc-500 leading-relaxed font-sans">
                 Your attendance session is active on another device. You can move it here to resume tracking.
@@ -1960,7 +1960,7 @@ export default function AttendanceClient({
                       showNotification(res.error || 'Failed to move session.', 'error');
                     }
                   }}
-                  className="flex-1 bg-[#071B3A] hover:bg-[#112544] text-white rounded-xl text-xs font-bold py-2 cursor-pointer border-0"
+                  className="flex-1 bg-navy-900 hover:bg-[#112544] text-white rounded-xl text-xs font-bold py-2 cursor-pointer border-0"
                 >
                   Move Session Here
                 </button>
@@ -1994,9 +1994,9 @@ export default function AttendanceClient({
                 </div>
                 
                 <div>
-                  <h3 className="text-sm font-bold text-[#071B3A] tracking-tight">Work from Home Request?</h3>
+                  <h3 className="text-sm font-bold text-navy-900 tracking-tight">Work from Home Request?</h3>
                   <div className="mt-2.5 p-3 rounded-xl bg-zinc-50 border border-zinc-200 text-xs text-zinc-500 font-semibold leading-relaxed">
-                    You are <span className="font-extrabold text-[#071B3A]">{formatDistance(wfhRequest.distance || 0)}</span> away from the office.
+                    You are <span className="font-extrabold text-navy-900">{formatDistance(wfhRequest.distance || 0)}</span> away from the office.
                     <p className="mt-1 font-medium italic">Would you like to submit a Work From Home (WFH) check-in request instead?</p>
                   </div>
                 </div>
@@ -2006,7 +2006,7 @@ export default function AttendanceClient({
                     type="button"
                     onClick={handleWFHRequest} 
                     disabled={gpsStatus === 'loading'} 
-                    className="w-full py-2.5 bg-[#0B8B83] hover:bg-[#0d6460] text-white rounded-xl text-xs font-bold border-0 cursor-pointer"
+                    className="w-full py-2.5 bg-primary-600 hover:bg-[#0d6460] text-white rounded-xl text-xs font-bold border-0 cursor-pointer"
                   >
                     Submit WFH Check-In
                   </button>
@@ -2046,7 +2046,7 @@ export default function AttendanceClient({
                   <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#071B3A]">Confirm Action</h3>
+                  <h3 className="text-sm font-bold text-navy-900">Confirm Action</h3>
                   <p className="text-xs text-zinc-500 mt-1.5 font-semibold leading-relaxed">{confirmAction.message}</p>
                 </div>
                 <div className="flex w-full gap-2 pt-2">
@@ -2067,7 +2067,7 @@ export default function AttendanceClient({
                       "flex-1 border rounded-xl py-2 text-xs font-bold shadow-3xs cursor-pointer",
                       confirmAction.variant === 'danger' 
                         ? "bg-red-500 hover:bg-red-650 border-red-500 text-white" 
-                        : "bg-[#071B3A] hover:bg-[#112544] border-navy-950 text-white"
+                        : "bg-navy-900 hover:bg-[#112544] border-navy-950 text-white"
                     )}
                   >
                     Confirm
@@ -2104,7 +2104,7 @@ export default function AttendanceClient({
                     <AlertTriangle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#071B3A]">File Attendance Dispute</h3>
+                    <h3 className="text-sm font-bold text-navy-900">File Attendance Dispute</h3>
                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5 font-mono">
                       Session Date: {new Date(disputeRecord.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
@@ -2155,7 +2155,7 @@ export default function AttendanceClient({
                   <button
                     type="submit"
                     disabled={isSubmittingDispute || !disputeReason.trim()}
-                    className="flex-1 bg-[#071B3A] hover:bg-[#112544] text-white rounded-xl text-xs font-bold py-2 shadow-3xs flex items-center justify-center gap-1.5 cursor-pointer border-0"
+                    className="flex-1 bg-navy-900 hover:bg-[#112544] text-white rounded-xl text-xs font-bold py-2 shadow-3xs flex items-center justify-center gap-1.5 cursor-pointer border-0"
                   >
                     {isSubmittingDispute ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Submit'}
                   </button>
@@ -2219,7 +2219,7 @@ export default function AttendanceClient({
             >
               <div className="flex items-center gap-3 text-amber-600">
                 <AlertTriangle className="w-8 h-8 animate-bounce" />
-                <h3 className="text-sm font-bold text-[#071B3A]">Are you still working?</h3>
+                <h3 className="text-sm font-bold text-navy-900">Are you still working?</h3>
               </div>
               <p className="text-xs text-zinc-500 leading-relaxed font-semibold">
                 We haven't detected activity. Confirm you are active to avoid auto-break.
@@ -2239,7 +2239,7 @@ export default function AttendanceClient({
                   
                   setSessionState('ACTIVE');
                 }}
-                className="w-full py-3 rounded-xl bg-[#071B3A] hover:bg-[#112544] text-white text-xs font-bold uppercase tracking-wider cursor-pointer border-0"
+                className="w-full py-3 rounded-xl bg-navy-900 hover:bg-[#112544] text-white text-xs font-bold uppercase tracking-wider cursor-pointer border-0"
               >
                 I am still working
               </button>

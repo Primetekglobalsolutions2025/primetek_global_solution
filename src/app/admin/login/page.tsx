@@ -22,7 +22,7 @@ export default function AdminLoginPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-primary-500 animate-pulse" />
             <span className="text-[10px] font-bold text-primary-700 uppercase tracking-[0.2em]">Secure Access</span>
           </div>
-          <h1 className="text-2xl font-heading font-black text-navy-900 tracking-tight">Admin Control Center</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">Admin Control Center</h1>
           <p className="text-zinc-500 text-xs mt-2 font-medium">Enterprise portal authentication</p>
         </div>
 

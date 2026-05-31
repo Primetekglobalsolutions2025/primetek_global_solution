@@ -222,19 +222,19 @@ export default function EmployeeDashboardClient({
       <main className="space-y-5 py-2">
         
         {/* 2. HERO SECTION */}
-        <section className="h-[230px] rounded-[24px] bg-gradient-to-r from-[#071B3A] to-[#0B8B83] relative overflow-hidden p-5 flex flex-col justify-between shadow-sm">
+        <section className="h-[230px] rounded-[24px] bg-gradient-to-r from-navy-900 to-primary-600 relative overflow-hidden p-5 flex flex-col justify-between shadow-sm">
           {/* Background Decorative Rings */}
           <div className="absolute top-[-20%] right-[-10%] w-[160px] h-[160px] rounded-full border border-white/10" />
           <div className="absolute top-[-30%] right-[-20%] w-[210px] h-[210px] rounded-full border border-white/5" />
           
           <div className="space-y-4">
-            <div className="bg-white/10 text-[#12C7BC] text-[10px] font-semibold py-1 px-3 w-fit rounded-full uppercase tracking-wider backdrop-blur-xs font-mono">
+            <div className="bg-white/10 text-primary-400 text-[10px] font-semibold py-1 px-3 w-fit rounded-full uppercase tracking-wider backdrop-blur-xs font-mono">
               EMPLOYEE ID : {employee?.employee_id || 'CMK5936306'}
             </div>
             
             <div>
               <p className="text-white/80 text-sm">{greeting},</p>
-              <h1 className="text-3xl font-extrabold text-white tracking-tight mt-0.5 flex items-center gap-1.5">
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mt-0.5 flex items-center gap-1.5">
                 {employee?.name ? employee.name.split(' ')[0] : 'Janu'} <span className="animate-bounce">👋</span>
               </h1>
               <p className="text-white/60 text-[11px] mt-1.5 leading-relaxed">
@@ -249,11 +249,11 @@ export default function EmployeeDashboardClient({
             <Link href="/employee/attendance" className="flex-1">
               <div className="bg-white rounded-[20px] p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-zinc-50 active:scale-[0.98] transition-all border border-transparent hover:border-zinc-200">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-[#E6F3F2] flex items-center justify-center text-[#0B8B83] shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 shrink-0">
                     <Clock className="w-4.5 h-4.5 stroke-[2.2]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[11px] font-extrabold text-[#071B3A] leading-tight">Clock In / Out</span>
+                    <span className="text-[11px] font-extrabold text-navy-900 leading-tight">Clock In / Out</span>
                     <span className="text-[9px] text-[#64748B] leading-none mt-0.5 font-medium">Track your attendance</span>
                   </div>
                 </div>
@@ -265,7 +265,7 @@ export default function EmployeeDashboardClient({
             <Link href="/employee/leaves" className="flex-1">
               <div className="bg-white/15 backdrop-blur-md rounded-[20px] p-3 flex items-center justify-between border border-white/20 cursor-pointer hover:bg-white/20 active:scale-[0.98] transition-all">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-[#12C7BC] shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-primary-400 shrink-0">
                     <Calendar className="w-4.5 h-4.5 stroke-[2.2]" />
                   </div>
                   <div className="flex flex-col">
@@ -294,8 +294,8 @@ export default function EmployeeDashboardClient({
         {/* 3. TODAY'S OVERVIEW SECTION */}
         <section data-testid="today-overview" className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[14px] font-extrabold text-[#071B3A]">Today's Overview</h2>
-            <Link href="/employee/attendance" className="text-[11px] font-bold text-[#0B8B83] hover:underline flex items-center gap-0.5">
+            <h2 className="text-[14px] font-extrabold text-navy-900">Today's Overview</h2>
+            <Link href="/employee/attendance" className="text-[11px] font-bold text-primary-600 hover:underline flex items-center gap-0.5">
               View all <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
@@ -304,8 +304,8 @@ export default function EmployeeDashboardClient({
             {/* Hours Worked */}
             <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
               <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Hours Worked</span>
-              <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">{liveHours}</span>
-              <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-[#E6F8F2] text-[#0B8B83] border border-[#0B8B83]/10 uppercase font-mono">
+              <span className="text-[12px] font-bold text-navy-900 tracking-tight leading-none mb-2">{liveHours}</span>
+              <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-primary-50 text-primary-600 border border-primary-600/10 uppercase font-mono">
                 Today
               </span>
             </div>
@@ -313,7 +313,7 @@ export default function EmployeeDashboardClient({
             {/* Leaves Available */}
             <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
               <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Leaves Available</span>
-              <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">{totalRemainingLeaves}</span>
+              <span className="text-[12px] font-bold text-navy-900 tracking-tight leading-none mb-2">{totalRemainingLeaves}</span>
               <span className="text-[8px] font-extrabold py-0.5 px-2 rounded-full leading-none shrink-0 bg-amber-50 text-[#F59E0B] border border-amber-100/30 uppercase font-mono">
                 Balance
               </span>
@@ -322,7 +322,7 @@ export default function EmployeeDashboardClient({
             {/* Last Check In */}
             <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
               <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Last Check In</span>
-              <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
+              <span className="text-[12px] font-bold text-navy-900 tracking-tight leading-none mb-2">
                 {todayRecord && todayRecord.check_in 
                   ? new Date(todayRecord.check_in).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) 
                   : '--:--'}
@@ -335,7 +335,7 @@ export default function EmployeeDashboardClient({
             {/* Last Check Out */}
             <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
               <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Last Check Out</span>
-              <span className="text-[12px] font-black text-[#071B3A] tracking-tight leading-none mb-2">
+              <span className="text-[12px] font-bold text-navy-900 tracking-tight leading-none mb-2">
                 {todayRecord && todayRecord.check_out 
                   ? new Date(todayRecord.check_out).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' }) 
                   : '--:--'}
@@ -349,12 +349,12 @@ export default function EmployeeDashboardClient({
 
         {/* 4. QUICK ACCESS SECTION */}
         <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
-          <h2 className="text-[14px] font-extrabold text-[#071B3A]">Quick Access</h2>
+          <h2 className="text-[14px] font-extrabold text-navy-900">Quick Access</h2>
           
           <div className="grid grid-cols-5 gap-1">
             {/* My Tasks */}
             <Link href="/employee/assigned-profiles" className="flex flex-col items-center text-center w-full min-w-0">
-              <div className="w-[50px] h-[50px] rounded-[16px] bg-[#E6F3F2] flex items-center justify-center text-[#0B8B83] active:scale-95 transition-all">
+              <div className="w-[50px] h-[50px] rounded-[16px] bg-primary-50 flex items-center justify-center text-primary-600 active:scale-95 transition-all">
                 <ClipboardList className="w-5 h-5" />
               </div>
               <span className="text-[9px] font-medium text-[#64748B] mt-2 text-center leading-tight tracking-tight w-full break-words">My Tasks</span>
@@ -400,15 +400,15 @@ export default function EmployeeDashboardClient({
         {/* 5. MY PROFILE SECTION */}
         <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[14px] font-extrabold text-[#071B3A]">My Profile</h2>
-            <Link href="/employee/profile" className="text-[11px] font-bold text-[#0B8B83] hover:underline flex items-center gap-0.5">
+            <h2 className="text-[14px] font-extrabold text-navy-900">My Profile</h2>
+            <Link href="/employee/profile" className="text-[11px] font-bold text-primary-600 hover:underline flex items-center gap-0.5">
               View Profile <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
 
           <div className="flex gap-4 items-center">
             {/* Avatar Box */}
-            <div className="w-[72px] h-[72px] rounded-[20px] bg-[#E6F3F2] flex flex-col items-center justify-center text-[#0B8B83] relative overflow-hidden shrink-0 border border-[#E8EDF2]">
+            <div className="w-[72px] h-[72px] rounded-[20px] bg-primary-50 flex flex-col items-center justify-center text-primary-600 relative overflow-hidden shrink-0 border border-[#E8EDF2]">
               <User className="w-8 h-8" />
               <div className="flex items-center gap-1 absolute bottom-1.5">
                 <div className="w-1.5 h-1.5 bg-[#22C55E] rounded-full animate-pulse" />
@@ -418,7 +418,7 @@ export default function EmployeeDashboardClient({
 
             {/* Profile Info */}
             <div className="flex-1 space-y-1">
-              <h3 className="text-[15px] font-extrabold text-[#071B3A] leading-tight">
+              <h3 className="text-[15px] font-extrabold text-navy-900 leading-tight">
                 {employee?.role === 'hr' ? 'HR Specialist' : (employee?.designation || 'Marketing Executive')}
               </h3>
               <p className="text-[11px] font-bold text-[#64748B] leading-none">
@@ -431,11 +431,11 @@ export default function EmployeeDashboardClient({
           <div className="border-t border-[#EEF2F6] pt-3.5 flex justify-between gap-4">
             <div>
               <p className="text-[8px] font-bold text-[#94A3B8] uppercase">Employee ID</p>
-              <p className="text-[11px] font-extrabold text-[#071B3A] mt-0.5">{employee?.employee_id || 'CMK5936306'}</p>
+              <p className="text-[11px] font-extrabold text-navy-900 mt-0.5">{employee?.employee_id || 'CMK5936306'}</p>
             </div>
             <div>
               <p className="text-[8px] font-bold text-[#94A3B8] uppercase">System Role</p>
-              <p className="text-[11px] font-extrabold text-[#0B8B83] mt-0.5 uppercase">{employee?.role || 'EMPLOYEE'}</p>
+              <p className="text-[11px] font-extrabold text-primary-600 mt-0.5 uppercase">{employee?.role || 'EMPLOYEE'}</p>
             </div>
           </div>
         </section>
@@ -443,10 +443,10 @@ export default function EmployeeDashboardClient({
         {/* 6. UPCOMING SECTION */}
         <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[14px] font-extrabold text-[#071B3A]">Upcoming</h2>
+            <h2 className="text-[14px] font-extrabold text-navy-900">Upcoming</h2>
             <button 
               onClick={() => setIsCalendarOpen(true)}
-              className="text-[11px] font-bold text-[#0B8B83] hover:underline flex items-center gap-0.5"
+              className="text-[11px] font-bold text-primary-600 hover:underline flex items-center gap-0.5"
             >
               View Calendar <ChevronRight className="w-3 h-3" />
             </button>
@@ -455,15 +455,15 @@ export default function EmployeeDashboardClient({
           {upcomingHoliday ? (
             <div className="flex items-center justify-between border border-[#EEF2F6] rounded-[20px] p-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#E6F8F2] flex items-center justify-center text-[#22C55E] shrink-0">
+                <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-[#22C55E] shrink-0">
                   <Calendar className="w-5 h-5" />
                 </div>
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[11px] font-extrabold text-[#071B3A]">{upcomingHoliday.title}</span>
+                  <span className="text-[11px] font-extrabold text-navy-900">{upcomingHoliday.title}</span>
                   <span className="text-[9px] font-bold text-[#64748B]">{formattedUpcomingDate}</span>
                 </div>
               </div>
-              <span className="bg-[#E6F8F2] text-[#22C55E] text-[8px] font-bold py-1 px-2.5 rounded-full uppercase shrink-0 border border-[#22C55E]/10">
+              <span className="bg-primary-50 text-[#22C55E] text-[8px] font-bold py-1 px-2.5 rounded-full uppercase shrink-0 border border-[#22C55E]/10">
                 {upcomingHoliday.type}
               </span>
             </div>
@@ -480,21 +480,21 @@ export default function EmployeeDashboardClient({
 
       {/* 8. INTERACTIVE CALENDAR & HOLIDAY MANAGEMENT MODAL */}
       {isCalendarOpen && (
-        <div className="fixed inset-0 bg-[#071B3A]/45 backdrop-blur-xs flex items-end justify-center z-50 p-4 max-w-[430px] mx-auto animate-fade-in">
+        <div className="fixed inset-0 bg-navy-900/45 backdrop-blur-xs flex items-end justify-center z-50 p-4 max-w-[430px] mx-auto animate-fade-in">
           <div className="bg-white rounded-t-[28px] w-full max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-xl border-t border-[#E8EDF2] flex flex-col justify-between animate-slide-up">
             
             {/* Header */}
             <div className="flex justify-between items-center pb-2 border-b border-[#EEF2F6]">
               <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-[#0B8B83]" />
-                <h3 className="text-base font-extrabold text-[#071B3A]">Office Holidays Calendar</h3>
+                <Calendar className="w-5 h-5 text-primary-600" />
+                <h3 className="text-base font-extrabold text-navy-900">Office Holidays Calendar</h3>
               </div>
               <button 
                 onClick={() => {
                   setIsCalendarOpen(false);
                   setShowAddForm(false);
                 }}
-                className="text-xs font-bold text-[#64748B] hover:text-[#071B3A] py-1 px-3 bg-[#F7F8FA] rounded-full active:scale-95 transition-all"
+                className="text-xs font-bold text-[#64748B] hover:text-navy-900 py-1 px-3 bg-[#F7F8FA] rounded-full active:scale-95 transition-all"
               >
                 Close
               </button>
@@ -502,19 +502,19 @@ export default function EmployeeDashboardClient({
 
             {/* Month Navigation */}
             <div className="flex items-center justify-between px-1">
-              <span className="text-sm font-extrabold text-[#071B3A]">
+              <span className="text-sm font-extrabold text-navy-900">
                 {currentDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
               </span>
               <div className="flex items-center gap-1 bg-[#F7F8FA] p-1 rounded-full">
                 <button 
                   onClick={handlePrevMonth}
-                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white text-[#64748B] hover:text-[#071B3A] transition-all"
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white text-[#64748B] hover:text-navy-900 transition-all"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={handleNextMonth}
-                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white text-[#64748B] hover:text-[#071B3A] transition-all"
+                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-white text-[#64748B] hover:text-navy-900 transition-all"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
@@ -535,7 +535,7 @@ export default function EmployeeDashboardClient({
               </div>
               
               {/* Day Cells */}
-              <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-[#071B3A]">
+              <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-navy-900">
                 {/* Blanks */}
                 {blanksArray.map(b => (
                   <div key={`blank-${b}`} className="aspect-square flex items-center justify-center opacity-0 pointer-events-none" />
@@ -570,8 +570,8 @@ export default function EmployeeDashboardClient({
                       }}
                       className={cn(
                         "aspect-square flex flex-col items-center justify-center rounded-full relative cursor-pointer active:scale-90 transition-all select-none hover:bg-zinc-50 border border-transparent",
-                        isSelected && "bg-[#0B8B83] text-white hover:bg-[#0B8B83]",
-                        dayHoliday && !isSelected && "bg-[#E6F8F2] text-[#22C55E]"
+                        isSelected && "bg-primary-600 text-white hover:bg-primary-600",
+                        dayHoliday && !isSelected && "bg-primary-50 text-[#22C55E]"
                       )}
                     >
                       <span>{day}</span>
@@ -612,10 +612,10 @@ export default function EmployeeDashboardClient({
                 {activeHoliday ? (
                   <div className="flex items-center justify-between gap-2">
                     <div className="space-y-0.5">
-                      <p className="text-sm font-extrabold text-[#071B3A]">{activeHoliday.title}</p>
+                      <p className="text-sm font-extrabold text-navy-900">{activeHoliday.title}</p>
                       <p className="text-[10px] font-bold text-[#64748B]">{activeHoliday.type}</p>
                     </div>
-                    <span className="bg-[#E6F8F2] text-[#22C55E] text-[8px] font-bold py-1 px-2 rounded-full uppercase border border-[#22C55E]/10">
+                    <span className="bg-primary-50 text-[#22C55E] text-[8px] font-bold py-1 px-2 rounded-full uppercase border border-[#22C55E]/10">
                       Office Closed
                     </span>
                   </div>
@@ -627,7 +627,7 @@ export default function EmployeeDashboardClient({
                     {isAdmin && !showAddForm && (
                       <button 
                         onClick={() => setShowAddForm(true)}
-                        className="text-xs font-bold text-[#0B8B83] hover:text-[#0d6460] flex items-center gap-1 cursor-pointer py-1.5 px-3 bg-white border border-[#E8EDF2] rounded-lg active:scale-95 shadow-3xs transition-all w-fit"
+                        className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 cursor-pointer py-1.5 px-3 bg-white border border-[#E8EDF2] rounded-lg active:scale-95 shadow-3xs transition-all w-fit"
                       >
                         <Plus className="w-3.5 h-3.5" />
                         Give Sudden Holiday
@@ -646,7 +646,7 @@ export default function EmployeeDashboardClient({
                         value={newHolidayTitle}
                         onChange={(e) => setNewHolidayTitle(e.target.value)}
                         placeholder="e.g. Sudden Monsoon Holiday"
-                        className="w-full bg-white border border-[#E8EDF2] rounded-lg py-1.5 px-3 text-xs text-[#071B3A] placeholder-[#94A3B8] focus:border-[#0B8B83] focus:outline-none transition-all"
+                        className="w-full bg-white border border-[#E8EDF2] rounded-lg py-1.5 px-3 text-xs text-navy-900 placeholder-[#94A3B8] focus:border-primary-600 focus:outline-none transition-all"
                       />
                     </div>
 
@@ -655,7 +655,7 @@ export default function EmployeeDashboardClient({
                       <select 
                         value={newHolidayType}
                         onChange={(e) => setNewHolidayType(e.target.value as Holiday['type'])}
-                        className="w-full bg-white border border-[#E8EDF2] rounded-lg py-1.5 px-3 text-xs text-[#071B3A] focus:border-[#0B8B83] focus:outline-none transition-all"
+                        className="w-full bg-white border border-[#E8EDF2] rounded-lg py-1.5 px-3 text-xs text-navy-900 focus:border-primary-600 focus:outline-none transition-all"
                       >
                         <option value="Company Holiday">Company Holiday (Mandatory)</option>
                         <option value="Optional Holiday">Optional Holiday</option>
@@ -667,7 +667,7 @@ export default function EmployeeDashboardClient({
                       <button 
                         onClick={handleAddHoliday}
                         disabled={isPending || !newHolidayTitle.trim()}
-                        className="flex-1 bg-[#0B8B83] hover:bg-[#0d6460] text-white text-xs font-bold py-2 rounded-lg disabled:opacity-50 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        className="flex-1 bg-primary-600 hover:bg-[#0d6460] text-white text-xs font-bold py-2 rounded-lg disabled:opacity-50 transition-all flex items-center justify-center gap-1 cursor-pointer"
                       >
                         {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         Save Holiday
@@ -689,18 +689,18 @@ export default function EmployeeDashboardClient({
 
       {/* 9. HELPDESK & SUPPORT MODAL */}
       {isHelpdeskOpen && (
-        <div className="fixed inset-0 bg-[#071B3A]/45 backdrop-blur-xs flex items-end justify-center z-50 p-4 max-w-[430px] mx-auto animate-fade-in">
+        <div className="fixed inset-0 bg-navy-900/45 backdrop-blur-xs flex items-end justify-center z-50 p-4 max-w-[430px] mx-auto animate-fade-in">
           <div className="bg-white rounded-t-[28px] w-full p-6 space-y-5 shadow-xl border-t border-[#E8EDF2] flex flex-col justify-between animate-slide-up">
             
             {/* Header */}
             <div className="flex justify-between items-center pb-2 border-b border-[#EEF2F6]">
               <div className="flex items-center gap-2">
-                <Headset className="w-5 h-5 text-[#0B8B83]" />
-                <h3 className="text-base font-extrabold text-[#071B3A]">HR Helpdesk & Support</h3>
+                <Headset className="w-5 h-5 text-primary-600" />
+                <h3 className="text-base font-extrabold text-navy-900">HR Helpdesk & Support</h3>
               </div>
               <button 
                 onClick={() => setIsHelpdeskOpen(false)}
-                className="text-xs font-bold text-[#64748B] hover:text-[#071B3A] py-1 px-3 bg-[#F7F8FA] rounded-full active:scale-95 transition-all border-0 cursor-pointer"
+                className="text-xs font-bold text-[#64748B] hover:text-navy-900 py-1 px-3 bg-[#F7F8FA] rounded-full active:scale-95 transition-all border-0 cursor-pointer"
               >
                 Close
               </button>
@@ -714,12 +714,12 @@ export default function EmployeeDashboardClient({
               
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 bg-[#F7F8FA] rounded-xl border border-[#EEF2F6]">
-                  <div className="w-8 h-8 rounded-lg bg-[#E6F3F2] flex items-center justify-center text-[#0B8B83] shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600 shrink-0">
                     <User className="w-4.5 h-4.5" />
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-[#94A3B8] uppercase">HR Representative</p>
-                    <p className="text-xs font-extrabold text-[#071B3A]">Sarah Jenkins (HR Ops)</p>
+                    <p className="text-xs font-extrabold text-navy-900">Sarah Jenkins (HR Ops)</p>
                   </div>
                 </div>
 
@@ -729,7 +729,7 @@ export default function EmployeeDashboardClient({
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-[#94A3B8] uppercase">Support Helpline</p>
-                    <a href="tel:+15550192834" className="text-xs font-extrabold text-[#0B8B83] hover:underline">+1 (555) 019-2834</a>
+                    <a href="tel:+15550192834" className="text-xs font-extrabold text-primary-600 hover:underline">+1 (555) 019-2834</a>
                   </div>
                 </div>
 
@@ -739,7 +739,7 @@ export default function EmployeeDashboardClient({
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-[#94A3B8] uppercase">Email Support</p>
-                    <a href="mailto:support@primetekglobal.com?subject=HR%20Helpdesk%20Inquiry" className="text-xs font-extrabold text-[#0B8B83] hover:underline">support@primetekglobal.com</a>
+                    <a href="mailto:support@primetekglobal.com?subject=HR%20Helpdesk%20Inquiry" className="text-xs font-extrabold text-primary-600 hover:underline">support@primetekglobal.com</a>
                   </div>
                 </div>
               </div>
@@ -747,7 +747,7 @@ export default function EmployeeDashboardClient({
 
             <a 
               href="mailto:support@primetekglobal.com?subject=HR%20Helpdesk%20Inquiry"
-              className="w-full bg-[#0B8B83] hover:bg-[#0d6460] text-white text-xs font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer no-underline text-center"
+              className="w-full bg-primary-600 hover:bg-[#0d6460] text-white text-xs font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer no-underline text-center"
             >
               <Headset className="w-4 h-4" />
               SEND EMAIL REQUEST

@@ -366,7 +366,7 @@ export default function EmployeesClient({
         {employees.length === 0 ? (
           <div className="p-8 text-center bg-white rounded-xl border border-zinc-200">
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-2 border border-zinc-200">
-              <Users className="w-5 h-5 text-slate-650" />
+              <Users className="w-5 h-5 text-zinc-650" />
             </div>
             <p className="text-xs text-zinc-500 font-semibold">No active personnel matching your query.</p>
           </div>
@@ -387,7 +387,7 @@ export default function EmployeesClient({
                     )}
                     <div className={cn(
                       "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-navy-900 shadow-sm",
-                      emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-600"
+                      emp.status === 'Active' ? "bg-emerald-500" : "bg-zinc-600"
                     )} />
                   </div>
                   <div>
@@ -430,7 +430,7 @@ export default function EmployeesClient({
                 <button onClick={() => handleToggle(emp.id, emp.status)} aria-label={emp.status === 'Active' ? 'Deactivate employee' : 'Activate employee'} className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-zinc-500 active:scale-95 transition-transform cursor-pointer">
                   <div className={cn(
                     "w-7 h-4 rounded-full relative transition-colors duration-300",
-                    emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-800"
+                    emp.status === 'Active' ? "bg-emerald-500" : "bg-zinc-600"
                   )}>
                     <div className={cn(
                       "absolute top-0.5 w-3 h-3 bg-white rounded-full transition-all duration-300 shadow-sm",
@@ -490,7 +490,7 @@ export default function EmployeesClient({
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center mx-auto mb-3 border border-zinc-200">
-                      <Users className="w-5 h-5 text-slate-650" />
+                      <Users className="w-5 h-5 text-zinc-650" />
                     </div>
                     <p className="text-xs text-zinc-500 font-bold">No active personnel matching your query.</p>
                   </td>
@@ -511,8 +511,8 @@ export default function EmployeesClient({
                             </div>
                           )}
                           <div className={cn(
-                            "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-navy-950 shadow-sm",
-                            emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-655"
+                            "absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-navy-955 shadow-sm",
+                            emp.status === 'Active' ? "bg-emerald-500" : "bg-zinc-550"
                           )} />
                         </div>
                         <div>
@@ -549,7 +549,7 @@ export default function EmployeesClient({
                       <button onClick={() => handleToggle(emp.id, emp.status)} aria-label={emp.status === 'Active' ? 'Deactivate employee' : 'Activate employee'} className="flex items-center gap-2 active:scale-95 transition-transform group/toggle cursor-pointer">
                         <div className={cn(
                           "w-8 h-4.5 rounded-full relative transition-colors duration-300",
-                          emp.status === 'Active' ? "bg-emerald-500" : "bg-slate-800"
+                          emp.status === 'Active' ? "bg-emerald-500" : "bg-zinc-650"
                         )}>
                           <div className={cn(
                             "absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-all duration-300 shadow-sm",
@@ -669,7 +669,7 @@ export default function EmployeesClient({
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary-500">Staff Registry</span>
                   </div>
-                  <h3 className="font-heading font-black text-xl text-navy-900 tracking-tight">Onboard New Employee</h3>
+                  <h3 className="font-bold text-xl text-navy-900 tracking-tight">Onboard New Employee</h3>
                 </div>
                 <button 
                   onClick={() => { 
@@ -704,7 +704,7 @@ export default function EmployeesClient({
                       <ShieldCheck className="w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="font-heading font-black text-navy-900 text-lg tracking-tight">Credentials Generated Successfully</h4>
+                      <h4 className="font-bold text-navy-900 text-lg tracking-tight">Credentials Generated Successfully</h4>
                       <p className="text-xs text-zinc-500 mt-2 font-medium">For security compliance, these temporary credentials must be copied now. They are hashed in the database and cannot be read after closing.</p>
                     </div>
                     
@@ -764,7 +764,7 @@ export default function EmployeesClient({
                 ) : (
                   <form onSubmit={handleAddEmployee} className="space-y-6">
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
+                      <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
                       <div className="relative group">
                         <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
                         <input required type="text" placeholder="John Doe" value={newEmployeeData.name} onChange={(e) => { setNewEmployeeData({...newEmployeeData, name: e.target.value}); setFormErrors({...formErrors, name: ''}); }} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
@@ -775,10 +775,10 @@ export default function EmployeesClient({
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
+                      <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
                       <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
-                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => { setNewEmployeeData({...newEmployeeData, email: e.target.value}); setFormErrors({...formErrors, email: ''}); }} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-400" />
+                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => { setNewEmployeeData({...newEmployeeData, email: e.target.value}); setFormErrors({...formErrors, email: ''}); }} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
                       </div>
                       {formErrors.email && (
                         <p className="text-[10px] text-red-500 font-semibold mt-1 ml-1">{formErrors.email}</p>
@@ -787,7 +787,7 @@ export default function EmployeesClient({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">User Role</label>
+                        <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">User Role</label>
                         <select value={newEmployeeData.role} onChange={(e) => setNewEmployeeData({...newEmployeeData, role: e.target.value})} className="w-full px-4 py-3.5 rounded-2xl border border-zinc-200 bg-white text-sm font-black text-zinc-700 focus:ring-2 focus:ring-primary-500/20 focus:outline-none uppercase cursor-pointer appearance-none">
                           <option value="employee">Employee</option>
                           <option value="admin">Admin</option>
@@ -795,7 +795,7 @@ export default function EmployeesClient({
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Role / Department</label>
+                        <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Role / Department</label>
                         <div className="relative group">
                           <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors z-10" />
                           <select 
@@ -869,7 +869,7 @@ export default function EmployeesClient({
             >
               <div className="flex items-center justify-between px-10 py-6 border-b border-zinc-200 bg-zinc-50/40">
                 <div>
-                  <h3 className="font-heading font-black text-lg text-navy-900 tracking-tight">Leave Balance</h3>
+                  <h3 className="font-bold text-lg text-navy-900 tracking-tight">Leave Balance</h3>
                   <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">{selectedEmployee.name}</p>
                 </div>
                 <button 
@@ -886,7 +886,7 @@ export default function EmployeesClient({
                     { key: 'casual', label: 'Casual Leave Allocation (Current Month)' },
                   ].map((field) => (
                     <div key={field.key} className="space-y-2">
-                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">{field.label}</label>
+                      <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">{field.label}</label>
                       <input 
                         type="number" 
                         min={0}

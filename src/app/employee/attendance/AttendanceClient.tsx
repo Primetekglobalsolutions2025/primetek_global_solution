@@ -1373,7 +1373,7 @@ export default function AttendanceClient({
           <div className="bg-white rounded-2xl p-6 border border-zinc-200/80 shadow-2xs flex flex-col items-center justify-between flex-1 space-y-6">
             
             {/* Subtle, sleek Raycast-style clock widget */}
-            <div className="w-full bg-slate-900 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-slate-900 shadow-inner">
+            <div className="w-full bg-navy-900 text-white rounded-xl py-3 px-4 flex items-center justify-between border border-navy-900 shadow-inner">
               <div className="flex items-center gap-2">
                 <div className={cn(
                   "w-1.5 h-1.5 rounded-full transition-all duration-300",
@@ -1381,9 +1381,9 @@ export default function AttendanceClient({
                     ? "bg-cyan-400 scale-150 shadow-[0_0_8px_#22d3ee]" 
                     : isLeader 
                       ? "bg-emerald-500 animate-pulse" 
-                      : "bg-slate-600 animate-none"
+                      : "bg-zinc-600 animate-none"
                 )} />
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 select-none">
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5 select-none">
                   Live System Time
                   {isLeader && (
                     <span className="text-[8px] font-mono font-semibold text-emerald-500/80 lowercase tracking-tight normal-case">
@@ -1392,7 +1392,7 @@ export default function AttendanceClient({
                   )}
                 </span>
               </div>
-              <div className="font-mono text-sm font-black tracking-widest text-slate-200">
+              <div className="font-mono text-sm font-black tracking-widest text-zinc-200">
                 {currentTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
               </div>
             </div>
@@ -1587,7 +1587,7 @@ export default function AttendanceClient({
                     variant="outline"
                     disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
                     onClick={handleStartBreak}
-                    className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans hover:bg-slate-50 cursor-pointer text-zinc-700"
+                    className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans hover:bg-zinc-50 cursor-pointer text-zinc-700"
                   >
                     {isBreakActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Start Break'}
                   </Button>
@@ -1615,7 +1615,7 @@ export default function AttendanceClient({
                   <button
                     onClick={() => navigateMonth('prev')}
                     disabled={isPrevDisabled || isCalendarLoading}
-                    className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 cursor-pointer text-sm font-bold font-mono transition-colors"
+                    className="p-1 rounded hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent text-zinc-500 cursor-pointer text-sm font-bold font-mono transition-colors"
                   >
                     &lt;
                   </button>
@@ -1625,7 +1625,7 @@ export default function AttendanceClient({
                   <button
                     onClick={() => navigateMonth('next')}
                     disabled={isNextDisabled || isCalendarLoading}
-                    className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent text-slate-500 cursor-pointer text-sm font-bold font-mono transition-colors"
+                    className="p-1 rounded hover:bg-zinc-100 disabled:opacity-30 disabled:hover:bg-transparent text-zinc-500 cursor-pointer text-sm font-bold font-mono transition-colors"
                   >
                     &gt;
                   </button>
@@ -1676,7 +1676,7 @@ export default function AttendanceClient({
                         if (statusLower === 'holiday' || statusLower === 'off' || statusLower === 'weekly off') return 'bg-[#CBD5E1]';
                       }
                       if (holiday) {
-                        return 'bg-[#0B8B83]';
+                        return 'bg-primary-600';
                       }
                       const dateObj = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), dayNum);
                       const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
@@ -1698,7 +1698,7 @@ export default function AttendanceClient({
                                 isToday 
                                   ? "bg-[#0F172A] text-white font-bold" 
                                   : holiday
-                                    ? "bg-[#E6F8F2]/60 text-[#0B8B83] hover:bg-[#E6F8F2] font-bold"
+                                    ? "bg-primary-50/60 text-primary-600 hover:bg-primary-50 font-bold"
                                     : "text-[#0F172A] hover:bg-[#F8FAFC]"
                               )}
                             >
@@ -1762,7 +1762,7 @@ export default function AttendanceClient({
           {!isCalendarLoading && (
             <div className="bg-[#FFFFFF] rounded-[12px] p-[16px] border border-[#E2E8F0] shadow-xs mt-[16px] font-sans">
               <div className="flex items-center gap-2 mb-3">
-                <CalendarIcon className="w-4 h-4 text-[#0B8B83]" />
+                <CalendarIcon className="w-4 h-4 text-primary-600" />
                 <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-[0.05em]">
                   Office Holidays in {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
                 </span>
@@ -1788,7 +1788,7 @@ export default function AttendanceClient({
                         <div key={holiday.id} className="flex justify-between items-center py-2 px-3 rounded-lg bg-[#E6F8F2]/40 border border-[#E6F8F2]/60 text-xs">
                           <div className="flex flex-col">
                             <span className="font-bold text-[#071B3A]">{holiday.title}</span>
-                            <span className="text-[10px] text-[#0B8B83] font-semibold">{holiday.type}</span>
+                            <span className="text-[10px] text-primary-600 font-semibold">{holiday.type}</span>
                           </div>
                           <span className="font-mono text-[10px] font-bold text-[#64748B]">{formattedDate}</span>
                         </div>

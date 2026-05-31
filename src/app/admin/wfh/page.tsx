@@ -24,7 +24,7 @@ export default async function AdminWFHPage() {
   return (
     <div className="space-y-6 pb-10">
       <div>
-        <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">WFH & Remote Overrides</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">WFH & Remote Overrides</h1>
         <p className="text-zinc-550 text-sm">Create global WFH company overrides or schedule individual pre-approved WFH periods.</p>
       </div>
       <AdminWFHClient initialRequests={requests} employees={employees} />

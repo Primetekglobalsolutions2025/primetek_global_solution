@@ -101,7 +101,7 @@ export default async function EmployeeAttendanceServerWrapper() {
       </div>
       <div className="hidden md:block space-y-5">
         <div>
-          <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">Attendance</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">Attendance</h1>
           <p className="text-zinc-550 text-sm">Clock in and out using GPS.</p>
         </div>
         <AttendanceClient

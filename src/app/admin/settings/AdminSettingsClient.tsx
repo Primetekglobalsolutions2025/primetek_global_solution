@@ -240,7 +240,7 @@ export default function AdminSettingsClient() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <MapPin className="w-5 h-5 text-primary-500" />
-            <h1 className="text-xl font-bold text-navy-900 tracking-tight">System Settings</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">System Settings</h1>
           </div>
           <p className="text-xs text-zinc-500">
             Define the office geofence and radius boundaries for employee attendance validation.

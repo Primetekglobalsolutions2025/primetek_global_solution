@@ -115,7 +115,7 @@ export function NotificationProvider({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={close}
-              className="fixed inset-0 z-[100] bg-[#071B3A]/45 backdrop-blur-xs flex justify-end"
+              className="fixed inset-0 z-[100] bg-navy-900/45 backdrop-blur-xs flex justify-end"
             />
 
             {/* Sliding Drawer */}
@@ -130,14 +130,14 @@ export function NotificationProvider({
               <div className="h-[72px] bg-white border-b border-[#E8EDF2] px-5 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="relative">
-                    <Bell className="w-5 h-5 text-[#071B3A] stroke-[1.8]" />
+                    <Bell className="w-5 h-5 text-navy-900 stroke-[1.8]" />
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse" />
                     )}
                   </div>
-                  <h3 className="text-base font-extrabold text-[#071B3A]">Notifications</h3>
+                  <h3 className="text-base font-extrabold text-navy-900">Notifications</h3>
                   {unreadCount > 0 && (
-                    <span className="bg-[#E6F3F2] text-[#0B8B83] text-[9px] font-extrabold px-2 py-0.5 rounded-full ml-1">
+                    <span className="bg-primary-50 text-primary-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full ml-1">
                       {unreadCount} new
                     </span>
                   )}
@@ -148,7 +148,7 @@ export function NotificationProvider({
                     <button 
                       onClick={handleMarkAllAsRead}
                       disabled={isPending}
-                      className="text-[10px] font-extrabold text-[#0B8B83] hover:text-[#0d6460] py-1.5 px-2.5 bg-[#E6F3F2] rounded-full active:scale-95 transition-all flex items-center gap-1 border-0 cursor-pointer disabled:opacity-50"
+                      className="text-[10px] font-extrabold text-primary-600 hover:text-primary-700 py-1.5 px-2.5 bg-primary-50 rounded-full active:scale-95 transition-all flex items-center gap-1 border-0 cursor-pointer disabled:opacity-50"
                     >
                       {isPending ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -161,7 +161,7 @@ export function NotificationProvider({
                   
                   <button 
                     onClick={close}
-                    className="p-1.5 rounded-full hover:bg-zinc-50 text-[#64748B] hover:text-[#071B3A] transition-colors border-0 cursor-pointer"
+                    className="p-1.5 rounded-full hover:bg-zinc-50 text-[#64748B] hover:text-navy-900 transition-colors border-0 cursor-pointer"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -176,7 +176,7 @@ export function NotificationProvider({
                       <Bell className="w-5 h-5 stroke-[1.5]" />
                     </div>
                     <div>
-                      <p className="text-[13px] font-extrabold text-[#071B3A] uppercase tracking-wide">No Notifications</p>
+                      <p className="text-[13px] font-extrabold text-navy-900 uppercase tracking-wide">No Notifications</p>
                       <p className="text-[11px] text-[#64748B] mt-1 font-medium leading-relaxed max-w-[200px] mx-auto">
                         You are all caught up! Announcements from admin will appear here.
                       </p>
@@ -215,7 +215,7 @@ export function NotificationProvider({
                         onClick={() => isUnread && handleMarkAsRead(notif.id)}
                         className={cn(
                           "p-4 rounded-2xl border bg-white flex gap-3.5 transition-all shadow-3xs relative overflow-hidden select-none cursor-pointer",
-                          isUnread ? "border-[#0B8B83]/30 hover:border-[#0B8B83]/50 ring-1 ring-[#0B8B83]/10" : "border-[#E8EDF2] hover:bg-zinc-50/50"
+                          isUnread ? "border-primary-600/30 hover:border-primary-600/50 ring-1 ring-primary-600/10" : "border-[#E8EDF2] hover:bg-zinc-50/50"
                         )}
                       >
                         {/* Type Icon */}
@@ -226,7 +226,7 @@ export function NotificationProvider({
                         {/* Text Content */}
                         <div className="flex-1 space-y-1">
                           <div className="flex justify-between items-start">
-                            <h4 className={cn("text-[12px] leading-tight font-extrabold text-[#071B3A]", isUnread && "font-black")}>
+                            <h4 className={cn("text-[12px] leading-tight font-extrabold text-navy-900", isUnread && "font-black")}>
                               {notif.title}
                             </h4>
                             <span className="text-[8px] font-bold text-[#94A3B8] flex items-center gap-1 font-mono">
@@ -240,13 +240,13 @@ export function NotificationProvider({
                           </p>
 
                           <div className="flex items-center gap-1.5 pt-1">
-                            <span className="text-[8px] font-bold text-[#94A3B8] uppercase font-mono">
+                            <span className="text-[8px] font-bold text-zinc-400 uppercase font-mono">
                               From: {notif.sender_name}
                             </span>
                             {isUnread && (
                               <>
-                                <span className="w-1 h-1 bg-[#94A3B8] rounded-full" />
-                                <span className="text-[8px] font-extrabold text-[#0B8B83] uppercase tracking-wider font-mono">
+                                <span className="w-1 h-1 bg-zinc-400 rounded-full" />
+                                <span className="text-[8px] font-extrabold text-primary-600 uppercase tracking-wider font-mono">
                                   Mark as read
                                 </span>
                               </>
@@ -256,7 +256,7 @@ export function NotificationProvider({
 
                         {/* Unread indicator dot */}
                         {isUnread && (
-                          <div className="absolute top-4 right-4 w-2 h-2 bg-[#0B8B83] rounded-full" />
+                          <div className="absolute top-4 right-4 w-2 h-2 bg-primary-600 rounded-full" />
                         )}
                       </div>
                     );

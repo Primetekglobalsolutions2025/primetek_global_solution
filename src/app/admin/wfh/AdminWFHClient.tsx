@@ -134,7 +134,7 @@ export default function AdminWFHClient({
         <Card hover={false} className="p-4 border border-[#E2E8F0] shadow-2xs bg-white space-y-4 flex flex-col justify-between">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Home className="w-5 h-5 text-[#0B8B83]" />
+              <Home className="w-5 h-5 text-primary-600" />
               <h2 className="font-bold text-[#0F172A] text-base tracking-tight">Active & Scheduled Overrides</h2>
             </div>
             
@@ -147,14 +147,14 @@ export default function AdminWFHClient({
                   placeholder="Search reasons or names..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2 w-full sm:w-[200px] border border-zinc-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#0B8B83] bg-white placeholder:text-zinc-400"
+                  className="pl-9 pr-4 py-2 w-full sm:w-[200px] border border-zinc-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary-600 bg-white placeholder:text-zinc-400"
                 />
               </div>
 
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value as any)}
-                className="px-3 py-2 border border-zinc-200 rounded-lg text-xs bg-white text-[#071B3A] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#0B8B83]"
+                className="px-3 py-2 border border-zinc-200 rounded-lg text-xs bg-white text-navy-900 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary-600"
               >
                 <option value="all">All Types</option>
                 <option value="global">Global Only</option>
@@ -164,7 +164,7 @@ export default function AdminWFHClient({
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="px-3 py-2 border border-zinc-200 rounded-lg text-xs bg-white text-[#071B3A] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[#0B8B83]"
+                className="px-3 py-2 border border-zinc-200 rounded-lg text-xs bg-white text-navy-900 cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary-600"
               >
                 <option value="all">All Dates</option>
                 <option value="active">Active & Upcoming</option>
@@ -202,7 +202,7 @@ export default function AdminWFHClient({
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           {req.employee_id === null ? (
-                            <span className="inline-flex items-center gap-1 bg-[#E6F8F2] text-[#0B8B83] text-[9px] font-black px-2 py-0.5 rounded border border-[#0B8B83]/10 uppercase tracking-wider font-mono">
+                            <span className="inline-flex items-center gap-1 bg-primary-50 text-primary-600 text-[9px] font-black px-2 py-0.5 rounded border border-primary-600/10 uppercase tracking-wider font-mono">
                               <Users className="w-3 h-3" /> Global Override
                             </span>
                           ) : (
@@ -223,7 +223,7 @@ export default function AdminWFHClient({
                           </span>
                         </div>
 
-                        <h4 className="text-sm font-extrabold text-[#071B3A] tracking-tight leading-none">
+                        <h4 className="text-sm font-extrabold text-navy-900 tracking-tight leading-none">
                           {req.employee_name}
                         </h4>
                         
@@ -261,8 +261,8 @@ export default function AdminWFHClient({
         {/* Create Override Form */}
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white">
           <div className="flex items-center gap-2 mb-4">
-            <Plus className="w-5 h-5 text-[#0B8B83]" />
-            <h3 className="text-sm font-extrabold text-[#071B3A] uppercase tracking-wider">Schedule WFH</h3>
+            <Plus className="w-5 h-5 text-primary-600" />
+            <h3 className="text-sm font-extrabold text-navy-900 uppercase tracking-wider">Schedule WFH</h3>
           </div>
 
           <form onSubmit={handleCreateOverride} className="space-y-4">
@@ -273,9 +273,9 @@ export default function AdminWFHClient({
                 id="isGlobalCheckbox"
                 checked={isGlobal}
                 onChange={(e) => setIsGlobal(e.target.checked)}
-                className="w-4 h-4 rounded text-[#0B8B83] focus:ring-[#0B8B83] border-zinc-300 cursor-pointer"
+                className="w-4 h-4 rounded text-primary-600 focus:ring-primary-600 border-zinc-300 cursor-pointer"
               />
-              <label htmlFor="isGlobalCheckbox" className="text-xs font-bold text-[#071B3A] cursor-pointer select-none">
+              <label htmlFor="isGlobalCheckbox" className="text-xs font-bold text-navy-900 cursor-pointer select-none">
                 Global WFH Override
                 <span className="block text-[9px] font-normal text-zinc-450 mt-0.5">Applies to all active employees</span>
               </label>
@@ -289,7 +289,7 @@ export default function AdminWFHClient({
                   value={selectedEmployeeId}
                   onChange={(e) => setSelectedEmployeeId(e.target.value)}
                   required={!isGlobal}
-                  className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-[#071B3A] focus:outline-none focus:ring-1 focus:ring-[#0B8B83] bg-white cursor-pointer"
+                  className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-navy-900 focus:outline-none focus:ring-1 focus:ring-primary-600 bg-white cursor-pointer"
                 >
                   <option value="">-- Choose Employee --</option>
                   {employees.map(emp => (
@@ -337,14 +337,14 @@ export default function AdminWFHClient({
                 onChange={(e) => setReason(e.target.value)}
                 required
                 rows={3}
-                className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-[#071B3A] focus:outline-none focus:ring-1 focus:ring-[#0B8B83] bg-white placeholder:text-zinc-450 font-semibold"
+                className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-navy-900 focus:outline-none focus:ring-1 focus:ring-primary-600 bg-white placeholder:text-zinc-450 font-semibold"
               />
             </div>
 
             <Button
               type="submit"
               disabled={isPending}
-              className="w-full bg-[#0B8B83] hover:bg-[#0d6460] text-white text-xs font-bold uppercase tracking-wider py-3 flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all cursor-pointer border-0 mt-2"
+              className="w-full bg-primary-600 hover:bg-[#0d6460] text-white text-xs font-bold uppercase tracking-wider py-3 flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all cursor-pointer border-0 mt-2"
             >
               {isPending ? (
                 <>
@@ -362,11 +362,11 @@ export default function AdminWFHClient({
         </Card>
         
         {/* Info Card */}
-        <Card hover={false} className="p-4 border border-zinc-200 bg-slate-50/50 space-y-2 text-xs">
+        <Card hover={false} className="p-4 border border-zinc-200 bg-zinc-50/50 space-y-2 text-xs">
           <div className="flex items-start gap-2">
-            <Info className="w-4.5 h-4.5 text-[#0B8B83] shrink-0 mt-0.5" />
+            <Info className="w-4.5 h-4.5 text-primary-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="font-extrabold text-[#071B3A] uppercase tracking-wide text-[10px]">How Overrides Work</p>
+              <p className="font-extrabold text-navy-900 uppercase tracking-wide text-[10px]">How Overrides Work</p>
               <p className="text-[11px] text-zinc-500 leading-relaxed">
                 When a WFH override is active for an employee on a given date:
               </p>

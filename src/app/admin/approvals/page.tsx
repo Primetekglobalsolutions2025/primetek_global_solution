@@ -36,7 +36,7 @@ export default function ApprovalsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-navy-900">Approvals Hub</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">Approvals Hub</h1>
         <p className="text-sm text-text-secondary mt-1">Manage employee leave, WFH, and attendance disputes.</p>
       </div>
 

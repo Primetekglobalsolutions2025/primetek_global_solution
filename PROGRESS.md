@@ -68,8 +68,9 @@
 
 ---
 
-### 📍 Milestone: Typography Design System Consolidation (2026-05-31)
-- **Completed**: Consolidated employee portal page headings to use centralized design-system.ts tokens instead of hardcoded raw Tailwind classes, improving visual symmetry and ease of maintenance.
-- **Files changed**: `src/styles/design-system.ts`, `src/app/employee/reports/page.tsx`, `src/app/employee/profile/page.tsx`, `src/app/employee/profile/ProfileClient.tsx`, `src/app/employee/leaves/LeavesClient.tsx`, `src/app/employee/daily-report/DailyReportClient.tsx`, `src/app/employee/assigned-profiles/AssignedProfilesClient.tsx`
+### 📍 Milestone: Portal Typography & Design Token Remediation (2026-05-31)
+- **Completed**: Performed complete remediation of typography and design tokens. Standardized all page titles to follow the unified hierarchy (`text-xl md:text-2xl font-bold tracking-tight text-navy-900`). Replaced all hardcoded portal colors (`#071B3A` -> `navy-900`, `#0B8B83` -> `primary-600`, `#EFF2F6` -> `navy-50`) with Tailwind v4 design tokens. Cleaned up redundant `font-sans`, `font-heading`, and `font-black` classes. Mapped `--color-primary-600` directly to the approved brand teal (`#0B8B83`) in `globals.css` and cleaned remaining hardcoded hexes. Set dashboard hero greetings to `text-3xl md:text-4xl font-extrabold` to preserve layout hierarchy. Audited and normalized mixed gray scales (`slate`, `gray`, `zinc`) to standard grays across portals. Verified successful Next.js build.
+- **Files changed**: `src/app/globals.css`, `src/styles/design-system.ts`, `src/components/pwa/NotificationContext.tsx`, `src/app/employee/dashboard/EmployeeDashboardClient.tsx`, `src/app/employee/dashboard/EmployeeDashboardServerWrapper.tsx`, `src/components/admin/DashboardGreeting.tsx`, `src/app/employee/attendance/AttendanceClientMobile.tsx`, `src/app/admin/wfh/AdminWFHClient.tsx`, `src/app/admin/notifications/AdminNotificationsClient.tsx`, `src/app/admin/holidays/AdminHolidaysClient.tsx`, `src/app/admin/employees/EmployeesClient.tsx`, `src/app/employee/attendance/AttendanceClient.tsx`, `src/app/admin/approvals/ApprovalsClient.tsx`, `src/app/admin/applications/ApplicationsClient.tsx`, `src/components/admin/Sidebar.tsx`, `src/components/ui/ErrorBoundary.tsx`, `src/app/employee/assigned-profiles/InterviewRequestModal.tsx`, and all app routing page headers.
 - **Remaining tasks**: Deploy database migrations to the production instance, enroll admin testers, and launch the pilot group.
 - **Blockers**: None
+

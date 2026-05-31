@@ -429,7 +429,7 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6 border-b border-border flex items-center justify-between">
-                <h2 className="text-lg font-heading font-bold text-navy-900">Application Details</h2>
+                <h2 className="text-lg font-bold text-navy-900">Application Details</h2>
                 <button onClick={() => setSelectedApp(null)} className="p-2 rounded-lg hover:bg-surface-alt text-text-muted">
                   <X className="w-5 h-5" />
                 </button>

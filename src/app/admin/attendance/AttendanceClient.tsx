@@ -733,7 +733,7 @@ export default function AttendanceClient({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <h3 className="font-heading font-black text-xs text-navy-900 uppercase tracking-wider">
+          <h3 className="font-bold text-xs text-navy-900 uppercase tracking-wider">
             Realtime Activity
           </h3>
         </div>
@@ -910,7 +910,7 @@ export default function AttendanceClient({
           <div className="flex items-center justify-between border-b border-red-100/50 pb-2">
             <div className="flex items-center gap-2">
               <ShieldAlert className="w-4 h-4 text-red-600" />
-              <h4 className="font-heading font-black text-xs text-red-950 uppercase tracking-wider">
+              <h4 className="font-bold text-xs text-red-950 uppercase tracking-wider">
                 Workforce Operations Attention Center
               </h4>
             </div>
@@ -998,7 +998,7 @@ export default function AttendanceClient({
           <div className="flex items-center justify-between border-b border-zinc-150 pb-2">
             <div className="flex items-center gap-2">
               <RefreshCw className="w-4 h-4 text-primary-600 animate-spin" style={{ animationDuration: '3s' }} />
-              <h4 className="font-heading font-black text-xs text-navy-900 uppercase tracking-wider">
+              <h4 className="font-bold text-xs text-navy-900 uppercase tracking-wider">
                 Offline Sync Recovery Queue ({recoveryQueue.filter(r => r.status === 'PENDING').length})
               </h4>
             </div>
@@ -1496,7 +1496,7 @@ export default function AttendanceClient({
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card hover={false} className="p-6 rounded-2xl border border-zinc-200 bg-white lg:col-span-1 flex flex-col justify-between">
               <div>
-                <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider mb-4">Lateness Trend (This Month)</h3>
+                <h3 className="font-bold text-sm text-navy-900 uppercase tracking-wider mb-4">Lateness Trend (This Month)</h3>
                 <div className="space-y-4">
                   {employeeLatesTrend.length === 0 ? (
                     <p className="text-xs text-zinc-500 font-bold italic py-8 text-center">No lates recorded this month.</p>
@@ -1539,7 +1539,7 @@ export default function AttendanceClient({
 
             <Card hover={false} className="p-0 overflow-hidden border border-zinc-200 rounded-2xl shadow-sm bg-white lg:col-span-2">
               <div className="p-4 border-b border-zinc-200 bg-zinc-50/30 flex items-center justify-between">
-                <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider">Late Logins Register</h3>
+                <h3 className="font-bold text-sm text-navy-900 uppercase tracking-wider">Late Logins Register</h3>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
@@ -1680,7 +1680,7 @@ export default function AttendanceClient({
           >
             <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-55/40">
               <div>
-                <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider">
+                <h3 className="font-bold text-sm text-navy-900 uppercase tracking-wider">
                   Session Details
                 </h3>
                 <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-0.5">

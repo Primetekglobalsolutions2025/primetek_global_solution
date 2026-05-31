@@ -114,7 +114,7 @@ export default function AdminHolidaysClient({
             {/* Header row */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <CalendarIcon className="w-5 h-5 text-[#0B8B83]" />
+                <CalendarIcon className="w-5 h-5 text-primary-600" />
                 <h2 className="font-bold text-[#0F172A] text-base tracking-tight font-sans">Holiday Calendar</h2>
               </div>
               
@@ -123,17 +123,17 @@ export default function AdminHolidaysClient({
                 <button
                   type="button"
                   onClick={() => navigateMonth('prev')}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer transition-colors border-0 bg-transparent"
+                  className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500 cursor-pointer transition-colors border-0 bg-transparent"
                 >
                   <ChevronLeft className="w-4.5 h-4.5" />
                 </button>
-                <div className="px-3.5 py-1.5 rounded-lg bg-[#E2E8F0]/40 text-[#071B3A] text-xs font-black uppercase tracking-wider font-mono min-w-[130px] text-center">
+                <div className="px-3.5 py-1.5 rounded-lg bg-[#E2E8F0]/40 text-navy-900 text-xs font-black uppercase tracking-wider font-mono min-w-[130px] text-center">
                   {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }).toUpperCase()}
                 </div>
                 <button
                   type="button"
                   onClick={() => navigateMonth('next')}
-                  className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 cursor-pointer transition-colors border-0 bg-transparent"
+                  className="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-500 cursor-pointer transition-colors border-0 bg-transparent"
                 >
                   <ChevronRight className="w-4.5 h-4.5" />
                 </button>
@@ -163,17 +163,17 @@ export default function AdminHolidaysClient({
                         className={cn(
                           "w-10 h-10 rounded-full flex flex-col items-center justify-center text-xs font-bold transition-all cursor-pointer border relative",
                           isSelected
-                            ? "bg-[#071B3A] text-white border-[#071B3A] shadow-md scale-105"
+                            ? "bg-navy-900 text-white border-navy-900 shadow-md scale-105"
                             : isToday
-                              ? "bg-slate-100 text-[#071B3A] border-slate-300 font-extrabold"
+                              ? "bg-zinc-100 text-navy-900 border-zinc-300 font-extrabold"
                               : holiday
-                                ? "bg-[#E6F8F2] text-[#0B8B83] border-[#0B8B83]/30 hover:bg-[#E6F8F2] font-black"
+                                ? "bg-primary-50 text-primary-600 border-primary-600/30 hover:bg-primary-50 font-black"
                                 : "text-[#0F172A] hover:bg-[#F8FAFC] border-transparent"
                         )}
                       >
                         <span>{day}</span>
                         {holiday && !isSelected && (
-                          <span className="absolute bottom-1 w-1 h-1 bg-[#0B8B83] rounded-full" />
+                          <span className="absolute bottom-1 w-1 h-1 bg-primary-600 rounded-full" />
                         )}
                       </button>
                     ) : (
@@ -188,15 +188,15 @@ export default function AdminHolidaysClient({
           {/* Legend */}
           <div className="flex justify-start gap-4 items-center border-t border-[#E2E8F0] pt-4 mt-6 text-[10px] font-bold text-[#64748B] uppercase">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#E6F8F2] border border-[#0B8B83]/30" />
+              <span className="w-2.5 h-2.5 rounded-full bg-primary-50 border border-primary-600/30" />
               <span>Company Holiday</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-100 border border-slate-300" />
+              <span className="w-2.5 h-2.5 rounded-full bg-zinc-100 border border-zinc-300" />
               <span>Today</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#071B3A]" />
+              <span className="w-2.5 h-2.5 rounded-full bg-navy-900" />
               <span>Selected</span>
             </div>
           </div>
@@ -205,8 +205,8 @@ export default function AdminHolidaysClient({
         {/* Holiday list card */}
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-extrabold text-[#071B3A] uppercase tracking-wider">Holidays in {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long' })}</h3>
-            <span className="bg-[#E6F3F2] text-[#0B8B83] text-[10px] font-bold px-2.5 py-1 rounded-full">
+            <h3 className="text-sm font-extrabold text-navy-900 uppercase tracking-wider">Holidays in {selectedMonthDate.toLocaleDateString('en-IN', { month: 'long' })}</h3>
+            <span className="bg-primary-50 text-primary-600 text-[10px] font-bold px-2.5 py-1 rounded-full">
               {currentMonthHolidays.length} scheduled
             </span>
           </div>
@@ -227,16 +227,16 @@ export default function AdminHolidaysClient({
                 return (
                   <div key={h.id} className="flex justify-between items-center py-3 first:pt-0 last:pb-0 font-sans text-xs">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[#E6F8F2] flex items-center justify-center text-[#0B8B83]">
+                      <div className="w-9 h-9 rounded-full bg-primary-50 flex items-center justify-center text-primary-600">
                         <CalendarIcon className="w-4 h-4" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="font-bold text-[#071B3A]">{h.title}</span>
-                        <span className="text-[10px] text-[#0B8B83] font-semibold">{h.type}</span>
+                        <span className="font-bold text-navy-900">{h.title}</span>
+                        <span className="text-[10px] text-primary-600 font-semibold">{h.type}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className="font-mono text-[10px] font-bold text-[#64748B] bg-slate-100 px-2 py-0.5 rounded border">{formattedDate}</span>
+                      <span className="font-mono text-[10px] font-bold text-[#64748B] bg-zinc-100 px-2 py-0.5 rounded border">{formattedDate}</span>
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(h)}
@@ -258,10 +258,10 @@ export default function AdminHolidaysClient({
         {/* Selected Date Card */}
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white space-y-4">
           <h3 className="text-xs font-black text-zinc-400 uppercase tracking-widest block font-mono">Date Status</h3>
-          <div className="p-4 rounded-xl border border-zinc-200 bg-slate-50 flex items-start gap-3">
-            <CalendarIcon className="w-5 h-5 text-[#0B8B83] mt-0.5" />
+          <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50 flex items-start gap-3">
+            <CalendarIcon className="w-5 h-5 text-primary-600 mt-0.5" />
             <div>
-              <p className="font-bold text-[#071B3A] text-sm">
+              <p className="font-bold text-navy-900 text-sm">
                 {selectedDate.toLocaleDateString('en-IN', {
                   day: 'numeric',
                   month: 'long',
@@ -270,7 +270,7 @@ export default function AdminHolidaysClient({
                 })}
               </p>
               {selectedHoliday ? (
-                <div className="mt-2 inline-flex items-center gap-1 bg-[#E6F8F2] text-[#0B8B83] text-[9px] font-extrabold px-2.5 py-0.5 rounded-full border border-[#0B8B83]/10 uppercase tracking-wider font-mono">
+                <div className="mt-2 inline-flex items-center gap-1 bg-primary-50 text-primary-600 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full border border-primary-600/10 uppercase tracking-wider font-mono">
                   {selectedHoliday.type}
                 </div>
               ) : (
@@ -280,8 +280,8 @@ export default function AdminHolidaysClient({
           </div>
 
           {selectedHoliday && (
-            <div className="p-3 rounded-lg border border-teal-200 bg-[#E6F8F2]/20 text-xs font-semibold text-[#0B8B83] flex gap-2">
-              <Info className="w-4 h-4 text-[#0B8B83] shrink-0 mt-0.5" />
+            <div className="p-3 rounded-lg border border-teal-200 bg-primary-50/20 text-xs font-semibold text-primary-600 flex gap-2">
+              <Info className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">{selectedHoliday.title}</p>
                 <p className="text-[10px] opacity-80 mt-0.5">This day is announced as a holiday. Employees will see this on their dashboard and attendance calendar.</p>
@@ -292,7 +292,7 @@ export default function AdminHolidaysClient({
 
         {/* Announce Holiday Form */}
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white">
-          <h3 className="text-sm font-extrabold text-[#071B3A] uppercase tracking-wider mb-4">Announce Holiday</h3>
+          <h3 className="text-sm font-extrabold text-navy-900 uppercase tracking-wider mb-4">Announce Holiday</h3>
           <form onSubmit={handleAddHoliday} className="space-y-4">
             <div className="space-y-1">
               <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">Selected Date</label>
@@ -323,7 +323,7 @@ export default function AdminHolidaysClient({
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-[#071B3A] focus:outline-none focus:ring-1 focus:ring-[#0B8B83] bg-white cursor-pointer"
+                className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-navy-900 focus:outline-none focus:ring-1 focus:ring-primary-600 bg-white cursor-pointer"
               >
                 <option value="Company Holiday">Company Holiday (Mandatory Off)</option>
                 <option value="Public Holiday">Public Holiday (Government Holiday)</option>
@@ -334,7 +334,7 @@ export default function AdminHolidaysClient({
             <Button
               type="submit"
               disabled={isPending}
-              className="w-full bg-[#0B8B83] hover:bg-[#0d6460] text-white text-xs font-bold uppercase tracking-wider py-3 flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all cursor-pointer border-0 mt-2"
+              className="w-full bg-primary-600 hover:bg-[#0d6460] text-white text-xs font-bold uppercase tracking-wider py-3 flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all cursor-pointer border-0 mt-2"
             >
               {isPending ? (
                 <>

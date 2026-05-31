@@ -22,7 +22,7 @@ export default async function AdminHolidaysPage() {
   return (
     <div className="space-y-6 pb-10">
       <div>
-        <h1 className="text-xl md:text-2xl font-sans font-bold text-navy-900 tracking-tight">Holiday Management</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">Holiday Management</h1>
         <p className="text-zinc-550 text-sm">Schedule and manage company holidays.</p>
       </div>
       <AdminHolidaysClient initialHolidays={initialHolidays} />

@@ -9,7 +9,7 @@ export const typography = {
   pageTitleLight: "text-2xl md:text-3xl font-extrabold tracking-tight text-white",
 
   // Desktop scales
-  sectionTitle: "text-lg font-medium text-navy-900 tracking-tight",
+  sectionTitle: "text-lg font-semibold text-navy-900",
   cardTitle: "text-base font-semibold text-navy-900",
   body: "text-sm text-text-secondary leading-relaxed",
   bodyMuted: "text-xs text-text-muted leading-relaxed",

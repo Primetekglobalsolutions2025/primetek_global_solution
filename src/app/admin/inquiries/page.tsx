@@ -22,7 +22,7 @@ export default async function AdminAppInquiriesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-heading font-bold text-navy-900 tracking-tight">Inquiries</h1>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">Inquiries</h1>
         <p className="text-text-secondary text-sm">Manage business and career inquiries.</p>
       </div>
       <InquiryTable 

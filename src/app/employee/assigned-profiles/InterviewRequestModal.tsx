@@ -132,7 +132,7 @@ export default function InterviewRequestModal({
   };
 
   const inputClasses = 'w-full px-3 py-2 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400/50 text-xs font-semibold';
-  const readOnlyClasses = 'w-full px-3 py-2 rounded-lg border border-border bg-slate-50 text-text-secondary cursor-not-allowed text-xs font-semibold';
+  const readOnlyClasses = 'w-full px-3 py-2 rounded-lg border border-border bg-zinc-50 text-text-secondary cursor-not-allowed text-xs font-semibold';
 
   return (
     <div 
@@ -219,7 +219,7 @@ export default function InterviewRequestModal({
             {/* Job Description (JD) Option */}
             <div className="space-y-2 pt-1.5 border-t border-border/80">
               <label className="font-bold text-navy-900 block">Job Description (JD) * (.docx only)</label>
-              <div className="border border-dashed border-border rounded-xl p-3 bg-slate-50 flex items-center justify-center gap-3 relative min-h-[50px] transition-all">
+              <div className="border border-dashed border-border rounded-xl p-3 bg-zinc-50 flex items-center justify-center gap-3 relative min-h-[50px] transition-all">
                 <input 
                   type="file" 
                   accept=".docx"
@@ -271,7 +271,7 @@ export default function InterviewRequestModal({
               </div>
 
               {resumeType === 'updated' && (
-                <div className="mt-2 border border-dashed border-border rounded-xl p-3 bg-slate-50 flex items-center justify-center gap-3 relative min-h-[50px] transition-all">
+                <div className="mt-2 border border-dashed border-border rounded-xl p-3 bg-zinc-50 flex items-center justify-center gap-3 relative min-h-[50px] transition-all">
                   <input 
                     type="file" 
                     accept=".pdf,.doc,.docx"

@@ -31,7 +31,7 @@ export default function DashboardGreeting({ userName, email }: DashboardGreeting
           </div>
           
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight text-white font-sans">
+            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white">
               Welcome Back,<br />
               <span className="text-primary-400 brightness-110">{firstName}</span>
             </h1>

@@ -38,7 +38,7 @@ class ErrorBoundary extends Component<Props, State> {
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            <h2 className="text-xl font-heading font-black text-navy-900 mb-2">Something went wrong</h2>
+            <h2 className="text-xl font-bold text-navy-900 mb-2">Something went wrong</h2>
             <p className="text-text-secondary text-sm mb-8 leading-relaxed">
               We encountered an unexpected error while loading this component. Please try refreshing the page.
             </p>

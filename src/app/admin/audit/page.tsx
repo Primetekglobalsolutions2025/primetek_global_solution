@@ -104,7 +104,7 @@ export default async function AuditLogsPage(props: PageProps) {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-primary-500" />
-            <h1 className="text-xl font-bold text-navy-900 tracking-tight">System Audit Logs</h1>
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight text-navy-900">System Audit Logs</h1>
           </div>
           <p className="text-xs text-zinc-450">
             Immutable record of all critical administrative actions.

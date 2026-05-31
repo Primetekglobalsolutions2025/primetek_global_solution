@@ -52,14 +52,14 @@ export default function Sidebar({ userName = 'Admin' }: SidebarProps) {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-sm">
               P
             </div>
-            <span className="font-heading font-bold text-sm">
+            <span className="font-bold text-sm">
               Primetek<span className="text-primary-400">.</span>
             </span>
           </Link>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+          className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -78,7 +78,7 @@ export default function Sidebar({ userName = 'Admin' }: SidebarProps) {
                 'flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-all duration-150',
                 isActive
                   ? 'bg-primary-500/15 text-primary-400 font-semibold'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/5'
               )}
               title={collapsed ? item.label : undefined}
             >
@@ -93,13 +93,13 @@ export default function Sidebar({ userName = 'Admin' }: SidebarProps) {
       <div className="p-3 border-t border-white/5 space-y-1">
         {!collapsed && (
           <div className="px-3 py-1.5">
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Signed in as</p>
-            <p className="text-xs font-semibold text-gray-300 truncate">{userName}</p>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold">Signed in as</p>
+            <p className="text-xs font-semibold text-zinc-300 truncate">{userName}</p>
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 h-10 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+          className="flex items-center gap-3 w-full px-3 h-10 rounded-lg text-sm font-medium text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
           title={collapsed ? 'Logout' : undefined}
         >
           <LogOut className="w-4 h-4 shrink-0" />

@@ -739,7 +739,7 @@ export default function ApprovalsClient({
           >
             <div className="p-4 border-b border-zinc-200 flex items-center justify-between bg-zinc-50/40">
               <div>
-                <h3 className="font-heading font-black text-sm text-navy-900 uppercase tracking-wider">
+                <h3 className="font-bold text-sm text-navy-900 uppercase tracking-wider">
                   Session Telemetry Details
                 </h3>
                 <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-0.5">

@@ -115,8 +115,8 @@ export default function AdminNotificationsClient({
       <div className="lg:col-span-8 flex flex-col space-y-6">
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="font-extrabold text-[#071B3A] text-base tracking-tight font-sans">Dispatch Logs</h2>
-            <span className="bg-[#E6F3F2] text-[#0B8B83] text-[10px] font-bold px-2.5 py-1 rounded-full">
+            <h2 className="font-extrabold text-navy-900 text-base tracking-tight font-sans">Dispatch Logs</h2>
+            <span className="bg-primary-50 text-primary-600 text-[10px] font-bold px-2.5 py-1 rounded-full">
               {notifications.length} dispatched
             </span>
           </div>
@@ -169,7 +169,7 @@ export default function AdminNotificationsClient({
                     {/* Text Content */}
                     <div className="flex-1 space-y-1">
                       <div className="flex justify-between items-start">
-                        <h4 className="text-[12px] leading-tight font-extrabold text-[#071B3A]">
+                        <h4 className="text-[12px] leading-tight font-extrabold text-navy-900">
                           {notif.title}
                         </h4>
                         <span className="text-[8px] font-bold text-[#94A3B8] flex items-center gap-1 font-mono">
@@ -183,11 +183,11 @@ export default function AdminNotificationsClient({
                       </p>
 
                       <div className="flex items-center gap-2 pt-1">
-                        <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border bg-slate-100 text-zinc-550">
+                        <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase tracking-wider font-mono px-2 py-0.5 rounded-full border bg-zinc-100 text-zinc-550">
                           {isBroadcast ? (
                             <><Users className="w-2.5 h-2.5 text-zinc-400" /> Broadcast</>
                           ) : (
-                            <><User className="w-2.5 h-2.5 text-[#0B8B83]" /> {notif.employees?.name || 'Selected Employee'}</>
+                            <><User className="w-2.5 h-2.5 text-primary-600" /> {notif.employees?.name || 'Selected Employee'}</>
                           )}
                         </span>
                         
@@ -223,7 +223,7 @@ export default function AdminNotificationsClient({
       {/* Control Form Column */}
       <div className="lg:col-span-4">
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white">
-          <h3 className="text-sm font-extrabold text-[#071B3A] uppercase tracking-wider mb-4">Compose Alert</h3>
+          <h3 className="text-sm font-extrabold text-navy-900 uppercase tracking-wider mb-4">Compose Alert</h3>
           <form onSubmit={handleSendNotification} className="space-y-4">
             <div className="space-y-1">
               <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">Title</label>
@@ -252,7 +252,7 @@ export default function AdminNotificationsClient({
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as any)}
-                className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-[#071B3A] focus:outline-none focus:ring-1 focus:ring-[#0B8B83] bg-white cursor-pointer"
+                className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-navy-900 focus:outline-none focus:ring-1 focus:ring-primary-600 bg-white cursor-pointer"
               >
                 <option value="announcement">Announcement (General Broadcast)</option>
                 <option value="alert">Alert (High Priority Alert)</option>
@@ -269,8 +269,8 @@ export default function AdminNotificationsClient({
                   className={cn(
                     "py-2 px-3 border rounded-lg font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all",
                     audience === 'broadcast'
-                      ? "bg-[#071B3A] border-[#071B3A] text-white"
-                      : "bg-white border-zinc-200 text-[#071B3A] hover:bg-zinc-50"
+                      ? "bg-navy-900 border-navy-900 text-white"
+                      : "bg-white border-zinc-200 text-navy-900 hover:bg-zinc-50"
                   )}
                 >
                   <Users className="w-3.5 h-3.5" />
@@ -282,8 +282,8 @@ export default function AdminNotificationsClient({
                   className={cn(
                     "py-2 px-3 border rounded-lg font-bold flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-all",
                     audience === 'targeted'
-                      ? "bg-[#071B3A] border-[#071B3A] text-white"
-                      : "bg-white border-zinc-200 text-[#071B3A] hover:bg-zinc-50"
+                      ? "bg-navy-900 border-navy-900 text-white"
+                      : "bg-white border-zinc-200 text-navy-900 hover:bg-zinc-50"
                   )}
                 >
                   <User className="w-3.5 h-3.5" />
@@ -298,7 +298,7 @@ export default function AdminNotificationsClient({
                 <select
                   value={selectedEmployeeId}
                   onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-[#071B3A] focus:outline-none focus:ring-1 focus:ring-[#0B8B83] bg-white cursor-pointer"
+                  className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-navy-900 focus:outline-none focus:ring-1 focus:ring-primary-600 bg-white cursor-pointer"
                   required
                 >
                   <option value="">Select Employee...</option>
@@ -314,7 +314,7 @@ export default function AdminNotificationsClient({
             <Button
               type="submit"
               disabled={isPending}
-              className="w-full bg-[#0B8B83] hover:bg-[#0d6460] text-white text-xs font-bold uppercase tracking-wider py-3 flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all cursor-pointer border-0 mt-2"
+              className="w-full bg-primary-600 hover:bg-[#0d6460] text-white text-xs font-bold uppercase tracking-wider py-3 flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all cursor-pointer border-0 mt-2"
             >
               {isPending ? (
                 <>
