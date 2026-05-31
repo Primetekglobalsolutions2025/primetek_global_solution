@@ -273,6 +273,28 @@ export async function checkIn(
         }
       }]);
 
+    if (isWFHActive) {
+      await supabaseAdmin
+        .from('attendance_events')
+        .insert([{
+          session_id: attRecord.id,
+          employee_id: session.id,
+          event_type: 'ADMIN_OVERRIDE',
+          event_timestamp: checkInTime.toISOString(),
+          sequence_number: 2,
+          idempotency_key: `wfh-override-${attRecord.id}`,
+          client_ip: ip === 'unknown' ? '0.0.0.0' : ip,
+          gps_lat: Number(lat),
+          gps_lng: Number(lng),
+          gps_accuracy: 10,
+          payload: {
+            override_field: 'status',
+            new_value: 'Approved WFH',
+            reason: 'Auto-applied pre-approved WFH / Global WFH override'
+          }
+        }]);
+    }
+
     // Rebuild projection so admin live monitor reflects the new check-in immediately
     await supabaseAdmin.rpc('rebuild_attendance_projection', {
       p_session_id: attRecord.id

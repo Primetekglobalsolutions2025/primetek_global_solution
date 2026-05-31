@@ -147,7 +147,7 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
   }, {} as Record<string, HistoryItem[]>);
 
   return (
-    <div className="space-y-6 pb-12 font-sans px-4 md:px-0" data-testid="daily-reports-page">
+    <div className="space-y-6 pb-12 font-sans" data-testid="daily-reports-page">
       {/* Header section with state */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 md:p-6 rounded-lg border border-zinc-200 shadow-2xs">
         <div className="space-y-1">

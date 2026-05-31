@@ -4,6 +4,7 @@ import { updateWFHRequestStatus, createWFHOverride } from '@/app/admin/wfh/actio
 import { checkIn } from '@/app/employee/attendance/actions';
 import { createTestEmployee, cleanupTestData, getTestSession, createTestAdmin } from '../setup';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getISTShiftDate } from '@/lib/utils';
 
 import * as nextHeaders from 'next/headers';
 const { __mockSetCookie, __mockClearCookies } = nextHeaders as any;
@@ -70,7 +71,7 @@ describe('WFH Requests & Overrides Integration Tests', () => {
     const adminSession = await getTestSession(admin.id, 'admin', admin.email);
     __mockSetCookie('admin-auth-token', adminSession);
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getISTShiftDate();
     const overrideRes = await createWFHOverride({
       employee_id: null, // null = Global override
       start_date: todayStr,
@@ -81,6 +82,7 @@ describe('WFH Requests & Overrides Integration Tests', () => {
     expect(overrideRes.success).toBe(true);
 
     // 2. Check-in as employee from way outside office radius (lat: 20.0, lng: 80.0)
+    __mockClearCookies();
     const empSession = await getTestSession(employee.id, 'employee', employee.email);
     __mockSetCookie('employee-auth-token', empSession);
 
@@ -94,6 +96,7 @@ describe('WFH Requests & Overrides Integration Tests', () => {
       { deviceType: 'desktop', deviceLabel: 'Test Chrome' }
     );
 
+    console.log('CHECKIN_RESPONSE_LOG:', checkInRes);
     expect(checkInRes.success).toBe(true);
     expect(checkInRes.isWFHActive).toBe(true);
 

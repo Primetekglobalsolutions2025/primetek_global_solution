@@ -79,6 +79,13 @@ export async function createWFHOverride(data: {
       return { success: false, error: 'Start date cannot be after end date' };
     }
 
+    // Check if session.id exists in employees to avoid foreign key constraint violation (admins are in admin_users, not employees)
+    const { data: isEmployee } = await supabaseAdmin
+      .from('employees')
+      .select('id')
+      .eq('id', session.id)
+      .maybeSingle();
+
     const { data: request, error } = await supabaseAdmin
       .from('wfh_requests')
       .insert([{
@@ -87,7 +94,7 @@ export async function createWFHOverride(data: {
         end_date: data.end_date,
         reason: data.reason,
         status: 'Approved',
-        approved_by: session.id
+        approved_by: isEmployee ? session.id : null
       }])
       .select()
       .single();
@@ -156,11 +163,18 @@ export async function updateWFHRequestStatus(id: string, status: 'Approved' | 'R
       return { success: false, error: `Request has already been processed with status: ${request.status}` };
     }
 
+    // Check if session.id exists in employees to avoid foreign key constraint violation (admins are in admin_users, not employees)
+    const { data: isEmployee } = await supabaseAdmin
+      .from('employees')
+      .select('id')
+      .eq('id', session.id)
+      .maybeSingle();
+
     const { data: updated, error } = await supabaseAdmin
       .from('wfh_requests')
       .update({
         status,
-        approved_by: session.id,
+        approved_by: isEmployee ? session.id : null,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)

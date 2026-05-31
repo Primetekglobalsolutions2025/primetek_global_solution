@@ -1190,7 +1190,7 @@ export default function AttendanceClient({
   };
 
   return (
-    <div data-testid="attendance-mobile" className="relative w-full font-sans px-4">
+    <div data-testid="attendance-mobile" className="relative w-full font-sans">
 
       {/* Main Content Area */}
       <div className="flex-1 space-y-5 pt-4">
@@ -1208,12 +1208,10 @@ export default function AttendanceClient({
         )}
 
         {/* Title area */}
-        {!isCheckedOut && (
-          <div className="space-y-1">
-            <h1 className="text-[24px] font-extrabold text-[#071B3A] tracking-tight">Attendance</h1>
-            <p className="text-[#64748B] text-[12px] font-semibold">Track your attendance and work hours.</p>
-          </div>
-        )}
+        <div className="space-y-1">
+          <h1 className="text-[24px] font-extrabold text-[#071B3A] tracking-tight">Attendance</h1>
+          <p className="text-[#64748B] text-[12px] font-semibold">Track your attendance and work hours.</p>
+        </div>
 
         {/* Auto-Logout Advisory Banner */}
         {!isCheckedOut && (
@@ -1297,7 +1295,7 @@ export default function AttendanceClient({
         )}
 
         {/* 1. Today's Overview section */}
-        {!isCheckedOut && (
+        {checkedIn && (
           <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-[14px] font-extrabold text-[#071B3A]">Today's Overview</h2>
@@ -1312,7 +1310,7 @@ export default function AttendanceClient({
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* Clock In */}
               <div className="bg-white border border-[#EEF2F6] rounded-[16px] py-3.5 px-1.5 flex flex-col items-center justify-center text-center shadow-3xs min-h-[96px]">
                 <span className="text-[8px] font-extrabold text-[#64748B] mb-1.5 uppercase tracking-wider leading-none">Clock In</span>
@@ -1385,8 +1383,7 @@ export default function AttendanceClient({
         )}
 
         {/* 2. CURRENT SESSION section */}
-        {!isCheckedOut && (
-          <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4 relative overflow-hidden">
+        <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4 relative overflow-hidden">
             {/* Background Map Graphic Accent */}
             <div className="absolute right-4 top-4 opacity-[0.08] select-none pointer-events-none w-28 h-28">
               <svg viewBox="0 0 100 100" className="w-full h-full text-[#0B8B83]">
@@ -1528,7 +1525,6 @@ export default function AttendanceClient({
               </div>
             </div>
           </section>
-        )}
 
         {/* 3. Monthly Attendance Calendar Card */}
         <section id="monthly-calendar-section" className="bg-[#FFFFFF] rounded-[20px] p-5 border border-[#E2E8F0] shadow-sm relative flex flex-col justify-between space-y-4">
