@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Save, Loader2, CheckCircle2, ExternalLink, Navigation, Building, AlertCircle, Crosshair, HelpCircle, X, Info } from 'lucide-react';
+import { MapPin, Save, Loader2, CheckCircle2, ExternalLink, Navigation, Building, AlertCircle, Crosshair, HelpCircle, X, Info, Smartphone, Download, Laptop } from 'lucide-react';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -41,6 +41,39 @@ export default function AdminSettingsClient() {
   const [notifDigest, setNotifDigest] = useState(false);
   const [audioAlerts, setAudioAlerts] = useState(true);
   const [savingNotifs, setSavingNotifs] = useState(false);
+
+  // PWA states and logic
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches 
+        // @ts-expect-error - navigator.standalone is an iOS-specific Safari property
+        || window.navigator.standalone;
+      setIsStandalone(isStandaloneMode);
+
+      const handleBeforeInstallPrompt = (e: any) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+      };
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      showNotification('To install, tap your browser menu (or share button on Safari) and select "Add to Home Screen".', 'info');
+      return;
+    }
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      showNotification('Portal App installation initiated successfully.', 'success');
+    }
+  };
 
   const handleSaveNotifs = async () => {
     setSavingNotifs(true);
@@ -645,6 +678,93 @@ export default function AdminSettingsClient() {
                   <><Save className="w-4 h-4 mr-2" /> Save Preferences</>
                 )}
               </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+ 
+      {/* 4. PWA App Installation Section */}
+      <div id="pwa-install" className="scroll-mt-20">
+        <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
+            <Laptop className="w-48 h-48 text-navy-900" />
+          </div>
+ 
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-md bg-teal-500/10 text-teal-700 border border-teal-500/20 flex items-center justify-center">
+              <Laptop className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-navy-900 tracking-tight">Web App Installation</h2>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Desktop & Mobile PWA</p>
+            </div>
+          </div>
+ 
+          <div className="space-y-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-4 rounded-xl border border-zinc-200/80 bg-zinc-50/50 gap-4">
+              <div className="space-y-1 max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-2 w-2">
+                    <span className={cn(
+                      "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                      isStandalone ? "bg-emerald-400" : "bg-amber-400"
+                    )}></span>
+                    <span className={cn(
+                      "relative inline-flex rounded-full h-2 w-2",
+                      isStandalone ? "bg-emerald-500" : "bg-amber-500"
+                    )}></span>
+                  </span>
+                  <h3 className="text-xs font-bold text-navy-900 uppercase tracking-wider">
+                    {isStandalone ? "App Status: Installed & Running" : "App Status: Not Installed"}
+                  </h3>
+                </div>
+                <p className="text-[11px] text-zinc-500 leading-relaxed font-medium">
+                  {isStandalone 
+                    ? "You are currently running the Primetek Global Solutions portal in its native standalone window. This enables faster launch, clean app framing, and optimal background sync."
+                    : "Install this web application as a standalone desktop or mobile app. This unlocks one-click access, standalone app branding, and ensures system notifications are beautifully styled with our app logo."
+                  }
+                </p>
+              </div>
+ 
+              <div className="shrink-0 flex items-center">
+                {isStandalone ? (
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 border border-emerald-500/20 bg-emerald-50/50 rounded-lg px-4 py-2.5 shadow-2xs">
+                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500" /> Active Standalone Mode
+                  </div>
+                ) : (
+                  <Button
+                    onClick={handleInstallClick}
+                    className="bg-navy-900 hover:bg-navy-950 text-white rounded-md px-5 py-2.5 font-bold shadow-sm active:scale-[0.98] transition-all text-xs"
+                  >
+                    <Download className="w-4.5 h-4.5 mr-2" /> One-Click Install App
+                  </Button>
+                )}
+              </div>
+            </div>
+ 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-zinc-200/60 text-navy-900">
+              <div className="p-4 rounded-lg border border-zinc-200/60 bg-zinc-50/30 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-primary-500" />
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-navy-900">Mobile Installation Tips</h4>
+                </div>
+                <ul className="list-disc pl-4 text-[10px] text-zinc-500 space-y-1.5 leading-relaxed">
+                  <li><strong>Chrome/Edge on Android:</strong> Click the "One-Click Install App" button above or select "Install app" in the browser menu.</li>
+                  <li><strong>Safari on iOS:</strong> Tap the <strong>Share</strong> button (box with an up arrow) at the bottom, scroll down, and tap <strong>Add to Home Screen</strong>.</li>
+                </ul>
+              </div>
+ 
+              <div className="p-4 rounded-lg border border-zinc-200/60 bg-zinc-50/30 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Laptop className="w-4 h-4 text-violet-500" />
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-navy-900">Why Install the App?</h4>
+                </div>
+                <ul className="list-disc pl-4 text-[10px] text-zinc-500 space-y-1.5 leading-relaxed">
+                  <li><strong>Custom Branding:</strong> System notifications will be delivered with the official Primetek logo/icon instead of your browser's default logo (like Brave or Chrome).</li>
+                  <li><strong>Quick Launch:</strong> Creates a shortcut on your home screen or desktop for direct launch.</li>
+                  <li><strong>Immersive Experience:</strong> Hides browser navigation bars, tabs, and URL fields for full-screen portal access.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </Card>

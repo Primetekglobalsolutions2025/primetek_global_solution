@@ -1,4 +1,4 @@
-const CACHE_NAME = 'primetek-app-dd931c97-a2f7-4d6b-a789-bdf788f273f7';
+const CACHE_NAME = 'primetek-app-7ca8ccf2-46b2-4beb-983f-b1be47a6a584';
 const SCOPES = ['/employee', '/admin'];
 
 // Utility to bound dynamic caches to prevent storage exhaustion
@@ -186,14 +186,17 @@ self.addEventListener('push', (event) => {
     const title = payload.title || 'Primetek Portal';
     const options = {
       body: payload.message,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      vibrate: [100, 50, 100],
+      icon: payload.icon || '/icons/icon-192.png',
+      badge: payload.badge || '/favicon.svg', // Monochrome badge for status bar
+      image: payload.image || undefined,       // Support rich banner image
+      vibrate: payload.vibrate || [100, 50, 100],
       data: {
-        url: payload.clickActionUrl || '/employee/dashboard'
+        url: payload.clickActionUrl || '/employee/dashboard',
+        actions: payload.actions || []
       },
       tag: payload.tag || 'primetek-notification',
-      renotify: true
+      renotify: true,
+      actions: payload.actions || [] // Action buttons inside notification drawer
     };
 
     event.waitUntil(

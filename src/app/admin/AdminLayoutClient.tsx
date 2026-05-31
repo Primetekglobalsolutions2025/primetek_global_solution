@@ -53,6 +53,45 @@ export default function AdminLayoutClient({
     const interval = setInterval(fetchPendingCount, 25000);
     return () => clearInterval(interval);
   }, [session]);
+ 
+  useEffect(() => {
+    if (!session || session.role !== 'admin') return;
+ 
+    const checkAndPromptNotifications = async () => {
+      if (typeof window === 'undefined' || !('Notification' in window)) return;
+ 
+      const permission = Notification.permission;
+ 
+      // If already granted, sync subscription silently in the background
+      if (permission === 'granted') {
+        try {
+          const { subscribeUserToPush } = await import('@/lib/notifications/push-helper');
+          await subscribeUserToPush();
+        } catch (err) {
+          console.warn('Failed to sync existing push subscription:', err);
+        }
+        return;
+      }
+ 
+      // If default (never prompted), prompt once
+      if (permission === 'default') {
+        const hasPrompted = localStorage.getItem('primetek-admin-notif-prompted');
+        if (!hasPrompted) {
+          localStorage.setItem('primetek-admin-notif-prompted', 'true');
+          try {
+            const { subscribeUserToPush } = await import('@/lib/notifications/push-helper');
+            await subscribeUserToPush();
+          } catch (err) {
+            console.warn('Failed to register new push subscription:', err);
+          }
+        }
+      }
+    };
+ 
+    // Delay prompt by 2 seconds to let the dashboard finish loading smoothly
+    const timer = setTimeout(checkAndPromptNotifications, 2000);
+    return () => clearTimeout(timer);
+  }, [session]);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
