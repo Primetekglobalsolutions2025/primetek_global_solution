@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
-  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2, Bell
+  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2, Bell, Home
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -75,6 +75,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
     { href: '/admin/attendance', icon: Clock, label: 'Attendance', section: 'Operations' },
     { href: '/admin/approvals', icon: CheckSquare, label: 'Approvals', section: 'Operations' },
     { href: '/admin/holidays', icon: Calendar, label: 'Holidays', section: 'Operations' },
+    { href: '/admin/wfh', icon: Home, label: 'WFH Overrides', section: 'Operations' },
     { href: '/admin/notifications', icon: Bell, label: 'Notifications', section: 'Operations' },
     
     // ─── Workforce ───
@@ -117,6 +118,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
 
   const mobileAdminMore = [
     { href: '/admin/holidays', icon: Calendar, label: 'Holidays', section: 'Operations' },
+    { href: '/admin/wfh', icon: Home, label: 'WFH Overrides', section: 'Operations' },
     { href: '/admin/notifications', icon: Bell, label: 'Notifications', section: 'Operations' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'Workforce' },
     { href: '/admin/client-profiles', icon: Building2, label: 'Clients', section: 'Recruitment & Clients' },
