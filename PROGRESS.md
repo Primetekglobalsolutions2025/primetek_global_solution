@@ -57,3 +57,13 @@
 
 #### ⏭️ Next Step
 *   Deploy database migrations to the production instance, enroll admin testers, and launch the pilot group.
+
+---
+
+### 📍 Milestone: Agent Framework Stabilization (2026-05-31)
+- **Completed**: Hardened Complexity Tiering, skill loading rules, Batch Mode, Incident Mode. Added Tier 0.5 for fast-track simple fixes. Replaced self-reporting compliance checks with internal checklists. Registered all 8 workspace custom workflows. Optimized layout by removing unused Playfair Display Google font assets.
+- **Files changed**: `GEMINI.md`, `shared-global/workflow.md`, `active/current-context.md`, `config/global_workflows/*.md`, `src/app/layout.tsx`
+- **Remaining tasks**: Deploy database migrations to the production instance, enroll admin testers, and launch the pilot group.
+- **Blockers**: None
+
+
