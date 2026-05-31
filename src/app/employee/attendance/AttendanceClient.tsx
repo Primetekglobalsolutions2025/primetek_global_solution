@@ -729,7 +729,7 @@ export default function AttendanceClient({
           enqueueOfflineAction('check_in', lat, lng, fingerprint);
           refreshPendingCount();
           setGpsStatus('success');
-          showNotification('Offline mode ΓÇö check-in saved locally. It will sync when you reconnect.', 'info');
+          showNotification('Offline mode — check-in saved locally. It will sync when you reconnect.', 'info');
         } catch (queueErr) {
           const errorMsg = queueErr instanceof Error ? queueErr.message : 'Failed to queue offline check-in';
           setGpsStatus('error');
@@ -764,7 +764,7 @@ export default function AttendanceClient({
           enqueueOfflineAction('check_in', coords.lat, coords.lng, fingerprint);
           refreshPendingCount();
           setGpsStatus('success');
-          showNotification('Network lost ΓÇö check-in saved offline. Will sync automatically.', 'info');
+          showNotification('Network lost — check-in saved offline. Will sync automatically.', 'info');
           return;
         } catch { /* fall through to error */ }
       }
@@ -852,7 +852,7 @@ export default function AttendanceClient({
             enqueueOfflineAction('check_out', lat, lng, fingerprint, recordId);
             refreshPendingCount();
             setGpsStatus('success');
-            showNotification('Offline mode ΓÇö check-out saved locally. It will sync when you reconnect.', 'info');
+            showNotification('Offline mode — check-out saved locally. It will sync when you reconnect.', 'info');
           } catch (err) {
             const errorMsg = err instanceof Error ? err.message : 'Failed to queue offline check-out';
             setGpsStatus('error');
@@ -919,7 +919,7 @@ export default function AttendanceClient({
               current_break_start: new Date().toISOString()
             } : r));
           }
-          showNotification('Break start queued ΓÇö will sync when online.', 'info');
+          showNotification('Break start queued — will sync when online.', 'info');
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : 'Failed to queue break start';
           showNotification(errorMsg, 'error');
@@ -971,7 +971,7 @@ export default function AttendanceClient({
               current_break_start: null
             } : r));
           }
-          showNotification('Break end queued ΓÇö will sync when online.', 'info');
+          showNotification('Break end queued — will sync when online.', 'info');
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : 'Failed to queue break end';
           showNotification(errorMsg, 'error');
@@ -998,7 +998,7 @@ export default function AttendanceClient({
             ...r,
             status: 'Working'
           } : r));
-          showNotification('Offline mode ΓÇö resumed work.', 'info');
+          showNotification('Offline mode — resumed work.', 'info');
           return;
         }
         await executeMutationWithVersionCheck(async () => {
@@ -1285,7 +1285,7 @@ export default function AttendanceClient({
               <span className="font-medium text-zinc-600 text-xs">{lateStats.warningMessage}</span>
               <span className="hidden sm:inline text-zinc-300">|</span>
               <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase tracking-wider">
-                Lates: <span className="text-zinc-900">{lateStats.lateCount}</span> ΓÇó Deductions: <span className="text-red-600">{lateStats.deduction} Day</span>
+                Lates: <span className="text-zinc-900">{lateStats.lateCount}</span> • Deductions: <span className="text-red-600">{lateStats.deduction} Day</span>
               </span>
             </div>
           </div>
@@ -1442,11 +1442,11 @@ export default function AttendanceClient({
                   </span>
                 ) : coords ? (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-3xs">
-                    GPS Verified Γ£ô
+                    GPS Verified ✓
                   </span>
                 ) : gpsStatus === 'error' ? (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200 shadow-3xs">
-                    GPS Error Γ£ù
+                    GPS Error ✗
                   </span>
                 ) : (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-mono font-bold uppercase tracking-wider bg-zinc-50 text-zinc-500 border border-zinc-200 shadow-3xs">
@@ -1849,7 +1849,7 @@ export default function AttendanceClient({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 font-mono">
                   <Clock className="w-3 h-3 text-zinc-450" />
-                  <span>{r.check_in || '--:--'} ΓåÆ {r.check_out || 'Active'}</span>
+                  <span>{r.check_in || '--:--'} → {r.check_out || 'Active'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-10 h-1 bg-zinc-100 rounded-full overflow-hidden border border-zinc-150">
@@ -1904,7 +1904,7 @@ export default function AttendanceClient({
                   <tr key={r.id} className="hover:bg-zinc-50/40 transition-colors group">
                     <td className="px-4 py-3">
                       <p className="font-semibold text-navy-900 tracking-tight text-xs">{new Date(r.date).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
-                      <p className="text-[10px] text-zinc-400 font-mono mt-0.5">{r.check_in || '--:--'} ΓåÆ {r.check_out || 'Clocked In'}</p>
+                      <p className="text-[10px] text-zinc-400 font-mono mt-0.5">{r.check_in || '--:--'} → {r.check_out || 'Clocked In'}</p>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={r.status} />
