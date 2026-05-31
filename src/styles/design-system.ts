@@ -4,17 +4,20 @@
  */
 
 export const typography = {
+  // Page Title scale
+  pageTitle: "text-xl md:text-2xl font-bold tracking-tight text-navy-900",
+  pageTitleLight: "text-2xl md:text-3xl font-extrabold tracking-tight text-white",
+
   // Desktop scales
-  pageTitle: "text-2xl font-semibold tracking-tight text-navy-900",
   sectionTitle: "text-lg font-medium text-navy-900 tracking-tight",
   cardTitle: "text-base font-semibold text-navy-900",
   body: "text-sm text-text-secondary leading-relaxed",
   bodyMuted: "text-xs text-text-muted leading-relaxed",
   label: "text-xs font-semibold text-navy-900",
-  tableHeader: "text-[10px] font-bold uppercase tracking-wider text-text-muted",
+  tableHeader: "text-[11px] font-mono font-semibold uppercase tracking-wider text-zinc-500",
   tableCell: "text-sm text-navy-900 font-medium",
   sidebarNav: "text-sm font-medium",
-  badge: "text-[10px] font-semibold tracking-wider uppercase",
+  badge: "text-[11px] font-semibold tracking-wider uppercase",
   
   // Mobile scales
   mobilePageTitle: "text-xl font-semibold tracking-tight text-navy-900",

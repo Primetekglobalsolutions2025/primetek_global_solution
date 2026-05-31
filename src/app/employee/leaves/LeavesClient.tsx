@@ -11,6 +11,7 @@ import { formatDate, cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { typography } from '@/styles/design-system';
 
 export interface LeaveRecord {
   id: string;
@@ -97,7 +98,7 @@ export default function LeavesClient({
             <div className="inline-flex items-center gap-1.5 mb-1.5 px-2 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[9px] font-medium uppercase tracking-wider text-primary-200">
               <span>Time Off & Remote Work</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white font-sans">Leaves & WFH</h1>
+            <h1 className={typography.pageTitleLight}>Leaves & WFH</h1>
             <p className="text-zinc-400 text-xs mt-1 font-medium leading-relaxed font-sans">
               Manage your calendar, request time off, and request/track remote work schedules.
             </p>

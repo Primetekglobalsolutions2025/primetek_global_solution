@@ -13,6 +13,7 @@ import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 import InterviewRequestModal from './InterviewRequestModal';
 import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
+import { typography } from '@/styles/design-system';
 
 interface ClientProfile {
   id: string;
@@ -63,7 +64,7 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
   return (
     <div className="space-y-4 pb-8 font-sans">
       <div>
-        <h1 className="text-xl font-bold text-navy-900 tracking-tight">My Assignments</h1>
+        <h1 className={typography.pageTitle}>My Assignments</h1>
         <p className="text-zinc-450 text-xs mt-0.5">Review and process your assigned client profiles.</p>
       </div>
 

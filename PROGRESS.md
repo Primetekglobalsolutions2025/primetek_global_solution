@@ -66,4 +66,10 @@
 - **Remaining tasks**: Deploy database migrations to the production instance, enroll admin testers, and launch the pilot group.
 - **Blockers**: None
 
+---
 
+### 📍 Milestone: Typography Design System Consolidation (2026-05-31)
+- **Completed**: Consolidated employee portal page headings to use centralized design-system.ts tokens instead of hardcoded raw Tailwind classes, improving visual symmetry and ease of maintenance.
+- **Files changed**: `src/styles/design-system.ts`, `src/app/employee/reports/page.tsx`, `src/app/employee/profile/page.tsx`, `src/app/employee/profile/ProfileClient.tsx`, `src/app/employee/leaves/LeavesClient.tsx`, `src/app/employee/daily-report/DailyReportClient.tsx`, `src/app/employee/assigned-profiles/AssignedProfilesClient.tsx`
+- **Remaining tasks**: Deploy database migrations to the production instance, enroll admin testers, and launch the pilot group.
+- **Blockers**: None

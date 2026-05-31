@@ -10,6 +10,7 @@ import MFASetup from '@/components/profile/MFASetup';
 import { useRouter } from 'next/navigation';
 import { updateProfile, updateAvatar } from './actions';
 import { useToast } from '@/components/ui/Toast';
+import { typography } from '@/styles/design-system';
 
 export interface EmployeeProfile {
   id: string;
@@ -154,7 +155,7 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-semibold text-primary-300 uppercase tracking-wider border border-primary-500/20 bg-primary-500/10 mb-2">
               Employee
             </span>
-            <h1 className="text-2xl font-bold text-white tracking-tight">
+            <h1 className={typography.pageTitleLight}>
               {employee.name}
             </h1>
             <p className="text-zinc-400 text-sm font-medium flex items-center justify-center md:justify-start gap-2 mt-0.5">
