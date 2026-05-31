@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS public.push_subscriptions (
 );
 
 -- Trigger to automatically update modified timestamp
+DROP TRIGGER IF EXISTS update_push_subscriptions_modtime ON public.push_subscriptions;
 CREATE TRIGGER update_push_subscriptions_modtime
     BEFORE UPDATE ON public.push_subscriptions
     FOR EACH ROW EXECUTE FUNCTION update_modified_column();
