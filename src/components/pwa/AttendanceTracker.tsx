@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { getActiveSessionForToday, processHeartbeat, logStatusTransitionEvent, hasPendingClockOutRequestForToday } from '@/app/employee/attendance/actions';
+import { getActiveSessionForToday, processHeartbeat, logStatusTransitionEvent, hasPendingClockOutRequestForToday, moveActiveSession } from '@/app/employee/attendance/actions';
 import { getDeviceInfo } from '@/lib/security/device-detect';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
+import { AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 interface AttendanceRecordSimple {
@@ -20,6 +22,8 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
   const [record, setRecord] = useState<AttendanceRecordSimple | null>(null);
   const [isLeader, setIsLeader] = useState(false);
   const [isClockOutPending, setIsClockOutPending] = useState(false);
+  const [hijackWarning, setHijackWarning] = useState<{ active: boolean; sessionId: string } | null>(null);
+  const [isMovingSession, setIsMovingSession] = useState(false);
   
   const isLeaderRef = useRef(false);
   const recordRef = useRef<AttendanceRecordSimple | null>(null);
@@ -361,10 +365,8 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
               }
             } else {
               if (res.error === 'Session active on another device') {
-                // Notify page of hijacked session warning
-                const bcHijack = new BroadcastChannel('attendance_hijack_warning');
-                bcHijack.postMessage({ type: 'HIJACK_WARNING', sessionId: record.id });
-                bcHijack.close();
+                // Show hijack popup directly in this global component (works on ALL pages)
+                setHijackWarning({ active: true, sessionId: record.id });
               } else if (res.error?.includes('Session is already clocked out') || res.error?.includes('not found')) {
                 refreshActiveSession();
                 const bc = new BroadcastChannel('attendance_tabs');
@@ -390,5 +392,73 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
     return () => clearInterval(interval);
   }, [employeeId, record, isClockOutPending]);
 
-  return null; // Background component, no UI
+  return (
+    <>
+      {/* Global Session Hijack Warning — shows on ALL pages when session is active on another device */}
+      <AnimatePresence>
+        {hijackWarning?.active && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-zinc-950/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 10 }}
+              className="w-full max-w-sm bg-white rounded-2xl p-6 border border-zinc-200 shadow-xl space-y-4 font-sans"
+            >
+              <div className="flex items-center gap-3 text-amber-600">
+                <AlertTriangle className="w-6 h-6 text-amber-500 shrink-0" />
+                <h3 className="text-sm font-bold text-navy-900 tracking-tight leading-tight">
+                  Session Active on Another Device
+                </h3>
+              </div>
+              <p className="text-xs text-zinc-500 leading-relaxed font-sans">
+                You clocked in from a different device. Moving the session here will transfer all tracking to this device. Your previous device will stop sending heartbeats.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setHijackWarning(null)}
+                  disabled={isMovingSession}
+                  className="flex-1 py-2 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-xs font-bold border border-zinc-200 cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isMovingSession}
+                  onClick={async () => {
+                    setIsMovingSession(true);
+                    try {
+                      const fingerprint = getOrCreateFingerprint();
+                      const devInfo = getDeviceInfo();
+                      const res = await moveActiveSession(
+                        hijackWarning.sessionId,
+                        fingerprint,
+                        tabIdRef.current,
+                        devInfo.deviceType,
+                        devInfo.deviceLabel
+                      );
+                      if (res.success) {
+                        setHijackWarning(null);
+                        await refreshActiveSession();
+                        const bc = new BroadcastChannel('attendance_tabs');
+                        bc.postMessage({ type: 'STATE_REFRESH', sessionId: hijackWarning.sessionId });
+                        bc.close();
+                      }
+                    } catch (err) {
+                      console.error('[AttendanceTracker] Failed to move session:', err);
+                    } finally {
+                      setIsMovingSession(false);
+                    }
+                  }}
+                  className="flex-1 bg-navy-900 hover:bg-navy-800 text-white rounded-xl text-xs font-bold py-2 cursor-pointer border-0 disabled:opacity-50"
+                >
+                  {isMovingSession ? 'Moving...' : 'Move Session Here'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
 }
