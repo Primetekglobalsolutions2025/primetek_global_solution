@@ -44,6 +44,17 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
   } | null>(null);
   const { toast } = useToast();
 
+  // Synchronize local state with props on update
+  useEffect(() => {
+    setLocalInquiries(inquiries);
+    if (selectedInquiry) {
+      const updated = inquiries.find(i => i.id === selectedInquiry.id);
+      if (updated) {
+        setSelectedInquiry(updated);
+      }
+    }
+  }, [inquiries]);
+
   // Focus trap, Escape closing, and focus restoration for accessibility
   useEffect(() => {
     if (!selectedInquiry) return;

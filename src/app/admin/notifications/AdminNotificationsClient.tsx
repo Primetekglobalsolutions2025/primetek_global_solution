@@ -196,7 +196,7 @@ export default function AdminNotificationsClient({
                   title="Select all notifications"
                 />
               )}
-              <h2 className="font-extrabold text-navy-900 text-base tracking-tight font-sans">Dispatch Logs</h2>
+              <h2 className="font-extrabold text-navy-900 text-base tracking-tight font-sans">Sent Notifications</h2>
             </div>
             <span className="bg-primary-50 text-primary-600 text-[10px] font-bold px-2.5 py-1 rounded-full font-sans">
               {notifications.length} dispatched
@@ -210,7 +210,7 @@ export default function AdminNotificationsClient({
               <p className="text-[10px] text-zinc-400 mt-1 max-w-[250px] text-center font-medium">Broadcasts or targeted alerts you dispatch will be listed here.</p>
             </div>
           ) : (
-            <div className="space-y-3.5 flex-1 overflow-y-auto max-h-[650px] pr-1">
+            <div className="divide-y divide-zinc-150">
               {notifications.map((notif) => {
                 const dateStr = new Date(notif.created_at).toLocaleDateString('en-IN', {
                   day: 'numeric',
@@ -242,12 +242,9 @@ export default function AdminNotificationsClient({
                   <div
                     key={notif.id}
                     className={cn(
-                      "p-4 rounded-xl border flex gap-3.5 shadow-3xs relative overflow-hidden transition-all duration-200 select-none",
-                      notif.is_pinned
-                        ? "border-amber-250 bg-amber-50/20 shadow-amber-50/10"
-                        : selectedIds.has(notif.id)
-                          ? "border-primary-200 bg-primary-50/5"
-                          : "border-[#E8EDF2] bg-white hover:border-[#CBD5E1]"
+                      "py-4 flex gap-3.5 relative overflow-hidden transition-all duration-200 select-none",
+                      notif.is_pinned && "bg-amber-50/10",
+                      selectedIds.has(notif.id) && "bg-primary-50/5"
                     )}
                   >
                     {/* Checkbox */}

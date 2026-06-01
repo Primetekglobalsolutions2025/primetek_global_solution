@@ -822,7 +822,7 @@ export default function AttendanceClient({
   return (
     <div className="space-y-6">
       {/* Tabs Selection */}
-      <div className="flex p-1 bg-white backdrop-blur-md rounded-2xl md:rounded-[2rem] w-full md:w-fit border border-zinc-200 shadow-sm overflow-x-auto scrollbar-none flex-nowrap">
+      <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none relative gap-2 flex-nowrap w-full">
         {[
           { id: 'logs', label: 'Attendance Logs', icon: Calendar },
           { id: 'live', label: 'Live Monitor', icon: Clock },
@@ -835,13 +835,13 @@ export default function AttendanceClient({
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "relative flex items-center justify-center gap-2 md:gap-3 px-4 md:px-8 py-2.5 md:py-3.5 rounded-xl md:rounded-[1.5rem] text-[10px] md:text-[11px] font-black uppercase tracking-wider md:tracking-[0.2em] transition-all duration-300 whitespace-nowrap shrink-0 flex-1 md:flex-initial",
+                "flex items-center gap-2 px-6 py-3.5 border-b-2 text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0",
                 isActive
-                  ? "bg-primary-500 text-white shadow-lg shadow-primary-500/20 scale-[1.02]"
-                  : "text-zinc-500 hover:text-navy-900 hover:bg-zinc-50"
+                  ? "border-navy-900 text-navy-900 font-bold"
+                  : "border-transparent text-zinc-450 hover:text-zinc-700"
               )}
             >
-              <Icon className={cn("w-3.5 h-3.5 md:w-4 md:h-4", isActive ? "text-white" : "text-zinc-500")} />
+              <Icon className={cn("w-4 h-4", isActive ? "text-navy-900" : "text-zinc-400")} />
               {tab.label}
             </button>
           );

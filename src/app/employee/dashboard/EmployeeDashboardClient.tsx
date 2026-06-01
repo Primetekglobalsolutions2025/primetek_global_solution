@@ -222,7 +222,7 @@ export default function EmployeeDashboardClient({
       <main className="space-y-5 py-2">
         
         {/* 2. HERO SECTION */}
-        <section className="h-[230px] rounded-[24px] bg-gradient-to-r from-navy-900 to-primary-600 relative overflow-hidden p-5 flex flex-col justify-between shadow-sm">
+        <section className="min-h-[255px] rounded-[24px] bg-gradient-to-r from-navy-900 to-primary-600 relative overflow-hidden p-5 flex flex-col justify-between gap-4 shadow-sm">
           {/* Background Decorative Rings */}
           <div className="absolute top-[-20%] right-[-10%] w-[160px] h-[160px] rounded-full border border-white/10" />
           <div className="absolute top-[-30%] right-[-20%] w-[210px] h-[210px] rounded-full border border-white/5" />
@@ -237,7 +237,7 @@ export default function EmployeeDashboardClient({
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mt-0.5 flex items-center gap-1.5">
                 {employee?.name ? employee.name.split(' ')[0] : 'Janu'} <span className="animate-bounce">👋</span>
               </h1>
-              <p className="text-white/60 text-[11px] mt-1.5 leading-relaxed">
+              <p className="text-white/60 text-[11px] mt-1.5 pb-2 leading-relaxed">
                 Welcome back! Here's what's happening today.
               </p>
             </div>
@@ -247,17 +247,17 @@ export default function EmployeeDashboardClient({
           <div className="flex gap-3 relative z-10">
             {/* Clock In/Out */}
             <Link href="/employee/attendance" className="flex-1">
-              <div className="bg-white rounded-[20px] p-3 flex items-center justify-between shadow-sm cursor-pointer hover:bg-zinc-50 active:scale-[0.98] transition-all border border-transparent hover:border-zinc-200">
+              <div className="bg-white/15 backdrop-blur-md rounded-[20px] p-3 flex items-center justify-between border border-white/20 cursor-pointer hover:bg-white/20 active:scale-[0.98] transition-all">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-primary-400 shrink-0">
                     <Clock className="w-4.5 h-4.5 stroke-[2.2]" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[11px] font-extrabold text-navy-900 leading-tight">Clock In / Out</span>
-                    <span className="text-[9px] text-[#64748B] leading-none mt-0.5 font-medium">Track your attendance</span>
+                    <span className="text-[11px] font-extrabold text-white leading-tight">Clock In / Out</span>
+                    <span className="text-[9px] text-white/70 leading-none mt-0.5 font-medium">Track your attendance</span>
                   </div>
                 </div>
-                <ArrowRight className="w-3.5 h-3.5 text-[#64748B]" />
+                <ArrowRight className="w-3.5 h-3.5 text-white" />
               </div>
             </Link>
 

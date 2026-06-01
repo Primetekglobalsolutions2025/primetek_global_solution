@@ -187,7 +187,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
           {!collapsed ? (
             <>
               <Link href={role === 'admin' ? '/admin/dashboard' : '/employee/dashboard'} className="flex items-center gap-2.5">
-                <Logo className="w-32 h-auto" dark={true} />
+                <Logo className="w-40 h-auto" dark={true} />
               </Link>
               <button 
                 onClick={() => setCollapsed(true)} 

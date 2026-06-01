@@ -37,27 +37,40 @@ export default function AnalyticsCharts({ attendanceData, applicationData }: Ana
             </div>
           </div>
  
-          <div className="flex items-end justify-between h-40 gap-2 px-1">
-            {attendanceData.map((point, i) => (
-              <div key={point.label} className="flex-1 flex flex-col items-center group">
-                <div className="relative w-full flex flex-col items-center">
-                  <motion.div 
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(point.value / maxAttendance) * 100}%` }}
-                    transition={{ duration: 1, delay: i * 0.05, ease: [0.23, 1, 0.32, 1] }}
-                    className="w-full max-w-[20px] rounded-t bg-gradient-to-t from-primary-600 to-primary-400 relative overflow-hidden group-hover:from-primary-500 group-hover:to-primary-300 transition-all duration-300"
-                  >
-                    <div className="absolute top-0 inset-x-0 h-px bg-white/25" />
-                  </motion.div>
-                  <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-navy-900 text-white text-[9px] px-1.5 py-0.5 rounded font-bold border border-navy-950 whitespace-nowrap pointer-events-none z-10">
-                    {point.value}%
+          <div className="relative mt-6">
+            {/* Horizontal Gridlines */}
+            <div className="absolute inset-x-0 top-0 h-32 flex flex-col justify-between pointer-events-none z-0">
+              <div className="w-full border-t border-dashed border-zinc-200/70" />
+              <div className="w-full border-t border-dashed border-zinc-200/70" />
+              <div className="w-full border-t border-dashed border-zinc-200/70" />
+              <div className="w-full border-t border-dashed border-zinc-200/70" />
+            </div>
+
+            <div className="relative z-10 flex items-end justify-between h-40 gap-2 px-1">
+              {attendanceData.map((point, i) => (
+                <div key={point.label} className="flex-1 flex flex-col items-center group">
+                  <div className="relative w-full h-32 flex flex-col justify-end items-center">
+                    {/* Background Track */}
+                    <div className="absolute bottom-0 w-full max-w-[18px] h-full rounded-t bg-zinc-100/80" />
+                    
+                    <motion.div 
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(point.value / maxAttendance) * 100}%` }}
+                      transition={{ duration: 1, delay: i * 0.05, ease: [0.23, 1, 0.32, 1] }}
+                      className="w-full max-w-[18px] rounded-t bg-gradient-to-t from-primary-600 to-primary-400 relative overflow-hidden group-hover:from-primary-500 group-hover:to-primary-300 transition-all duration-300 z-10"
+                    >
+                      <div className="absolute top-0 inset-x-0 h-px bg-white/25" />
+                    </motion.div>
+                    <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-navy-900 text-white text-[9px] px-1.5 py-0.5 rounded font-bold border border-navy-950 whitespace-nowrap pointer-events-none z-20 shadow-sm">
+                      {point.value}%
+                    </div>
                   </div>
+                  <span className="text-[9px] font-semibold text-zinc-500 mt-2 uppercase tracking-wider truncate w-full text-center">
+                    {point.label}
+                  </span>
                 </div>
-                <span className="text-[9px] font-semibold text-zinc-500 mt-2 uppercase tracking-wider truncate w-full text-center">
-                  {point.label}
-                </span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </Card>
@@ -79,27 +92,40 @@ export default function AnalyticsCharts({ attendanceData, applicationData }: Ana
             </div>
           </div>
  
-          <div className="flex items-end justify-between h-40 gap-2 px-1">
-            {applicationData.map((point, i) => (
-              <div key={point.label} className="flex-1 flex flex-col items-center group">
-                <div className="relative w-full flex flex-col items-center">
-                  <motion.div 
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(point.value / maxApplications) * 100}%` }}
-                    transition={{ duration: 1, delay: i * 0.05, ease: [0.23, 1, 0.32, 1] }}
-                    className="w-full max-w-[20px] rounded-t bg-gradient-to-t from-emerald-600 to-emerald-400 relative overflow-hidden group-hover:from-emerald-500 group-hover:to-emerald-300 transition-all duration-300"
-                  >
-                    <div className="absolute top-0 inset-x-0 h-px bg-white/25" />
-                  </motion.div>
-                  <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-navy-900 text-white text-[9px] px-1.5 py-0.5 rounded font-bold border border-navy-950 whitespace-nowrap pointer-events-none z-10">
-                    {point.value}
+          <div className="relative mt-6">
+            {/* Horizontal Gridlines */}
+            <div className="absolute inset-x-0 top-0 h-32 flex flex-col justify-between pointer-events-none z-0">
+              <div className="w-full border-t border-dashed border-zinc-200/70" />
+              <div className="w-full border-t border-dashed border-zinc-200/70" />
+              <div className="w-full border-t border-dashed border-zinc-200/70" />
+              <div className="w-full border-t border-dashed border-zinc-200/70" />
+            </div>
+
+            <div className="relative z-10 flex items-end justify-between h-40 gap-2 px-1">
+              {applicationData.map((point, i) => (
+                <div key={point.label} className="flex-1 flex flex-col items-center group">
+                  <div className="relative w-full h-32 flex flex-col justify-end items-center">
+                    {/* Background Track */}
+                    <div className="absolute bottom-0 w-full max-w-[18px] h-full rounded-t bg-zinc-100/80" />
+                    
+                    <motion.div 
+                      initial={{ height: 0 }}
+                      animate={{ height: `${(point.value / maxApplications) * 100}%` }}
+                      transition={{ duration: 1, delay: i * 0.05, ease: [0.23, 1, 0.32, 1] }}
+                      className="w-full max-w-[18px] rounded-t bg-gradient-to-t from-emerald-600 to-emerald-400 relative overflow-hidden group-hover:from-emerald-500 group-hover:to-emerald-300 transition-all duration-300 z-10"
+                    >
+                      <div className="absolute top-0 inset-x-0 h-px bg-white/25" />
+                    </motion.div>
+                    <div className="absolute -top-7 opacity-0 group-hover:opacity-100 transition-opacity bg-navy-900 text-white text-[9px] px-1.5 py-0.5 rounded font-bold border border-navy-950 whitespace-nowrap pointer-events-none z-20 shadow-sm">
+                      {point.value}
+                    </div>
                   </div>
+                  <span className="text-[9px] font-semibold text-zinc-500 mt-2 uppercase tracking-wider truncate w-full text-center">
+                    {point.label}
+                  </span>
                 </div>
-                <span className="text-[9px] font-semibold text-zinc-500 mt-2 uppercase tracking-wider truncate w-full text-center">
-                  {point.label}
-                </span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </Card>

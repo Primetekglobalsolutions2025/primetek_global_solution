@@ -193,34 +193,44 @@ async function RealtimeActivityFeed() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden divide-y divide-zinc-100/60">
+      <div className="bg-white rounded-xl border border-zinc-200 shadow-2xs p-5 relative">
         {filteredEvents.length === 0 ? (
-          <div className="px-5 py-10 text-center">
+          <div className="py-10 text-center">
             <Activity className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
             <p className="text-xs text-zinc-400 font-semibold">No activity events recorded today</p>
           </div>
         ) : (
-          filteredEvents.slice(0, 12).map((evt) => {
-            const config = eventConfig[evt.event_type] || { color: 'text-zinc-500', bg: 'bg-zinc-500/5', label: evt.event_type, icon: Activity };
-            const empName = empMap[evt.employee_id] || 'Unknown';
-            const EvtIcon = config.icon || Activity;
-            return (
-              <div key={evt.id} className="px-4 py-2.5 flex items-center gap-3 hover:bg-zinc-50/50 transition-colors">
-                <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center shrink-0', config.bg)}>
-                  <EvtIcon className={cn('w-3.5 h-3.5', config.color)} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-navy-900 truncate">{empName}</span>
-                    <span className={cn('text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border', config.bg, config.color)}>
-                      {config.label}
-                    </span>
+          <div className="relative pl-8 space-y-6">
+            {/* The vertical dashed timeline line */}
+            <div className="absolute left-3 top-2 bottom-2 w-px border-l border-dashed border-zinc-250 z-0" />
+            
+            {filteredEvents.slice(0, 12).map((evt) => {
+              const config = eventConfig[evt.event_type] || { color: 'text-zinc-500', bg: 'bg-zinc-500/5', label: evt.event_type, icon: Activity };
+              const empName = empMap[evt.employee_id] || 'Unknown';
+              const EvtIcon = config.icon || Activity;
+              return (
+                <div key={evt.id} className="relative z-10 flex items-center justify-between gap-3 group">
+                  {/* Floating Circular Bubble Icon */}
+                  <div className={cn(
+                    'absolute left-3 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center border border-white shadow-xs z-10', 
+                    config.bg
+                  )}>
+                    <EvtIcon className={cn('w-3 h-3', config.color)} />
                   </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-semibold text-navy-900 truncate">{empName}</span>
+                      <span className={cn('text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-current/10', config.bg, config.color)}>
+                        {config.label}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono text-zinc-400 shrink-0">{formatRelativeTime(evt.event_timestamp)}</span>
                 </div>
-                <span className="text-[9px] font-mono text-zinc-400 shrink-0">{formatRelativeTime(evt.event_timestamp)}</span>
-              </div>
-            );
-          })
+              );
+            })}
+          </div>
         )}
       </div>
     </div>

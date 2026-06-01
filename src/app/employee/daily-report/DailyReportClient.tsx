@@ -59,6 +59,14 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
   const [submitting, setSubmitting] = useState(false);
   const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
 
+  // Track which profiles are selected for submission today (default to checked if already submitted today)
+  const [checkedProfiles, setCheckedProfiles] = useState<Record<string, boolean>>(() => {
+    return profiles.reduce((acc, p) => {
+      acc[p.id] = todayMetrics.some(m => m.profile_id === p.id);
+      return acc;
+    }, {} as Record<string, boolean>);
+  });
+
   // Initialize values for all assigned profiles
   const [formValues, setFormValues] = useState<Record<string, Record<string, number>>>(() => {
     return profiles.reduce((acc, p) => {
@@ -99,23 +107,40 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const selectedProfileIds = Object.keys(checkedProfiles).filter(id => checkedProfiles[id]);
+    if (selectedProfileIds.length === 0) {
+      toast.error('Please select at least one client profile to submit report.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const entries = Object.entries(formValues).map(([profileId, values]) => ({
-        profile_id: profileId,
-        applications_count: values.applications_count,
-        interviews_count: values.interviews_count,
-        assessments: values.assessments,
-        technical_rounds: values.technical_rounds,
-        non_technical: values.non_technical,
-        self_submissions: values.self_submissions,
-        support_submissions: values.support_submissions,
-      }));
+      const entries = selectedProfileIds.map(profileId => {
+        const values = formValues[profileId] || {
+          applications_count: 0,
+          interviews_count: 0,
+          assessments: 0,
+          technical_rounds: 0,
+          non_technical: 0,
+          self_submissions: 0,
+          support_submissions: 0
+        };
+        return {
+          profile_id: profileId,
+          applications_count: values.applications_count,
+          interviews_count: values.interviews_count,
+          assessments: values.assessments,
+          technical_rounds: values.technical_rounds,
+          non_technical: values.non_technical,
+          self_submissions: values.self_submissions,
+          support_submissions: values.support_submissions,
+        };
+      });
 
       const res = await submitDailyMetrics(entries);
       if (res && res.success) {
-        toast.success(todayMetrics.length > 0 ? 'Daily report updated successfully!' : 'Daily report submitted successfully!');
+        toast.success(todayMetrics.length > 0 ? 'Selected daily reports updated successfully!' : 'Selected daily reports submitted successfully!');
         router.refresh();
       } else {
         toast.error(res?.error || 'Failed to submit daily report. Please try again.');
@@ -203,6 +228,7 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
                   <tr className="bg-zinc-50 text-zinc-650 border-b border-zinc-200">
+                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-16">Report</th>
                     <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Assign Date</th>
                     <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Consultant Name</th>
                     <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-zinc-100/50">Apps Count</th>
@@ -225,206 +251,251 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                       self_submissions: 0,
                       support_submissions: 0
                     };
+                    const isChecked = !!checkedProfiles[profile.id];
+                    const isSubmittedToday = todayMetrics.some(m => m.profile_id === profile.id);
 
                     return (
-                      <tr key={profile.id} className="hover:bg-zinc-50/50 transition-colors">
+                      <tr key={profile.id} className={`hover:bg-zinc-50/50 transition-colors ${!isChecked ? 'bg-zinc-50/20' : ''}`}>
+                        {/* Checkbox Column */}
+                        <td className="p-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => setCheckedProfiles(prev => ({ ...prev, [profile.id]: e.target.checked }))}
+                            className="w-4 h-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                          />
+                        </td>
                         <td className="p-4 text-zinc-500 font-mono whitespace-nowrap">
                           {formatDate(profile.created_at)}
                         </td>
                         <td className="p-4 font-semibold text-navy-900">
-                          {profile.client_name}
+                          <div className="flex flex-col gap-1.5">
+                            <span className={!isChecked ? 'text-zinc-400' : ''}>{profile.client_name}</span>
+                            <div>
+                              {isSubmittedToday ? (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-150 uppercase tracking-wider">
+                                  Submitted
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-150 uppercase tracking-wider">
+                                  Pending
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         {/* Applications */}
-                        <td className="p-3 bg-zinc-50/30">
+                        <td className={`p-3 bg-zinc-50/30 transition-opacity duration-200 ${isChecked ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleDecrement(profile.id, 'applications_count')}
                               aria-label={`Decrease applications count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
+                              disabled={!isChecked}
                               value={values.applications_count}
                               onChange={(e) => handleInputChange(profile.id, 'applications_count', parseInt(e.target.value))}
-                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white disabled:bg-zinc-50 disabled:text-zinc-450"
                             />
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleIncrement(profile.id, 'applications_count')}
                               aria-label={`Increase applications count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Interviews */}
-                        <td className="p-3 bg-zinc-50/30">
+                        <td className={`p-3 bg-zinc-50/30 transition-opacity duration-200 ${isChecked ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleDecrement(profile.id, 'interviews_count')}
                               aria-label={`Decrease interviews count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
+                              disabled={!isChecked}
                               value={values.interviews_count}
                               onChange={(e) => handleInputChange(profile.id, 'interviews_count', parseInt(e.target.value))}
-                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white disabled:bg-zinc-50 disabled:text-zinc-450"
                             />
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleIncrement(profile.id, 'interviews_count')}
                               aria-label={`Increase interviews count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Assessments */}
-                        <td className="p-3">
+                        <td className={`p-3 transition-opacity duration-200 ${isChecked ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleDecrement(profile.id, 'assessments')}
                               aria-label={`Decrease assessments count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
+                              disabled={!isChecked}
                               value={values.assessments}
                               onChange={(e) => handleInputChange(profile.id, 'assessments', parseInt(e.target.value))}
-                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white disabled:bg-zinc-50 disabled:text-zinc-450"
                             />
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleIncrement(profile.id, 'assessments')}
                               aria-label={`Increase assessments count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Tech Rounds */}
-                        <td className="p-3">
+                        <td className={`p-3 transition-opacity duration-200 ${isChecked ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleDecrement(profile.id, 'technical_rounds')}
                               aria-label={`Decrease technical rounds count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
+                              disabled={!isChecked}
                               value={values.technical_rounds}
                               onChange={(e) => handleInputChange(profile.id, 'technical_rounds', parseInt(e.target.value))}
-                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white disabled:bg-zinc-50 disabled:text-zinc-450"
                             />
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleIncrement(profile.id, 'technical_rounds')}
                               aria-label={`Increase technical rounds count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Non-Tech */}
-                        <td className="p-3">
+                        <td className={`p-3 transition-opacity duration-200 ${isChecked ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleDecrement(profile.id, 'non_technical')}
                               aria-label={`Decrease non-technical rounds count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
+                              disabled={!isChecked}
                               value={values.non_technical}
                               onChange={(e) => handleInputChange(profile.id, 'non_technical', parseInt(e.target.value))}
-                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white"
+                              className="w-14 text-center py-1 px-1 border border-zinc-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-navy-900 bg-white disabled:bg-zinc-50 disabled:text-zinc-450"
                             />
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleIncrement(profile.id, 'non_technical')}
                               aria-label={`Increase non-technical rounds count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer"
+                              className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Self */}
-                        <td className="p-3 bg-primary-50/30">
+                        <td className={`p-3 bg-primary-50/30 transition-opacity duration-200 ${isChecked ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleDecrement(profile.id, 'self_submissions')}
                               aria-label={`Decrease self submissions count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer"
+                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
+                              disabled={!isChecked}
                               value={values.self_submissions}
                               onChange={(e) => handleInputChange(profile.id, 'self_submissions', parseInt(e.target.value))}
-                              className="w-14 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white"
+                              className="w-14 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white disabled:bg-zinc-50 disabled:text-zinc-450"
                             />
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleIncrement(profile.id, 'self_submissions')}
                               aria-label={`Increase self submissions count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer"
+                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </td>
                         {/* Support */}
-                        <td className="p-3 bg-primary-50/30">
+                        <td className={`p-3 bg-primary-50/30 transition-opacity duration-200 ${isChecked ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
                           <div className="flex items-center justify-center gap-1">
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleDecrement(profile.id, 'support_submissions')}
                               aria-label={`Decrease support submissions count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer"
+                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
                               type="number"
                               min="0"
+                              disabled={!isChecked}
                               value={values.support_submissions}
                               onChange={(e) => handleInputChange(profile.id, 'support_submissions', parseInt(e.target.value))}
-                              className="w-14 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white"
+                              className="w-14 text-center py-1 px-1 border border-primary-200 rounded-md focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 font-mono text-xs text-primary-900 font-bold bg-white disabled:bg-zinc-50 disabled:text-zinc-450"
                             />
                             <button
                               type="button"
+                              disabled={!isChecked}
                               onClick={() => handleIncrement(profile.id, 'support_submissions')}
                               aria-label={`Increase support submissions count for ${profile.client_name}`}
-                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer"
+                              className="p-1.5 hover:bg-primary-50 rounded border border-primary-100 bg-primary-55/50 text-primary-700 cursor-pointer disabled:cursor-not-allowed"
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -450,113 +521,133 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                 self_submissions: 0,
                 support_submissions: 0
               };
+              const isChecked = !!checkedProfiles[profile.id];
+              const isSubmittedToday = todayMetrics.some(m => m.profile_id === profile.id);
 
               return (
                 <div key={profile.id} className="bg-white rounded-lg border border-zinc-200 shadow-2xs p-5 space-y-4">
                   <div className="flex justify-between items-start border-b border-zinc-100 pb-3 gap-2">
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-navy-900 text-sm font-sans break-words">{profile.client_name}</h4>
-                      <p className="text-[10px] font-mono text-zinc-400 mt-0.5">ASSIGNED: {formatDate(profile.created_at)}</p>
+                    <div className="flex items-start gap-2.5 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => setCheckedProfiles(prev => ({ ...prev, [profile.id]: e.target.checked }))}
+                        className="w-4 h-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500 mt-0.5 cursor-pointer"
+                      />
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-navy-900 text-sm font-sans break-words">{profile.client_name}</h4>
+                        <p className="text-[10px] font-mono text-zinc-400 mt-0.5">ASSIGNED: {formatDate(profile.created_at)}</p>
+                      </div>
                     </div>
-                    <span className="text-[9px] font-mono bg-zinc-100 border border-zinc-200 text-zinc-700 font-semibold px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
-                      {profile.status}
-                    </span>
+                    {isSubmittedToday ? (
+                      <span className="text-[9px] font-mono bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
+                        Submitted
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono bg-amber-50 border border-amber-250 text-amber-700 font-semibold px-2 py-0.5 rounded uppercase tracking-wider shrink-0 animate-pulse">
+                        Pending
+                      </span>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Input columns */}
-                    {[
-                      { field: 'applications_count', label: 'Apps Count' },
-                      { field: 'interviews_count', label: 'Interviews' },
-                      { field: 'assessments', label: 'Assessments' },
-                      { field: 'technical_rounds', label: 'Tech Rounds' },
-                      { field: 'non_technical', label: 'Non-Tech' }
-                    ].map(item => (
-                      <div key={item.field} className="space-y-1">
-                        <label className="text-[10px] font-semibold text-zinc-500 font-sans">{item.label}</label>
-                        <div className="flex items-center justify-between border border-zinc-200 rounded-md py-1 px-2 bg-white">
-                          <button
-                            type="button"
-                            onClick={() => handleDecrement(profile.id, item.field)}
-                            className="p-1 hover:bg-zinc-100 rounded border border-zinc-100 bg-zinc-50 text-zinc-500"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            value={(values as any)[item.field]}
-                            onChange={(e) => handleInputChange(profile.id, item.field, parseInt(e.target.value))}
-                            className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-navy-900 font-semibold font-mono text-xs"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleIncrement(profile.id, item.field)}
-                            className="p-1 hover:bg-zinc-100 rounded border border-zinc-100 bg-zinc-50 text-zinc-500"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
+                  {isChecked && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Input columns */}
+                        {[
+                          { field: 'applications_count', label: 'Apps Count' },
+                          { field: 'interviews_count', label: 'Interviews' },
+                          { field: 'assessments', label: 'Assessments' },
+                          { field: 'technical_rounds', label: 'Tech Rounds' },
+                          { field: 'non_technical', label: 'Non-Tech' }
+                        ].map(item => (
+                          <div key={item.field} className="space-y-1">
+                            <label className="text-[10px] font-semibold text-zinc-500 font-sans">{item.label}</label>
+                            <div className="flex items-center justify-between border border-zinc-200 rounded-md py-1 px-2 bg-white">
+                              <button
+                                type="button"
+                                onClick={() => handleDecrement(profile.id, item.field)}
+                                className="p-1 hover:bg-zinc-100 rounded border border-zinc-100 bg-zinc-50 text-zinc-500"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <input
+                                type="number"
+                                min="0"
+                                value={(values as any)[item.field]}
+                                onChange={(e) => handleInputChange(profile.id, item.field, parseInt(e.target.value))}
+                                className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-navy-900 font-semibold font-mono text-xs"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleIncrement(profile.id, item.field)}
+                                className="p-1 hover:bg-zinc-100 rounded border border-zinc-100 bg-zinc-50 text-zinc-500"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Self & Support */}
+                      <div className="grid grid-cols-2 gap-4 bg-primary-50/30 p-3 rounded-lg border border-primary-100/50">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono font-bold text-primary-800 uppercase tracking-wider">Self Submissions</label>
+                          <div className="flex items-center justify-between border border-primary-200 bg-white rounded-md py-1 px-2">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'self_submissions')}
+                              className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.self_submissions}
+                              onChange={(e) => handleInputChange(profile.id, 'self_submissions', parseInt(e.target.value))}
+                              className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-primary-900 font-bold font-mono text-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'self_submissions')}
+                              className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-mono font-bold text-primary-800 uppercase tracking-wider">Support Submissions</label>
+                          <div className="flex items-center justify-between border border-primary-200 bg-white rounded-md py-1 px-2">
+                            <button
+                              type="button"
+                              onClick={() => handleDecrement(profile.id, 'support_submissions')}
+                              className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <input
+                              type="number"
+                              min="0"
+                              value={values.support_submissions}
+                              onChange={(e) => handleInputChange(profile.id, 'support_submissions', parseInt(e.target.value))}
+                              className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-primary-900 font-bold font-mono text-xs"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIncrement(profile.id, 'support_submissions')}
+                              className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Self & Support */}
-                  <div className="grid grid-cols-2 gap-4 bg-primary-50/30 p-3 rounded-lg border border-primary-100/50">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-mono font-bold text-primary-800 uppercase tracking-wider">Self Submissions</label>
-                      <div className="flex items-center justify-between border border-primary-200 bg-white rounded-md py-1 px-2">
-                        <button
-                          type="button"
-                          onClick={() => handleDecrement(profile.id, 'self_submissions')}
-                          className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <input
-                          type="number"
-                          min="0"
-                          value={values.self_submissions}
-                          onChange={(e) => handleInputChange(profile.id, 'self_submissions', parseInt(e.target.value))}
-                          className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-primary-900 font-bold font-mono text-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleIncrement(profile.id, 'self_submissions')}
-                          className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-mono font-bold text-primary-800 uppercase tracking-wider">Support Submissions</label>
-                      <div className="flex items-center justify-between border border-primary-200 bg-white rounded-md py-1 px-2">
-                        <button
-                          type="button"
-                          onClick={() => handleDecrement(profile.id, 'support_submissions')}
-                          className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <input
-                          type="number"
-                          min="0"
-                          value={values.support_submissions}
-                          onChange={(e) => handleInputChange(profile.id, 'support_submissions', parseInt(e.target.value))}
-                          className="w-full text-center border-0 p-0 focus:outline-none focus:ring-0 text-primary-900 font-bold font-mono text-xs"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleIncrement(profile.id, 'support_submissions')}
-                          className="p-1 hover:bg-primary-50 rounded border border-primary-105 bg-primary-50/50 text-primary-700"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
               );
             })}

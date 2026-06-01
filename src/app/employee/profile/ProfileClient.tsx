@@ -170,8 +170,8 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
   return (
     <div className="space-y-6 pb-12 font-sans">
       {/* Clean Header */}
-      <div className="relative rounded-lg bg-navy-900 p-6 overflow-hidden border border-navy-800">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary-600/10 to-transparent" />
+      <div className="relative rounded-2xl bg-gradient-to-r from-primary-600 to-primary-700 p-6 overflow-hidden border border-primary-500/20 shadow-sm">
+        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent" />
         
         <div className="relative flex flex-col md:flex-row items-center gap-6">
           {/* Avatar Section */}
@@ -192,22 +192,22 @@ export default function ProfileClient({ employee }: { employee: EmployeeProfile 
           </div>
 
           <div className="text-center md:text-left">
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-semibold text-primary-300 uppercase tracking-wider border border-primary-500/20 bg-primary-500/10 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-semibold text-white uppercase tracking-wider border border-white/20 bg-white/10 mb-2">
               Employee
             </span>
             <h1 className={typography.pageTitleLight}>
               {employee.name}
             </h1>
-            <p className="text-zinc-400 text-sm font-medium flex items-center justify-center md:justify-start gap-2 mt-0.5">
+            <p className="text-white/80 text-sm font-medium flex items-center justify-center md:justify-start gap-2 mt-0.5 font-sans">
               {employee.designation || 'Team Member'} 
-              <span className="w-1 h-1 rounded-full bg-zinc-600" /> 
+              <span className="w-1 h-1 rounded-full bg-white/40" /> 
               {employee.department || 'Primetek'}
             </p>
           </div>
 
           <div className="md:ml-auto flex items-center gap-3">
-            <div className="bg-white/5 rounded-lg p-3 border border-white/10 text-center min-w-[90px]">
-              <p className="text-[8px] text-zinc-400 uppercase font-mono font-semibold tracking-wider mb-0.5">Employee ID</p>
+            <div className="bg-white/10 rounded-lg p-3 border border-white/10 text-center min-w-[90px] backdrop-blur-xs">
+              <p className="text-[8px] text-white/60 uppercase font-mono font-semibold tracking-wider mb-0.5">Employee ID</p>
               <p className="text-xs font-mono font-bold text-white uppercase tracking-tight">
                 {employee.employee_id || 'Active'}
               </p>

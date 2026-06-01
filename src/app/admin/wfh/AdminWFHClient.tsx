@@ -191,12 +191,12 @@ export default function AdminWFHClient({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       className={cn(
-                        "p-4 rounded-xl border transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white",
+                        "p-4 rounded-xl border-t border-r border-b border-l-4 transition-all flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white",
                         status === 'active' 
-                          ? "border-teal-200 bg-teal-50/10" 
+                          ? "border-teal-200 border-l-emerald-500 bg-teal-50/10" 
                           : status === 'upcoming' 
-                            ? "border-blue-100 bg-blue-50/5" 
-                            : "border-zinc-200 bg-zinc-50/20 opacity-80"
+                            ? "border-blue-100 border-l-blue-500 bg-blue-50/5" 
+                            : "border-zinc-200 border-l-zinc-300 bg-zinc-50/20 opacity-80"
                       )}
                     >
                       <div className="space-y-1.5">

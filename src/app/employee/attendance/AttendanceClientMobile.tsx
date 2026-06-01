@@ -1883,111 +1883,89 @@ export default function AttendanceClient({
             </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {records.slice(0, 5).map(r => {
               const hasDispute = myDisputes.some(d => d.attendance_id === r.id);
               const dispute = myDisputes.find(d => d.attendance_id === r.id);
-              const isWFH = r.status?.toLowerCase().includes('wfh');
               
               return (
-                <div key={r.id} className="p-4 rounded-xl border border-[#E8EDF2] bg-white shadow-3xs flex justify-between items-center font-sans">
-                  <div className="flex items-center gap-3">
+                <div key={r.id} className="p-4 rounded-xl border border-[#E8EDF2] bg-white shadow-3xs font-sans space-y-2.5">
+                  {/* Row 1: Date and Status Badge */}
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold text-navy-900 tracking-tight text-xs">
+                      {new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </p>
                     {(() => {
                       const s = r.status?.toLowerCase() || '';
+                      const isWFH = r.device_type === 'mobile_wfh' || r.device_label?.toLowerCase().includes('wfh') || r.status?.toLowerCase().includes('wfh');
                       const disputeApproved = dispute && dispute.status === 'APPROVED';
-                      let bgClass = "bg-primary-50 border-emerald-100 text-[#22C55E]";
-                      let IconComponent = LogOut;
+                      let bgClass = "bg-[#F1F5F9] text-[#64748B]";
+                      let dotClass = "bg-[#64748B]";
+                      let labelText = "LOGGED OUT";
                       
-                      if (isWFH) {
-                        IconComponent = Home;
-                        if (s.includes('approved') || disputeApproved) {
-                          bgClass = "bg-primary-50 border-emerald-100 text-[#22C55E]";
-                        } else {
-                          bgClass = "bg-zinc-50 border-zinc-200 text-zinc-400";
-                        }
-                      } else if (s === 'late' || disputeApproved) {
-                        bgClass = "bg-orange-50 border-orange-100 text-orange-500";
+                      if (isWFH && (s.includes('approved') || disputeApproved || s.includes('present') || s.includes('working') || s.includes('logged out'))) {
+                        bgClass = "bg-primary-50 text-[#22C55E]";
+                        dotClass = "bg-[#22C55E]";
+                        labelText = "APPROVED WFH";
+                      } else if (s === 'late') {
+                        bgClass = "bg-red-50 text-red-500";
+                        dotClass = "bg-red-500";
+                        labelText = "LATE";
+                      } else if (s === 'absent') {
+                        bgClass = "bg-zinc-100 text-zinc-500";
+                        dotClass = "bg-zinc-400";
+                        labelText = "ABSENT";
                       }
                       
                       return (
-                        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center border shrink-0", bgClass)}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
+                        <span className={cn(
+                          "text-[8px] font-black py-0.5 px-2 rounded-full leading-none shrink-0 border border-transparent uppercase font-mono flex items-center gap-1",
+                          bgClass
+                        )}>
+                          <span className={cn("w-1 h-1 rounded-full", dotClass)} />
+                          {labelText}
+                        </span>
                       );
                     })()}
-                    
-                    <div className="space-y-1">
-                      <p className="font-extrabold text-navy-900 text-xs">
-                        {new Date(r.date).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-[9px] text-[#64748B] font-mono font-semibold">
-                        <Clock className="w-3 h-3 text-[#94A3B8]" />
-                        <span>{r.check_in || '--:--'} → {r.check_out || 'Active'}</span>
-                      </div>
-                      
-                      {hasDispute && dispute && (
-                        <div className={cn(
-                          "text-[9px] font-extrabold uppercase tracking-wider mt-1.5 font-mono",
-                          dispute.status === 'APPROVED' ? "text-[#22C55E]" :
-                          dispute.status === 'REJECTED' ? "text-red-500" : "text-amber-500"
-                        )}>
-                          DISPUTE: {dispute.status}
-                        </div>
-                      )}
-                    </div>
                   </div>
-                  
-                  <div className="flex flex-col items-end gap-1.5">
-                    <span className="text-[10px] font-extrabold text-navy-900 font-mono leading-none">
+
+                  {/* Row 2: Clock times and Duration */}
+                  <div className="flex items-center justify-between text-[10px]">
+                    <div className="flex items-center gap-1.5 text-zinc-400 font-mono">
+                      <Clock className="w-3.5 h-3.5 text-zinc-400" />
+                      <span>{r.check_in || '--:--'} → {r.check_out || 'Active'}</span>
+                    </div>
+                    <span className="font-extrabold text-navy-900 font-mono">
                       {Math.floor(r.duration_hours)}h {String(Math.round((r.duration_hours % 1) * 60)).padStart(2, '0')}m
                     </span>
-                    
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const s = r.status?.toLowerCase() || '';
-                        const disputeApproved = dispute && dispute.status === 'APPROVED';
-                        let bgClass = "bg-[#F1F5F9] text-[#64748B]";
-                        let dotClass = "bg-[#64748B]";
-                        let labelText = "LOGGED OUT";
-                        
-                        if (isWFH && (s.includes('approved') || disputeApproved || s.includes('present') || s.includes('working') || s.includes('logged out'))) {
-                          bgClass = "bg-primary-50 text-[#22C55E]";
-                          dotClass = "bg-[#22C55E]";
-                          labelText = "APPROVED WFH";
-                        } else if (s === 'late') {
-                          bgClass = "bg-red-50 text-red-500";
-                          dotClass = "bg-red-500";
-                          labelText = "LATE";
-                        } else if (s === 'absent') {
-                          bgClass = "bg-zinc-100 text-zinc-500";
-                          dotClass = "bg-zinc-400";
-                          labelText = "ABSENT";
-                        }
-                        
-                        return (
-                          <span className={cn(
-                            "text-[8px] font-black py-0.5 px-2 rounded-full leading-none shrink-0 border border-transparent uppercase font-mono flex items-center gap-1",
-                            bgClass
-                          )}>
-                            <span className={cn("w-1 h-1 rounded-full", dotClass)} />
-                            {labelText}
-                          </span>
-                        );
-                      })()}
-                      
-                      {!hasDispute && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setDisputeRecord(r);
-                            setDisputeReason('');
-                          }}
-                          className="px-2 py-0.5 bg-[#F7F8FA] border border-[#E8EDF2] rounded-[6px] text-[9px] font-extrabold text-navy-900 hover:bg-zinc-100 transition-colors uppercase tracking-wider font-mono cursor-pointer"
-                        >
-                          FILE DISPUTE
-                        </button>
+                  </div>
+
+                  {/* Row 3: Correction Action / Dispute Status */}
+                  <div className="flex items-center justify-between pt-2 border-t border-zinc-100">
+                    <span className="text-[9px] font-bold uppercase tracking-wider font-mono">
+                      {hasDispute && dispute ? (
+                        <span className={cn(
+                          dispute.status === 'APPROVED' ? "text-emerald-600" :
+                          dispute.status === 'REJECTED' ? "text-red-550" : "text-amber-600"
+                        )}>
+                          Correction: {dispute.status}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400">No corrections requested</span>
                       )}
-                    </div>
+                    </span>
+                    {!hasDispute && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDisputeRecord(r);
+                          setDisputeReason('');
+                        }}
+                        className="px-2 py-0.5 bg-[#F7F8FA] border border-[#E8EDF2] rounded-[6px] text-[9px] font-extrabold text-navy-900 hover:bg-zinc-100 transition-colors uppercase tracking-wider font-mono cursor-pointer"
+                      >
+                        Request Correction
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -2234,7 +2212,7 @@ export default function AttendanceClient({
                     <AlertTriangle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-navy-900">File Attendance Dispute</h3>
+                    <h3 className="text-sm font-bold text-navy-900">Request Attendance Correction</h3>
                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5 font-mono">
                       Session Date: {new Date(disputeRecord.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
@@ -2244,7 +2222,7 @@ export default function AttendanceClient({
                 <div className="space-y-3 pt-1">
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">
-                      Dispute Category
+                      Correction Category
                     </label>
                     <select
                       value={disputeCategory}
@@ -2260,7 +2238,7 @@ export default function AttendanceClient({
 
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">
-                      Dispute Reason (Mandatory)
+                      Correction Reason (Mandatory)
                     </label>
                     <textarea
                       placeholder="Provide detailed context..."

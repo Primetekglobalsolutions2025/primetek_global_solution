@@ -238,7 +238,7 @@ export default function ApprovalsClient({
   return (
     <div className="space-y-6 text-zinc-650 font-sans">
       {/* Vercel-style Tab Navigation Bar */}
-      <div className="flex p-1 bg-zinc-50 border border-zinc-200 rounded-md w-full md:w-fit shadow-2xs overflow-x-auto scrollbar-none flex-nowrap">
+      <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none relative gap-2 flex-nowrap w-full">
         {tabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -247,18 +247,18 @@ export default function ApprovalsClient({
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "relative flex items-center justify-center gap-2 px-4 py-2 rounded-md text-xs font-semibold transition-all duration-250 whitespace-nowrap shrink-0 flex-1 md:flex-initial cursor-pointer",
+                "flex items-center gap-2 px-6 py-3.5 border-b-2 text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 cursor-pointer",
                 isActive
-                  ? "bg-white text-navy-900 border border-zinc-200/80 shadow-2xs"
-                  : "text-zinc-500 hover:text-navy-900 hover:bg-zinc-100/50"
+                  ? "border-navy-900 text-navy-900 font-bold"
+                  : "border-transparent text-zinc-450 hover:text-zinc-700"
               )}
             >
-              <Icon className={cn("w-3.5 h-3.5", isActive ? "text-navy-900" : "text-zinc-400")} />
+              <Icon className={cn("w-4 h-4", isActive ? "text-navy-900" : "text-zinc-400")} />
               {tab.label}
               {tab.count !== undefined && tab.count > 0 && (
                 <span className={cn(
-                  "ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold leading-none",
-                  isActive ? "bg-primary-50 text-primary-700 border border-primary-100" : "bg-zinc-100 text-zinc-600"
+                  "ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold leading-none",
+                  isActive ? "bg-navy-900 text-white" : "bg-zinc-100 text-zinc-600"
                 )}>
                   {tab.count}
                 </span>

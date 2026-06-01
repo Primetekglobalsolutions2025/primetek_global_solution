@@ -45,7 +45,7 @@ export default function AppHeader({ userName, role, notificationCount }: AppHead
       <div className="flex-1 min-w-0">
         {/* Mobile/Tablet: show logo */}
         <div className="flex md:hidden items-center gap-3 py-1">
-          <Logo className="w-32 h-auto shrink-0" dark={false} />
+          <Logo className="w-40 h-auto shrink-0" dark={false} />
         </div>
         {/* Desktop: show greeting */}
         <div className="hidden md:block">

@@ -11,7 +11,7 @@ export default async function DailyReportPage() {
   const history = await getMetricsHistory(7);
 
   return (
-    <div className="container mx-auto px-4 py-6 pb-24 max-w-7xl">
+    <div className="space-y-4">
       <DailyReportClient 
         profiles={profiles}
         todayMetrics={todayMetrics}

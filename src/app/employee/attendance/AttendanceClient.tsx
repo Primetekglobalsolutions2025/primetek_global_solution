@@ -1991,12 +1991,12 @@ export default function AttendanceClient({
                   {myDisputes.some(d => d.attendance_id === r.id) ? (
                     <span className={cn(
                       myDisputes.find(d => d.attendance_id === r.id)?.status === 'APPROVED' ? "text-emerald-600" :
-                      myDisputes.find(d => d.attendance_id === r.id)?.status === 'REJECTED' ? "text-red-650" : "text-amber-600"
+                      myDisputes.find(d => d.attendance_id === r.id)?.status === 'REJECTED' ? "text-red-655" : "text-amber-600"
                     )}>
-                      Dispute: {myDisputes.find(d => d.attendance_id === r.id)?.status}
+                      Correction: {myDisputes.find(d => d.attendance_id === r.id)?.status}
                     </span>
                   ) : (
-                    <span className="text-zinc-450">No disputes</span>
+                    <span className="text-zinc-400">No corrections requested</span>
                   )}
                 </span>
                 {!myDisputes.some(d => d.attendance_id === r.id) && (
@@ -2007,7 +2007,7 @@ export default function AttendanceClient({
                     }}
                     className="px-2 py-0.5 bg-zinc-50 border border-zinc-200 rounded text-[9px] font-bold text-navy-900 hover:bg-zinc-100 transition-colors uppercase tracking-wider font-mono cursor-pointer"
                   >
-                    File Dispute
+                    Request Correction
                   </button>
                 )}
               </div>
@@ -2056,7 +2056,7 @@ export default function AttendanceClient({
                             myDisputes.find(d => d.attendance_id === r.id)?.status === 'APPROVED' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                             myDisputes.find(d => d.attendance_id === r.id)?.status === 'REJECTED' ? "bg-red-50 text-red-700 border-red-200" : "bg-amber-50 text-amber-700 border-amber-200"
                           )}>
-                            Dispute: {myDisputes.find(d => d.attendance_id === r.id)?.status}
+                            Correction: {myDisputes.find(d => d.attendance_id === r.id)?.status}
                           </span>
                         ) : (
                           <button
@@ -2066,7 +2066,7 @@ export default function AttendanceClient({
                             }}
                             className="px-2 py-1 bg-zinc-55 hover:bg-zinc-100 border border-zinc-200 rounded text-[10px] font-bold text-navy-900 transition-colors uppercase tracking-wider font-mono cursor-pointer"
                           >
-                            File Dispute
+                            Request Correction
                           </button>
                         )}
                         <History className="w-3.5 h-3.5 text-zinc-300 group-hover:text-primary-500 transition-colors" />
@@ -2222,7 +2222,7 @@ export default function AttendanceClient({
                     <AlertTriangle className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-navy-900 tracking-tight">File Attendance Dispute</h3>
+                    <h3 className="text-sm font-bold text-navy-900 tracking-tight">Request Attendance Correction</h3>
                     <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-0.5">
                       Session Date: {new Date(disputeRecord.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
@@ -2232,7 +2232,7 @@ export default function AttendanceClient({
                 <div className="space-y-3 pt-2">
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">
-                      Dispute Category
+                      Correction Category
                     </label>
                     <select
                       value={disputeCategory}
@@ -2248,7 +2248,7 @@ export default function AttendanceClient({
 
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">
-                      Dispute Reason / Explanation (Mandatory)
+                      Correction Reason / Explanation (Mandatory)
                     </label>
                     <textarea
                       placeholder="Provide detailed context, client meeting explanation, or network error details..."

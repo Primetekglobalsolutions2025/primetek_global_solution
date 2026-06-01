@@ -151,6 +151,11 @@ export default function AdminSettingsClient() {
     loadSettings();
   }, []);
 
+  // Reset map error state when coordinate inputs are edited
+  useEffect(() => {
+    setMapError(false);
+  }, [lat, lng]);
+
   const handleSaveConfirm = async () => {
     if (!passwordVerifyInput) {
       showNotification('Please enter your admin password.', 'error');

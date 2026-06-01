@@ -100,50 +100,49 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
                   <Phone className="w-3.5 h-3.5 text-zinc-400" />
                   <span>{profile.client_phone}</span>
                 </div>
+                {profile.resume_url && (
+                  <div className="pt-2 border-t border-dashed border-zinc-100 mt-2">
+                    <a 
+                      href={profile.resume_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download Consultant Resume
+                    </a>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
-                <div className="flex items-center gap-2">
-                  <select 
-                    value={(profile.status || 'assigned').toLowerCase()}
-                    onChange={(e) => handleStatusChange(profile.id, e.target.value)}
-                    disabled={updating === profile.id}
-                    className={cn(
-                      "text-[10px] font-mono font-semibold uppercase tracking-wider py-1.5 px-2.5 rounded border focus:outline-none focus:ring-2 focus:ring-primary-400/50 cursor-pointer transition-all duration-200",
-                      (profile.status || 'assigned').toLowerCase() === 'assigned' && "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/75",
-                      (profile.status || 'assigned').toLowerCase() === 'processing' && "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100/75",
-                      (profile.status || 'assigned').toLowerCase() === 'completed' && "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/75",
-                      (profile.status || 'assigned').toLowerCase() === 'rejected' && "bg-red-50 text-red-700 border-red-200 hover:bg-red-100/75"
-                    )}
-                  >
-                    <option value="assigned" className="bg-white text-navy-900 font-sans">Assigned</option>
-                    <option value="processing" className="bg-white text-navy-900 font-sans">Processing</option>
-                    <option value="completed" className="bg-white text-navy-900 font-sans">Completed</option>
-                    <option value="rejected" className="bg-white text-navy-900 font-sans">Rejected</option>
-                  </select>
+              <div className="flex items-center justify-between pt-3 border-t border-zinc-100 gap-2">
+                <select 
+                  value={(profile.status || 'assigned').toLowerCase()}
+                  onChange={(e) => handleStatusChange(profile.id, e.target.value)}
+                  disabled={updating === profile.id}
+                  className={cn(
+                    "text-[10px] font-mono font-semibold uppercase tracking-wider py-1.5 px-2 rounded border focus:outline-none focus:ring-2 focus:ring-primary-400/50 cursor-pointer transition-all duration-200 flex-1 min-w-0 max-w-[130px]",
+                    (profile.status || 'assigned').toLowerCase() === 'assigned' && "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100/75",
+                    (profile.status || 'assigned').toLowerCase() === 'processing' && "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100/75",
+                    (profile.status || 'assigned').toLowerCase() === 'completed' && "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100/75",
+                    (profile.status || 'assigned').toLowerCase() === 'rejected' && "bg-red-50 text-red-700 border-red-200 hover:bg-red-100/75"
+                  )}
+                >
+                  <option value="assigned" className="bg-white text-navy-900 font-sans">Assigned</option>
+                  <option value="processing" className="bg-white text-navy-900 font-sans">Processing</option>
+                  <option value="completed" className="bg-white text-navy-900 font-sans">Completed</option>
+                  <option value="rejected" className="bg-white text-navy-900 font-sans">Rejected</option>
+                </select>
 
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      setRequestProfile(profile);
-                      setIsRequestModalOpen(true);
-                    }}
-                    className="bg-navy-900 hover:bg-navy-800 text-white text-[10px] py-1.5 px-2.5 rounded-md font-semibold shadow-sm cursor-pointer"
-                  >
-                    Request Interview
-                  </Button>
-                </div>
-                
-                {profile.resume_url && (
-                  <a 
-                    href={profile.resume_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-[11px] font-semibold text-primary-600 hover:underline"
-                  >
-                    <Download className="w-3.5 h-3.5" /> Resume
-                  </a>
-                )}
+                <Button 
+                  size="sm"
+                  onClick={() => {
+                    setRequestProfile(profile);
+                    setIsRequestModalOpen(true);
+                  }}
+                  className="bg-navy-900 hover:bg-navy-800 text-white text-[10px] py-1.5 px-3 rounded-md font-semibold shadow-sm cursor-pointer whitespace-nowrap shrink-0"
+                >
+                  Request Interview
+                </Button>
               </div>
             </div>
           ))
