@@ -7,6 +7,7 @@ import { loginRateLimiter, CAPTCHA_THRESHOLD } from '@/lib/rate-limit';
 import { logAuditAction } from '@/lib/audit';
 import { createClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
+import { isOfficeNetwork } from '@/lib/security/network-trust';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,17 +39,27 @@ export async function POST(request: NextRequest) {
     const ipRateLimitRes = await loginRateLimiter.get(ipKey);
     const accountRateLimitRes = await loginRateLimiter.get(accountKey);
 
-    if ((ipRateLimitRes && ipRateLimitRes.remainingPoints <= 0) || 
-        (accountRateLimitRes && accountRateLimitRes.remainingPoints <= 0)) {
+    // If request comes from the office network (shared WiFi), skip IP-based blocking.
+    // All employees share the same public IP — blocking by IP would lock out the entire office.
+    // External IPs (home, mobile data) are still blocked by IP after 5 failed attempts.
+    const fromOfficeNetwork = isOfficeNetwork(ip);
+
+    const isIpBlocked = !fromOfficeNetwork && (ipRateLimitRes && ipRateLimitRes.remainingPoints <= 0);
+    const isAccountBlocked = accountRateLimitRes && accountRateLimitRes.remainingPoints <= 0;
+
+    if (isIpBlocked || isAccountBlocked) {
       return NextResponse.json({ 
-        error: 'Too many failed attempts. Please try again in 15 minutes.',
+        error: isAccountBlocked
+          ? 'Too many failed attempts for this account. Please try again in 15 minutes.'
+          : 'Too many failed attempts from your network. Please try again in 15 minutes.',
         lockout: true 
       }, { status: 429 });
     }
 
+    // For CAPTCHA threshold: use account-based count for office network, IP-based for external
     const ipFailed = ipRateLimitRes ? (5 - ipRateLimitRes.remainingPoints) : 0;
     const accountFailed = accountRateLimitRes ? (5 - accountRateLimitRes.remainingPoints) : 0;
-    const maxFailedAttempts = Math.max(ipFailed, accountFailed);
+    const maxFailedAttempts = fromOfficeNetwork ? accountFailed : Math.max(ipFailed, accountFailed);
     const isCaptchaRequired = maxFailedAttempts >= CAPTCHA_THRESHOLD;
 
     if (isCaptchaRequired) {
