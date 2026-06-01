@@ -7,6 +7,7 @@ import AppHeader from '@/components/pwa/AppHeader';
 import { Loader2 } from 'lucide-react';
 import OfflineSyncBanner from '@/components/pwa/OfflineSyncBanner';
 import { NotificationProvider } from '@/components/pwa/NotificationContext';
+import AttendanceTracker from '@/components/pwa/AttendanceTracker';
 
 export default function EmployeeLayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -170,6 +171,7 @@ export default function EmployeeLayoutClient({ children }: { children: React.Rea
 
   return (
     <NotificationProvider employeeId={session?.id}>
+      {session?.id && <AttendanceTracker employeeId={session.id} />}
       <div className="employee-portal fixed inset-0 flex bg-zinc-50 overflow-hidden justify-center">
         {/* App Sidebar/Bottom Nav */}
         {session && <AppSidebar role={session.role} userName={session.name} />}

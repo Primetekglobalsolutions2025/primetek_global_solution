@@ -1059,7 +1059,18 @@ export async function processHeartbeat(payload: {
         .from('attendance')
         .update({
           active_device_fingerprint: payload.deviceFingerprint,
-          active_tab_id: payload.tabId || null
+          active_tab_id: payload.tabId || null,
+          device_type: payload.deviceType || record.device_type,
+          device_label: payload.deviceLabel || record.device_label
+        })
+        .eq('id', record.id);
+    } else if (payload.deviceType && record.device_type !== payload.deviceType) {
+      // Sync device type / label if they differ on subsequent heartbeats
+      await supabaseAdmin
+        .from('attendance')
+        .update({
+          device_type: payload.deviceType,
+          device_label: payload.deviceLabel || record.device_label
         })
         .eq('id', record.id);
     }
@@ -1118,7 +1129,13 @@ export async function processHeartbeat(payload: {
   }
 }
 
-export async function moveActiveSession(sessionId: string, newFingerprint: string, tabId: string) {
+export async function moveActiveSession(
+  sessionId: string, 
+  newFingerprint: string, 
+  tabId: string,
+  newDeviceType?: string,
+  newDeviceLabel?: string
+) {
   try {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
@@ -1127,7 +1144,9 @@ export async function moveActiveSession(sessionId: string, newFingerprint: strin
       .from('attendance')
       .update({
         active_device_fingerprint: newFingerprint,
-        active_tab_id: tabId
+        active_tab_id: tabId,
+        device_type: newDeviceType || 'desktop',
+        device_label: newDeviceLabel || 'Desktop'
       })
       .eq('id', sessionId)
       .eq('employee_id', session.id);
@@ -1153,7 +1172,12 @@ export async function moveActiveSession(sessionId: string, newFingerprint: strin
         sequence_number: nextSequence,
         idempotency_key: `move-${sessionId}-${nextSequence}`,
         client_ip: '0.0.0.0',
-        payload: { moved_to_fingerprint: newFingerprint, tab_id: tabId }
+        payload: { 
+          moved_to_fingerprint: newFingerprint, 
+          tab_id: tabId,
+          device_type: newDeviceType || 'desktop',
+          device_label: newDeviceLabel || 'Desktop'
+        }
       }]);
 
     revalidatePath('/employee/attendance');
@@ -1232,6 +1256,42 @@ export async function getAttendanceSessionState(sessionId: string) {
     };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+export async function getActiveSessionForToday() {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    const { shiftDateStr } = getShiftInfo();
+    const { data: record, error } = await supabaseAdmin
+      .from('attendance')
+      .select('id, status, check_in, check_out, active_device_fingerprint, active_tab_id, device_type, device_label')
+      .eq('employee_id', session.id)
+      .eq('date', shiftDateStr)
+      .maybeSingle();
+    if (error) throw error;
+    return { success: true, record };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+export async function hasPendingClockOutRequestForToday() {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, pending: false };
+    const { data, error } = await supabaseAdmin
+      .from('attendance_recovery_queue')
+      .select('id')
+      .eq('employee_id', session.id)
+      .eq('action', 'check_out')
+      .eq('status', 'PENDING')
+      .maybeSingle();
+    if (error) throw error;
+    return { success: true, pending: !!data };
+  } catch (err) {
+    return { success: false, pending: false };
   }
 }
 

@@ -15,11 +15,12 @@ export default async function EmployeeAttendanceServerWrapper() {
 
   await closeStaleSessions();
 
-  // Fetch employee details, attendance records, and holidays in parallel
+  // Fetch employee details, attendance records, holidays, and pending clock-out requests in parallel
   const [
     { data: employee },
     { data: records },
-    holidaysResult
+    holidaysResult,
+    pendingClockOutResult
   ] = await Promise.all([
     supabaseAdmin
       .from('employees')
@@ -31,10 +32,18 @@ export default async function EmployeeAttendanceServerWrapper() {
       .select('*')
       .eq('employee_id', session.id)
       .order('date', { ascending: false }),
-    getHolidays()
+    getHolidays(),
+    supabaseAdmin
+      .from('attendance_recovery_queue')
+      .select('id')
+      .eq('employee_id', session.id)
+      .eq('action', 'check_out')
+      .eq('status', 'PENDING')
+      .maybeSingle()
   ]);
 
   const holidays = holidaysResult.success ? holidaysResult.holidays : [];
+  const hasPendingClockOutRequest = !!(pendingClockOutResult?.data);
 
   const empRecords = (records || []).map(r => {
     const checkIn = r.check_in ? new Date(r.check_in) : null;
@@ -97,6 +106,7 @@ export default async function EmployeeAttendanceServerWrapper() {
           initialRecords={empRecords}
           wasAutoLoggedOut={wasAutoLoggedOut}
           initialHolidays={holidays}
+          hasPendingClockOutRequest={hasPendingClockOutRequest}
         />
       </div>
       <div className="hidden md:block space-y-5">
@@ -109,6 +119,7 @@ export default async function EmployeeAttendanceServerWrapper() {
           initialRecords={empRecords}
           wasAutoLoggedOut={wasAutoLoggedOut}
           initialHolidays={holidays}
+          hasPendingClockOutRequest={hasPendingClockOutRequest}
         />
       </div>
     </>

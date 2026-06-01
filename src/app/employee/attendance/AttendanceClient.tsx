@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth } from './actions';
+import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth, submitOfflineRecoveryRequest, hasPendingClockOutRequestForToday, getActiveSessionForToday } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
@@ -55,12 +55,14 @@ export default function AttendanceClient({
   employeeId, 
   initialRecords, 
   wasAutoLoggedOut = false,
-  initialHolidays = []
+  initialHolidays = [],
+  hasPendingClockOutRequest = false
 }: { 
   employeeId: string; 
   initialRecords: AttendanceRecord[]; 
   wasAutoLoggedOut?: boolean;
   initialHolidays?: Holiday[];
+  hasPendingClockOutRequest?: boolean;
 }) {
   const [holidays] = useState<Holiday[]>(initialHolidays);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -92,6 +94,8 @@ export default function AttendanceClient({
 
   // 1. Stateful records array for real-time reconciliation updates without reload
   const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
+
+  const [isClockOutPending, setIsClockOutPending] = useState(hasPendingClockOutRequest);
 
   // Disputes system states
   const [disputeRecord, setDisputeRecord] = useState<AttendanceRecord | null>(null);
@@ -344,7 +348,15 @@ export default function AttendanceClient({
     }
     lastRefreshTimeRef.current = now;
     try {
-      const res = await getAttendanceSessionState(targetSessionId);
+      const [res, pendingRes] = await Promise.all([
+        getAttendanceSessionState(targetSessionId),
+        hasPendingClockOutRequestForToday()
+      ]);
+      
+      if (pendingRes.success && pendingRes.pending !== undefined) {
+        setIsClockOutPending(pendingRes.pending);
+      }
+
       if (res.success && res.attendance && res.projection) {
         const att = res.attendance;
         const proj = res.projection;
@@ -456,380 +468,68 @@ export default function AttendanceClient({
 
 
 
-  // 1. Lease-based Leader Election
+  // Sync leader status from localStorage lease
   useEffect(() => {
-    const bc = new BroadcastChannel('attendance_tabs');
-    let leaseTimeoutId: NodeJS.Timeout | null = null;
-    
-    const checkLease = () => {
-      const now = Date.now();
-      const leaseRaw = localStorage.getItem(LEASE_KEY);
-      let lease: { tabId: string; expiresAt: number } | null = null;
-      try {
-        if (leaseRaw) {
-          lease = JSON.parse(leaseRaw);
-        }
-      } catch (e) {}
-
-      if (!lease || now > lease.expiresAt || lease.tabId === tabId) {
-        const expiresAt = now + 4000; // lease valid for 4 seconds
-        localStorage.setItem(LEASE_KEY, JSON.stringify({ tabId, expiresAt }));
-        
-        // Double check read-after-write to guarantee exclusive leadership
-        const checkAcquired = localStorage.getItem(LEASE_KEY);
+    const checkLeader = () => {
+      const leaseRaw = localStorage.getItem('primetek_attendance_leader_lease_' + employeeId);
+      if (leaseRaw) {
         try {
-          const parsed = checkAcquired ? JSON.parse(checkAcquired) : null;
-          if (parsed && parsed.tabId === tabId) {
-            if (!isLeaderRef.current) {
-              isLeaderRef.current = true;
-              setIsLeader(true);
-              console.log(`[Lease Election]: Tab ${tabId} acquired leadership lease.`);
-            }
-          } else {
-            if (isLeaderRef.current) {
-              isLeaderRef.current = false;
-              setIsLeader(false);
-              console.log(`[Lease Election]: Tab ${tabId} lost write race for leadership.`);
-            }
-          }
-        } catch (err) {
-          if (isLeaderRef.current) {
-            isLeaderRef.current = false;
-            setIsLeader(false);
-          }
+          const lease = JSON.parse(leaseRaw);
+          const leader = lease.tabId === tabId;
+          setIsLeader(leader);
+          isLeaderRef.current = leader;
+        } catch (e) {
+          setIsLeader(false);
+          isLeaderRef.current = false;
         }
       } else {
-        if (isLeaderRef.current) {
-          isLeaderRef.current = false;
-          setIsLeader(false);
-          console.log(`[Lease Election]: Tab ${tabId} stepped down. Leader is ${lease.tabId}`);
-        }
+        setIsLeader(false);
+        isLeaderRef.current = false;
       }
     };
+    
+    // Periodically sync leader status
+    const interval = setInterval(checkLeader, 1000);
+    checkLeader();
+    return () => clearInterval(interval);
+  }, [employeeId, tabId]);
 
+  // Listen to state refresh broadcasts from other tabs or AttendanceTracker
+  useEffect(() => {
+    const bc = new BroadcastChannel('attendance_tabs');
     bc.onmessage = (e) => {
       if (e.data.type === 'STATE_REFRESH') {
         console.log('[Tab Sync]: Received refresh request. Reconciling projection state...');
         refreshProjectionState(e.data.sessionId);
       }
     };
-
-    const checkLeaseWithJitter = () => {
-      checkLease();
-      const jitter = Math.floor(Math.random() * 300);
-      leaseTimeoutId = setTimeout(checkLeaseWithJitter, 1500 + jitter);
-    };
-
-    checkLease();
-    leaseTimeoutId = setTimeout(checkLeaseWithJitter, 1500);
-
-    const handleUnload = () => {
-      try {
-        const leaseRaw = localStorage.getItem(LEASE_KEY);
-        if (leaseRaw) {
-          const lease = JSON.parse(leaseRaw);
-          if (lease.tabId === tabId) {
-            localStorage.removeItem(LEASE_KEY); // release lease immediately
-          }
-        }
-        bc.close();
-      } catch (err) {}
-    };
-
-    window.addEventListener('beforeunload', handleUnload);
-
-    return () => {
-      if (leaseTimeoutId) clearTimeout(leaseTimeoutId);
-      window.removeEventListener('beforeunload', handleUnload);
-      handleUnload();
-    };
-  }, []);
-
-  // Keep todayRecord ID ref updated to prevent stale closure inside timer intervals
-  const todayRecordIdRef = useRef<string | undefined>(undefined);
-  useEffect(() => {
-    todayRecordIdRef.current = todayRecord?.id;
+    return () => bc.close();
   }, [todayRecord?.id]);
 
-  // 2. Sleep / Suspension Tick Recovery Heuristic (30-60s threshold, lightweight sync)
+  // Listen to heartbeat pulse from global AttendanceTracker
   useEffect(() => {
-    if (!checkedIn || isCheckedOut) return;
-    let lastTime = Date.now();
-    const tickInterval = setInterval(() => {
-      const now = Date.now();
-      const delta = now - lastTime;
-      lastTime = now;
-      if (delta > 35000) { // 35 seconds threshold
-        console.warn(`[Suspension Recovery]: Detected clock drift of ${delta}ms. Syncing projection state...`);
-        const targetSessionId = todayRecordIdRef.current;
-        if (targetSessionId) {
-          refreshProjectionState(targetSessionId);
-        }
-      }
-    }, 1000);
-    return () => clearInterval(tickInterval);
-  }, [checkedIn, isCheckedOut]);
-
-  // 3. Visibility Change Auto-Break Listener (transition to Break (Auto) when tab is hidden)
-  useEffect(() => {
-    let autoBreakTimeoutId: NodeJS.Timeout | null = null;
-
-    const handleVisibility = async () => {
-      if (!isMountedRef.current) return;
-      if (!isLeaderRef.current) return; // Only leader tab processes visibility/auto-break
-
-      if (document.hidden) {
-        if (checkedIn && !isCheckedOut && currentStatus === 'Working' && todayRecord) {
-          console.log('[Visibility]: Tab hidden. Scheduling auto-break in 60 seconds...');
-          autoBreakTimeoutId = setTimeout(async () => {
-            if (isMountedRef.current && document.hidden) {
-              await executeMutationWithVersionCheck(async () => {
-                return await logStatusTransitionEvent(todayRecord.id, 'Break (Auto)');
-              }, 'Auto Break (Page Hidden)');
-            }
-          }, 60000);
-        }
-      } else {
-        if (autoBreakTimeoutId) {
-          console.log('[Visibility]: Tab visible again. Cancelling scheduled auto-break.');
-          clearTimeout(autoBreakTimeoutId);
-          autoBreakTimeoutId = null;
-        }
+    const bc = new BroadcastChannel('attendance_heartbeat_pulse');
+    bc.onmessage = (e) => {
+      if (e.data.type === 'HEARTBEAT_PULSE') {
+        setHeartbeatPulse(true);
+        setTimeout(() => {
+          setHeartbeatPulse(false);
+        }, 1500);
       }
     };
+    return () => bc.close();
+  }, []);
 
-    window.addEventListener('visibilitychange', handleVisibility);
-    return () => {
-      window.removeEventListener('visibilitychange', handleVisibility);
-      if (autoBreakTimeoutId) clearTimeout(autoBreakTimeoutId);
-    };
-  }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
-
-  // SharedWorker / BroadcastChannel Multi-Tab Idle Tracker
+  // Listen to hijack warning from global AttendanceTracker
   useEffect(() => {
-    if (typeof window === 'undefined' || !checkedIn || isCheckedOut || !todayRecord) return;
-    // Only run idle tracking if currently in Working, Idle, or Break (Auto)
-    if (!['Working', 'Idle', 'Break (Auto)'].includes(currentStatus)) return;
-
-    let worker: SharedWorker | null = null;
-    let fallbackBc: BroadcastChannel | null = null;
-    let localInterval: any = null;
-
-    const handleStateTransition = async (newState: 'Working' | 'Idle' | 'Break (Auto)') => {
-      if (newState !== currentStatus) {
-        await executeMutationWithVersionCheck(async () => {
-          return await logStatusTransitionEvent(todayRecord.id, newState);
-        }, `Transition to ${newState}`);
+    const bc = new BroadcastChannel('attendance_hijack_warning');
+    bc.onmessage = (e) => {
+      if (e.data.type === 'HIJACK_WARNING') {
+        setHijackWarning({ active: true, sessionId: e.data.sessionId });
       }
     };
-
-    try {
-      worker = new SharedWorker('/workers/idle-worker.js');
-      worker.port.onmessage = async (e) => {
-        const { type, state: workerState } = e.data;
-        if (!isLeaderRef.current) return; // Only leader tab writes status transitions to DB
-        if (type === 'STATE_CHANGED') {
-          await handleStateTransition(workerState);
-        } else if (type === 'TRIGGER_AUTO_BREAK') {
-          await handleStateTransition('Break (Auto)');
-        }
-      };
-      worker.port.start();
-    } catch (err) {
-      console.warn('SharedWorker not supported or blocked, running fallback BroadcastChannel:', err);
-      fallbackBc = new BroadcastChannel('idle_sync');
-      fallbackBc.onmessage = async (e) => {
-        const { type, state: workerState } = e.data;
-        if (type === 'USER_ACTIVITY') {
-          lastAct = Date.now();
-          if (isLeaderRef.current && (currentStatus === 'Idle' || currentStatus === 'Break (Auto)')) {
-            await handleStateTransition('Working');
-            if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Working' });
-          }
-        } else if (isLeaderRef.current) {
-          if (type === 'STATE_CHANGED') {
-            await handleStateTransition(workerState);
-          } else if (type === 'TRIGGER_AUTO_BREAK') {
-            await handleStateTransition('Break (Auto)');
-          }
-        }
-      };
-
-      let lastAct = Date.now();
-      localInterval = setInterval(async () => {
-        if (!isLeaderRef.current) return; // Only leader runs the tick check
-        const delta = Date.now() - lastAct;
-        // 3 minutes (180,000 ms) idle threshold
-        if (delta >= 180000 && delta < 300000 && currentStatus === 'Working') {
-          await handleStateTransition('Idle');
-          if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Idle' });
-        } 
-        // 5 minutes (300,000 ms) auto break threshold
-        else if (delta >= 300000 && (currentStatus === 'Working' || currentStatus === 'Idle')) {
-          clearInterval(localInterval);
-          if (fallbackBc) fallbackBc.postMessage({ type: 'TRIGGER_AUTO_BREAK' });
-          await handleStateTransition('Break (Auto)');
-        }
-      }, 1000);
-      
-      const onActivity = async () => {
-        lastAct = Date.now();
-        if (!isLeaderRef.current) {
-          if (fallbackBc) fallbackBc.postMessage({ type: 'USER_ACTIVITY' });
-          return;
-        }
-        if (currentStatus === 'Idle' || currentStatus === 'Break (Auto)') {
-          await handleStateTransition('Working');
-          if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Working' });
-        }
-      };
-      const events = ['mousemove', 'keydown', 'click', 'scroll'];
-      events.forEach(ev => window.addEventListener(ev, onActivity, { passive: true }));
-    }
-
-    const reportActivity = () => {
-      if (worker) worker.port.postMessage({ type: 'ACTIVITY' });
-    };
-
-    const events = ['mousemove', 'keydown', 'click', 'scroll'];
-    events.forEach(ev => window.addEventListener(ev, reportActivity, { passive: true }));
-
-    return () => {
-      events.forEach(ev => window.removeEventListener(ev, reportActivity));
-      if (worker) worker.port.close();
-      if (fallbackBc) fallbackBc.close();
-      if (localInterval) clearInterval(localInterval);
-    };
-  }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
-
-  // Telemetry Input Listeners
-  useEffect(() => {
-    if (!checkedIn || isCheckedOut || (currentStatus !== 'Working' && currentStatus !== 'Approved WFH')) return;
-
-    const trackClick = () => { clickCount.current++; };
-    const trackKeydown = () => { keypressCount.current++; };
-    const trackMousemove = () => { pointerMovesCount.current++; };
-
-    window.addEventListener('click', trackClick, { passive: true });
-    window.addEventListener('keydown', trackKeydown, { passive: true });
-    window.addEventListener('mousemove', trackMousemove, { passive: true });
-
-    return () => {
-      window.removeEventListener('click', trackClick);
-      window.removeEventListener('keydown', trackKeydown);
-      window.removeEventListener('mousemove', trackMousemove);
-    };
-  }, [checkedIn, isCheckedOut, currentStatus]);
-
-  // Periodic Telemetry Heartbeat Loop
-  useEffect(() => {
-    const isHeartbeatActive = ['Working', 'Approved WFH', 'Break', 'Break (Auto)', 'Idle'].includes(currentStatus);
-    if (!checkedIn || isCheckedOut || !isHeartbeatActive || !todayRecord) return;
-
-    const sendHeartbeat = () => {
-      if (!navigator.geolocation) return;
-      if (!isLeaderRef.current) return; // Only leader sends heartbeats
-
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          const accuracy = position.coords.accuracy || 10;
-          
-          const devInfo = getDeviceInfo();
-          const payload = {
-            sessionId: todayRecord.id,
-            sequenceNumber: sequenceNumber.current,
-            clientTimestamp: new Date().toISOString(),
-            idempotencyKey: `hbeat-${todayRecord.id}-${sequenceNumber.current}-${Date.now()}`,
-            activeWindow: !document.hidden,
-            meetingMode: false,
-            deviceType: devInfo.deviceType,
-            deviceLabel: devInfo.deviceLabel,
-            deviceFingerprint: getOrCreateFingerprint(),
-            tabId: tabId,
-            telemetry: {
-              clicks: clickCount.current,
-              keypresses: keypressCount.current,
-              pointerMoves: pointerMovesCount.current,
-              lat,
-              lng,
-              accuracy
-            }
-          };
-
-          // Reset counters and increment sequence
-          clickCount.current = 0;
-          keypressCount.current = 0;
-          pointerMovesCount.current = 0;
-          sequenceNumber.current++;
-
-          try {
-            setHeartbeatPulse(true);
-            setTimeout(() => {
-              if (isMountedRef.current) {
-                setHeartbeatPulse(false);
-              }
-            }, 1500);
-            const res = await processHeartbeat(payload);
-            if (res.success) {
-              // Perform geofence verification dynamically based on heartbeat response
-              const isTimerActive = currentStatus === 'Working' || currentStatus === 'DESKTOP_ACTIVE' || currentStatus === 'AWAITING_DESKTOP';
-              if (isTimerActive && Date.now() >= gpsSuppressionUntil.current && res.withinRange !== undefined) {
-                const outside = !res.withinRange;
-                geofenceOutsideHistory.current.push(outside);
-                if (geofenceOutsideHistory.current.length > 5) {
-                  geofenceOutsideHistory.current.shift();
-                }
-
-                const historyLen = geofenceOutsideHistory.current.length;
-                if (historyLen >= 3) {
-                  const lastThree = geofenceOutsideHistory.current.slice(-3);
-                  const allOutside = lastThree.every(Boolean);
-
-                  if (allOutside) {
-                    // Obsolete warning triggered but modal removed
-                  }
-                } else if (outside) {
-                  showNotification("We're having trouble confirming your office location. Please move closer to a window or refresh your GPS signal.", 'info');
-                }
-              }
-
-              if (res.status !== currentStatus) {
-                // If status changed, sync local state
-                await refreshProjectionState();
-                const bc = new BroadcastChannel('attendance_tabs');
-                bc.postMessage({ type: 'STATE_REFRESH' });
-                bc.close();
-              }
-            } else {
-              if (res.error === 'Session active on another device') {
-                setHijackWarning({ active: true, sessionId: todayRecord.id });
-              } else if (res.error?.includes('Session is already clocked out') || res.error?.includes('not found')) {
-                showNotification("Session closed by administrator. Syncing state...", "info");
-                await refreshProjectionState();
-                const bc = new BroadcastChannel('attendance_tabs');
-                bc.postMessage({ type: 'STATE_REFRESH' });
-                bc.close();
-              }
-            }
-          } catch (err) {
-            console.error('[Heartbeat Error]:', err);
-          }
-        },
-        (error) => {
-          console.warn('[Heartbeat GPS warning]:', error);
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    };
-
-    const isBreakOrIdle = ['Break', 'Break (Auto)', 'Idle'].includes(currentStatus);
-    const heartbeatInterval = isBreakOrIdle ? 300000 : 60000;
-
-    const interval = setInterval(sendHeartbeat, heartbeatInterval);
-    return () => clearInterval(interval);
-  }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
+    return () => bc.close();
+  }, []);
 
   const handleCheckIn = () => {
     checkAndRequestPermissions(async () => {
@@ -979,7 +679,8 @@ export default function AttendanceClient({
               enqueueOfflineAction('check_out', lat, lng, fingerprint, recordId);
               refreshPendingCount();
               setGpsStatus('success');
-              showNotification('Offline mode — check-out saved locally. It will sync when you reconnect.', 'info');
+              setIsClockOutPending(true);
+              showNotification('Offline mode — check-out request saved locally. It will sync when you reconnect.', 'info');
             } catch (err) {
               const errorMsg = err instanceof Error ? err.message : 'Failed to queue offline check-out';
               setGpsStatus('error');
@@ -989,9 +690,20 @@ export default function AttendanceClient({
           }
 
           await executeMutationWithVersionCheck(async () => {
-            const result = await checkOut(recordId, lat, lng, undefined, undefined, fingerprint);
+            const result = await submitOfflineRecoveryRequest(
+              'check_out',
+              new Date().toISOString(),
+              lat,
+              lng,
+              fingerprint,
+              'Employee initiated clock-out'
+            );
+            if (result.success) {
+              setIsClockOutPending(true);
+              broadcastStateRefresh(recordId);
+            }
             return result;
-          }, 'Check Out');
+          }, 'Check Out Request');
           setGpsStatus('success');
         });
       }
@@ -1450,7 +1162,14 @@ export default function AttendanceClient({
                   <Button
                     onClick={async () => {
                       const fingerprint = getOrCreateFingerprint();
-                      const res = await moveActiveSession(hijackWarning.sessionId, fingerprint, tabId);
+                      const devInfo = getDeviceInfo();
+                      const res = await moveActiveSession(
+                        hijackWarning.sessionId,
+                        fingerprint,
+                        tabId,
+                        devInfo.deviceType,
+                        devInfo.deviceLabel
+                      );
                       if (res.success) {
                         setHijackWarning(null);
                         showNotification('Session moved to this device successfully.', 'success');
@@ -1541,6 +1260,12 @@ export default function AttendanceClient({
                     <><LogIn className="w-4 h-4" /> Clock In</>
                   )}
                 </button>
+              ) : isClockOutPending ? (
+                <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-5 text-center font-sans shadow-2xs relative overflow-hidden">
+                  <AlertCircle className="w-8 h-8 text-amber-500 mx-auto mb-2 animate-pulse" />
+                  <p className="text-xs font-bold text-amber-805 uppercase tracking-wider">Clock Out Pending Approval</p>
+                  <p className="text-[10px] text-amber-600 mt-1 font-medium font-sans">Your clock-out request is pending administrator approval.</p>
+                </div>
               ) : !isCheckedOut ? (
                 <button
                   onClick={handleCheckOut}
@@ -1704,7 +1429,7 @@ export default function AttendanceClient({
                 {['Break', 'Break (Auto)', 'Idle'].includes(currentStatus) ? (
                   <Button
                     variant="primary"
-                    disabled={isBreakActionLoading}
+                    disabled={isBreakActionLoading || isClockOutPending}
                     onClick={handleResumeWork}
                     className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-emerald-500 font-sans text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
                   >
@@ -1713,7 +1438,7 @@ export default function AttendanceClient({
                 ) : (
                   <Button
                     variant="outline"
-                    disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading}
+                    disabled={(currentStatus !== 'Working' && currentStatus !== 'Approved WFH') || isBreakActionLoading || isClockOutPending}
                     onClick={handleStartBreak}
                     className="w-full py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl active:scale-[0.98] transition-all shadow-3xs border border-zinc-200 font-sans hover:bg-zinc-50 cursor-pointer text-zinc-700"
                   >

@@ -86,7 +86,14 @@ export function useOfflineSync() {
             } else if (targetRecordId.startsWith('offline_')) {
               result = { success: false, error: 'Dependent check-in is not yet synced' };
             } else {
-              result = await checkOut(targetRecordId, entry.lat, entry.lng, undefined, undefined, entry.fingerprint);
+              result = await submitOfflineRecoveryRequest(
+                'check_out',
+                entry.timestamp,
+                entry.lat,
+                entry.lng,
+                entry.fingerprint,
+                'Offline Clock-out Sync'
+              );
             }
             break;
           case 'wfh_request':
