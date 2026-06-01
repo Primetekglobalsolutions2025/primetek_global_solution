@@ -16,11 +16,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid MFA session' }, { status: 401 });
     }
 
-    // Rate limit MFA verification attempts to prevent brute-forcing 6-digit codes
-    const rateLimitKey = `mfa:${session.id}`;
-    const rateLimitResult = await consumeRateLimit(loginRateLimiter, rateLimitKey);
-    if (!rateLimitResult.allowed) {
-      const retryAfterSec = Math.ceil(rateLimitResult.retryAfterMs / 1000);
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
+
+    // 1. IP-based MFA rate limiting key
+    const mfaIpKey = `mfa_ip:${ip}`;
+    // 2. Account-based MFA rate limiting key
+    const mfaAccountKey = `mfa_account:${session.id}`;
+
+    // Verify rate limit status for both
+    const mfaIpRes = await loginRateLimiter.get(mfaIpKey);
+    const mfaAccountRes = await loginRateLimiter.get(mfaAccountKey);
+
+    if ((mfaIpRes && mfaIpRes.remainingPoints <= 0) || 
+        (mfaAccountRes && mfaAccountRes.remainingPoints <= 0)) {
+      const maxRetry = Math.max(mfaIpRes?.msBeforeNext || 0, mfaAccountRes?.msBeforeNext || 0);
+      const retryAfterSec = Math.ceil(maxRetry / 1000) || 60;
       return NextResponse.json(
         { error: `Too many MFA attempts. Try again in ${retryAfterSec} seconds.` },
         { status: 429, headers: { 'Retry-After': String(retryAfterSec) } }
@@ -43,7 +53,6 @@ export async function POST(request: NextRequest) {
     const isValid = await verifyMFAToken(code, decryptedSecret);
 
     if (isValid) {
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
       const userAgent = request.headers.get('user-agent') || 'unknown';
 
       // Create active session in database (Fail Closed)
@@ -59,9 +68,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to initialize security session' }, { status: 500 });
       }
 
+      // Clear rate limit counters on success
+      await loginRateLimiter.delete(mfaIpKey);
+      await loginRateLimiter.delete(mfaAccountKey);
+
       // Create full auth token
       const finalSession = { ...session };
       delete (finalSession as any).mfa_pending;
+      delete (finalSession as any).mfa_attempts;
       
       const token = await createToken(finalSession);
       const response = NextResponse.json({ success: true, user: { id: session.id, role: session.role } });
@@ -83,13 +97,45 @@ export async function POST(request: NextRequest) {
       return response;
     }
 
-    await logAuditAction('LOGIN_MFA_FAILED', table, session.id, null, { reason: 'Invalid code' }, { id: session.id, role: session.role });
-    // Clear mfa-pending-token on failure to force re-authentication
-    const failResponse = NextResponse.json({ error: 'Invalid verification code' }, { status: 401 });
-    failResponse.cookies.delete('mfa-pending-token');
+    // Increment attempts counter on failure
+    const currentAttempts = (session.mfa_attempts as number) || 0;
+    const newAttempts = currentAttempts + 1;
+
+    // Consume points from both rate limiters
+    await loginRateLimiter.consume(mfaIpKey).catch(() => null);
+    await loginRateLimiter.consume(mfaAccountKey).catch(() => null);
+
+    if (newAttempts >= 3) {
+      await logAuditAction('LOGIN_MFA_FAILED', table, session.id, null, { reason: 'MFA lockout', attempts: newAttempts }, { id: session.id, role: session.role });
+      
+      const failResponse = NextResponse.json({ error: 'Too many failed MFA attempts. Please log in again.' }, { status: 401 });
+      failResponse.cookies.delete('mfa-pending-token');
+      return failResponse;
+    }
+
+    // Keep the session token but update attempts count
+    const updatedToken = await createToken({
+      ...session,
+      mfa_attempts: newAttempts
+    });
+
+    const failResponse = NextResponse.json({ 
+      error: `Invalid verification code. ${3 - newAttempts} attempt(s) remaining.` 
+    }, { status: 401 });
+
+    failResponse.cookies.set('mfa-pending-token', updatedToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 5 * 60, // 5 minutes
+    });
+
+    await logAuditAction('LOGIN_MFA_FAILED', table, session.id, null, { reason: 'Invalid code', attempts: newAttempts }, { id: session.id, role: session.role });
     return failResponse;
   } catch (err) {
     console.error('MFA login error:', err instanceof Error ? err.message : String(err));
     return NextResponse.json({ error: 'MFA verification failed' }, { status: 500 });
   }
 }
+

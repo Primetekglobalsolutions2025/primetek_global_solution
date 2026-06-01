@@ -70,6 +70,7 @@ export async function generateQRCode(otpauth: string) {
   }
 }
 
-export async function verifyMFAToken(token: string, secret: string) {
-  return await verify({ token, secret });
+export async function verifyMFAToken(token: string, secret: string): Promise<boolean> {
+  const result = await verify({ token, secret });
+  return typeof result === 'boolean' ? result : !!(result && result.valid);
 }

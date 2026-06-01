@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert } from 'lucide-react';
+import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert, MapPin, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
@@ -103,6 +103,116 @@ export default function AttendanceClient({
 
   // Disputes and late login stats are refreshed manually or on mount to avoid heartbeat database query storms
 
+  const [permissionModal, setPermissionModal] = useState<{
+    type: 'request' | 'blocked';
+    geoState?: string;
+    notifState?: string;
+    onProceed?: () => void;
+    onRetry?: () => void;
+  } | null>(null);
+
+  const checkAndRequestPermissions = async (onGranted: () => void) => {
+    let geoState: PermissionState = 'prompt';
+    let notifState = typeof window !== 'undefined' ? Notification.permission : 'default';
+
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const geoPerm = await navigator.permissions.query({ name: 'geolocation' });
+        geoState = geoPerm.state;
+      }
+    } catch (e) {
+      console.warn('navigator.permissions.query failed for geolocation, falling back:', e);
+    }
+
+    if (geoState === 'granted' && notifState === 'granted') {
+      onGranted();
+      return;
+    }
+
+    if (geoState === 'denied' || notifState === 'denied') {
+      setPermissionModal({
+        type: 'blocked',
+        geoState,
+        notifState,
+        onRetry: () => {
+          setPermissionModal(null);
+          checkAndRequestPermissions(onGranted);
+        }
+      });
+      return;
+    }
+
+    setPermissionModal({
+      type: 'request',
+      geoState,
+      notifState,
+      onProceed: async () => {
+        setPermissionModal(null);
+        let finalNotifState: NotificationPermission = notifState as NotificationPermission;
+        
+        if (notifState === 'default') {
+          try {
+            const { subscribeUserToPush } = await import('@/lib/notifications/push-helper');
+            const requested = await Notification.requestPermission();
+            finalNotifState = requested;
+            if (requested === 'granted') {
+              subscribeUserToPush().catch(console.error);
+            }
+          } catch (e) {
+            console.error('Error requesting notification permission:', e);
+          }
+        }
+
+        if (geoState === 'prompt') {
+          navigator.geolocation.getCurrentPosition(
+            () => {
+              if (finalNotifState === 'denied') {
+                setPermissionModal({
+                  type: 'blocked',
+                  geoState: 'granted',
+                  notifState: 'denied',
+                  onRetry: () => {
+                    setPermissionModal(null);
+                    checkAndRequestPermissions(onGranted);
+                  }
+                });
+              } else {
+                onGranted();
+              }
+            },
+            (err) => {
+              console.error('Location request error:', err);
+              setPermissionModal({
+                type: 'blocked',
+                geoState: 'denied',
+                notifState: finalNotifState,
+                onRetry: () => {
+                  setPermissionModal(null);
+                  checkAndRequestPermissions(onGranted);
+                }
+              });
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        } else {
+          if (finalNotifState === 'granted') {
+            onGranted();
+          } else {
+            setPermissionModal({
+              type: 'blocked',
+              geoState: 'granted',
+              notifState: finalNotifState,
+              onRetry: () => {
+                setPermissionModal(null);
+                checkAndRequestPermissions(onGranted);
+              }
+            });
+          }
+        }
+      }
+    });
+  };
+
   const handleDisputeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!disputeRecord) return;
@@ -191,6 +301,18 @@ export default function AttendanceClient({
   const isCheckedOut = todayRecord && (todayRecord.status === 'Logged Out' || todayRecord.check_out);
   const checkInTime = todayRecord && todayRecord.check_in_raw ? new Date(todayRecord.check_in_raw) : null;
   const currentStatus = todayRecord ? todayRecord.status : 'Logged Out';
+
+  const showUndoClockOut = (() => {
+    if (!isCheckedOut || !todayRecord) return false;
+    const productiveHours = todayRecord.productive_hours ?? 0;
+    const isShiftEnded = (() => {
+      if (!todayRecord.date) return false;
+      const [year, month, day] = todayRecord.date.split('-').map(Number);
+      const shiftEndUTC = new Date(Date.UTC(year, month - 1, day, 22, 0, 0));
+      return currentTime > shiftEndUTC;
+    })();
+    return !isShiftEnded && productiveHours < 9;
+  })();
 
 
 
@@ -709,104 +831,108 @@ export default function AttendanceClient({
     return () => clearInterval(interval);
   }, [checkedIn, isCheckedOut, currentStatus, todayRecord]);
 
-  const handleCheckIn = async () => {
-    setGpsStatus('loading');
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-        });
-      });
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      setCoords({ lat, lng });
-      
-      const fingerprint = getOrCreateFingerprint();
-
-      if (!navigator.onLine) {
-        try {
-          enqueueOfflineAction('check_in', lat, lng, fingerprint);
-          refreshPendingCount();
-          setGpsStatus('success');
-          showNotification('Offline mode — check-in saved locally. It will sync when you reconnect.', 'info');
-        } catch (queueErr) {
-          const errorMsg = queueErr instanceof Error ? queueErr.message : 'Failed to queue offline check-in';
-          setGpsStatus('error');
-          showNotification(errorMsg, 'error');
-        }
-        return;
-      }
-
-      const devInfo = getDeviceInfo();
-      const result = await executeMutationWithVersionCheck(async () => {
-        const res = await checkIn(lat, lng, undefined, undefined, fingerprint, undefined, devInfo);
-        return res;
-      }, 'Check In');
-      
-      if (result && result.outOfRadius) {
-        setWfhRequest({
-          active: true,
-          distance: result.distance,
-          officeName: result.officeName
-        });
-        setGpsStatus('idle');
-      } else if (result && result.success) {
-        setGpsStatus('success');
-      } else {
-        setGpsStatus('error');
-      }
-
-    } catch (err) {
-      if (!navigator.onLine && coords) {
-        try {
-          const fingerprint = getOrCreateFingerprint();
-          enqueueOfflineAction('check_in', coords.lat, coords.lng, fingerprint);
-          refreshPendingCount();
-          setGpsStatus('success');
-          showNotification('Network lost — check-in saved offline. Will sync automatically.', 'info');
-          return;
-        } catch { /* fall through to error */ }
-      }
-      const errorMsg = err instanceof Error ? err.message : 'Could not retrieve your GPS location. Please check browser permissions.';
-      setGpsStatus('error');
-      showNotification(errorMsg, 'error');
-    }
-  };
-
-  const handleWFHRequest = async () => {
-    let currentCoords = coords;
-    if (!currentCoords) {
+  const handleCheckIn = () => {
+    checkAndRequestPermissions(async () => {
       setGpsStatus('loading');
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { 
-            enableHighAccuracy: true, 
-            timeout: 10000 
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
           });
         });
-        currentCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
-        setCoords(currentCoords);
-      } catch (err) {
-        setGpsStatus('error');
-        showNotification('Could not retrieve your GPS location for WFH request.', 'error');
-        return;
-      }
-    }
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setCoords({ lat, lng });
+        
+        const fingerprint = getOrCreateFingerprint();
 
-    setGpsStatus('loading');
-    try {
-      const fingerprint = getOrCreateFingerprint();
-      await executeMutationWithVersionCheck(async () => {
-        const result = await requestWFH(currentCoords!.lat, currentCoords!.lng, undefined, undefined, fingerprint);
-        return result;
-      }, 'WFH Request');
-      setGpsStatus('success');
-      setWfhRequest(null);
-    } catch {
-      setGpsStatus('error');
-      showNotification('Failed to request WFH', 'error');
-    }
+        if (!navigator.onLine) {
+          try {
+            enqueueOfflineAction('check_in', lat, lng, fingerprint);
+            refreshPendingCount();
+            setGpsStatus('success');
+            showNotification('Offline mode — check-in saved locally. It will sync when you reconnect.', 'info');
+          } catch (queueErr) {
+            const errorMsg = queueErr instanceof Error ? queueErr.message : 'Failed to queue offline check-in';
+            setGpsStatus('error');
+            showNotification(errorMsg, 'error');
+          }
+          return;
+        }
+
+        const devInfo = getDeviceInfo();
+        const result = await executeMutationWithVersionCheck(async () => {
+          const res = await checkIn(lat, lng, undefined, undefined, fingerprint, undefined, devInfo);
+          return res;
+        }, 'Check In');
+        
+        if (result && result.outOfRadius) {
+          setWfhRequest({
+            active: true,
+            distance: result.distance,
+            officeName: result.officeName
+          });
+          setGpsStatus('idle');
+        } else if (result && result.success) {
+          setGpsStatus('success');
+        } else {
+          setGpsStatus('error');
+        }
+
+      } catch (err) {
+        if (!navigator.onLine && coords) {
+          try {
+            const fingerprint = getOrCreateFingerprint();
+            enqueueOfflineAction('check_in', coords.lat, coords.lng, fingerprint);
+            refreshPendingCount();
+            setGpsStatus('success');
+            showNotification('Network lost — check-in saved offline. Will sync automatically.', 'info');
+            return;
+          } catch { /* fall through to error */ }
+        }
+        const errorMsg = err instanceof Error ? err.message : 'Could not retrieve your GPS location. Please check browser permissions.';
+        setGpsStatus('error');
+        showNotification(errorMsg, 'error');
+      }
+    });
+  };
+
+  const handleWFHRequest = () => {
+    checkAndRequestPermissions(async () => {
+      let currentCoords = coords;
+      if (!currentCoords) {
+        setGpsStatus('loading');
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { 
+              enableHighAccuracy: true, 
+              timeout: 10000 
+            });
+          });
+          currentCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+          setCoords(currentCoords);
+        } catch (err) {
+          setGpsStatus('error');
+          showNotification('Could not retrieve your GPS location for WFH request.', 'error');
+          return;
+        }
+      }
+
+      setGpsStatus('loading');
+      try {
+        const fingerprint = getOrCreateFingerprint();
+        await executeMutationWithVersionCheck(async () => {
+          const result = await requestWFH(currentCoords!.lat, currentCoords!.lng, undefined, undefined, fingerprint);
+          return result;
+        }, 'WFH Request');
+        setGpsStatus('success');
+        setWfhRequest(null);
+      } catch {
+        setGpsStatus('error');
+        showNotification('Failed to request WFH', 'error');
+      }
+    });
   };
 
   const handleCheckOut = async () => {
@@ -823,49 +949,51 @@ export default function AttendanceClient({
     setConfirmAction({
       message: 'Are you sure you want to clock out for today? Any running breaks will be ended automatically.',
       variant: 'danger',
-      onConfirm: async () => {
-        setGpsStatus('loading');
-        let lat: number;
-        let lng: number;
+      onConfirm: () => {
+        checkAndRequestPermissions(async () => {
+          setGpsStatus('loading');
+          let lat: number;
+          let lng: number;
 
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { 
-              enableHighAccuracy: true, 
-              timeout: 10000 
-            });
-          });
-          lat = position.coords.latitude;
-          lng = position.coords.longitude;
-          setCoords({ lat, lng });
-        } catch {
-          setGpsStatus('error');
-          showNotification('Could not retrieve your GPS location. Location access is required to clock out.', 'error');
-          return;
-        }
-
-        const fingerprint = getOrCreateFingerprint();
-        const recordId = todayRecord ? todayRecord.id : pendingCheckIn!.id;
-
-        if (!navigator.onLine) {
           try {
-            enqueueOfflineAction('check_out', lat, lng, fingerprint, recordId);
-            refreshPendingCount();
-            setGpsStatus('success');
-            showNotification('Offline mode — check-out saved locally. It will sync when you reconnect.', 'info');
-          } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : 'Failed to queue offline check-out';
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, { 
+                enableHighAccuracy: true, 
+                timeout: 10000 
+              });
+            });
+            lat = position.coords.latitude;
+            lng = position.coords.longitude;
+            setCoords({ lat, lng });
+          } catch {
             setGpsStatus('error');
-            showNotification(errorMsg, 'error');
+            showNotification('Could not retrieve your GPS location. Location access is required to clock out.', 'error');
+            return;
           }
-          return;
-        }
 
-        await executeMutationWithVersionCheck(async () => {
-          const result = await checkOut(recordId, lat, lng, undefined, undefined, fingerprint);
-          return result;
-        }, 'Check Out');
-        setGpsStatus('success');
+          const fingerprint = getOrCreateFingerprint();
+          const recordId = todayRecord ? todayRecord.id : pendingCheckIn!.id;
+
+          if (!navigator.onLine) {
+            try {
+              enqueueOfflineAction('check_out', lat, lng, fingerprint, recordId);
+              refreshPendingCount();
+              setGpsStatus('success');
+              showNotification('Offline mode — check-out saved locally. It will sync when you reconnect.', 'info');
+            } catch (err) {
+              const errorMsg = err instanceof Error ? err.message : 'Failed to queue offline check-out';
+              setGpsStatus('error');
+              showNotification(errorMsg, 'error');
+            }
+            return;
+          }
+
+          await executeMutationWithVersionCheck(async () => {
+            const result = await checkOut(recordId, lat, lng, undefined, undefined, fingerprint);
+            return result;
+          }, 'Check Out');
+          setGpsStatus('success');
+        });
       }
     });
   };
@@ -1484,7 +1612,7 @@ export default function AttendanceClient({
                     </span>
                   </div>
                 </div>
-                {isCheckedOut && (
+                {showUndoClockOut && (
                   <div className="text-center pt-1">
                     <button 
                       onClick={handleResume} 
@@ -2197,6 +2325,118 @@ export default function AttendanceClient({
                 <X className="w-4 h-4" />
               </button>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Permission Modal */}
+      <AnimatePresence>
+        {permissionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 font-sans text-navy-900"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 10 }}
+              className="bg-white border border-zinc-200 rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4"
+            >
+              <div className="flex items-center gap-3 text-primary-600">
+                <Bell className="w-8 h-8 text-primary-500" />
+                <h3 className="text-lg font-bold text-navy-900 font-sans">
+                  {permissionModal.type === 'request' ? 'Permissions Required' : 'Permissions Blocked'}
+                </h3>
+              </div>
+              
+              {permissionModal.type === 'request' ? (
+                <>
+                  <p className="text-xs text-zinc-650 leading-relaxed font-sans">
+                    Primetek Portal requires the following permissions to enable check-in/out functionality:
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-zinc-600 font-sans">
+                    {permissionModal.geoState === 'prompt' && (
+                      <li className="flex items-start gap-2.5 bg-zinc-50 border border-zinc-150 p-3 rounded-xl">
+                        <MapPin className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="block text-navy-900">Location Access</strong>
+                          Required to verify that your clock-in/out occurs within the office geofence.
+                        </div>
+                      </li>
+                    )}
+                    {permissionModal.notifState === 'default' && (
+                      <li className="flex items-start gap-2.5 bg-zinc-50 border border-zinc-150 p-3 rounded-xl">
+                        <Bell className="w-4 h-4 text-primary-500 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="block text-navy-900">Notifications</strong>
+                          Used to send alerts regarding leave approvals, auto-breaks, and shift reminders.
+                        </div>
+                      </li>
+                    )}
+                  </ul>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPermissionModal(null)}
+                      className="flex-1 py-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-xs font-bold uppercase tracking-wider transition-colors border border-zinc-200 cursor-pointer font-sans"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={permissionModal.onProceed}
+                      className="flex-1 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer font-sans border-0"
+                    >
+                      Grant Permissions
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-zinc-650 leading-relaxed font-sans">
+                    One or more required permissions are blocked in your browser or device settings. Please reset them to continue:
+                  </p>
+                  <ul className="space-y-2.5 text-xs text-zinc-600 font-sans">
+                    {permissionModal.geoState === 'denied' && (
+                      <li className="flex items-start gap-2.5 bg-red-50/50 border border-red-200/40 p-3 rounded-xl">
+                        <MapPin className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="block text-red-700">Location Blocked</strong>
+                          Click on the settings/lock icon in your browser address bar and change Location permission to <strong>Allow</strong>.
+                        </div>
+                      </li>
+                    )}
+                    {permissionModal.notifState === 'denied' && (
+                      <li className="flex items-start gap-2.5 bg-red-50/50 border border-red-200/40 p-3 rounded-xl">
+                        <Bell className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="block text-red-700">Notifications Blocked</strong>
+                          Go to your browser settings or PWA settings and enable Notifications for this site.
+                        </div>
+                      </li>
+                    )}
+                  </ul>
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPermissionModal(null)}
+                      className="flex-1 py-3 rounded-xl bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-xs font-bold uppercase tracking-wider transition-colors border border-zinc-200 cursor-pointer font-sans"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      onClick={permissionModal.onRetry}
+                      className="flex-1 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer font-sans border-0"
+                    >
+                      I Enabled Them - Retry
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

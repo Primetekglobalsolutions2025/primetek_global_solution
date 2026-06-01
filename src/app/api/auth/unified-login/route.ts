@@ -10,39 +10,53 @@ import { env } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   try {
-
-    // 1. Basic Security: Rate Limiting by IP
+    // 1. Basic Security: Extract IP and parse request body
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown-ip';
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[Auth] Attempt from IP: ${ip}`);
-    }
 
     const body = await request.json().catch(() => null);
     if (!body || !body.email || !body.password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
     const { email, password, fingerprint, portal } = body;
+    
+    // Validate portal parameter explicitly
+    if (portal !== 'admin' && portal !== 'employee') {
+      // Dummy bcrypt operation to prevent timing attacks
+      await bcrypt.compare(password, '$2a$12$L8n8GvU.Y2d7b4OdfGkY3.2SDFs67asdfaHsklj123HjkasdfHj12');
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
 
-    // Basic Security: Check if blocked by Rate Limiter
-    const rateLimitKey = `${ip}_${cleanEmail}`;
-    const rateLimitRes = await loginRateLimiter.get(rateLimitKey);
-    if (rateLimitRes && rateLimitRes.remainingPoints <= 0) {
+    // 2. Dual-Layer Rate Limiting (IP-based and Account-based)
+    const ipKey = `ip:${ip}`;
+    const accountKey = `account:${cleanEmail}`;
+
+    const ipRateLimitRes = await loginRateLimiter.get(ipKey);
+    const accountRateLimitRes = await loginRateLimiter.get(accountKey);
+
+    if ((ipRateLimitRes && ipRateLimitRes.remainingPoints <= 0) || 
+        (accountRateLimitRes && accountRateLimitRes.remainingPoints <= 0)) {
       return NextResponse.json({ 
         error: 'Too many failed attempts. Please try again in 15 minutes.',
         lockout: true 
       }, { status: 429 });
     }
 
-    const failedAttempts = rateLimitRes ? (5 - rateLimitRes.remainingPoints) : 0;
-    const isCaptchaRequired = failedAttempts >= CAPTCHA_THRESHOLD;
+    const ipFailed = ipRateLimitRes ? (5 - ipRateLimitRes.remainingPoints) : 0;
+    const accountFailed = accountRateLimitRes ? (5 - accountRateLimitRes.remainingPoints) : 0;
+    const maxFailedAttempts = Math.max(ipFailed, accountFailed);
+    const isCaptchaRequired = maxFailedAttempts >= CAPTCHA_THRESHOLD;
 
     if (isCaptchaRequired) {
       const { captchaToken, captchaAnswer, captchaNonce } = body || {};
       if (!captchaToken || captchaAnswer === undefined || captchaAnswer === null || !captchaNonce) {
+        // Increment rate limit attempts for missing captcha
+        await loginRateLimiter.consume(ipKey).catch(() => null);
+        await loginRateLimiter.consume(accountKey).catch(() => null);
         const captcha = await generateCaptchaChallenge();
         return NextResponse.json({
           error: 'Security verification required. Please solve the CAPTCHA.',
@@ -53,6 +67,9 @@ export async function POST(request: NextRequest) {
 
       const isValid = await verifyCaptchaToken(captchaToken, Number(captchaAnswer), captchaNonce);
       if (!isValid) {
+        // Increment rate limit attempts for incorrect captcha
+        await loginRateLimiter.consume(ipKey).catch(() => null);
+        await loginRateLimiter.consume(accountKey).catch(() => null);
         const captcha = await generateCaptchaChallenge();
         return NextResponse.json({
           error: 'Incorrect CAPTCHA answer. Please try again.',
@@ -62,48 +79,49 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[Auth] Login attempt for: ${cleanEmail}`);
-    }
-
-    const isEmail = cleanEmail.includes('@');
-
-    // 3. Admin Check (Database-first for reliability)
-    const shouldCheckAdmin = portal !== 'employee';
-    let isAdmin = false;
-    let adminRecord = null;
-
-    if (shouldCheckAdmin) {
-      const { data: record } = await supabaseAdmin
+    // 3. ADMIN PORTAL PIPELINE
+    if (portal === 'admin') {
+      // Admin lookup - database-first
+      const { data: record, error: dbErr } = await supabaseAdmin
         .from('admin_users')
         .select('id, email')
         .ilike('email', cleanEmail)
-        .single();
-      adminRecord = record;
+        .maybeSingle();
 
-      const ADMIN_EMAIL_ENV = (process.env.ADMIN_EMAIL || 'admin@primetekglobalsolutions.com').trim().toLowerCase();
-      isAdmin = !!adminRecord || cleanEmail === ADMIN_EMAIL_ENV;
-    }
+      if (dbErr || !record) {
+        // Admin does not exist: Run mock credentials verification to match timing
+        const dummyClient = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        });
+        await dummyClient.auth.signInWithPassword({
+          email: 'nonexistent-admin-trigger-dummy@primetekglobalsolutions.com',
+          password: 'dummy-password-that-will-fail-and-simulate-supabase-latency',
+        }).catch(() => null);
 
-    if (portal === 'admin' && !isAdmin) {
-      const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
-      const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string; nonce: string } } = { error: 'Invalid credentials' };
-      if (failedAttempts >= CAPTCHA_THRESHOLD) {
-        responseData.showCaptcha = true;
-        responseData.captcha = await generateCaptchaChallenge();
+        // Internal audit log for role/user mismatch
+        await logAuditAction('LOGIN_FAILED', 'admin_users', '00000000-0000-0000-0000-000000000000', null, { 
+          reason: 'invalid_role', 
+          email: cleanEmail,
+          portal: 'admin'
+        });
+
+        await loginRateLimiter.consume(ipKey).catch(() => null);
+        await loginRateLimiter.consume(accountKey).catch(() => null);
+
+        const currentRes = await loginRateLimiter.get(ipKey);
+        const failedAttempts = 5 - (currentRes?.remainingPoints || 5);
+        const responseData: { error: string; showCaptcha?: boolean; captcha?: any } = { error: 'Invalid credentials' };
+        if (failedAttempts >= CAPTCHA_THRESHOLD) {
+          responseData.showCaptcha = true;
+          responseData.captcha = await generateCaptchaChallenge();
+        }
+        return NextResponse.json(responseData, { status: 401 });
       }
-      return NextResponse.json(responseData, { status: 401 });
-    }
 
-    if (isAdmin) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Auth] Admin detected (${cleanEmail}). Authenticating via Supabase Auth...`);
-      } else {
-        console.log('[Auth] Admin login attempt. Authenticating via Supabase Auth...');
-      }
-      
-      // Create a localized client for credentials verification to avoid mutating the global supabaseAdmin client
+      // Authenticate with Supabase Auth
       const authClient = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
         auth: {
           autoRefreshToken: false,
@@ -117,28 +135,26 @@ export async function POST(request: NextRequest) {
       });
 
       if (apiAuthError) {
-        console.error('[Auth] Admin Auth failed:', apiAuthError.message);
-        
-        const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
-        const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-        const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string; nonce: string } } = { error: 'Invalid credentials' };
+        await logAuditAction('LOGIN_FAILED', 'admin_users', record.id, null, { 
+          reason: 'invalid_password', 
+          email: cleanEmail 
+        }, { id: record.id, role: 'admin' });
+
+        await loginRateLimiter.consume(ipKey).catch(() => null);
+        await loginRateLimiter.consume(accountKey).catch(() => null);
+
+        const currentRes = await loginRateLimiter.get(ipKey);
+        const failedAttempts = 5 - (currentRes?.remainingPoints || 5);
+        const responseData: { error: string; showCaptcha?: boolean; captcha?: any } = { error: 'Invalid credentials' };
         if (failedAttempts >= CAPTCHA_THRESHOLD) {
           responseData.showCaptcha = true;
           responseData.captcha = await generateCaptchaChallenge();
         }
-        
-        // Pass through specific errors that aren't just "wrong password"
-        if (apiAuthError.message !== 'Invalid login credentials') {
-          responseData.error = apiAuthError.message;
-        }
-        
         return NextResponse.json(responseData, { status: 401 });
       }
 
       if (authData?.user) {
-        // Clear rate limit key on success
-        await loginRateLimiter.delete(rateLimitKey);
-        // Verify admin is provisioned in admin_users table
+        // Double check admin provisioning in database
         const { data: freshAdmin, error: freshAdminError } = await supabaseAdmin
           .from('admin_users')
           .select('mfa_enabled')
@@ -146,16 +162,25 @@ export async function POST(request: NextRequest) {
           .maybeSingle();
 
         if (freshAdminError || !freshAdmin) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+          await logAuditAction('LOGIN_FAILED', 'admin_users', authData.user.id, null, { 
+            reason: 'invalid_role', 
+            email: cleanEmail 
+          }, { id: authData.user.id, role: 'admin' });
+
+          await loginRateLimiter.consume(ipKey).catch(() => null);
+          await loginRateLimiter.consume(accountKey).catch(() => null);
+          return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        if (freshAdmin?.mfa_enabled) {
+        // Handle MFA
+        if (freshAdmin.mfa_enabled) {
           const tempToken = await createToken({
             id: authData.user.id,
             email: authData.user.email || email,
             role: 'admin',
             name: authData.user.user_metadata?.full_name || 'Administrator',
             mfa_pending: true,
+            mfa_attempts: 0
           });
 
           const response = NextResponse.json({ 
@@ -189,6 +214,10 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Failed to initialize security session' }, { status: 500 });
         }
 
+        // Clear rate limit key on success
+        await loginRateLimiter.delete(ipKey);
+        await loginRateLimiter.delete(accountKey);
+
         const token = await createToken({
           id: authData.user.id,
           email: authData.user.email || email,
@@ -217,115 +246,167 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 4. If not admin, try finding the user in the employees table
-    const query = supabaseAdmin
-      .from('employees')
-      .select('id, email, employee_id, password_hash, status, name, role, mfa_enabled');
+    // 4. EMPLOYEE PORTAL PIPELINE
+    if (portal === 'employee') {
+      const isEmail = cleanEmail.includes('@');
       
-    const { data: user, error } = await (isEmail 
-      ? query.ilike('email', cleanEmail).single() 
-      : query.ilike('employee_id', cleanEmail).single());
+      const query = supabaseAdmin
+        .from('employees')
+        .select('id, email, employee_id, password_hash, status, name, role, mfa_enabled');
+        
+      const { data: user, error: dbErr } = await (isEmail 
+        ? query.ilike('email', cleanEmail).maybeSingle() 
+        : query.ilike('employee_id', cleanEmail).maybeSingle());
 
-    if (error || !user) {
-      const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
-      const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string; nonce: string } } = { error: 'Invalid credentials' };
-      if (failedAttempts >= CAPTCHA_THRESHOLD) {
-        responseData.showCaptcha = true;
-        responseData.captcha = await generateCaptchaChallenge();
+      if (dbErr || !user) {
+        // Timing attack resistance: Run mock bcrypt compare
+        await bcrypt.compare(cleanPassword, '$2a$12$L8n8GvU.Y2d7b4OdfGkY3.2SDFs67asdfaHsklj123HjkasdfHj12');
+
+        // Internal audit log for missing user
+        await logAuditAction('LOGIN_FAILED', 'employees', '00000000-0000-0000-0000-000000000000', null, { 
+          reason: 'invalid_user', 
+          email: cleanEmail,
+          portal: 'employee'
+        });
+
+        await loginRateLimiter.consume(ipKey).catch(() => null);
+        await loginRateLimiter.consume(accountKey).catch(() => null);
+
+        const currentRes = await loginRateLimiter.get(ipKey);
+        const failedAttempts = 5 - (currentRes?.remainingPoints || 5);
+        const responseData: { error: string; showCaptcha?: boolean; captcha?: any } = { error: 'Invalid credentials' };
+        if (failedAttempts >= CAPTCHA_THRESHOLD) {
+          responseData.showCaptcha = true;
+          responseData.captcha = await generateCaptchaChallenge();
+        }
+        return NextResponse.json(responseData, { status: 401 });
       }
-      return NextResponse.json(responseData, { status: 401 });
-    }
 
-    if (user.status !== 'Active') {
-      return NextResponse.json({ error: 'Account is inactive' }, { status: 403 });
-    }
+      // Verify password
+      const isValidPassword = await bcrypt.compare(cleanPassword, user.password_hash);
+      if (!isValidPassword) {
+        await logAuditAction('LOGIN_FAILED', 'employees', user.id, null, { 
+          reason: 'invalid_password', 
+          email: cleanEmail 
+        }, { id: user.id, role: user.role });
+        
+        await loginRateLimiter.consume(ipKey).catch(() => null);
+        await loginRateLimiter.consume(accountKey).catch(() => null);
 
-    const isValidPassword = await bcrypt.compare(cleanPassword, user.password_hash);
-    if (!isValidPassword) {
-      await logAuditAction('LOGIN_FAILED', 'employees', user.id, null, { reason: 'Incorrect password', email: cleanEmail }, { id: user.id, role: user.role });
-      
-      const currentRes = await loginRateLimiter.consume(rateLimitKey).catch(err => err);
-      const failedAttempts = 5 - (currentRes.remainingPoints || 0);
-      const responseData: { error: string; showCaptcha?: boolean; captcha?: { equation: string; token: string; nonce: string } } = { error: 'Invalid credentials' };
-      if (failedAttempts >= CAPTCHA_THRESHOLD) {
-        responseData.showCaptcha = true;
-        responseData.captcha = await generateCaptchaChallenge();
+        const currentRes = await loginRateLimiter.get(ipKey);
+        const failedAttempts = 5 - (currentRes?.remainingPoints || 5);
+        const responseData: { error: string; showCaptcha?: boolean; captcha?: any } = { error: 'Invalid credentials' };
+        if (failedAttempts >= CAPTCHA_THRESHOLD) {
+          responseData.showCaptcha = true;
+          responseData.captcha = await generateCaptchaChallenge();
+        }
+        return NextResponse.json(responseData, { status: 401 });
       }
-      return NextResponse.json(responseData, { status: 401 });
-    }
 
-    // Clear rate limit key on success
-    await loginRateLimiter.delete(rateLimitKey);
+      // Verify account status
+      if (user.status !== 'Active') {
+        const auditReason = user.status === 'Suspended' ? 'suspended_account' : 
+                            user.status === 'Inactive' ? 'inactive_account' : 'disabled_account';
 
-    if (user.mfa_enabled) {
-      const tempToken = await createToken({
+        await logAuditAction('LOGIN_FAILED', 'employees', user.id, null, { 
+          reason: auditReason, 
+          email: cleanEmail 
+        }, { id: user.id, role: user.role });
+
+        await loginRateLimiter.consume(ipKey).catch(() => null);
+        await loginRateLimiter.consume(accountKey).catch(() => null);
+        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      }
+
+      // Verify correct role category
+      if (user.role !== 'employee' && user.role !== 'hr') {
+        await logAuditAction('LOGIN_FAILED', 'employees', user.id, null, { 
+          reason: 'invalid_role', 
+          email: cleanEmail 
+        }, { id: user.id, role: user.role });
+
+        await loginRateLimiter.consume(ipKey).catch(() => null);
+        await loginRateLimiter.consume(accountKey).catch(() => null);
+        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      }
+
+      // Handle MFA
+      if (user.mfa_enabled) {
+        const tempToken = await createToken({
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: user.name,
+          mfa_pending: true,
+          mfa_attempts: 0
+        });
+
+        const response = NextResponse.json({ 
+          requiresMFA: true,
+          role: user.role
+        });
+
+        response.cookies.set('mfa-pending-token', tempToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 5 * 60, // 5 minutes
+        });
+
+        await logAuditAction('LOGIN_MFA_PENDING', 'employees', user.id, null, null, { id: user.id, role: user.role });
+        return response;
+      }
+
+      // Create active session in database (Fail Closed)
+      const userAgent = request.headers.get('user-agent') || 'unknown';
+      const sessionRecord = await createActiveSession({
+        userId: user.id,
+        role: user.role,
+        ipAddress: ip,
+        userAgent,
+        deviceFingerprint: fingerprint || undefined,
+      });
+
+      if (!sessionRecord) {
+        return NextResponse.json({ error: 'Failed to initialize security session' }, { status: 500 });
+      }
+
+      // Clear rate limit key on success
+      await loginRateLimiter.delete(ipKey);
+      await loginRateLimiter.delete(accountKey);
+
+      const token = await createToken({
         id: user.id,
         email: user.email,
         role: user.role,
         name: user.name,
-        mfa_pending: true,
       });
 
       const response = NextResponse.json({ 
-        requiresMFA: true,
-        role: user.role
+        success: true, 
+        role: user.role,
+        name: user.name 
       });
 
-      response.cookies.set('mfa-pending-token', tempToken, {
+      response.cookies.set('employee-auth-token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: 5 * 60, // 5 minutes
+        maxAge: 24 * 60 * 60, // 24 hours (employee session lifetime)
       });
 
-      await logAuditAction('LOGIN_MFA_PENDING', 'employees', user.id, null, null, { id: user.id, role: user.role });
+      response.cookies.delete('mfa-pending-token');
+
+      await logAuditAction('LOGIN_SUCCESS', 'employees', user.id, null, null, { id: user.id, role: user.role });
       return response;
     }
 
-    // Create active session in database (Fail Closed)
-    const userAgent = request.headers.get('user-agent') || 'unknown';
-    const sessionRecord = await createActiveSession({
-      userId: user.id,
-      role: user.role,
-      ipAddress: ip,
-      userAgent,
-      deviceFingerprint: fingerprint || undefined,
-    });
-
-    if (!sessionRecord) {
-      return NextResponse.json({ error: 'Failed to initialize security session' }, { status: 500 });
-    }
-
-    const token = await createToken({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      name: user.name,
-    });
-
-    const response = NextResponse.json({ 
-      success: true, 
-      role: user.role,
-      name: user.name 
-    });
-
-    response.cookies.set('employee-auth-token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60, // 24 hours (employee session lifetime)
-    });
-
-    response.cookies.delete('mfa-pending-token');
-
-    await logAuditAction('LOGIN_SUCCESS', 'employees', user.id, null, null, { id: user.id, role: user.role });
-    return response;
+    return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
   } catch (err) {
     console.error('Unified Login error:', err instanceof Error ? err.message : String(err));
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
   }
 }
 
@@ -337,3 +418,4 @@ async function generateCaptchaChallenge() {
   const token = await createCaptchaToken(num1 * num2, nonce);
   return { equation, token, nonce };
 }
+

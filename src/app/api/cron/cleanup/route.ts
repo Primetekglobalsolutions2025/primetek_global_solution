@@ -17,7 +17,15 @@ export async function GET(req: Request) {
 
     // 1. Sweep stale active sessions (event-sourced FORCE_LOGOUT)
     let sweepResult = null;
+    let telemetryResult = null;
     try {
+      const { data: teleData, error: teleErr } = await supabaseAdmin.rpc('sweep_active_sessions_telemetry');
+      if (teleErr) {
+        console.error('[Cron/Cleanup] Telemetry Sweep RPC error:', teleErr.message);
+      } else {
+        telemetryResult = teleData;
+      }
+
       const { data, error: sweepErr } = await supabaseAdmin.rpc('sweep_and_close_stale_sessions');
       if (sweepErr) {
         console.error('[Cron/Cleanup] Sweep RPC error:', sweepErr.message);

@@ -14,6 +14,16 @@ export const dynamic = 'force-dynamic';
 async function OperationalKPIGrid() {
   const todayIST = getISTShiftDate(new Date());
 
+  // Proactively sweep active telemetry heartbeats and stale sessions on load to guarantee real-time workforce stats accuracy
+  try {
+    await Promise.all([
+      supabaseAdmin.rpc('sweep_active_sessions_telemetry'),
+      supabaseAdmin.rpc('sweep_and_close_stale_sessions')
+    ]);
+  } catch (sweepErr) {
+    console.error('[AdminDashboard] Failed to sweep stale sessions on load:', sweepErr);
+  }
+
   let activeEmployees = 0;
   let activeBreaks = 0;
   let idleSessions = 0;

@@ -6,6 +6,7 @@ import { createTestEmployee, cleanupTestData, getTestSession, createTestAdmin } 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { checkIn } from '@/app/employee/attendance/actions';
 import { OFFICE_LOCATION } from '@/lib/location';
+import { generateSecret } from 'otplib';
 
 import * as nextHeaders from 'next/headers';
 const { __mockSetCookie, __mockClearCookies } = nextHeaders as any;
@@ -180,5 +181,147 @@ describe('Security Integration Tests — IDOR, Authorization & Magic Bytes', () 
     expect(isCronAuthorized(buildRequest(null))).toBe(false);
     expect(isCronAuthorized(buildRequest('Bearer wrong-secret'))).toBe(false);
     expect(isCronAuthorized(buildRequest(`Bearer ${CRON_SECRET}`))).toBe(true);
+  });
+
+  it('TEST-I21: Inactive account returns 401 and generic Invalid credentials', async () => {
+    const testIp = '127.0.0.99';
+    // Clear any rate limits from previous runs
+    await supabaseAdmin
+      .from('rate_limits')
+      .delete()
+      .in('key', [`login:ip:${testIp}`, `login:mfa_ip:${testIp}`]);
+
+    const inactiveEmployee = await createTestEmployee();
+    await supabaseAdmin
+      .from('employees')
+      .update({ status: 'Inactive' })
+      .eq('id', inactiveEmployee.id);
+
+    const { POST: unifiedLoginPOST } = await import('@/app/api/auth/unified-login/route');
+    const { NextRequest } = await import('next/server');
+
+    // Attempt login with incorrect password
+    const req1 = new NextRequest('http://localhost:3000/api/auth/unified-login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: inactiveEmployee.email,
+        password: 'incorrect-password',
+        portal: 'employee',
+      }),
+      headers: {
+        'x-forwarded-for': '127.0.0.99',
+      },
+    });
+    const res1 = await unifiedLoginPOST(req1);
+    expect(res1.status).toBe(401);
+    const body1 = await res1.json();
+    expect(body1.error).toBe('Invalid credentials');
+
+    // Attempt login with correct password
+    const req2 = new NextRequest('http://localhost:3000/api/auth/unified-login', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: inactiveEmployee.email,
+        password: 'TestPass123!',
+        portal: 'employee',
+      }),
+      headers: {
+        'x-forwarded-for': '127.0.0.99',
+      },
+    });
+    const res2 = await unifiedLoginPOST(req2);
+    expect(res2.status).toBe(401);
+    const body2 = await res2.json();
+    expect(body2.error).toBe('Invalid credentials');
+
+    await cleanupTestData(inactiveEmployee.id);
+  });
+
+  it('TEST-I22: MFA retry counter stateless implementation in mfa-login', async () => {
+    const testIp = '127.0.0.98';
+    // Clear any rate limits from previous runs
+    await supabaseAdmin
+      .from('rate_limits')
+      .delete()
+      .in('key', [`login:ip:${testIp}`, `login:mfa_ip:${testIp}`]);
+
+    const testEmployee = await createTestEmployee();
+    const { POST: mfaLoginPOST } = await import('@/app/api/auth/mfa-login/route');
+    const { createToken } = await import('@/lib/auth');
+    const { NextRequest } = await import('next/server');
+
+    // Setup MFA secret
+    const secret = generateSecret();
+    await supabaseAdmin
+      .from('employees')
+      .update({ 
+        mfa_enabled: true,
+        mfa_secret: secret
+      })
+      .eq('id', testEmployee.id);
+
+    // Initial mfa-pending-token with 0 attempts
+    const initialToken = await createToken({
+      id: testEmployee.id,
+      email: testEmployee.email,
+      role: testEmployee.role,
+      name: testEmployee.name,
+      mfa_pending: true,
+      mfa_attempts: 0
+    });
+
+    // 1st failed attempt
+    const req1 = new NextRequest('http://localhost:3000/api/auth/mfa-login', {
+      method: 'POST',
+      body: JSON.stringify({ code: '000000' }),
+      headers: {
+        'cookie': `mfa-pending-token=${initialToken}`,
+        'x-forwarded-for': '127.0.0.98',
+      }
+    });
+    const res1 = await mfaLoginPOST(req1);
+    expect(res1.status).toBe(401);
+    const body1 = await res1.json();
+    expect(body1.error).toContain('attempt(s) remaining');
+
+    // Extract updated token from response cookies
+    const cookieHeader = res1.headers.get('set-cookie');
+    expect(cookieHeader).toContain('mfa-pending-token=');
+    const updatedToken1 = cookieHeader!.split('mfa-pending-token=')[1].split(';')[0];
+
+    // 2nd failed attempt using the updated token
+    const req2 = new NextRequest('http://localhost:3000/api/auth/mfa-login', {
+      method: 'POST',
+      body: JSON.stringify({ code: '000000' }),
+      headers: {
+        'cookie': `mfa-pending-token=${updatedToken1}`,
+        'x-forwarded-for': '127.0.0.98',
+      }
+    });
+    const res2 = await mfaLoginPOST(req2);
+    expect(res2.status).toBe(401);
+    const cookieHeader2 = res2.headers.get('set-cookie');
+    expect(cookieHeader2).toContain('mfa-pending-token=');
+    const updatedToken2 = cookieHeader2!.split('mfa-pending-token=')[1].split(';')[0];
+
+    // 3rd failed attempt using the updated token -> should delete cookie & lockout
+    const req3 = new NextRequest('http://localhost:3000/api/auth/mfa-login', {
+      method: 'POST',
+      body: JSON.stringify({ code: '000000' }),
+      headers: {
+        'cookie': `mfa-pending-token=${updatedToken2}`,
+        'x-forwarded-for': '127.0.0.98',
+      }
+    });
+    const res3 = await mfaLoginPOST(req3);
+    expect(res3.status).toBe(401);
+    const body3 = await res3.json();
+    expect(body3.error).toContain('Too many failed MFA attempts');
+    
+    // Cookie is deleted
+    const cookieHeader3 = res3.headers.get('set-cookie');
+    expect(cookieHeader3).toContain('mfa-pending-token=;');
+
+    await cleanupTestData(testEmployee.id);
   });
 });
