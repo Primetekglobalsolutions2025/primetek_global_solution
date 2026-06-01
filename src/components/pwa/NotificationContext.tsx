@@ -204,7 +204,6 @@ export function NotificationProvider({
                       hour12: true
                     });
 
-                    // Icon config based on type
                     const iconConfig = {
                       announcement: {
                         icon: <Megaphone className="w-4.5 h-4.5 text-[#F59E0B]" />,
@@ -218,7 +217,10 @@ export function NotificationProvider({
                         icon: <Info className="w-4.5 h-4.5 text-[#3B82F6]" />,
                         bg: 'bg-[#EFF6FF] border-[#EFF6FF]/10'
                       }
-                    }[notif.type || 'announcement'];
+                    }[notif.type || 'announcement'] || {
+                      icon: <Info className="w-4.5 h-4.5 text-[#3B82F6]" />,
+                      bg: 'bg-[#EFF6FF] border-[#EFF6FF]/10'
+                    };
 
                     return (
                       <div

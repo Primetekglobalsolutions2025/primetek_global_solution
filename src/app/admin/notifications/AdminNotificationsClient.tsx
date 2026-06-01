@@ -295,7 +295,7 @@ export default function AdminNotificationsClient({
                   hour12: true
                 });
 
-                const iconConfig = {
+                 const iconConfig = {
                   announcement: {
                     icon: <Megaphone className="w-4 h-4 text-[#F59E0B]" />,
                     bg: 'bg-[#FFF7EB] border-[#FFF7EB]/10'
@@ -308,7 +308,10 @@ export default function AdminNotificationsClient({
                     icon: <Info className="w-4 h-4 text-[#3B82F6]" />,
                     bg: 'bg-[#EFF6FF] border-[#EFF6FF]/10'
                   }
-                }[notif.type || 'announcement'];
+                }[notif.type || 'announcement'] || {
+                  icon: <Info className="w-4 h-4 text-[#3B82F6]" />,
+                  bg: 'bg-[#EFF6FF] border-[#EFF6FF]/10'
+                };
 
                 const isBroadcast = notif.employee_id === null;
 
