@@ -18,6 +18,7 @@ import {
   Smartphone, 
   Monitor, 
   ChevronDown, 
+  ChevronUp,
   ChevronRight,
   Coffee,
   ShieldAlert,
@@ -26,7 +27,8 @@ import {
   Signal,
   Info,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  SlidersHorizontal
 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -173,6 +175,7 @@ export default function AttendanceClient({
   const [isExporting, setIsExporting] = useState(false);
   const [loadingRows, setLoadingRows] = useState<Record<string, boolean>>({});
   const [quickFilter, setQuickFilter] = useState<string>('all');
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [selectedRows, setSelectedRows] = useState<Record<string, boolean>>({});
   const lastActiveTimeRef = useRef<number>(Date.now());
   const isPollingPausedRef = useRef<boolean>(false);
@@ -820,13 +823,13 @@ export default function AttendanceClient({
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Tabs Selection */}
-      <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none relative gap-2 flex-nowrap w-full">
+      <div className="flex border-b border-zinc-200 overflow-x-auto scrollbar-none relative gap-0 sm:gap-2 flex-nowrap w-full">
         {[
-          { id: 'logs', label: 'Attendance Logs', icon: Calendar },
-          { id: 'live', label: 'Live Monitor', icon: Clock },
-          { id: 'lates', label: 'Late Login Reports', icon: AlertTriangle },
+          { id: 'logs', label: 'Logs', labelFull: 'Attendance Logs', icon: Calendar },
+          { id: 'live', label: 'Live', labelFull: 'Live Monitor', icon: Clock },
+          { id: 'lates', label: 'Lates', labelFull: 'Late Login Reports', icon: AlertTriangle },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -835,21 +838,22 @@ export default function AttendanceClient({
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "flex items-center gap-2 px-6 py-3.5 border-b-2 text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0",
+                "flex items-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-3 sm:py-3.5 border-b-2 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0",
                 isActive
                   ? "border-navy-900 text-navy-900 font-bold"
                   : "border-transparent text-zinc-450 hover:text-zinc-700"
               )}
             >
-              <Icon className={cn("w-4 h-4", isActive ? "text-navy-900" : "text-zinc-400")} />
-              {tab.label}
+              <Icon className={cn("w-3.5 h-3.5 sm:w-4 sm:h-4", isActive ? "text-navy-900" : "text-zinc-400")} />
+              <span className="hidden sm:inline">{tab.labelFull}</span>
+              <span className="sm:hidden">{tab.label}</span>
             </button>
           );
         })}
       </div>
 
-      {/* Workforce Summary Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      {/* Workforce Summary Grid — horizontal scroll on mobile, grid on desktop */}
+      <div className="flex gap-3 overflow-x-auto scrollbar-none pb-1 snap-x snap-mandatory md:grid md:grid-cols-3 lg:grid-cols-5 md:gap-4 md:overflow-visible md:pb-0">
         {[
           {
             key: 'active',
@@ -913,7 +917,7 @@ export default function AttendanceClient({
               key={card.key}
               onClick={() => setQuickFilter(isActive ? 'all' : card.key)}
               className={cn(
-                "p-4 rounded-2xl border transition-all cursor-pointer select-none flex flex-col justify-between gap-3 bg-white/70 backdrop-blur-md shadow-3xs hover:shadow-2xs active:scale-[0.98]",
+                "p-3 md:p-4 rounded-2xl border transition-all cursor-pointer select-none flex flex-col justify-between gap-2 md:gap-3 bg-white/70 backdrop-blur-md shadow-3xs hover:shadow-2xs active:scale-[0.98] min-w-[140px] md:min-w-0 snap-start shrink-0 md:shrink",
                 isActive ? card.activeBorder : cn("border-[#E8EDF2] bg-gradient-to-br", card.bgGradient)
               )}
             >
@@ -1080,9 +1084,83 @@ export default function AttendanceClient({
       )}
 
       {activeTab === 'logs' && (
-        <div className="space-y-4">
-          {/* Filters & Actions (Sticky Layout Header) */}
-          <div className="sticky top-0 z-20 bg-zinc-50/80 backdrop-blur-md py-3 -mx-4 px-4 border-b border-zinc-200/40 flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between sm:-mx-6 sm:px-6 md:mx-0 md:px-0 md:bg-transparent md:backdrop-blur-none md:border-b-0 md:py-0 md:relative">
+        <div className="space-y-3 md:space-y-4">
+          {/* Mobile: Compact toolbar — search + filter toggle + exports */}
+          <div className="md:hidden space-y-3">
+            {/* Row 1: Search + Filter Toggle */}
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
+                <input 
+                  type="text" 
+                  placeholder="Search employee..." 
+                  value={searchValue} 
+                  onChange={(e) => setSearchValue(e.target.value)} 
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-zinc-200 bg-white text-xs text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-sm font-medium" 
+                />
+              </div>
+              <button
+                onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+                className={cn(
+                  "p-2.5 rounded-xl border transition-all active:scale-95 shrink-0",
+                  isMobileFiltersOpen
+                    ? "bg-primary-500 text-white border-primary-500 shadow-sm"
+                    : "bg-white text-zinc-600 border-zinc-200 hover:border-zinc-300"
+                )}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </button>
+              <button
+                onClick={exportCsv}
+                className="p-2.5 rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 active:scale-95 transition-all shrink-0"
+                title="Export CSV"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+              <button
+                onClick={exportExcel}
+                disabled={isExporting}
+                className="p-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white active:scale-95 transition-all shrink-0 shadow-sm"
+                title="Export Excel"
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Collapsible Filter Panel */}
+            {isMobileFiltersOpen && (
+              <div className="bg-white rounded-xl border border-zinc-200 p-3 space-y-3 shadow-sm animate-in slide-in-from-top-2 duration-200">
+                <select 
+                  value={employeeFilter} 
+                  onChange={(e) => setEmployeeFilter(e.target.value)} 
+                  className="w-full px-3 py-2.5 rounded-lg border border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer appearance-none"
+                >
+                  <option value="all">Personnel: ALL</option>
+                  {employees.map((e) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
+                </select>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={startDate}
+                    max={todayISTStr}
+                    onChange={(e) => handleDateChange(e.target.value, endDate)}
+                    className="flex-1 px-3 py-2.5 rounded-lg border border-zinc-200 bg-zinc-50 text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer"
+                  />
+                  <span className="text-[10px] text-zinc-400 font-bold">TO</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    max={todayISTStr}
+                    onChange={(e) => handleDateChange(startDate, e.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-lg border border-zinc-200 bg-zinc-50 text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: Full filter bar (unchanged) */}
+          <div className="hidden md:flex sticky top-0 z-20 bg-zinc-50/80 backdrop-blur-md py-3 border-b border-zinc-200/40 flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between md:bg-transparent md:backdrop-blur-none md:border-b-0 md:py-0 md:relative">
             <div className="flex flex-1 flex-col sm:flex-row gap-3">
               <div className="relative flex-1 max-w-sm group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
@@ -1094,32 +1172,30 @@ export default function AttendanceClient({
                   className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 bg-zinc-50 text-xs text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 transition-all shadow-sm font-medium" 
                 />
               </div>
-              <div className="grid grid-cols-2 sm:flex gap-2 items-center">
+              <div className="flex gap-2 items-center">
                 <select 
                   value={employeeFilter} 
                   onChange={(e) => setEmployeeFilter(e.target.value)} 
-                  className="pl-3 pr-8 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm min-w-0 sm:min-w-[130px] appearance-none"
+                  className="pl-3 pr-8 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold uppercase tracking-wider text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm min-w-[130px] appearance-none"
                 >
                   <option value="all">Personnel: ALL</option>
                   {employees.map((e) => <option key={e.id} value={e.id}>{e.name.toUpperCase()}</option>)}
                 </select>
-                <div className="grid grid-cols-9 items-center gap-1 col-span-2 sm:flex sm:col-span-1 sm:gap-1.5 w-full sm:w-auto">
+                <div className="flex items-center gap-1.5">
                   <input
                     type="date"
                     value={startDate}
                     max={todayISTStr}
                     onChange={(e) => handleDateChange(e.target.value, endDate)}
-                    className="col-span-4 px-2 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm w-full sm:w-[110px]"
-                    placeholder="Start Date"
+                    className="px-2 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm w-[110px]"
                   />
-                  <span className="col-span-1 text-[10px] text-zinc-400 font-bold text-center">TO</span>
+                  <span className="text-[10px] text-zinc-400 font-bold">TO</span>
                   <input
                     type="date"
                     value={endDate}
                     max={todayISTStr}
                     onChange={(e) => handleDateChange(startDate, e.target.value)}
-                    className="col-span-4 px-2 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm w-full sm:w-[110px]"
-                    placeholder="End Date"
+                    className="px-2 py-2 rounded-lg border border-zinc-200 bg-white text-[10px] font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500/30 cursor-pointer shadow-sm w-[110px]"
                   />
                 </div>
               </div>
@@ -1144,30 +1220,31 @@ export default function AttendanceClient({
             </div>
           </div>
 
-          {/* Quick Filter Pills */}
-          <div className="flex items-center gap-2 flex-wrap px-1">
+          {/* Quick Filter Pills — horizontal scroll on mobile, wrap on desktop */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 md:flex-wrap md:overflow-visible md:pb-0 px-1 snap-x">
             {[
-              { id: 'all', label: 'All Records', count: filterCounts.all },
-              { id: 'active', label: 'Active', count: filterCounts.active },
-              { id: 'breaks', label: 'On Break', count: filterCounts.breaks },
-              { id: 'idle', label: 'Idle', count: filterCounts.idle },
-              { id: 'gps', label: 'GPS Alerts', count: filterCounts.gps },
-              { id: 'mobile', label: 'Mobile', count: filterCounts.mobile },
-              { id: 'stale', label: 'Stale', count: filterCounts.stale },
-              { id: 'disputes', label: 'Disputes', count: filterCounts.disputes },
-              { id: 'autobreaks', label: 'Auto-Breaks', count: filterCounts.autobreaks },
+              { id: 'all', label: 'All', labelFull: 'All Records', count: filterCounts.all },
+              { id: 'active', label: 'Active', labelFull: 'Active', count: filterCounts.active },
+              { id: 'breaks', label: 'Break', labelFull: 'On Break', count: filterCounts.breaks },
+              { id: 'idle', label: 'Idle', labelFull: 'Idle', count: filterCounts.idle },
+              { id: 'gps', label: 'GPS', labelFull: 'GPS Alerts', count: filterCounts.gps },
+              { id: 'mobile', label: 'Mobile', labelFull: 'Mobile', count: filterCounts.mobile },
+              { id: 'stale', label: 'Stale', labelFull: 'Stale', count: filterCounts.stale },
+              { id: 'disputes', label: 'Disputes', labelFull: 'Disputes', count: filterCounts.disputes },
+              { id: 'autobreaks', label: 'Auto', labelFull: 'Auto-Breaks', count: filterCounts.autobreaks },
             ].map((pill) => (
               <button
                 key={pill.id}
                 onClick={() => setQuickFilter(pill.id)}
                 className={cn(
-                  "px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-all active:scale-95",
+                  "px-2.5 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-all active:scale-95 whitespace-nowrap shrink-0 md:shrink snap-start",
                   quickFilter === pill.id
                     ? "bg-primary-500 text-white border-primary-500 shadow-sm shadow-primary-500/20"
                     : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:text-navy-900"
                 )}
               >
-                {pill.label}
+                <span className="md:hidden">{pill.label}</span>
+                <span className="hidden md:inline">{pill.labelFull}</span>
                 {pill.count > 0 && (
                   <span className={cn(
                     "ml-1 px-1 py-0.5 rounded-full text-[8px] font-bold leading-none",
