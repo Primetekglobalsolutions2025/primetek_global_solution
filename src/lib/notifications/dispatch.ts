@@ -51,20 +51,31 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
 
   console.log(`[Dispatch] Initiating notification "${title}": "${message}" (Type: ${type})`);
 
-  // 1. In-App Notification insertion (Only for employees/broadcasts; admins do not have in-app drawer)
+  // 1. In-App Notification insertion
   let inAppNotificationId: string | null = null;
-  if (!adminId && !skipInApp) {
+  if (!skipInApp) {
     try {
+      const insertData: any = {
+        title,
+        message,
+        type: type.includes('alert') ? 'alert' : type.includes('announcement') ? 'announcement' : 'personal',
+        employee_id: employeeId || null,
+        sender_name: senderName,
+        is_read: false
+      };
+
+      // Set admin flags if target is admin or if it is an admin-specific event type
+      const isAdminType = type === 'inquiry' || type === 'interview_requested' || type === 'wfh_requested' || type === 'leave_requested' || type.includes('admin');
+      if (adminId) {
+        insertData.admin_id = adminId;
+        insertData.is_for_admin = true;
+      } else if (isAdminType) {
+        insertData.is_for_admin = true;
+      }
+
       const { data: insertedNotif, error: insertError } = await supabaseAdmin
         .from('notifications')
-        .insert([{
-          title,
-          message,
-          type: type.includes('alert') ? 'alert' : type.includes('announcement') ? 'announcement' : 'personal',
-          employee_id: employeeId || null,
-          sender_name: senderName,
-          is_read: false
-        }])
+        .insert([insertData])
         .select('id')
         .single();
 
@@ -74,6 +85,7 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
         inAppNotificationId = insertedNotif.id;
         revalidatePath('/employee/dashboard');
         revalidatePath('/employee/attendance');
+        revalidatePath('/admin/notifications');
       }
     } catch (err) {
       console.error('Error during in-app notification registration:', err);

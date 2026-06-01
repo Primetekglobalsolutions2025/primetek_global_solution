@@ -11,7 +11,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
-import { createWFHOverride, AdminWFHRequest } from './actions';
+import { createWFHOverride, AdminWFHRequest, updateWFHRequest } from './actions';
 
 interface ActiveEmployee {
   id: string;
@@ -38,6 +38,49 @@ export default function AdminWFHClient({
   
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+
+  const [editingRequest, setEditingRequest] = useState<AdminWFHRequest | null>(null);
+  const [editStartDate, setEditStartDate] = useState('');
+  const [editEndDate, setEditEndDate] = useState('');
+  const [editReason, setEditReason] = useState('');
+  const [editStatus, setEditStatus] = useState<'Pending' | 'Approved' | 'Rejected'>('Pending');
+  const [isUpdating, startUpdateTransition] = useTransition();
+
+  const handleOpenEdit = (req: AdminWFHRequest) => {
+    setEditingRequest(req);
+    setEditStartDate(req.start_date);
+    setEditEndDate(req.end_date);
+    setEditReason(req.reason || '');
+    setEditStatus(req.status);
+  };
+
+  const handleUpdateOverride = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRequest) return;
+
+    startUpdateTransition(async () => {
+      const res = await updateWFHRequest(editingRequest.id, {
+        start_date: editStartDate,
+        end_date: editEndDate,
+        reason: editReason,
+        status: editStatus
+      });
+
+      if (res.success && res.request) {
+        toast.success('WFH request updated successfully.');
+        setRequests(prev => prev.map(r => r.id === editingRequest.id ? {
+          ...r,
+          start_date: editStartDate,
+          end_date: editEndDate,
+          reason: editReason,
+          status: editStatus
+        } : r));
+        setEditingRequest(null);
+      } else {
+        toast.error(res.error || 'Failed to update WFH request.');
+      }
+    });
+  };
 
   const handleCreateOverride = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -237,15 +280,23 @@ export default function AdminWFHClient({
                       </div>
 
                       <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-zinc-100 font-mono">
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-navy-900 bg-white shadow-2xs border px-2 py-1 rounded">
-                          <Calendar className="w-3 h-3 text-zinc-400" />
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-navy-900 px-1 py-0.5">
+                          <Calendar className="w-3.5 h-3.5 text-zinc-400 mr-1" />
                           <span>{req.start_date}</span>
-                          <ArrowRight className="w-3 h-3 text-zinc-400 mx-0.5" />
+                          <ArrowRight className="w-3 h-3 text-zinc-400 mx-1" />
                           <span>{req.end_date}</span>
                         </div>
-                        <span className="text-[9px] text-zinc-400">
-                          Approved WFH
-                        </span>
+                        <div className="flex items-center gap-2 mt-1 w-full justify-between sm:justify-end">
+                          <span className="text-[9px] text-zinc-400">
+                            Approved WFH
+                          </span>
+                          <button
+                            onClick={() => handleOpenEdit(req)}
+                            className="px-2 py-0.5 bg-zinc-100 hover:bg-zinc-200 text-[#64748B] hover:text-navy-900 rounded text-[9px] font-bold transition-all border-0 cursor-pointer active:scale-95"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </div>
                     </motion.div>
                   );
@@ -379,6 +430,117 @@ export default function AdminWFHClient({
           </div>
         </Card>
       </div>
+
+      {/* Edit Request Modal */}
+      <AnimatePresence>
+        {editingRequest && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingRequest(null)}
+              className="fixed inset-0 bg-navy-900/40 backdrop-blur-xs"
+            />
+
+            {/* Modal Body */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-2xl border border-zinc-200 shadow-xl max-w-md w-full p-6 relative z-10 space-y-4"
+            >
+              <div>
+                <h3 className="text-sm font-extrabold text-navy-900 uppercase tracking-wider">Edit WFH Override</h3>
+                <p className="text-[10px] text-zinc-400 mt-1 font-mono">Request ID: {editingRequest.id.slice(0, 8)}...</p>
+              </div>
+
+              <form onSubmit={handleUpdateOverride} className="space-y-4 font-sans text-xs">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">Employee</label>
+                  <Input
+                    type="text"
+                    disabled
+                    value={editingRequest.employee_name || 'Global Override'}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">Start Date</label>
+                    <Input
+                      type="date"
+                      value={editStartDate}
+                      onChange={(e) => setEditStartDate(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">End Date</label>
+                    <Input
+                      type="date"
+                      value={editEndDate}
+                      onChange={(e) => setEditEndDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">Reason</label>
+                  <textarea
+                    value={editReason}
+                    onChange={(e) => setEditReason(e.target.value)}
+                    required
+                    rows={3}
+                    className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-navy-900 focus:outline-none focus:ring-1 focus:ring-primary-600 bg-white placeholder:text-zinc-455 font-semibold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full px-3.5 py-2.5 border border-zinc-200 rounded-lg text-xs text-navy-900 focus:outline-none focus:ring-1 focus:ring-primary-600 bg-white cursor-pointer"
+                  >
+                    <option value="Pending">Pending (Awaiting Approval)</option>
+                    <option value="Approved">Approved (Active WFH)</option>
+                    <option value="Rejected">Rejected (Cancelled)</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setEditingRequest(null)}
+                    className="flex-1 border text-xs font-bold py-2.5 uppercase tracking-wider"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isUpdating}
+                    className="flex-1 bg-primary-600 hover:bg-[#0d6460] text-white text-xs font-bold py-2.5 uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  >
+                    {isUpdating ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

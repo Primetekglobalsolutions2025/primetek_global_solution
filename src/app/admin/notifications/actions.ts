@@ -113,6 +113,44 @@ export async function createNotification(
   }
 }
 
+export async function updateNotification(
+  id: string,
+  title: string,
+  message: string,
+  type: 'announcement' | 'personal' | 'alert',
+  employeeId?: string | null
+) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    const isAdmin = session.role === 'admin' || session.role === 'hr';
+    if (!isAdmin) return { success: false, error: 'Unauthorized: Admins only' };
+
+    const { data, error } = await supabaseAdmin
+      .from('notifications')
+      .update({
+        title,
+        message,
+        type,
+        employee_id: employeeId || null
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    revalidatePath('/employee/dashboard');
+    revalidatePath('/employee/attendance');
+    revalidatePath('/admin/notifications');
+
+    return { success: true, notification: data };
+  } catch (err) {
+    console.error('Error updating notification:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update notification' };
+  }
+}
+
 export async function deleteNotification(id: string) {
   try {
     const session = await getSession();
@@ -225,5 +263,113 @@ export async function cleanupExpiredNotifications() {
   } catch (err) {
     console.error('Error cleaning up notifications:', err);
     return { success: false, error: err instanceof Error ? err.message : 'Failed to run cleanup' };
+  }
+}
+
+export async function getNotificationsForAdmin(adminId: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized', notifications: [] };
+    const isAdmin = session.role === 'admin' || session.role === 'hr';
+    if (!isAdmin) return { success: false, error: 'Unauthorized: Admins only', notifications: [] };
+
+    // 1. Fetch all notifications matching admin (broadcast/admin-wide or specific admin)
+    const { data: notifs, error: notifsErr } = await supabaseAdmin
+      .from('notifications')
+      .select('*')
+      .or(`is_for_admin.eq.true,admin_id.eq.${adminId}`)
+      .order('created_at', { ascending: false });
+
+    if (notifsErr) throw notifsErr;
+
+    // 2. Fetch read broadcast/admin-wide notification IDs for this admin
+    const { data: reads, error: readsErr } = await supabaseAdmin
+      .from('notification_reads')
+      .select('notification_id')
+      .eq('admin_id', adminId);
+
+    if (readsErr) throw readsErr;
+
+    const readIds = new Set((reads || []).map((r: any) => r.notification_id));
+
+    // 3. Filter by 3-day expiry (unless pinned)
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const activeNotifs = (notifs || []).filter((n: any) => {
+      if (n.is_pinned) return true;
+      return new Date(n.created_at) >= threeDaysAgo;
+    });
+
+    // 4. Map notifications and calculate is_read
+    const notifications = activeNotifs.map((n: any) => {
+      const isBroadcast = n.admin_id === null;
+      const isRead = isBroadcast ? readIds.has(n.id) : n.is_read;
+
+      return {
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        type: n.type || 'announcement',
+        admin_id: n.admin_id,
+        sender_name: n.sender_name || 'System',
+        is_read: isRead,
+        is_pinned: n.is_pinned || false,
+        created_at: n.created_at
+      };
+    });
+
+    return { success: true, notifications };
+  } catch (err) {
+    console.error('Error fetching admin notifications:', err);
+    return { success: false, error: 'Failed to load notifications', notifications: [] };
+  }
+}
+
+export async function markAllAdminNotificationsRead(adminId: string) {
+  try {
+    const session = await getSession();
+    if (!session || !session.id) return { success: false, error: 'Unauthorized' };
+    const isAdmin = session.role === 'admin' || session.role === 'hr';
+    if (!isAdmin) return { success: false, error: 'Unauthorized: Admins only' };
+
+    // Fetch all unread notifications for admin
+    const res = await getNotificationsForAdmin(adminId);
+    if (!res.success) throw new Error(res.error);
+
+    const unread = res.notifications.filter(n => !n.is_read);
+    if (unread.length === 0) return { success: true };
+
+    const targetedIds = unread.filter(n => n.admin_id !== null).map(n => n.id);
+    const broadcastIds = unread.filter(n => n.admin_id === null).map(n => n.id);
+
+    // 1. Bulk update targeted ones
+    if (targetedIds.length > 0) {
+      const { error } = await supabaseAdmin
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', targetedIds);
+      if (error) throw error;
+    }
+
+    // 2. Bulk insert broadcast reads
+    if (broadcastIds.length > 0) {
+      const insertRows = broadcastIds.map(id => ({
+        notification_id: id,
+        admin_id: adminId,
+        employee_id: null
+      }));
+
+      const { error } = await supabaseAdmin
+        .from('notification_reads')
+        .insert(insertRows);
+      if (error) throw error;
+    }
+
+    revalidatePath('/admin/notifications');
+    return { success: true };
+  } catch (err) {
+    console.error('Error marking all admin notifications read:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update notifications' };
   }
 }

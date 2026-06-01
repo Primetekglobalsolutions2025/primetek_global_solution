@@ -10,7 +10,7 @@ import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { useToast } from '@/components/ui/Toast';
-import { SentNotification, createNotification, deleteNotification, togglePinNotification, deleteMultipleNotifications } from './actions';
+import { SentNotification, createNotification, deleteNotification, togglePinNotification, deleteMultipleNotifications, updateNotification } from './actions';
 
 interface EmployeeSummary {
   id: string;
@@ -36,13 +36,33 @@ export default function AdminNotificationsClient({
   const [deleteTarget, setDeleteTarget] = useState<SentNotification | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // States for pinning and multi-select deletion
+  // States for pinning, select mode, editing, and multi-select deletion
+  const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [editingNotification, setEditingNotification] = useState<SentNotification | null>(null);
   const [isTogglingPin, setIsTogglingPin] = useState<string | null>(null);
   const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   
   const { toast } = useToast();
+
+  const handleStartEdit = (notif: SentNotification) => {
+    setEditingNotification(notif);
+    setTitle(notif.title);
+    setMessage(notif.message);
+    setType(notif.type || 'announcement');
+    setAudience(notif.employee_id ? 'targeted' : 'broadcast');
+    setSelectedEmployeeId(notif.employee_id || '');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNotification(null);
+    setTitle('');
+    setMessage('');
+    setType('announcement');
+    setAudience('broadcast');
+    setSelectedEmployeeId('');
+  };
 
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,42 +77,74 @@ export default function AdminNotificationsClient({
 
     startTransition(async () => {
       const recipientId = audience === 'broadcast' ? null : selectedEmployeeId;
-      const res = await createNotification(title.trim(), message.trim(), type, recipientId);
       
-      if (res.success && res.notification) {
-        toast.success('Notification dispatched successfully.');
+      if (editingNotification) {
+        const res = await updateNotification(editingNotification.id, title.trim(), message.trim(), type, recipientId);
         
-        // Find matching employee object if targeted
-        let matchedEmp = null;
-        if (recipientId) {
-          const emp = employees.find(e => e.id === recipientId);
-          if (emp) {
-            matchedEmp = {
-              name: emp.name,
-              employee_id: emp.employee_id
-            };
+        if (res.success && res.notification) {
+          toast.success('Notification updated successfully.');
+          
+          let matchedEmp = null;
+          if (recipientId) {
+            const emp = employees.find(e => e.id === recipientId);
+            if (emp) {
+              matchedEmp = {
+                name: emp.name,
+                employee_id: emp.employee_id
+              };
+            }
           }
+
+          setNotifications(prev => prev.map(n => n.id === editingNotification.id ? {
+            ...n,
+            title: res.notification.title,
+            message: res.notification.message,
+            type: res.notification.type,
+            employee_id: res.notification.employee_id,
+            employees: matchedEmp
+          } : n));
+          
+          handleCancelEdit();
+        } else {
+          toast.error(res.error || 'Failed to update notification');
         }
-
-        const newNotif: SentNotification = {
-          id: res.notification.id,
-          title: res.notification.title,
-          message: res.notification.message,
-          type: res.notification.type,
-          employee_id: res.notification.employee_id,
-          sender_name: res.notification.sender_name,
-          is_read: res.notification.is_read,
-          is_pinned: false,
-          created_at: res.notification.created_at,
-          employees: matchedEmp
-        };
-
-        setNotifications(prev => [newNotif, ...prev]);
-        setTitle('');
-        setMessage('');
-        setSelectedEmployeeId('');
       } else {
-        toast.error(res.error || 'Failed to dispatch notification');
+        const res = await createNotification(title.trim(), message.trim(), type, recipientId);
+        
+        if (res.success && res.notification) {
+          toast.success('Notification dispatched successfully.');
+          
+          let matchedEmp = null;
+          if (recipientId) {
+            const emp = employees.find(e => e.id === recipientId);
+            if (emp) {
+              matchedEmp = {
+                name: emp.name,
+                employee_id: emp.employee_id
+              };
+            }
+          }
+
+          const newNotif: SentNotification = {
+            id: res.notification.id,
+            title: res.notification.title,
+            message: res.notification.message,
+            type: res.notification.type,
+            employee_id: res.notification.employee_id,
+            sender_name: res.notification.sender_name,
+            is_read: res.notification.is_read,
+            is_pinned: false,
+            created_at: res.notification.created_at,
+            employees: matchedEmp
+          };
+
+          setNotifications(prev => [newNotif, ...prev]);
+          setTitle('');
+          setMessage('');
+          setSelectedEmployeeId('');
+        } else {
+          toast.error(res.error || 'Failed to dispatch notification');
+        }
       }
     });
   };
@@ -105,7 +157,6 @@ export default function AdminNotificationsClient({
       if (res.success) {
         toast.success('Notification deleted successfully.');
         setNotifications(prev => prev.filter(n => n.id !== deleteTarget.id));
-        // Clear selection if it was selected
         if (selectedIds.has(deleteTarget.id)) {
           const newSelected = new Set(selectedIds);
           newSelected.delete(deleteTarget.id);
@@ -181,7 +232,7 @@ export default function AdminNotificationsClient({
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              {notifications.length > 0 && (
+              {isSelectMode && notifications.length > 0 && (
                 <input
                   type="checkbox"
                   checked={selectedIds.size === notifications.length}
@@ -198,13 +249,37 @@ export default function AdminNotificationsClient({
               )}
               <h2 className="font-extrabold text-navy-900 text-base tracking-tight font-sans">Sent Notifications</h2>
             </div>
-            <span className="bg-primary-50 text-primary-600 text-[10px] font-bold px-2.5 py-1 rounded-full font-sans">
-              {notifications.length} dispatched
-            </span>
+            <div className="flex items-center gap-2">
+              {isSelectMode && selectedIds.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsBulkDeleteConfirmOpen(true)}
+                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-[10px] font-extrabold rounded-lg flex items-center gap-1 cursor-pointer border-0 active:scale-95 transition-all shadow-sm font-sans"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Delete ({selectedIds.size})
+                </button>
+              )}
+              {notifications.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSelectMode(!isSelectMode);
+                    setSelectedIds(new Set());
+                  }}
+                  className="px-3 py-1 border border-zinc-200 hover:bg-zinc-50 text-zinc-650 text-[10px] font-extrabold rounded-lg active:scale-95 transition-all cursor-pointer bg-white font-sans"
+                >
+                  {isSelectMode ? 'Cancel' : 'Select'}
+                </button>
+              )}
+              <span className="bg-primary-50 text-primary-600 text-[10px] font-bold px-2.5 py-1 rounded-full font-sans">
+                {notifications.length} dispatched
+              </span>
+            </div>
           </div>
 
           {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 border border-dashed border-[#E2E8F0] rounded-xl text-zinc-450 flex-1">
+            <div className="flex flex-col items-center justify-center py-16 border border-dashed border-[#E2E8F0] rounded-xl text-zinc-455 flex-1">
               <Megaphone className="w-8 h-8 stroke-[1.5] mb-2 text-zinc-400" />
               <p className="text-xs font-bold uppercase tracking-wider">No Active Dispatches</p>
               <p className="text-[10px] text-zinc-400 mt-1 max-w-[250px] text-center font-medium">Broadcasts or targeted alerts you dispatch will be listed here.</p>
@@ -220,7 +295,6 @@ export default function AdminNotificationsClient({
                   hour12: true
                 });
 
-                // Icon configs
                 const iconConfig = {
                   announcement: {
                     icon: <Megaphone className="w-4 h-4 text-[#F59E0B]" />,
@@ -242,28 +316,30 @@ export default function AdminNotificationsClient({
                   <div
                     key={notif.id}
                     className={cn(
-                      "py-4 flex gap-3.5 relative overflow-hidden transition-all duration-200 select-none",
+                      "py-4 flex gap-3.5 relative overflow-hidden transition-all duration-200",
                       notif.is_pinned && "bg-amber-50/10",
                       selectedIds.has(notif.id) && "bg-primary-50/5"
                     )}
                   >
-                    {/* Checkbox */}
-                    <div className="flex items-center justify-center shrink-0 pr-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(notif.id)}
-                        onChange={(e) => {
-                          const newSelected = new Set(selectedIds);
-                          if (e.target.checked) {
-                            newSelected.add(notif.id);
-                          } else {
-                            newSelected.delete(notif.id);
-                          }
-                          setSelectedIds(newSelected);
-                        }}
-                        className="w-4 h-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                      />
-                    </div>
+                    {/* Checkbox (Only visible in select mode) */}
+                    {isSelectMode && (
+                      <div className="flex items-center justify-center shrink-0 pr-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(notif.id)}
+                          onChange={(e) => {
+                            const newSelected = new Set(selectedIds);
+                            if (e.target.checked) {
+                              newSelected.add(notif.id);
+                            } else {
+                              newSelected.delete(notif.id);
+                            }
+                            setSelectedIds(newSelected);
+                          }}
+                          className="w-4 h-4 rounded border-zinc-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                        />
+                      </div>
+                    )}
 
                     {/* Type Icon */}
                     <div className={cn("w-9 h-9 rounded-full flex items-center justify-center shrink-0 border", iconConfig.bg)}>
@@ -282,7 +358,7 @@ export default function AdminNotificationsClient({
                         </span>
                       </div>
                       
-                      <p className="text-[10px] text-[#64748B] font-medium leading-relaxed">
+                      <p className="text-[10px] text-[#64748B] font-medium leading-relaxed line-clamp-2 md:line-clamp-3">
                         {notif.message}
                       </p>
 
@@ -316,32 +392,43 @@ export default function AdminNotificationsClient({
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1.5 self-start pl-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleTogglePin(notif.id)}
-                        disabled={isTogglingPin === notif.id}
-                        className={cn(
-                          "p-1 rounded active:scale-95 transition-all cursor-pointer border-0 bg-transparent",
-                          notif.is_pinned
-                            ? "text-amber-500 hover:text-amber-700 hover:bg-amber-50"
-                            : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100"
-                        )}
-                        title={notif.is_pinned ? "Unpin Notification" : "Pin Notification"}
-                      >
-                        <Pin className={cn("w-3.5 h-3.5", notif.is_pinned && "fill-amber-500")} />
-                      </button>
+                    {/* Actions (Hidden in select mode) */}
+                    {!isSelectMode && (
+                      <div className="flex items-center gap-1.5 self-start pl-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePin(notif.id)}
+                          disabled={isTogglingPin === notif.id}
+                          className={cn(
+                            "p-1 rounded active:scale-95 transition-all cursor-pointer border-0 bg-transparent",
+                            notif.is_pinned
+                              ? "text-amber-500 hover:text-amber-700 hover:bg-amber-50"
+                              : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100"
+                          )}
+                          title={notif.is_pinned ? "Unpin Notification" : "Pin Notification"}
+                        >
+                          <Pin className={cn("w-3.5 h-3.5", notif.is_pinned && "fill-amber-500")} />
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTarget(notif)}
-                        className="p-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50 active:scale-95 transition-all cursor-pointer border-0 bg-transparent"
-                        title="Delete Notification"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => handleStartEdit(notif)}
+                          className="px-2 py-0.5 bg-zinc-100 hover:bg-zinc-200 text-[#64748B] hover:text-navy-900 rounded text-[9px] font-bold transition-all border-0 cursor-pointer active:scale-95"
+                          title="Edit Notification"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(notif)}
+                          className="p-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50 active:scale-95 transition-all cursor-pointer border-0 bg-transparent"
+                          title="Delete Notification"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -353,7 +440,9 @@ export default function AdminNotificationsClient({
       {/* Control Form Column */}
       <div className="lg:col-span-4">
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white">
-          <h3 className="text-sm font-extrabold text-navy-900 uppercase tracking-wider mb-4">Compose Alert</h3>
+          <h3 className="text-sm font-extrabold text-navy-900 uppercase tracking-wider mb-4">
+            {editingNotification ? 'Edit Alert' : 'Compose Alert'}
+          </h3>
           <form onSubmit={handleSendNotification} className="space-y-4">
             <div className="space-y-1">
               <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block font-mono">Title</label>
@@ -441,23 +530,36 @@ export default function AdminNotificationsClient({
               </div>
             )}
 
-            <Button
-              type="submit"
-              disabled={isPending}
-              className="w-full bg-primary-600 hover:bg-[#0d6460] text-white text-xs font-bold uppercase tracking-wider py-3 flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all cursor-pointer border-0 mt-2"
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Dispatching...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4" />
-                  Dispatch Alert
-                </>
+            <div className="space-y-2 pt-2">
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="w-full bg-primary-600 hover:bg-[#0d6460] text-white text-xs font-bold uppercase tracking-wider py-3 flex items-center justify-center gap-1.5 shadow-md active:scale-98 transition-all cursor-pointer border-0"
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    {editingNotification ? 'Saving...' : 'Dispatching...'}
+                  </>
+                ) : (
+                  <>
+                    {editingNotification ? <Pin className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    {editingNotification ? 'Save Changes' : 'Dispatch Alert'}
+                  </>
+                )}
+              </Button>
+
+              {editingNotification && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCancelEdit}
+                  className="w-full text-xs font-bold uppercase tracking-wider py-2.5 border text-[#64748B]"
+                >
+                  Cancel Edit
+                </Button>
               )}
-            </Button>
+            </div>
           </form>
         </Card>
       </div>
@@ -489,7 +591,7 @@ export default function AdminNotificationsClient({
       />
 
       {/* Floating Action Bar for Bulk Deletion */}
-      {selectedIds.size > 0 && (
+      {isSelectMode && selectedIds.size > 0 && (
         <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

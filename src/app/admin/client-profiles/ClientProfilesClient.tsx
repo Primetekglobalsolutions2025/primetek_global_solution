@@ -385,7 +385,17 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                         </td>
                         <td className="p-4 whitespace-nowrap">
                           {profile.resume_url ? (
-                            <a href={profile.resume_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2.5 py-0.5 rounded transition-all">
+                            <a 
+                              href={profile.resume_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              onClick={(e) => {
+                                if (!window.confirm('Are you sure you want to download the candidate resume?')) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2.5 py-0.5 rounded transition-all"
+                            >
                               <Download className="w-3 h-3" /> DOCX
                             </a>
                           ) : (
@@ -456,7 +466,17 @@ export default function ClientProfilesClient({ initialProfiles, employees }: { i
                     <div className="flex items-center justify-between pt-1">
                       <StatusBadge status={profile.status || 'Pending'} className="text-[8px] px-2 py-0.5" />
                       {profile.resume_url && (
-                        <a href={profile.resume_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider">
+                        <a 
+                          href={profile.resume_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          onClick={(e) => {
+                            if (!window.confirm('Are you sure you want to download the candidate resume?')) {
+                              e.preventDefault();
+                            }
+                          }}
+                          className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider"
+                        >
                           <Download className="w-3.5 h-3.5" /> DOCX Resume
                         </a>
                       )}

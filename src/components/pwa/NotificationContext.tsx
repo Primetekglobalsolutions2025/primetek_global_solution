@@ -11,6 +11,7 @@ import {
   markAllNotificationsRead,
   AppNotification 
 } from '@/app/employee/notifications/actions';
+import { getNotificationsForAdmin, markAllAdminNotificationsRead } from '@/app/admin/notifications/actions';
 
 interface NotificationContextType {
   notifications: AppNotification[];
@@ -27,10 +28,12 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ 
   children, 
-  employeeId 
+  employeeId,
+  role
 }: { 
   children: React.ReactNode;
   employeeId?: string;
+  role?: 'admin' | 'employee' | 'hr';
 }) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -41,9 +44,13 @@ export function NotificationProvider({
 
   const refreshNotifications = async () => {
     if (!employeeId) return;
-    const res = await getNotificationsForEmployee(employeeId);
+    const isAdmin = role === 'admin' || role === 'hr';
+    const res = isAdmin 
+      ? await getNotificationsForAdmin(employeeId)
+      : await getNotificationsForEmployee(employeeId);
+
     if (res.success && res.notifications) {
-      setNotifications(res.notifications);
+      setNotifications(res.notifications as AppNotification[]);
     }
   };
 
@@ -54,7 +61,7 @@ export function NotificationProvider({
     // Poll for new notifications every 30 seconds
     const interval = setInterval(refreshNotifications, 30000);
     return () => clearInterval(interval);
-  }, [employeeId]);
+  }, [employeeId, role]);
 
   const open = () => setIsOpen(true);
   const close = () => setIsOpen(false);
@@ -83,7 +90,11 @@ export function NotificationProvider({
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
 
     startTransition(async () => {
-      const res = await markAllNotificationsRead(employeeId);
+      const isAdmin = role === 'admin' || role === 'hr';
+      const res = isAdmin
+        ? await markAllAdminNotificationsRead(employeeId)
+        : await markAllNotificationsRead(employeeId);
+      
       if (res.success) {
         toast.success('All notifications marked as read');
       } else {
@@ -126,29 +137,29 @@ export function NotificationProvider({
               transition={{ type: 'spring', damping: 25, stiffness: 220 }}
               className="fixed right-0 top-0 bottom-0 z-[101] w-full max-w-[430px] bg-[#F7F8FA] shadow-2xl border-l border-[#E8EDF2] flex flex-col font-sans h-full"
             >
-              {/* Header */}
-              <div className="h-[72px] bg-white border-b border-[#E8EDF2] px-5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <div className="relative">
+              {/* Header with single-line guarantee */}
+              <div className="h-[72px] bg-white border-b border-[#E8EDF2] px-4 flex items-center justify-between shrink-0 flex-nowrap gap-2">
+                <div className="flex items-center gap-2 flex-nowrap min-w-0">
+                  <div className="relative shrink-0">
                     <Bell className="w-5 h-5 text-navy-900 stroke-[1.8]" />
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white animate-pulse" />
                     )}
                   </div>
-                  <h3 className="text-base font-extrabold text-navy-900">Notifications</h3>
+                  <h3 className="text-sm font-extrabold text-navy-900 truncate whitespace-nowrap">Notifications</h3>
                   {unreadCount > 0 && (
-                    <span className="bg-primary-50 text-primary-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full ml-1">
+                    <span className="bg-primary-50 text-primary-600 text-[9px] font-extrabold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0">
                       {unreadCount} new
                     </span>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-nowrap shrink-0">
                   {unreadCount > 0 && (
                     <button 
                       onClick={handleMarkAllAsRead}
                       disabled={isPending}
-                      className="text-[10px] font-extrabold text-primary-600 hover:text-primary-700 py-1.5 px-2.5 bg-primary-50 rounded-full active:scale-95 transition-all flex items-center gap-1 border-0 cursor-pointer disabled:opacity-50"
+                      className="text-[9px] font-extrabold text-primary-600 hover:text-primary-700 py-1.5 px-2.5 bg-primary-50 rounded-full active:scale-95 transition-all flex items-center gap-1 border-0 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                     >
                       {isPending ? (
                         <Loader2 className="w-3 h-3 animate-spin" />
@@ -161,7 +172,7 @@ export function NotificationProvider({
                   
                   <button 
                     onClick={close}
-                    className="p-1.5 rounded-full hover:bg-zinc-50 text-[#64748B] hover:text-navy-900 transition-colors border-0 cursor-pointer"
+                    className="p-1 rounded-full hover:bg-zinc-50 text-[#64748B] hover:text-navy-900 transition-colors border-0 cursor-pointer shrink-0"
                   >
                     <X className="w-5 h-5" />
                   </button>

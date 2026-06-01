@@ -6,6 +6,7 @@ import AppSidebar from '@/components/pwa/AppSidebar';
 import AppHeader from '@/components/pwa/AppHeader';
 import { Loader2 } from 'lucide-react';
 import OfflineSyncBanner from '@/components/pwa/OfflineSyncBanner';
+import { NotificationProvider } from '@/components/pwa/NotificationContext';
 
 function PendingCountResolver({
   promise,
@@ -30,7 +31,7 @@ export default function AdminLayoutClient({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [session, setSession] = useState<{ role: 'admin' | 'employee' | 'hr'; name: string } | null>(null);
+  const [session, setSession] = useState<{ id: string; role: 'admin' | 'employee' | 'hr'; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
 
@@ -290,28 +291,30 @@ export default function AdminLayoutClient({
   }
 
   return (
-    <div className="admin-portal fixed inset-0 flex bg-zinc-50 text-navy-900 overflow-hidden font-sans">
-      {pendingCountPromise && (
-        <Suspense fallback={null}>
-          <PendingCountResolver promise={pendingCountPromise} onResolve={setPendingCount} />
-        </Suspense>
-      )}
-      {session && (
-        <AppSidebar 
-          role={session.role} 
-          userName={session.name} 
-          pendingCount={pendingCount} 
-        />
-      )}
-      <div className="flex-1 flex flex-col min-w-0 bg-zinc-50 overflow-x-hidden">
-        <AppHeader userName={session?.name} role={session?.role} notificationCount={session?.role === 'admin' ? pendingCount : 0} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-6 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6 scroll-smooth scrollbar-none">
-          <div className="max-w-7xl mx-auto space-y-4">
-            <OfflineSyncBanner />
-            {children}
-          </div>
-        </main>
+    <NotificationProvider employeeId={session?.id} role={session?.role}>
+      <div className="admin-portal fixed inset-0 flex bg-zinc-50 text-navy-900 overflow-hidden font-sans">
+        {pendingCountPromise && (
+          <Suspense fallback={null}>
+            <PendingCountResolver promise={pendingCountPromise} onResolve={setPendingCount} />
+          </Suspense>
+        )}
+        {session && (
+          <AppSidebar 
+            role={session.role} 
+            userName={session.name} 
+            pendingCount={pendingCount} 
+          />
+        )}
+        <div className="flex-1 flex flex-col min-w-0 bg-zinc-50 overflow-x-hidden">
+          <AppHeader userName={session?.name} role={session?.role} notificationCount={session?.role === 'admin' ? pendingCount : 0} />
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pt-6 md:p-6 md:pt-8 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-6 scroll-smooth scrollbar-none">
+            <div className="max-w-7xl mx-auto space-y-4">
+              <OfflineSyncBanner />
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   );
 }

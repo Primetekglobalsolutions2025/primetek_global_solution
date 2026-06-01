@@ -47,6 +47,15 @@ export async function POST(request: NextRequest) {
         validated.requirement
       );
       await notifyAdminsIfEnabled('notif_inquiry', `New Contact Inquiry - ${validated.name}`, html);
+
+      const { dispatchNotification } = await import('@/lib/notifications/dispatch');
+      await dispatchNotification({
+        title: `📞 New Contact Inquiry - ${validated.name}`,
+        message: `${validated.name} from ${validated.company || 'Private'} submitted a new inquiry.`,
+        type: 'inquiry',
+        clickActionUrl: '/admin/inquiries',
+        senderName: validated.name
+      });
     } catch (notifErr) {
       console.error('Failed to send contact inquiry notification:', notifErr);
     }

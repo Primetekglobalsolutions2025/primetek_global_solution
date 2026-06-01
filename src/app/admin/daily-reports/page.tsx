@@ -16,7 +16,7 @@ export default async function AdminDailyReportsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="space-y-4">
       <Suspense fallback={<DailyReportsSkeleton />}>
         <DailyReportsClientWrapper />
       </Suspense>

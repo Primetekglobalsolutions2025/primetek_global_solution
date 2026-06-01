@@ -75,38 +75,84 @@ export async function getNotificationsForEmployee(employeeId: string) {
   }
 }
 
-export async function markNotificationRead(notificationId: string, employeeId: string) {
+export async function markNotificationRead(notificationId: string, userId: string) {
   try {
     const session = await getSession();
     if (!session || !session.id) return { success: false, error: 'Unauthorized' };
-    if (session.id !== employeeId) return { success: false, error: 'BOLA Block: ID mismatch' };
+    if (session.id !== userId) return { success: false, error: 'BOLA Block: ID mismatch' };
+
+    const isAdmin = session.role === 'admin' || session.role === 'hr';
 
     // Fetch the notification to check type
     const { data: notif, error: fetchErr } = await supabaseAdmin
       .from('notifications')
-      .select('employee_id')
+      .select('employee_id, admin_id, is_for_admin')
       .eq('id', notificationId)
       .single();
 
     if (fetchErr || !notif) throw new Error('Notification not found');
 
-    if (notif.employee_id !== null) {
-      // Targeted notification: update RLS row directly
-      const { error } = await supabaseAdmin
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId);
-      if (error) throw error;
+    if (isAdmin) {
+      if (notif.admin_id !== null) {
+        // Targeted notification: update RLS row directly
+        const { error } = await supabaseAdmin
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('id', notificationId);
+        if (error) throw error;
+      } else {
+        // Broadcast / admin-wide notification: insert read log
+        const { data: existingRead } = await supabaseAdmin
+          .from('notification_reads')
+          .select('notification_id')
+          .eq('notification_id', notificationId)
+          .eq('admin_id', userId)
+          .maybeSingle();
+
+        if (!existingRead) {
+          const { error } = await supabaseAdmin
+            .from('notification_reads')
+            .insert({
+              notification_id: notificationId,
+              admin_id: userId,
+              employee_id: null
+            });
+          if (error) throw error;
+        }
+      }
     } else {
-      // Broadcast notification: insert read log
-      const { error } = await supabaseAdmin
-        .from('notification_reads')
-        .upsert({ notification_id: notificationId, employee_id: employeeId }, { onConflict: 'notification_id,employee_id' });
-      if (error) throw error;
+      if (notif.employee_id !== null) {
+        // Targeted notification: update RLS row directly
+        const { error } = await supabaseAdmin
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('id', notificationId);
+        if (error) throw error;
+      } else {
+        // Broadcast notification: insert read log
+        const { data: existingRead } = await supabaseAdmin
+          .from('notification_reads')
+          .select('notification_id')
+          .eq('notification_id', notificationId)
+          .eq('employee_id', userId)
+          .maybeSingle();
+
+        if (!existingRead) {
+          const { error } = await supabaseAdmin
+            .from('notification_reads')
+            .insert({
+              notification_id: notificationId,
+              employee_id: userId,
+              admin_id: null
+            });
+          if (error) throw error;
+        }
+      }
     }
 
     revalidatePath('/employee/dashboard');
     revalidatePath('/employee/attendance');
+    revalidatePath('/admin/notifications');
     return { success: true };
   } catch (err) {
     console.error('Error marking notification read:', err);

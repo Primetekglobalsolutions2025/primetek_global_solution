@@ -6,9 +6,19 @@ export const dynamic = 'force-dynamic';
 export default async function AdminAppInquiriesPage() {
   const inquiries = await getAdminInquiries();
 
+  // Filter out test inquiries containing `primetek` or `admin@globalps.com`
+  const filteredInquiries = (inquiries || []).filter((inq: any) => {
+    const isTest = 
+      inq.name?.toLowerCase().includes('primetek') ||
+      inq.email?.toLowerCase().includes('primetek') ||
+      inq.company?.toLowerCase().includes('primetek') ||
+      inq.email?.toLowerCase() === 'admin@globalps.com';
+    return !isTest;
+  });
+
   // Map database fields to component expectations
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const formattedInquiries = (inquiries || []).map((inq: any) => ({
+  const formattedInquiries = filteredInquiries.map((inq: any) => ({
     id: inq.id,
     name: inq.name,
     email: inq.email,

@@ -241,6 +241,124 @@ export async function updateWFHRequestStatus(id: string, status: 'Approved' | 'R
   }
 }
 
+export async function updateWFHRequest(id: string, data: {
+  start_date: string;
+  end_date: string;
+  reason: string;
+  status?: 'Pending' | 'Approved' | 'Rejected';
+}) {
+  try {
+    const session = await getSession();
+    if (!session || session.role !== 'admin') return { success: false, error: 'Unauthorized' };
+    await verifyActiveAdmin(session.id);
+
+    const start = new Date(data.start_date);
+    const end = new Date(data.end_date);
+    if (start > end) {
+      return { success: false, error: 'Start date cannot be after end date' };
+    }
+
+    // Check if session.id exists in employees to avoid foreign key constraint violation
+    const { data: isEmployee } = await supabaseAdmin
+      .from('employees')
+      .select('id')
+      .eq('id', session.id)
+      .maybeSingle();
+
+    const { data: originalRequest, error: fetchErr } = await supabaseAdmin
+      .from('wfh_requests')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchErr || !originalRequest) {
+      return { success: false, error: 'Request not found' };
+    }
+
+    const updates: any = {
+      start_date: data.start_date,
+      end_date: data.end_date,
+      reason: data.reason,
+      updated_at: new Date().toISOString()
+    };
+
+    if (data.status) {
+      updates.status = data.status;
+      if (data.status === 'Approved') {
+        updates.approved_by = isEmployee ? session.id : null;
+      }
+    }
+
+    const { data: updated, error } = await supabaseAdmin
+      .from('wfh_requests')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Log audit
+    await logAuditAction(
+      'UPDATE_WFH_REQUEST',
+      'wfh_requests',
+      id,
+      originalRequest,
+      updates
+    );
+
+    // If status changed to Approved or Rejected, send notification
+    if (data.status && data.status !== originalRequest.status) {
+      // Send email notification to employee
+      try {
+        const { data: employee } = await supabaseAdmin
+          .from('employees')
+          .select('name, email')
+          .eq('id', originalRequest.employee_id)
+          .single();
+
+        if (employee?.email) {
+          const { sendNotificationEmail } = await import('@/lib/notifications');
+          const html = `
+            <div style="font-family: sans-serif; padding: 20px;">
+              <h2>WFH Date Request ${data.status}</h2>
+              <p>Hello ${employee.name},</p>
+              <p>Your Work From Home request dates have been updated and the request is now <strong>${data.status.toLowerCase()}</strong>.</p>
+              <p><strong>New Dates:</strong> ${data.start_date} to ${data.end_date}</p>
+              <p>Please log into the HR portal for details.</p>
+            </div>
+          `;
+          await sendNotificationEmail(employee.email, `WFH Date Request ${data.status}`, html);
+        }
+      } catch (emailErr) {
+        console.error('Failed to notify employee of WFH request status change:', emailErr);
+      }
+
+      // Dispatch Web Push notification to the employee
+      try {
+        const notificationType = data.status === 'Approved' ? 'leave_approved' : 'leave_rejected';
+        await dispatchNotification({
+          title: `WFH Date Request ${data.status}`,
+          message: `Your pre-planned Work From Home request has been updated to ${data.start_date} to ${data.end_date} and is now ${data.status.toLowerCase()}.`,
+          type: notificationType,
+          employeeId: originalRequest.employee_id,
+          clickActionUrl: '/employee/leaves'
+        });
+      } catch (pushErr: any) {
+        console.warn(`[Push Delivery Failed] action: updateWFHRequest, error: ${pushErr.message}`);
+      }
+    }
+
+    revalidatePath('/admin/approvals');
+    revalidatePath('/admin/wfh');
+    revalidatePath('/employee/leaves');
+    return { success: true, request: updated };
+  } catch (err: any) {
+    console.error('Error updating WFH request:', err);
+    return { success: false, error: err.message || 'Failed to update WFH request' };
+  }
+}
+
 export async function getActiveEmployees() {
   try {
     const session = await getSession();

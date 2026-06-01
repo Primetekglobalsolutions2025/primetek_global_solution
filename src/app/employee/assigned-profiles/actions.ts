@@ -287,6 +287,26 @@ export async function submitInterviewRequest(formData: FormData) {
       });
     }
 
+    // Dispatch in-app notification to admins
+    try {
+      const { dispatchNotification } = await import('@/lib/notifications/dispatch');
+      const { data: employee } = await supabaseAdmin
+        .from('employees')
+        .select('name')
+        .eq('id', session.id)
+        .single();
+      
+      await dispatchNotification({
+        title: `🤝 New Interview Request - ${profile.client_name}`,
+        message: `${employee?.name || 'An employee'} requested support for ${profile.client_name} at ${clientCompany}.`,
+        type: 'interview_requested',
+        clickActionUrl: '/admin/interview-requests',
+        senderName: employee?.name || 'Employee'
+      });
+    } catch (notifErr) {
+      console.error('Failed to dispatch in-app notification:', notifErr);
+    }
+
     revalidatePath('/employee/assigned-profiles');
     return { success: true };
   } catch (err: any) {

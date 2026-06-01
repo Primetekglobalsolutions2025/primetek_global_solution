@@ -189,18 +189,38 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
                         <td className="p-4 whitespace-nowrap text-xs">
                           <div className="flex flex-col gap-1">
                             {resumeUrl ? (
-                              <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2 py-0.5 rounded w-fit">
+                              <a 
+                                href={resumeUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                onClick={(e) => {
+                                  if (!window.confirm('Are you sure you want to download the candidate resume?')) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2 py-0.5 rounded w-fit"
+                              >
                                 <Download className="w-3 h-3" /> Resume
                               </a>
                             ) : (
-                              <span className="text-zinc-400 text-[9px] italic">No Resume</span>
+                              <span className="text-zinc-450 text-[9px] italic">No Resume</span>
                             )}
                             {req.jd_url ? (
-                              <a href={req.jd_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2 py-0.5 rounded w-fit">
+                              <a 
+                                href={req.jd_url} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                onClick={(e) => {
+                                  if (!window.confirm('Are you sure you want to download the Job Description (JD) document?')) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 text-[9px] font-mono font-semibold text-primary-750 hover:text-primary-850 uppercase tracking-wider bg-primary-50/50 border border-primary-200/40 px-2 py-0.5 rounded w-fit"
+                              >
                                 <Download className="w-3 h-3" /> JD DOC
                               </a>
                             ) : (
-                              <span className="text-zinc-400 text-[9px] italic">No JD</span>
+                              <span className="text-zinc-450 text-[9px] italic">No JD</span>
                             )}
                           </div>
                         </td>
@@ -304,13 +324,33 @@ export default function InterviewRequestsClient({ initialRequests }: { initialRe
                       </div>
                       <div className="flex flex-col gap-1 justify-end">
                         {resumeUrl && (
-                          <a href={resumeUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-700 hover:text-primary-800 uppercase tracking-wider">
-                            <Download className="w-3 h-3" /> Resume
+                          <a 
+                            href={resumeUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            onClick={(e) => {
+                              if (!window.confirm('Are you sure you want to download the candidate resume?')) {
+                                    e.preventDefault();
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-700 hover:text-primary-800 uppercase tracking-wider"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Resume
                           </a>
                         )}
                         {req.jd_url && (
-                          <a href={req.jd_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-700 hover:text-primary-800 uppercase tracking-wider">
-                            <Download className="w-3 h-3" /> JD Attached
+                          <a 
+                            href={req.jd_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            onClick={(e) => {
+                              if (!window.confirm('Are you sure you want to download the Job Description (JD) document?')) {
+                                    e.preventDefault();
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 text-[8px] font-mono font-semibold text-primary-700 hover:text-primary-800 uppercase tracking-wider"
+                          >
+                            <Download className="w-3.5 h-3.5" /> JD Attached
                           </a>
                         )}
                       </div>

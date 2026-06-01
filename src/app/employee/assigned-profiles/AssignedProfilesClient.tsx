@@ -106,6 +106,11 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
                       href={profile.resume_url} 
                       target="_blank" 
                       rel="noopener noreferrer"
+                      onClick={(e) => {
+                        if (!window.confirm('Are you sure you want to download the Consultant Resume?')) {
+                          e.preventDefault();
+                        }
+                      }}
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
                     >
                       <Download className="w-3.5 h-3.5" /> Download Consultant Resume
@@ -216,6 +221,11 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
                           href={profile.resume_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
+                          onClick={(e) => {
+                            if (!window.confirm('Are you sure you want to download the Consultant Resume?')) {
+                              e.preventDefault();
+                            }
+                          }}
                           className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary-600 hover:underline"
                         >
                           <Download className="w-3.5 h-3.5" /> Resume
@@ -323,6 +333,11 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
                           href={selectedProfile.resume_url} 
                           target="_blank" 
                           rel="noopener noreferrer"
+                          onClick={(e) => {
+                            if (!window.confirm('Are you sure you want to download the Consultant Resume?')) {
+                              e.preventDefault();
+                            }
+                          }}
                           className="block"
                         >
                           <Button variant="outline" className="w-full text-xs py-1.5 rounded-md border-zinc-200 font-semibold bg-white cursor-pointer active:scale-98 transition-transform">

@@ -450,15 +450,14 @@ export default function AdminSettingsClient() {
           </div>
           
           <div className="relative w-full h-64 bg-zinc-50 rounded-lg overflow-hidden border border-zinc-200 group shadow-inner-xs flex-1">
-            {!mapError ? (
-              <Image
+            {lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng)) ? (
+              <iframe
                 key={`${lat}-${lng}`}
-                src={`https://maps.geoapify.com/v1/staticmap?style=osm-bright&width=800&height=400&center=lonlat:${(lng || '').trim()},${(lat || '').trim()}&zoom=15.5&marker=lonlat:${(lng || '').trim()},${(lat || '').trim()};color:%230d9488;size:large&apiKey=${env.NEXT_PUBLIC_GEOAPIFY_API_KEY || 'demo'}`}
-                alt="Office location map preview"
-                fill
-                className="object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
-                onError={() => setMapError(true)}
-                unoptimized
+                src={`https://maps.google.com/maps?q=${parseFloat(lat)},${parseFloat(lng)}&t=&z=17&ie=UTF8&iwloc=&output=embed`}
+                className="w-full h-full border-0 rounded-lg"
+                allowFullScreen
+                loading="lazy"
+                title="Office location map preview"
               />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-zinc-50">

@@ -458,7 +458,15 @@ export default function ApplicationsClient({ initialApps }: { initialApps: Appli
                 {selectedApp.resume_url && (
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-1">Resume</p>
-                    <Button variant="outline" size="sm" onClick={() => window.open(selectedApp.resume_url, '_blank')}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to download/view the candidate resume?')) {
+                          window.open(selectedApp.resume_url, '_blank');
+                        }
+                      }}
+                    >
                       <Download className="w-4 h-4" /> View Resume
                     </Button>
                   </div>

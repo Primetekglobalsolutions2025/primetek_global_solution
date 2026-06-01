@@ -201,6 +201,44 @@ export default function AdminHolidaysClient({
             </div>
           </div>
         </Card>
+      </div>
+
+      {/* Control Form Column */}
+      <div className="lg:col-span-4 flex flex-col space-y-6">
+        {/* Selected Date Card */}
+        <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white space-y-4">
+          <h3 className="text-xs font-black text-zinc-400 uppercase tracking-widest block font-mono">Date Status</h3>
+          <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50 flex items-start gap-3">
+            <CalendarIcon className="w-5 h-5 text-primary-600 mt-0.5" />
+            <div>
+              <p className="font-bold text-navy-900 text-sm">
+                {selectedDate.toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  weekday: 'long'
+                })}
+              </p>
+              {selectedHoliday ? (
+                <div className="mt-2 inline-flex items-center gap-1 bg-primary-50 text-primary-600 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full border border-primary-600/10 uppercase tracking-wider font-mono">
+                  {selectedHoliday.type}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-450 mt-1">Normal Working Day</p>
+              )}
+            </div>
+          </div>
+
+          {selectedHoliday && (
+            <div className="p-3 rounded-lg border border-teal-200 bg-primary-50/20 text-xs font-semibold text-primary-600 flex gap-2">
+              <Info className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold">{selectedHoliday.title}</p>
+                <p className="text-[10px] opacity-80 mt-0.5">This day is announced as a holiday. Employees will see this on their dashboard and attendance calendar.</p>
+              </div>
+            </div>
+          )}
+        </Card>
 
         {/* Holiday list card */}
         <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white">
@@ -248,44 +286,6 @@ export default function AdminHolidaysClient({
                   </div>
                 );
               })}
-            </div>
-          )}
-        </Card>
-      </div>
-
-      {/* Control Form Column */}
-      <div className="lg:col-span-4 flex flex-col space-y-6">
-        {/* Selected Date Card */}
-        <Card hover={false} className="p-6 border border-[#E2E8F0] shadow-xs bg-white space-y-4">
-          <h3 className="text-xs font-black text-zinc-400 uppercase tracking-widest block font-mono">Date Status</h3>
-          <div className="p-4 rounded-xl border border-zinc-200 bg-zinc-50 flex items-start gap-3">
-            <CalendarIcon className="w-5 h-5 text-primary-600 mt-0.5" />
-            <div>
-              <p className="font-bold text-navy-900 text-sm">
-                {selectedDate.toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  weekday: 'long'
-                })}
-              </p>
-              {selectedHoliday ? (
-                <div className="mt-2 inline-flex items-center gap-1 bg-primary-50 text-primary-600 text-[9px] font-extrabold px-2.5 py-0.5 rounded-full border border-primary-600/10 uppercase tracking-wider font-mono">
-                  {selectedHoliday.type}
-                </div>
-              ) : (
-                <p className="text-xs text-zinc-450 mt-1">Normal Working Day</p>
-              )}
-            </div>
-          </div>
-
-          {selectedHoliday && (
-            <div className="p-3 rounded-lg border border-teal-200 bg-primary-50/20 text-xs font-semibold text-primary-600 flex gap-2">
-              <Info className="w-4 h-4 text-primary-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold">{selectedHoliday.title}</p>
-                <p className="text-[10px] opacity-80 mt-0.5">This day is announced as a holiday. Employees will see this on their dashboard and attendance calendar.</p>
-              </div>
             </div>
           )}
         </Card>

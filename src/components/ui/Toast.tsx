@@ -68,7 +68,7 @@ export function useToast() {
 
 function ToastContainer({ toasts, removeToast }: { toasts: ToastMessage[]; removeToast: (id: string) => void }) {
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full pointer-events-none px-4 sm:px-0">
+    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 md:right-5 z-[200] flex flex-col gap-3 max-w-sm sm:max-w-md w-full pointer-events-none px-4 md:px-0">
       {toasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
       ))}
@@ -81,43 +81,43 @@ function ToastItem({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
 
   const config = {
     success: {
-      icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
-      borderColor: 'border-emerald-500/20',
-      bgColor: 'bg-emerald-950/20 backdrop-blur-md',
-      textColor: 'text-emerald-100',
+      icon: <CheckCircle className="w-5 h-5 text-emerald-600" />,
+      borderColor: 'border-emerald-200',
+      bgColor: 'bg-white',
+      textColor: 'text-emerald-800',
     },
     error: {
-      icon: <AlertCircle className="w-5 h-5 text-rose-500" />,
-      borderColor: 'border-rose-500/20',
-      bgColor: 'bg-rose-950/20 backdrop-blur-md',
-      textColor: 'text-rose-100',
+      icon: <AlertCircle className="w-5 h-5 text-rose-600" />,
+      borderColor: 'border-rose-200',
+      bgColor: 'bg-white',
+      textColor: 'text-rose-800',
     },
     info: {
-      icon: <Info className="w-5 h-5 text-sky-500" />,
-      borderColor: 'border-sky-500/20',
-      bgColor: 'bg-sky-950/20 backdrop-blur-md',
-      textColor: 'text-sky-100',
+      icon: <Info className="w-5 h-5 text-sky-600" />,
+      borderColor: 'border-sky-200',
+      bgColor: 'bg-white',
+      textColor: 'text-sky-800',
     },
     warning: {
-      icon: <AlertTriangle className="w-5 h-5 text-amber-500" />,
-      borderColor: 'border-amber-500/20',
-      bgColor: 'bg-amber-950/20 backdrop-blur-md',
-      textColor: 'text-amber-100',
+      icon: <AlertTriangle className="w-5 h-5 text-amber-600" />,
+      borderColor: 'border-amber-200',
+      bgColor: 'bg-white',
+      textColor: 'text-amber-800',
     },
   }[type];
 
   return (
     <div
-      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-2xl border ${config.borderColor} ${config.bgColor} shadow-lg shadow-black/20 animate-in slide-in-from-right-5 fade-in duration-300 w-full`}
+      className={`pointer-events-auto flex items-start gap-3 p-4 rounded-2xl border ${config.borderColor} ${config.bgColor} shadow-lg shadow-black/5 animate-in slide-in-from-bottom-4 fade-in duration-300 w-full`}
       role="alert"
     >
       <div className="flex-shrink-0 mt-0.5">{config.icon}</div>
-      <div className="flex-1 text-sm font-medium leading-relaxed text-slate-200">
+      <div className={`flex-1 text-xs font-bold leading-normal ${config.textColor}`}>
         {message}
       </div>
       <button
         onClick={onClose}
-        className="flex-shrink-0 text-slate-400 hover:text-slate-200 transition-colors p-0.5 rounded-lg hover:bg-white/5"
+        className="flex-shrink-0 text-zinc-400 hover:text-zinc-650 transition-colors p-0.5 rounded-lg hover:bg-zinc-100 border-0 cursor-pointer bg-transparent"
       >
         <X className="w-4 h-4" />
       </button>

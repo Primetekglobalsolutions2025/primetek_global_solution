@@ -848,60 +848,94 @@ export default function AttendanceClient({
         })}
       </div>
 
-      {/* Workforce Summary Strip */}
-      <div className="bg-white border border-zinc-200 rounded-xl shadow-sm px-4 py-3 flex flex-wrap items-center gap-6 justify-between">
-        <div className="flex flex-wrap items-center gap-6">
-          {/* Active Workforce Pill */}
-          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('active')}>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Active Workforce:</span>
-            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.activeWorkforce ?? 0}</span>
-          </div>
-          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
-
-          {/* Active Breaks Pill */}
-          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('breaks')}>
-            <Coffee className="w-3.5 h-3.5 text-amber-500" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">On Break:</span>
-            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.activeBreaks ?? 0}</span>
-          </div>
-          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
-
-          {/* Idle Warnings Pill */}
-          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('idle')}>
-            <AlertTriangle className="w-3.5 h-3.5 text-yellow-555" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Idle Warnings:</span>
-            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.idleWarnings ?? 0}</span>
-          </div>
-          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
-
-          {/* Mobile Sessions Pill */}
-          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('mobile')}>
-            <Smartphone className="w-3.5 h-3.5 text-violet-500" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Mobile Sessions:</span>
-            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.mobileSessions ?? 0}</span>
-          </div>
-          <div className="h-4 w-[1px] bg-zinc-200 hidden sm:block" />
-
-          {/* Auto-breaks Pill */}
-          <div className="flex items-center gap-2 cursor-pointer hover:opacity-85 select-none" onClick={() => setQuickFilter('autobreaks')}>
-            <Clock className="w-3.5 h-3.5 text-rose-500" />
-            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">Auto-breaks:</span>
-            <span className="text-sm font-black text-navy-900">{realtimeData?.metrics.autoBreaks ?? 0}</span>
-          </div>
-        </div>
-
-        {quickFilter !== 'all' && (
-          <button 
-            onClick={() => setQuickFilter('all')}
-            className="text-[9px] font-extrabold text-primary-600 hover:text-primary-700 uppercase tracking-widest bg-primary-50 px-2.5 py-1 rounded-md border border-primary-100 transition-all active:scale-95 shadow-sm"
-          >
-            Clear Filter
-          </button>
-        )}
+      {/* Workforce Summary Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {[
+          {
+            key: 'active',
+            label: 'Active Workforce',
+            value: realtimeData?.metrics.activeWorkforce ?? 0,
+            icon: (
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            ),
+            bgGradient: 'from-emerald-500/10 to-teal-500/5 hover:from-emerald-500/15 hover:to-teal-500/10',
+            activeBorder: 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/50',
+            borderColor: 'border-[#E8EDF2]',
+            textColor: 'text-emerald-700'
+          },
+          {
+            key: 'breaks',
+            label: 'On Break',
+            value: realtimeData?.metrics.activeBreaks ?? 0,
+            icon: <Coffee className="w-4 h-4 text-amber-500 shrink-0" />,
+            bgGradient: 'from-amber-500/10 to-orange-500/5 hover:from-amber-500/15 hover:to-orange-500/10',
+            activeBorder: 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/50',
+            borderColor: 'border-[#E8EDF2]',
+            textColor: 'text-amber-700'
+          },
+          {
+            key: 'idle',
+            label: 'Idle Warnings',
+            value: realtimeData?.metrics.idleWarnings ?? 0,
+            icon: <AlertTriangle className="w-4 h-4 text-yellow-600 shrink-0" />,
+            bgGradient: 'from-yellow-500/10 to-amber-500/5 hover:from-yellow-500/15 hover:to-amber-500/10',
+            activeBorder: 'border-yellow-500 ring-2 ring-yellow-500/20 bg-yellow-50/50',
+            borderColor: 'border-[#E8EDF2]',
+            textColor: 'text-yellow-750'
+          },
+          {
+            key: 'mobile',
+            label: 'Mobile Sessions',
+            value: realtimeData?.metrics.mobileSessions ?? 0,
+            icon: <Smartphone className="w-4 h-4 text-violet-500 shrink-0" />,
+            bgGradient: 'from-violet-500/10 to-fuchsia-500/5 hover:from-violet-500/15 hover:to-fuchsia-500/10',
+            activeBorder: 'border-violet-500 ring-2 ring-violet-500/20 bg-violet-50/50',
+            borderColor: 'border-[#E8EDF2]',
+            textColor: 'text-violet-700'
+          },
+          {
+            key: 'autobreaks',
+            label: 'Auto-breaks',
+            value: realtimeData?.metrics.autoBreaks ?? 0,
+            icon: <Clock className="w-4 h-4 text-rose-500 shrink-0" />,
+            bgGradient: 'from-rose-500/10 to-red-500/5 hover:from-rose-500/15 hover:to-red-500/10',
+            activeBorder: 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/50',
+            borderColor: 'border-[#E8EDF2]',
+            textColor: 'text-rose-700'
+          }
+        ].map((card) => {
+          const isActive = quickFilter === card.key;
+          return (
+            <div
+              key={card.key}
+              onClick={() => setQuickFilter(isActive ? 'all' : card.key)}
+              className={cn(
+                "p-4 rounded-2xl border transition-all cursor-pointer select-none flex flex-col justify-between gap-3 bg-white/70 backdrop-blur-md shadow-3xs hover:shadow-2xs active:scale-[0.98]",
+                isActive ? card.activeBorder : cn("border-[#E8EDF2] bg-gradient-to-br", card.bgGradient)
+              )}
+            >
+              <div className="flex items-center justify-between w-full">
+                <span className="text-[10px] font-black uppercase tracking-wider text-zinc-500">
+                  {card.label}
+                </span>
+                {card.icon}
+              </div>
+              <div className="flex items-baseline gap-1.5 mt-1">
+                <span className={cn("text-2xl font-black tracking-tight", card.textColor)}>
+                  {card.value}
+                </span>
+                {isActive && (
+                  <span className="text-[8px] font-bold uppercase tracking-widest text-primary-600 bg-primary-50 px-1 rounded">
+                    Active
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>      {/* Attention Center (Exceptions Banner) */}
       {((realtimeData?.metrics.gpsAlerts ?? 0) > 0 || 
         (realtimeData?.metrics.staleSessions ?? 0) > 0 || 

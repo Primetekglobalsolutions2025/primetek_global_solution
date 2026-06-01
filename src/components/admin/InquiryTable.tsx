@@ -27,7 +27,7 @@ interface InquiryTableProps {
   deleteInquiry: (id: string) => Promise<unknown>;
 }
 
-const statusOptions = ['all', 'new', 'contacted', 'qualified', 'closed'] as const;
+const statusOptions = ['all', 'new', 'in-progress', 'contacted', 'qualified', 'resolved', 'closed'] as const;
 
 const ITEMS_PER_PAGE = 8;
 
