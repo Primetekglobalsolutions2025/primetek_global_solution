@@ -253,13 +253,13 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
       localInterval = setInterval(async () => {
         if (!isLeaderRef.current) return; // Only leader runs the tick check
         const delta = Date.now() - lastAct;
-        // 3 minutes (180,000 ms) idle threshold
-        if (delta >= 180000 && delta < 300000 && currentStatus === 'Working') {
+        // 5 minutes (300,000 ms) idle threshold — matches Supabase sweep_active_sessions_telemetry
+        if (delta >= 300000 && delta < 420000 && currentStatus === 'Working') {
           await handleStateTransition('Idle');
           if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Idle' });
         } 
-        // 5 minutes (300,000 ms) auto break threshold
-        else if (delta >= 300000 && (currentStatus === 'Working' || currentStatus === 'Idle')) {
+        // 7 minutes (420,000 ms) auto break threshold — matches Supabase sweep_active_sessions_telemetry
+        else if (delta >= 420000 && (currentStatus === 'Working' || currentStatus === 'Idle')) {
           clearInterval(localInterval);
           if (fallbackBc) fallbackBc.postMessage({ type: 'TRIGGER_AUTO_BREAK' });
           await handleStateTransition('Break (Auto)');

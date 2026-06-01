@@ -2,8 +2,8 @@
 
 let ports = [];
 let lastActivity = Date.now();
-const idleThreshold = 180000;      // 3 minutes of inactivity -> Idle
-const autoBreakThreshold = 300000; // 5 minutes of inactivity -> Break (Auto)
+const idleThreshold = 300000;      // 5 minutes of inactivity -> Idle (matches Supabase sweep_active_sessions_telemetry)
+const autoBreakThreshold = 420000; // 7 minutes of inactivity -> Break (Auto) (matches Supabase sweep_active_sessions_telemetry)
 let state = 'Working';             // Working, Idle, Break (Auto)
 
 self.onconnect = function (e) {
