@@ -27,6 +27,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.primetekglobalsolutions.com'),
+  alternates: {
+    canonical: 'https://www.primetekglobalsolutions.com',
+  },
   title: {
     default: 'Primetek Global Solutions | IT Staffing for US Companies',
     template: '%s | Primetek Global Solutions',
