@@ -1,6 +1,6 @@
 async function getBackendUrl() {
   const data = await chrome.storage.local.get(['backendUrl']);
-  return data.backendUrl || 'http://localhost:3000';
+  return data.backendUrl || 'https://www.primetekglobalsolutions.com';
 }
 
 let sequenceNumber = 1;
