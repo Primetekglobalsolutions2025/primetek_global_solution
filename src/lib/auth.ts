@@ -242,6 +242,12 @@ export async function getSession(): Promise<TokenPayload | null> {
 }
 
 export function getTokenFromRequest(request: NextRequest): string | null {
+  // Check Authorization header first (standard Bearer token for API/Extension clients)
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+
   const { pathname, searchParams } = request.nextUrl;
   const referer = request.headers.get('referer');
   const roleParam = searchParams.get('role');

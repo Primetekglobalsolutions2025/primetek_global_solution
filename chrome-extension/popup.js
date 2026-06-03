@@ -35,12 +35,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   const logoutBtn = document.getElementById('logout-btn');
   const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
+  const serverUrlInput = document.getElementById('server-url');
   const errorBox = document.getElementById('error-box');
   const empNameSpan = document.getElementById('emp-name');
   const connHostSpan = document.getElementById('conn-host');
   const statusBadge = document.getElementById('status-badge');
   const statusText = document.getElementById('status-text');
 
+  // Pre-fill backend URL input and display host
+  serverUrlInput.value = BACKEND_URL;
   connHostSpan.textContent = BACKEND_URL.replace('http://', '').replace('https://', '');
 
   // 1. Initial State Check
@@ -55,8 +58,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   loginBtn.addEventListener('click', async () => {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
+    const serverUrl = serverUrlInput.value.trim().replace(/\/$/, '');
 
-    if (!email || !password) {
+    if (!email || !password || !serverUrl) {
       showError('Please fill in all fields.');
       return;
     }
@@ -64,6 +68,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     loginBtn.disabled = true;
     loginBtn.textContent = 'Logging In...';
     hideError();
+
+    // Update backend URL dynamically from input
+    BACKEND_URL = serverUrl;
+    await chrome.storage.local.set({ backendUrl: BACKEND_URL });
+    connHostSpan.textContent = BACKEND_URL.replace('http://', '').replace('https://', '');
 
     try {
       const response = await fetch(`${BACKEND_URL}/api/extension/auth`, {
