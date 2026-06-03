@@ -15,6 +15,7 @@ const serverSchema = publicSchema.extend({
   CRON_SECRET: z.string().min(1).optional().or(z.literal("").transform(() => undefined)),
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
   VAPID_SUBJECT: z.string().min(1).optional(),
+  GOOGLE_SHEET_WEBHOOK_URL: z.string().min(1).optional(),
 }).superRefine((data, ctx) => {
   if (process.env.NODE_ENV === 'production') {
     if (!data.JWT_SECRET || data.JWT_SECRET === 'primetek-fallback-secret-key-2026') {
@@ -67,6 +68,7 @@ function createLazyEnv() {
           CRON_SECRET: process.env.CRON_SECRET,
           VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
           VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+          GOOGLE_SHEET_WEBHOOK_URL: process.env.GOOGLE_SHEET_WEBHOOK_URL,
         };
 
         // During `next build` page-data collection, env vars may not be

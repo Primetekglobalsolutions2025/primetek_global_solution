@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
+import { env } from '@/lib/env';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,9 +11,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const webhookUrl = process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    const webhookUrl = env.GOOGLE_SHEET_WEBHOOK_URL;
     if (!webhookUrl) {
-      console.error('[Job Tracker API] GOOGLE_SHEET_WEBHOOK_URL is not configured in environment variables.');
+      console.error('[Job Tracker API] GOOGLE_SHEET_WEBHOOK_URL is not configured in env.');
       return NextResponse.json({ error: 'Google Sheet Webhook URL is not configured.' }, { status: 500 });
     }
 
