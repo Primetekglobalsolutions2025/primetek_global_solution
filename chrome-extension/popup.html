@@ -1,183 +1,509 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <title>Primetek Portal Tracker</title>
   <style>
+    /* CSS Variables for design token consistency */
+    :root {
+      --bg-gradient: radial-gradient(circle at 50% 0%, #151e33 0%, #0a0d16 100%);
+      --container-bg: rgba(15, 23, 42, 0.65);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(6, 182, 212, 0.5);
+      --glow-focus: rgba(6, 182, 212, 0.15);
+      --text-primary: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #4f46e5 100%);
+      --active-green: #34d399;
+      --inactive-rose: #fb7185;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       width: 320px;
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-      color: #f8fafc;
-      padding: 20px;
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 16px;
     }
 
     h2 {
       font-size: 18px;
-      margin-top: 0;
-      margin-bottom: 15px;
-      font-weight: 600;
-      text-align: center;
-      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(90deg, #22d3ee, #818cf8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      text-wrap: balance;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 600;
     }
 
     .container {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--container-bg);
       border-radius: 12px;
-      padding: 15px;
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      backdrop-filter: blur(12px) saturate(180%);
+      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border: 1px solid var(--border-color);
+      transition: border-color 0.2s ease;
     }
 
     .form-group {
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
 
     label {
       display: block;
-      font-size: 12px;
-      color: #94a3b8;
-      margin-bottom: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      color: #64748b;
+      pointer-events: none;
+      transition: color 0.2s ease;
     }
 
     input {
       width: 100%;
-      box-sizing: border-box;
-      padding: 8px 12px;
+      padding: 10px 12px 10px 36px;
       background: rgba(15, 23, 42, 0.6);
-      border: 1px solid #334155;
-      border-radius: 6px;
-      color: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-primary);
       font-size: 14px;
       outline: none;
-      transition: border 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    input:focus {
-      border-color: #38bdf8;
+    input:focus, input:focus-visible {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px var(--glow-focus);
+      background: rgba(15, 23, 42, 0.8);
+      outline: none;
+    }
+
+    .input-wrapper:focus-within .input-icon {
+      color: #06b6d4;
     }
 
     button {
       width: 100%;
-      padding: 10px;
-      background: linear-gradient(90deg, #0284c7 0%, #4f46e5 100%);
+      padding: 12px;
+      background: var(--accent-gradient);
       border: none;
-      border-radius: 6px;
-      color: white;
+      border-radius: 8px;
+      color: #ffffff;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: opacity 0.2s;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    button:hover {
-      opacity: 0.9;
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(6, 182, 212, 0.3), 0 2px 4px rgba(99, 102, 241, 0.2);
+      filter: brightness(1.1);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2);
+      filter: brightness(0.95);
+    }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4), 0 4px 12px rgba(6, 182, 212, 0.2);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+      box-shadow: none;
     }
 
     .hidden {
       display: none;
     }
 
+    /* Status Badge styling with pulses */
+    .status-badge-container {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
     .status-badge {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 13px;
       font-weight: 600;
-      margin-bottom: 15px;
+      transition: all 0.3s ease;
     }
 
     .status-active {
-      background: rgba(16, 185, 129, 0.2);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--active-green);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
     }
 
     .status-inactive {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: rgba(244, 63, 94, 0.12);
+      color: var(--inactive-rose);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+      box-shadow: 0 0 12px rgba(244, 63, 94, 0.15);
     }
 
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    .status-active .status-dot {
+      animation: active-pulse 1.8s infinite;
+    }
+
+    @keyframes active-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+      }
+    }
+
+    .status-inactive .status-dot {
+      animation: inactive-pulse 2.2s infinite;
+    }
+
+    @keyframes inactive-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.5);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(251, 113, 133, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(251, 113, 133, 0);
+      }
+    }
+
+    /* Toast style error block */
     .error-msg {
-      color: #f87171;
+      color: #fda4af;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+      border-radius: 8px;
+      padding: 10px 12px;
       font-size: 12px;
-      margin-top: 8px;
-      text-align: center;
+      margin-top: 12px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: shake 0.3s ease-in-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    .error-msg svg {
+      flex-shrink: 0;
+    }
+
+    .status-msg-box {
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      margin-top: 12px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: shake 0.3s ease-in-out;
+    }
+    .status-msg-box.success {
+      color: #a7f3d0;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .status-msg-box.error {
+      color: #fda4af;
+      background: rgba(244, 63, 94, 0.12);
+      border: 1px solid rgba(244, 63, 94, 0.25);
+    }
+    .status-msg-box svg {
+      flex-shrink: 0;
+    }
+
+    /* Details Panel inside Status screen */
+    .info-group {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 16px;
     }
 
     .info-row {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-size: 13px;
-      margin-bottom: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .info-row:first-child {
+      padding-top: 0;
     }
 
     .info-label {
-      color: #94a3b8;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .info-value {
       font-weight: 500;
+      color: #f1f5f9;
     }
 
+    /* Secondary action styling */
     .btn-secondary {
       background: transparent;
-      border: 1px solid #334155;
-      color: #cbd5e1;
-      margin-top: 10px;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+      color: var(--inactive-rose);
+      box-shadow: none;
     }
 
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.05);
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(244, 63, 94, 0.08);
+      border-color: rgba(244, 63, 94, 0.5);
+      color: #fda4af;
+      box-shadow: 0 4px 12px rgba(244, 63, 94, 0.1);
+    }
+
+    .btn-secondary:active:not(:disabled) {
+      background: rgba(244, 63, 94, 0.15);
+    }
+
+    .btn-secondary:focus-visible {
+      box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.4);
     }
   </style>
 </head>
 <body>
-  <h2>Primetek Portal Tracker</h2>
+  <div class="header">
+    <h2>Primetek&nbsp;Portal</h2>
+    <div class="subtitle">Activity Tracker</div>
+  </div>
   
   <!-- 1. LOGIN SCREEN -->
   <div id="login-screen" class="container">
-    <div class="form-group">
+    <div class="form-group hidden">
       <label for="server-url">Server URL</label>
-      <input type="text" id="server-url" value="https://www.primetekglobalsolutions.com" placeholder="https://www.primetekglobalsolutions.com" required />
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <input type="url" id="server-url" value="https://www.primetekglobalsolutions.com" placeholder="https://example.com…" required />
+      </div>
     </div>
     
     <div class="form-group">
       <label for="email">Email or Employee ID</label>
-      <input type="text" id="email" placeholder="email@primetek.com" required />
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+          <polyline points="22,6 12,13 2,6"></polyline>
+        </svg>
+        <input type="text" id="email" placeholder="employee@primetek.com…" required autocomplete="email" spellcheck="false" />
+      </div>
     </div>
     
     <div class="form-group">
       <label for="password">Password</label>
-      <input type="password" id="password" placeholder="••••••••" required />
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <input type="password" id="password" placeholder="••••••••" required />
+      </div>
     </div>
     
     <button id="login-btn">Log In</button>
-    <div id="error-box" class="error-msg hidden"></div>
+    <div id="error-box" class="error-msg hidden" aria-live="polite">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span></span>
+    </div>
   </div>
 
   <!-- 2. STATUS SCREEN -->
   <div id="status-screen" class="container hidden">
-    <div style="text-align: center;">
+    <div class="status-badge-container">
       <div id="status-badge" class="status-badge status-inactive">
-        <span id="status-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: currentColor;"></span>
+        <span id="status-indicator" class="status-dot"></span>
         <span id="status-text">Disconnected</span>
       </div>
     </div>
 
-    <div class="info-row">
-      <span class="info-label">Employee</span>
-      <span class="info-value" id="emp-name">Ravi Kumar</span>
+    <div class="info-group">
+      <div class="info-row">
+        <span class="info-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          Employee
+        </span>
+        <span class="info-value" id="emp-name">Employee Name</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+          Connection
+        </span>
+        <span class="info-value" id="conn-host">Server Host</span>
+      </div>
     </div>
-    <div class="info-row">
-      <span class="info-label">Connection</span>
-      <span class="info-value" id="conn-host">localhost:3000</span>
+
+    <div style="margin: 16px 0; border-top: 1px solid rgba(255,255,255,0.06);"></div>
+    
+    <div class="subtitle" style="text-align: left; margin-bottom: 12px; font-size: 10px;">Job Application Extractor</div>
+
+    <div class="form-group">
+      <label for="job-title">Job Title</label>
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+          <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+        </svg>
+        <input type="text" id="job-title" placeholder="Job Title…" required />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="client-name">Client / Company Name</label>
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+          <circle cx="9" cy="7" r="4"></circle>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+        <input type="text" id="client-name" placeholder="Client / Company Name…" required />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="job-url">Application URL</label>
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+        </svg>
+        <input type="url" id="job-url" placeholder="Application URL…" required />
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="job-type">Type</label>
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
+          <line x1="4" y1="22" x2="4" y2="15"></line>
+        </svg>
+        <input type="text" id="job-type" placeholder="Type (e.g. Upwork, LinkedIn, W2)…" required />
+      </div>
+    </div>
+
+    <div class="form-group hidden">
+      <label for="sheet-webhook">Apps Script Web App URL</label>
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 3v4a1 1 0 0 0 1 1h4"></path>
+          <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"></path>
+          <line x1="9" y1="9" x2="9.01" y2="9"></line>
+          <line x1="9" y1="13" x2="15" y2="13"></line>
+          <line x1="9" y1="17" x2="15" y2="17"></line>
+        </svg>
+        <input type="url" id="sheet-webhook" value="https://script.google.com/macros/s/AKfycby3FOFLhpys8r5JQvVkn2YjFbGY6Oe0Uyd-z7Dt_FgKjFpPUqWOg_HaOO-kAm_mbVt50w/exec" placeholder="Paste Apps Script URL…" required />
+      </div>
+    </div>
+
+    <button id="export-sheet-btn" style="margin-top: 8px;">Save to Google Sheet</button>
+    <div id="export-status" class="status-msg-box hidden" aria-live="polite">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span></span>
     </div>
 
     <button id="logout-btn" class="btn-secondary">Log Out</button>

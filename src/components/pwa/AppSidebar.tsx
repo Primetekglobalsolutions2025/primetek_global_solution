@@ -7,7 +7,8 @@ import {
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
-  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2, Bell, Home
+  MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2, Bell, Home,
+  Briefcase
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -86,6 +87,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
     { href: '/admin/client-profiles', icon: Building2, label: 'Client Management', section: 'Recruitment & Clients' },
     { href: '/admin/interview-requests', icon: Calendar, label: 'Interview Requests', section: 'Recruitment & Clients' },
     { href: '/admin/applications', icon: FileText, label: 'Candidate Pipeline', section: 'Recruitment & Clients' },
+    { href: '/admin/job-tracker', icon: Briefcase, label: 'Job Tracker', section: 'Recruitment & Clients' },
     { href: '/admin/inquiries', icon: MessageSquare, label: 'Contact Inquiries', section: 'Recruitment & Clients' },
     
     // ─── Security & Compliance ───
@@ -124,6 +126,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
     { href: '/admin/client-profiles', icon: Building2, label: 'Clients', section: 'Recruitment & Clients' },
     { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews', section: 'Recruitment & Clients' },
     { href: '/admin/applications', icon: FileText, label: 'Pipeline', section: 'Recruitment & Clients' },
+    { href: '/admin/job-tracker', icon: Briefcase, label: 'Job Tracker', section: 'Recruitment & Clients' },
     { href: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries', section: 'Recruitment & Clients' },
     { href: '/admin/audit', icon: Shield, label: 'Audit Logs', section: 'Security & Compliance' },
     { href: '/admin/settings', icon: Settings, label: 'Settings', section: 'System Management' },
