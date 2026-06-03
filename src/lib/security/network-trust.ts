@@ -9,6 +9,8 @@
  */
 
 // ── Configuration ────────────────────────────────────────────
+import { supabaseAdmin } from '../supabase-admin';
+
 
 /**
  * Parse trusted office IPs from environment variable.
@@ -56,8 +58,26 @@ function ipToNumber(ip: string): number | null {
 /**
  * Check if the given IP address belongs to a trusted office network.
  */
-export function isOfficeNetwork(ipAddress: string): boolean {
-  const trustedIPs = getOfficeTrustedIPs();
+export async function isOfficeNetwork(ipAddress: string): Promise<boolean> {
+  let trustedIPs: string[] = [];
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('portal_config')
+      .select('config_value')
+      .eq('config_key', 'office_ip_whitelist')
+      .maybeSingle();
+
+    if (!error && data?.config_value) {
+      trustedIPs = data.config_value.split(',').map((ip: string) => ip.trim()).filter(Boolean);
+    }
+  } catch (err) {
+    console.error('Error fetching office IP whitelist from DB:', err);
+  }
+
+  // Fallback to environment variable if DB configuration is empty
+  if (trustedIPs.length === 0) {
+    trustedIPs = getOfficeTrustedIPs();
+  }
 
   // If no office IPs are configured, treat all as untrusted (safe default)
   if (trustedIPs.length === 0) return false;

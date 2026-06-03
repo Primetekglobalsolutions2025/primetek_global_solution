@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logAuditAction } from '@/lib/audit';
 import { loginRateLimiter, consumeRateLimit } from '@/lib/rate-limit';
 import { createActiveSession } from '@/lib/security/session-tracker';
+import { isOfficeNetwork } from '@/lib/security/network-trust';
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,9 +28,15 @@ export async function POST(request: NextRequest) {
     const mfaIpRes = await loginRateLimiter.get(mfaIpKey);
     const mfaAccountRes = await loginRateLimiter.get(mfaAccountKey);
 
-    if ((mfaIpRes && mfaIpRes.remainingPoints <= 0) || 
-        (mfaAccountRes && mfaAccountRes.remainingPoints <= 0)) {
-      const maxRetry = Math.max(mfaIpRes?.msBeforeNext || 0, mfaAccountRes?.msBeforeNext || 0);
+    const fromOfficeNetwork = await isOfficeNetwork(ip);
+    const isIpBlocked = !fromOfficeNetwork && (mfaIpRes && mfaIpRes.remainingPoints <= 0);
+    const isAccountBlocked = mfaAccountRes && mfaAccountRes.remainingPoints <= 0;
+
+    if (isIpBlocked || isAccountBlocked) {
+      const maxRetry = Math.max(
+        (!fromOfficeNetwork && mfaIpRes?.msBeforeNext) || 0,
+        mfaAccountRes?.msBeforeNext || 0
+      );
       const retryAfterSec = Math.ceil(maxRetry / 1000) || 60;
       return NextResponse.json(
         { error: `Too many MFA attempts. Try again in ${retryAfterSec} seconds.` },
@@ -101,8 +108,10 @@ export async function POST(request: NextRequest) {
     const currentAttempts = (session.mfa_attempts as number) || 0;
     const newAttempts = currentAttempts + 1;
 
-    // Consume points from both rate limiters
-    await loginRateLimiter.consume(mfaIpKey).catch(() => null);
+    // Consume points from rate limiters
+    if (!fromOfficeNetwork) {
+      await loginRateLimiter.consume(mfaIpKey).catch(() => null);
+    }
     await loginRateLimiter.consume(mfaAccountKey).catch(() => null);
 
     if (newAttempts >= 3) {

@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapPin, Save, Loader2, CheckCircle2, ExternalLink, Navigation, Building, AlertCircle, Crosshair, HelpCircle, X, Info, Smartphone, Download, Laptop } from 'lucide-react';
+import { MapPin, Save, Loader2, CheckCircle2, ExternalLink, Navigation, Building, AlertCircle, Crosshair, HelpCircle, X, Info, Smartphone, Download, Laptop, ShieldOff, Shield, Globe, RefreshCw, Trash2, Lock } from 'lucide-react';
 import Image from 'next/image';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { OFFICE_LOCATION } from '@/lib/location';
-import { getOfficeLocation, saveOfficeLocation, getSystemStatus, getNotificationPreferences, saveNotificationPreferences } from './actions';
+import { getOfficeLocation, saveOfficeLocation, getSystemStatus, getNotificationPreferences, saveNotificationPreferences, unlockEmployeeAccount, getOfficeIPs, saveOfficeIPs, getBlockedEntities, unblockEntity } from './actions';
 import { env } from '@/lib/env';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -38,9 +38,30 @@ export default function AdminSettingsClient() {
   const [notifLeave, setNotifLeave] = useState(true);
   const [notifWFH, setNotifWFH] = useState(true);
   const [notifInquiry, setNotifInquiry] = useState(true);
+
+  // Unlock account state
+  const [unlockEmail, setUnlockEmail] = useState('');
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [unlockResult, setUnlockResult] = useState<{ success: boolean; message: string } | null>(null);
   const [notifDigest, setNotifDigest] = useState(false);
   const [audioAlerts, setAudioAlerts] = useState(true);
   const [savingNotifs, setSavingNotifs] = useState(false);
+
+  // Office IP whitelist and lockout management states
+  const [officeIPs, setOfficeIPs] = useState('49.205.253.45');
+  const [originalOfficeIPs, setOriginalOfficeIPs] = useState('49.205.253.45');
+  const [savingIPs, setSavingIPs] = useState(false);
+  interface BlockedEntity {
+    key: string;
+    type: 'ip' | 'mfa_ip' | 'account' | 'mfa_account';
+    identifier: string;
+    resolvedName?: string;
+    expireAt: string;
+    points: number;
+  }
+  const [blockedEntities, setBlockedEntities] = useState<BlockedEntity[]>([]);
+  const [loadingEntities, setLoadingEntities] = useState(false);
+  const [unblockingKey, setUnblockingKey] = useState<string | null>(null);
 
   // PWA states and logic
   const [isStandalone, setIsStandalone] = useState(false);
@@ -118,10 +139,12 @@ export default function AdminSettingsClient() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const [office, nodes, prefs] = await Promise.all([
+        const [office, nodes, prefs, ips, entities] = await Promise.all([
           getOfficeLocation(),
           getSystemStatus(),
-          getNotificationPreferences()
+          getNotificationPreferences(),
+          getOfficeIPs(),
+          getBlockedEntities()
         ]);
         if (office) {
           const latVal = String(office.lat || OFFICE_LOCATION.lat);
@@ -141,6 +164,15 @@ export default function AdminSettingsClient() {
           setNotifInquiry(prefs.notifInquiry);
           setNotifDigest(prefs.notifDigest);
           setAudioAlerts(prefs.audioAlerts);
+        }
+
+        if (ips) {
+          setOfficeIPs(ips);
+          setOriginalOfficeIPs(ips);
+        }
+
+        if (entities) {
+          setBlockedEntities(entities);
         }
       } catch (err) {
         console.error('Failed to load settings:', err);
@@ -258,6 +290,56 @@ export default function AdminSettingsClient() {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
+  };
+
+  const refreshBlocked = async () => {
+    setLoadingEntities(true);
+    try {
+      const entities = await getBlockedEntities();
+      setBlockedEntities(entities);
+      showNotification('Active lockout status refreshed successfully.', 'success');
+    } catch (err) {
+      console.error('Failed to refresh blocked entities:', err);
+      showNotification('Failed to refresh blocked list.', 'error');
+    } finally {
+      setLoadingEntities(false);
+    }
+  };
+
+  const handleSaveIPs = async () => {
+    setSavingIPs(true);
+    try {
+      const res = await saveOfficeIPs(officeIPs);
+      if (res && res.success) {
+        setOriginalOfficeIPs(officeIPs);
+        showNotification('Office IP Whitelist updated successfully.', 'success');
+      } else {
+        showNotification(res?.error || 'Failed to update Office IP Whitelist.', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to save office IPs:', err);
+      showNotification('Failed to update Office IP Whitelist.', 'error');
+    } finally {
+      setSavingIPs(false);
+    }
+  };
+
+  const handleUnblock = async (key: string, identifier: string) => {
+    setUnblockingKey(key);
+    try {
+      const res = await unblockEntity(key);
+      if (res && res.success) {
+        setBlockedEntities(prev => prev.filter(entity => entity.key !== key));
+        showNotification(`Successfully unblocked ${identifier}.`, 'success');
+      } else {
+        showNotification(res?.error || `Failed to unblock ${identifier}.`, 'error');
+      }
+    } catch (err) {
+      console.error('Failed to unblock entity:', err);
+      showNotification(`Failed to unblock ${identifier}.`, 'error');
+    } finally {
+      setUnblockingKey(null);
+    }
   };
 
   const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}&z=17`;
@@ -774,6 +856,187 @@ export default function AdminSettingsClient() {
         </Card>
       </div>
 
+      {/* 5. Office IP Whitelist & Active Lockout Management */}
+      <div id="office-whitelist-lockout" className="scroll-mt-20">
+        <Card hover={false} className="p-6 rounded-lg border border-zinc-200 shadow-2xs bg-white overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-6 opacity-[0.03] pointer-events-none">
+            <Shield className="w-48 h-48 text-navy-900" />
+          </div>
+
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 rounded-md bg-amber-500/10 text-amber-700 border border-amber-500/20 flex items-center justify-center">
+              <Shield className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-navy-900 tracking-tight">Office IP Whitelist & Lockout Control</h2>
+              <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Network Security & Account Locks</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {/* Split layout: Whitelist input on left, active lockouts table on right */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Column 1: Whitelist Input (span 5) */}
+              <div className="lg:col-span-5 space-y-4">
+                <div className="p-4 rounded-lg bg-zinc-50 border border-zinc-200/80 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-primary-500" />
+                    <h3 className="text-xs font-bold text-navy-900 uppercase tracking-wider">Whitelisted Office Networks</h3>
+                  </div>
+                  
+                  <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">
+                    Traffic originating from these IPs bypasses network-wide blocking. Fails only lockout the specific user account. 
+                    Supports comma-separated IPv4, IPv6, or CIDR blocks (e.g. <code>49.205.253.45, 192.168.1.0/24</code>).
+                  </p>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-mono font-semibold text-zinc-450 uppercase tracking-wider block">Office IP Addresses</label>
+                    <textarea
+                      rows={3}
+                      value={officeIPs}
+                      onChange={(e) => setOfficeIPs(e.target.value)}
+                      placeholder="e.g. 49.205.253.45"
+                      className="w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all text-xs font-semibold shadow-2xs font-mono"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    {officeIPs !== originalOfficeIPs && (
+                      <span className="text-[9px] font-semibold text-amber-600 uppercase tracking-wider">Unsaved Changes</span>
+                    )}
+                    <div className="flex gap-2 ml-auto">
+                      <Button
+                        onClick={() => setOfficeIPs(originalOfficeIPs)}
+                        disabled={savingIPs || officeIPs === originalOfficeIPs}
+                        size="sm"
+                        className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold px-3 py-1.5 rounded-md border border-zinc-200"
+                      >
+                        Reset
+                      </Button>
+                      <Button
+                        onClick={handleSaveIPs}
+                        disabled={savingIPs || officeIPs === originalOfficeIPs}
+                        size="sm"
+                        className="bg-navy-900 hover:bg-navy-950 text-white text-xs font-semibold px-4 py-1.5 rounded-md shadow-2xs"
+                      >
+                        {savingIPs ? (
+                          <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> Saving...</>
+                        ) : (
+                          <><Save className="w-3.5 h-3.5 mr-1.5" /> Update List</>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 2: Lockout Table / List (span 7) */}
+              <div className="lg:col-span-7 space-y-4">
+                <div className="p-4 rounded-lg bg-zinc-50 border border-zinc-200/80 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-red-500" />
+                      <h3 className="text-xs font-bold text-navy-900 uppercase tracking-wider">Active Security Lockouts</h3>
+                    </div>
+                    
+                    <button
+                      onClick={refreshBlocked}
+                      disabled={loadingEntities}
+                      type="button"
+                      className="p-1.5 text-zinc-400 hover:text-navy-900 hover:bg-zinc-100 rounded-md transition-all cursor-pointer disabled:opacity-50"
+                      title="Refresh lockout data"
+                    >
+                      <RefreshCw className={cn("w-3.5 h-3.5", loadingEntities && "animate-spin")} />
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-zinc-500 leading-relaxed font-medium">
+                    A list of accounts or IP addresses that have exceeded the failed login attempt threshold (5 failures) and are currently locked out.
+                  </p>
+
+                  <div className="overflow-x-auto border border-zinc-200 rounded-lg bg-white">
+                    {loadingEntities ? (
+                      <div className="flex items-center justify-center p-8">
+                        <Loader2 className="w-6 h-6 text-primary-500 animate-spin" />
+                      </div>
+                    ) : blockedEntities.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center p-8 text-center">
+                        <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 border border-emerald-100">
+                          <CheckCircle2 className="w-5 h-5" />
+                        </div>
+                        <p className="text-xs font-bold text-navy-900 uppercase tracking-tight">System Fully Operational</p>
+                        <p className="text-[10px] text-zinc-400 mt-1">No active IP blocks or account lockouts detected.</p>
+                      </div>
+                    ) : (
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-zinc-50/50 border-b border-zinc-200/60 text-[9px] font-bold text-zinc-400 uppercase tracking-wider">
+                            <th className="py-2.5 px-3">Target / Identifier</th>
+                            <th className="py-2.5 px-3">Lock Type</th>
+                            <th className="py-2.5 px-3">Remaining Time</th>
+                            <th className="py-2.5 px-3 text-right">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-100 font-semibold text-navy-900">
+                          {blockedEntities.map((entity) => {
+                            const expiresDate = new Date(entity.expireAt);
+                            const msLeft = Math.max(0, expiresDate.getTime() - Date.now());
+                            const minsLeft = Math.ceil(msLeft / (60 * 1000));
+                            const formattedTime = minsLeft > 0 ? `${minsLeft} min(s)` : 'Expired';
+
+                            return (
+                              <tr key={entity.key} className="hover:bg-zinc-50/30 transition-colors">
+                                <td className="py-2 px-3">
+                                  <div className="font-mono text-[10px] font-semibold text-navy-950 truncate max-w-[200px]" title={entity.identifier}>
+                                    {entity.identifier}
+                                  </div>
+                                  {entity.resolvedName && (
+                                    <div className="text-[9px] text-zinc-400 mt-0.5 font-sans leading-none">{entity.resolvedName}</div>
+                                  )}
+                                </td>
+                                <td className="py-2 px-3">
+                                  <span className={cn(
+                                    "inline-flex items-center px-1.5 py-0.5 rounded-sm text-[8px] font-bold uppercase tracking-wider",
+                                    entity.type.includes('ip')
+                                      ? "bg-red-50 text-red-700 border border-red-100"
+                                      : "bg-amber-50 text-amber-700 border border-amber-100"
+                                  )}>
+                                    {entity.type === 'ip' ? 'IP Block' : 
+                                     entity.type === 'mfa_ip' ? 'MFA IP Block' :
+                                     entity.type === 'account' ? 'Account Lock' : 'MFA Account Lock'}
+                                  </span>
+                                </td>
+                                <td className="py-2 px-3 text-zinc-500 font-mono text-[10px]">
+                                  {formattedTime}
+                                </td>
+                                <td className="py-2 px-3 text-right">
+                                  <Button
+                                    onClick={() => handleUnblock(entity.key, entity.identifier)}
+                                    disabled={unblockingKey === entity.key}
+                                    size="sm"
+                                    className="bg-zinc-100 hover:bg-zinc-200 text-navy-900 border border-zinc-200 px-2 py-1 text-[10px] rounded active:scale-[0.98] font-bold"
+                                  >
+                                    {unblockingKey === entity.key ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      'Unblock'
+                                    )}
+                                  </Button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       {/* Floating Toast Notification */}
       <AnimatePresence>
         {notification && (
@@ -879,6 +1142,60 @@ export default function AdminSettingsClient() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── Unlock Blocked Account ── */}
+      <Card hover={false} className="p-6 rounded-lg border border-amber-200 shadow-2xs bg-amber-50/30 overflow-hidden relative">
+        <div className="flex items-center gap-2 mb-4">
+          <ShieldOff className="w-4 h-4 text-amber-600" />
+          <h2 className="text-sm font-bold text-navy-900 tracking-tight">Unlock Blocked Account</h2>
+        </div>
+        <p className="text-xs text-zinc-500 mb-4 leading-relaxed">
+          If an employee is locked out due to too many failed login attempts, enter their email below to unlock their account immediately.
+        </p>
+        <div className="flex gap-2">
+          <input
+            type="email"
+            value={unlockEmail}
+            onChange={(e) => { setUnlockEmail(e.target.value); setUnlockResult(null); }}
+            placeholder="employee@primetekglobal.com"
+            className="flex-1 px-3 py-2 text-xs border border-zinc-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+          />
+          <Button
+            onClick={async () => {
+              if (!unlockEmail.trim()) return;
+              setIsUnlocking(true);
+              setUnlockResult(null);
+              try {
+                const res = await unlockEmployeeAccount(unlockEmail.trim());
+                setUnlockResult({
+                  success: res.success,
+                  message: res.success
+                    ? `Account ${unlockEmail} has been unlocked successfully.`
+                    : (res.error || 'Failed to unlock account.')
+                });
+                if (res.success) setUnlockEmail('');
+              } catch (err) {
+                setUnlockResult({ success: false, message: 'An error occurred.' });
+              } finally {
+                setIsUnlocking(false);
+              }
+            }}
+            disabled={isUnlocking || !unlockEmail.trim()}
+            className="px-4 py-2 text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-md border-0 disabled:opacity-50"
+          >
+            {isUnlocking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Unlock'}
+          </Button>
+        </div>
+        {unlockResult && (
+          <div className={cn(
+            'mt-3 flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-md',
+            unlockResult.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+          )}>
+            {unlockResult.success ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
+            {unlockResult.message}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

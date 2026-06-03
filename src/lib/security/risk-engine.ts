@@ -32,7 +32,7 @@ export async function assessAttendanceRisk(ctx: AttendanceRequestContext): Promi
   // -------------------------------------------------------------------
   // 1️⃣ Office Network Signal
   // -------------------------------------------------------------------
-  const officeTrusted = isOfficeNetwork(ctx.ipAddress);
+  const officeTrusted = await isOfficeNetwork(ctx.ipAddress);
   if (officeTrusted) {
     // Low weight – being on office network is a good sign
     signals.push({ signal: 'office_network', weight: 5, detail: 'IP matches trusted office range' });

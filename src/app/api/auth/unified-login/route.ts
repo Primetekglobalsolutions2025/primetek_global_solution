@@ -9,6 +9,13 @@ import { createClient } from '@supabase/supabase-js';
 import { env } from '@/lib/env';
 import { isOfficeNetwork } from '@/lib/security/network-trust';
 
+async function recordFailedAttempt(ipKey: string, accountKey: string, fromOfficeNetwork: boolean) {
+  if (!fromOfficeNetwork) {
+    await loginRateLimiter.consume(ipKey).catch(() => null);
+  }
+  await loginRateLimiter.consume(accountKey).catch(() => null);
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 1. Basic Security: Extract IP and parse request body
@@ -42,7 +49,7 @@ export async function POST(request: NextRequest) {
     // If request comes from the office network (shared WiFi), skip IP-based blocking.
     // All employees share the same public IP — blocking by IP would lock out the entire office.
     // External IPs (home, mobile data) are still blocked by IP after 5 failed attempts.
-    const fromOfficeNetwork = isOfficeNetwork(ip);
+    const fromOfficeNetwork = await isOfficeNetwork(ip);
 
     const isIpBlocked = !fromOfficeNetwork && (ipRateLimitRes && ipRateLimitRes.remainingPoints <= 0);
     const isAccountBlocked = accountRateLimitRes && accountRateLimitRes.remainingPoints <= 0;
@@ -66,8 +73,7 @@ export async function POST(request: NextRequest) {
       const { captchaToken, captchaAnswer, captchaNonce } = body || {};
       if (!captchaToken || captchaAnswer === undefined || captchaAnswer === null || !captchaNonce) {
         // Increment rate limit attempts for missing captcha
-        await loginRateLimiter.consume(ipKey).catch(() => null);
-        await loginRateLimiter.consume(accountKey).catch(() => null);
+        await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
         const captcha = await generateCaptchaChallenge();
         return NextResponse.json({
           error: 'Security verification required. Please solve the CAPTCHA.',
@@ -79,8 +85,7 @@ export async function POST(request: NextRequest) {
       const isValid = await verifyCaptchaToken(captchaToken, Number(captchaAnswer), captchaNonce);
       if (!isValid) {
         // Increment rate limit attempts for incorrect captcha
-        await loginRateLimiter.consume(ipKey).catch(() => null);
-        await loginRateLimiter.consume(accountKey).catch(() => null);
+        await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
         const captcha = await generateCaptchaChallenge();
         return NextResponse.json({
           error: 'Incorrect CAPTCHA answer. Please try again.',
@@ -119,8 +124,7 @@ export async function POST(request: NextRequest) {
           portal: 'admin'
         });
 
-        await loginRateLimiter.consume(ipKey).catch(() => null);
-        await loginRateLimiter.consume(accountKey).catch(() => null);
+        await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
 
         const currentRes = await loginRateLimiter.get(ipKey);
         const failedAttempts = 5 - (currentRes?.remainingPoints || 5);
@@ -151,8 +155,7 @@ export async function POST(request: NextRequest) {
           email: cleanEmail 
         }, { id: record.id, role: 'admin' });
 
-        await loginRateLimiter.consume(ipKey).catch(() => null);
-        await loginRateLimiter.consume(accountKey).catch(() => null);
+        await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
 
         const currentRes = await loginRateLimiter.get(ipKey);
         const failedAttempts = 5 - (currentRes?.remainingPoints || 5);
@@ -178,8 +181,7 @@ export async function POST(request: NextRequest) {
             email: cleanEmail 
           }, { id: authData.user.id, role: 'admin' });
 
-          await loginRateLimiter.consume(ipKey).catch(() => null);
-          await loginRateLimiter.consume(accountKey).catch(() => null);
+          await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
           return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
@@ -280,8 +282,7 @@ export async function POST(request: NextRequest) {
           portal: 'employee'
         });
 
-        await loginRateLimiter.consume(ipKey).catch(() => null);
-        await loginRateLimiter.consume(accountKey).catch(() => null);
+        await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
 
         const currentRes = await loginRateLimiter.get(ipKey);
         const failedAttempts = 5 - (currentRes?.remainingPoints || 5);
@@ -301,8 +302,7 @@ export async function POST(request: NextRequest) {
           email: cleanEmail 
         }, { id: user.id, role: user.role });
         
-        await loginRateLimiter.consume(ipKey).catch(() => null);
-        await loginRateLimiter.consume(accountKey).catch(() => null);
+        await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
 
         const currentRes = await loginRateLimiter.get(ipKey);
         const failedAttempts = 5 - (currentRes?.remainingPoints || 5);
@@ -324,8 +324,7 @@ export async function POST(request: NextRequest) {
           email: cleanEmail 
         }, { id: user.id, role: user.role });
 
-        await loginRateLimiter.consume(ipKey).catch(() => null);
-        await loginRateLimiter.consume(accountKey).catch(() => null);
+        await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
       }
 
@@ -336,8 +335,7 @@ export async function POST(request: NextRequest) {
           email: cleanEmail 
         }, { id: user.id, role: user.role });
 
-        await loginRateLimiter.consume(ipKey).catch(() => null);
-        await loginRateLimiter.consume(accountKey).catch(() => null);
+        await recordFailedAttempt(ipKey, accountKey, fromOfficeNetwork);
         return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
       }
 
