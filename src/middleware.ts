@@ -127,7 +127,10 @@ export async function middleware(request: NextRequest) {
     requestHeaders.set('x-pathname', pathname);
 
     // CSRF Protection: Validate Origin / Referer for state-mutating requests
-    if (pathname.startsWith('/api') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    // Exempt /api/extension endpoints since they use JWT headers and are immune to CSRF
+    const isExtensionRoute = pathname.startsWith('/api/extension');
+
+    if (!isExtensionRoute && pathname.startsWith('/api') && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
       const origin = request.headers.get('origin');
       const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
 
@@ -165,6 +168,7 @@ export async function middleware(request: NextRequest) {
     const isPublicApiRoute = 
       pathname === '/api/auth/mfa-login' ||
       pathname === '/api/auth/unified-login' ||
+      pathname === '/api/extension/auth' ||
       (pathname === '/api/inquiries' && request.method === 'POST') ||
       (pathname === '/api/applications' && request.method === 'POST');
 

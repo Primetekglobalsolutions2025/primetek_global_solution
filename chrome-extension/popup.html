@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      color: #f8fafc;
+      padding: 20px;
+    }
+
+    h2 {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-weight: 600;
+      text-align: center;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #f8fafc;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input:focus {
+      border-color: #38bdf8;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(90deg, #0284c7 0%, #4f46e5 100%);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .status-active {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .status-inactive {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .error-msg {
+      color: #f87171;
+      font-size: 12px;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .info-label {
+      color: #94a3b8;
+    }
+
+    .info-value {
+      font-weight: 500;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  </style>
+</head>
+<body>
+  <h2>Primetek Portal Tracker</h2>
+  
+  <!-- 1. LOGIN SCREEN -->
+  <div id="login-screen" class="container">
+    <div class="form-group">
+      <label for="email">Email or Employee ID</label>
+      <input type="text" id="email" placeholder="email@primetek.com" required />
+    </div>
+    
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" required />
+    </div>
+    
+    <button id="login-btn">Log In</button>
+    <div id="error-box" class="error-msg hidden"></div>
+  </div>
+
+  <!-- 2. STATUS SCREEN -->
+  <div id="status-screen" class="container hidden">
+    <div style="text-align: center;">
+      <div id="status-badge" class="status-badge status-inactive">
+        <span id="status-indicator" style="width: 8px; height: 8px; border-radius: 50%; background: currentColor;"></span>
+        <span id="status-text">Disconnected</span>
+      </div>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">Employee</span>
+      <span class="info-value" id="emp-name">Ravi Kumar</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Connection</span>
+      <span class="info-value" id="conn-host">localhost:3000</span>
+    </div>
+
+    <button id="logout-btn" class="btn-secondary">Log Out</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
