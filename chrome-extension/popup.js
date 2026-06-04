@@ -117,21 +117,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // --- JOB EXTRACTOR LOGIC ---
-  // --- JOB EXTRACTOR LOGIC ---
   const jobRoleSelect = document.getElementById('job-role');
   const clientNameSelect = document.getElementById('client-name');
   const jobUrlInput = document.getElementById('job-url');
-  const webhookInput = document.getElementById('sheet-webhook');
   const exportBtn = document.getElementById('export-sheet-btn');
   const exportStatus = document.getElementById('export-status');
   const exportStatusText = exportStatus.querySelector('span');
 
-  // Load saved webhook URL
-  chrome.storage.local.get(['sheetWebhookUrl'], (res) => {
-    if (res.sheetWebhookUrl) {
-      webhookInput.value = res.sheetWebhookUrl;
-    }
-  });
+  if (exportBtn) {
+    exportBtn.textContent = 'Save Application';
+  }
 
   // Automatically parse job info from active tab
   async function runJobExtractor() {
@@ -209,63 +204,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     const jobRole = jobRoleSelect.value.trim();
     const clientName = clientNameSelect.value.trim();
     const applicationUrl = jobUrlInput.value.trim();
-    const webhookUrl = webhookInput.value.trim();
 
-    if (!jobRole || !clientName || !applicationUrl || !webhookUrl) {
-      showExportStatus('Please fill in Job Role, Client, URL, and Web App URL.', 'error');
+    if (!jobRole || !clientName || !applicationUrl) {
+      showExportStatus('Please fill in Job Role, Client, and URL.', 'error');
       return;
     }
-
-    // Save the webhook URL to local storage
-    await chrome.storage.local.set({ sheetWebhookUrl: webhookUrl });
 
     exportBtn.disabled = true;
     exportBtn.textContent = 'Saving…';
     hideExportStatus();
 
-    // Get logged-in employee name
-    const localData = await chrome.storage.local.get(['employee']);
-    const employeeName = localData.employee ? localData.employee.name : 'Unknown Employee';
+    const localData = await chrome.storage.local.get(['token']);
+    if (!localData.token) {
+      showExportStatus('Unauthorized: Please log in again.', 'error');
+      exportBtn.disabled = false;
+      exportBtn.textContent = 'Save Application';
+      return;
+    }
 
     try {
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(`${BACKEND_URL}/api/extension/save-job`, {
         method: 'POST',
-        mode: 'cors',
         headers: {
-          'Content-Type': 'text/plain;charset=utf-8'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localData.token}`
         },
         body: JSON.stringify({
-          employeeName,
           jobRole,
           clientName,
           applicationUrl
         })
       });
 
-      const text = await response.text();
-      let result = { success: true };
-      try {
-        result = JSON.parse(text);
-      } catch (e) {}
+      const result = await response.json().catch(() => ({}));
 
-      if (response.ok && (result.success !== false)) {
-        showExportStatus('Successfully saved to Google Sheet!', 'success');
+      if (response.ok && result.success) {
+        showExportStatus('Successfully saved to spreadsheet database!', 'success');
         setTimeout(() => {
           hideExportStatus();
         }, 4000);
       } else {
-        showExportStatus(result.error || 'Failed to save to sheet.', 'error');
+        showExportStatus(result.error || 'Failed to save application.', 'error');
       }
     } catch (err) {
-      console.error('Export fetch error:', err);
-      // Fallback for CORS redirect blocks
-      showExportStatus('Saved! Please verify in your Google Sheet.', 'success');
-      setTimeout(() => {
-        hideExportStatus();
-      }, 5000);
+      console.error('Save job error:', err);
+      showExportStatus('Connection error: cannot reach backend portal.', 'error');
     } finally {
       exportBtn.disabled = false;
-      exportBtn.textContent = 'Save to Google Sheet';
+      exportBtn.textContent = 'Save Application';
     }
   });
 
