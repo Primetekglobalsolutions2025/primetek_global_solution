@@ -21,6 +21,7 @@
     "@supabase/supabase-js": "^2.105.0",
     "@univerjs/core": "^0.25.0",
     "@univerjs/design": "^0.25.0",
+    "@univerjs/engine-formula": "^0.25.0",
     "@univerjs/engine-render": "^0.25.0",
     "@univerjs/icons": "^1.4.0",
     "@univerjs/sheets": "^0.25.0",

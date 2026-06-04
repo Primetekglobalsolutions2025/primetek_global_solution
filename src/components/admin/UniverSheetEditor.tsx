@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { Univer, UniverInstanceType } from '@univerjs/core';
+import { UniverRenderEnginePlugin } from '@univerjs/engine-render';
+import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula';
 import { UniverSheetsPlugin } from '@univerjs/sheets';
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui';
 import { UniverUIPlugin } from '@univerjs/ui';
@@ -26,6 +28,10 @@ export default function UniverSheetEditor({ initialData, onSave }: UniverSheetEd
     try {
       // 1. Initialize Univer
       univer = new Univer({});
+
+      // Register Core Engines (MUST be registered before UI and feature plugins)
+      univer.registerPlugin(UniverRenderEnginePlugin);
+      univer.registerPlugin(UniverFormulaEnginePlugin);
 
       // 2. Register UI plugins
       univer.registerPlugin(UniverUIPlugin, {
