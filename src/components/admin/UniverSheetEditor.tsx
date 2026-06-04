@@ -1,16 +1,26 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { Univer, UniverInstanceType } from '@univerjs/core';
+import { Univer, UniverInstanceType, LocaleType, mergeLocales } from '@univerjs/core';
 import { UniverRenderEnginePlugin } from '@univerjs/engine-render';
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula';
+import { UniverDocsPlugin } from '@univerjs/docs';
+import { UniverDocsUIPlugin } from '@univerjs/docs-ui';
 import { UniverSheetsPlugin } from '@univerjs/sheets';
 import { UniverSheetsUIPlugin } from '@univerjs/sheets-ui';
 import { UniverUIPlugin } from '@univerjs/ui';
 
+// Import locales
+import DesignEnUS from '@univerjs/design/locale/en-US';
+import UIEnUS from '@univerjs/ui/locale/en-US';
+import SheetsEnUS from '@univerjs/sheets/locale/en-US';
+import SheetsUIEnUS from '@univerjs/sheets-ui/locale/en-US';
+import DocsUIEnUS from '@univerjs/docs-ui/locale/en-US';
+
 // Import UniverJS required CSS files
 import '@univerjs/design/lib/index.css';
 import '@univerjs/ui/lib/index.css';
+import '@univerjs/docs-ui/lib/index.css';
 import '@univerjs/sheets-ui/lib/index.css';
 
 interface UniverSheetEditorProps {
@@ -26,8 +36,19 @@ export default function UniverSheetEditor({ initialData, onSave }: UniverSheetEd
 
     let univer: Univer | null = null;
     try {
-      // 1. Initialize Univer
-      univer = new Univer({});
+      // 1. Initialize Univer with locale configuration
+      univer = new Univer({
+        locale: LocaleType.EN_US,
+        locales: {
+          [LocaleType.EN_US]: mergeLocales(
+            DesignEnUS,
+            UIEnUS,
+            SheetsEnUS,
+            SheetsUIEnUS,
+            DocsUIEnUS
+          ),
+        },
+      });
 
       // Register Core Engines (MUST be registered before UI and feature plugins)
       univer.registerPlugin(UniverRenderEnginePlugin);
@@ -40,6 +61,10 @@ export default function UniverSheetEditor({ initialData, onSave }: UniverSheetEd
         toolbar: true,
         footer: true,
       });
+
+      // Register Docs plugins (MUST be registered to resolve editor dependency injection)
+      univer.registerPlugin(UniverDocsPlugin);
+      univer.registerPlugin(UniverDocsUIPlugin);
 
       // 3. Register Sheets plugins
       univer.registerPlugin(UniverSheetsPlugin);

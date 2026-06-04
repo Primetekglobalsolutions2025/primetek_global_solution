@@ -66,8 +66,11 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
       return { success: true };
     }
 
-    // Call native permission request
-    const permission = await Notification.requestPermission();
+    // Check permission state first to avoid requesting permission without user gesture if already granted
+    let permission = Notification.permission;
+    if (permission !== 'granted') {
+      permission = await Notification.requestPermission();
+    }
     if (permission !== 'granted') {
       return { success: false, error: 'Notification permission was denied.' };
     }
