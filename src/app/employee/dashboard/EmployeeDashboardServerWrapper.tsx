@@ -10,6 +10,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { getCachedPortalConfig } from '@/lib/cache/portal-config';
 import EmployeeDashboardClient from './EmployeeDashboardClient';
 import { getHolidays } from '@/app/admin/holidays/actions';
+import EmployeeApplicationsList from './EmployeeApplicationsList';
 
 export default async function EmployeeDashboardServerWrapper() {
   const session = await getSession();
@@ -22,13 +23,14 @@ export default async function EmployeeDashboardServerWrapper() {
 
   await closeStaleSessions();
 
-  // Fetch Employee, Attendance, Leave Balances, and Today's Daily Report Status
+  // Fetch Employee, Attendance, Leave Balances, Today's Daily Report Status, and Master Job Tracker Sheet
   const [
     { data: employee },
     { data: records },
     { data: balances },
     configData,
-    { data: dailyReportData }
+    { data: dailyReportData },
+    { data: sheetRecord }
   ] = await Promise.all([
     supabaseAdmin.from('employees').select('name, employee_id, role, department, designation').eq('id', session.id).single(),
     (() => {
@@ -44,10 +46,98 @@ export default async function EmployeeDashboardServerWrapper() {
     })(),
     supabaseAdmin.from('leave_balances').select('*').eq('employee_id', session.id),
     getCachedPortalConfig(),
-    supabaseAdmin.from('profile_daily_metrics').select('id').eq('employee_id', session.id).eq('report_date', todayStr).limit(1)
+    supabaseAdmin.from('profile_daily_metrics').select('id').eq('employee_id', session.id).eq('report_date', todayStr).limit(1),
+    supabaseAdmin.from('job_tracker_sheets').select('content').eq('sheet_name', 'Master_Job_Tracker').maybeSingle()
   ]);
 
   const hasReportedToday = dailyReportData && dailyReportData.length > 0;
+  
+  const employeeName = employee?.name || '';
+  const myApplications: any[] = [];
+
+  if (sheetRecord && sheetRecord.content && sheetRecord.content.sheets) {
+    const content = sheetRecord.content;
+    const urlClaims: Record<string, string[]> = {};
+    const allApplications: any[] = [];
+
+    // Scan all employee sheets
+    Object.keys(content.sheets).forEach(id => {
+      const sheet = content.sheets[id];
+      const name = sheet.name;
+      if (name === 'Home' || name === 'Dashboard') return;
+
+      const cellData = sheet.cellData || {};
+      let maxRow = -1;
+      Object.keys(cellData).forEach(rowIdx => {
+        const r = parseInt(rowIdx, 10);
+        if (!isNaN(r) && r > maxRow) maxRow = r;
+      });
+
+      for (let r = 1; r <= maxRow; r++) {
+        const row = cellData[r.toString()];
+        if (!row) continue;
+        
+        const jobRole = row['1']?.v || '';
+        const clientName = row['2']?.v || '';
+        const url = row['3']?.v || '';
+        const dateStr = row['0']?.v || '';
+
+        if (!jobRole && !clientName) continue;
+
+        const urlKey = url.toString().trim().toLowerCase();
+        if (urlKey) {
+          if (!urlClaims[urlKey]) {
+            urlClaims[urlKey] = [];
+          }
+          if (!urlClaims[urlKey].includes(name)) {
+            urlClaims[urlKey].push(name);
+          }
+        }
+
+        allApplications.push({
+          employeeName: name,
+          timestamp: dateStr,
+          jobRole,
+          clientName,
+          url
+        });
+      }
+    });
+
+    // Deduplicate and filter applications for this employee
+    const seenUrls: Record<string, boolean> = {};
+    allApplications.forEach(app => {
+      const urlKey = app.url.toString().trim().toLowerCase();
+      const claimers = urlClaims[urlKey] ? urlClaims[urlKey] : [app.employeeName];
+      const isLoggedByMe = app.employeeName === employeeName;
+      const isClaimedByMe = claimers.includes(employeeName);
+
+      if (isLoggedByMe || isClaimedByMe) {
+        if (!urlKey) {
+          myApplications.push({
+            ...app,
+            claimedBy: claimers.join(', ')
+          });
+          return;
+        }
+        if (!seenUrls[urlKey]) {
+          seenUrls[urlKey] = true;
+          myApplications.push({
+            ...app,
+            claimedBy: claimers.join(', ')
+          });
+        }
+      }
+    });
+  }
+
+  // Sort applications by date descending (newest first)
+  myApplications.sort((a, b) => {
+    const da = new Date(a.timestamp).getTime();
+    const db = new Date(b.timestamp).getTime();
+    if (isNaN(da) || isNaN(db)) return 0;
+    return db - da;
+  });
 
   const configMap = (configData || []).reduce((acc: Record<string, string>, curr: { config_key: string; config_value: string }) => {
     acc[curr.config_key] = curr.config_value;
@@ -145,6 +235,7 @@ export default async function EmployeeDashboardServerWrapper() {
           totalRemainingLeaves={totalRemainingLeaves}
           initialHolidays={holidays}
           isAdmin={isAdmin}
+          applications={myApplications}
         />
       </div>
 
@@ -338,6 +429,19 @@ export default async function EmployeeDashboardServerWrapper() {
                 ))
               )}
             </div>
+          </div>
+
+          {/* Job Applications Section */}
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-5 bg-primary-500 rounded-full" />
+              <h2 className="text-sm font-semibold text-navy-900 tracking-tight font-sans">My Job Applications</h2>
+            </div>
+            
+            <EmployeeApplicationsList 
+              applications={myApplications} 
+              employeeName={employeeName} 
+            />
           </div>
         </div>
 

@@ -28,6 +28,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useNotifications } from '@/components/pwa/NotificationContext';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import Logo from '@/components/ui/Logo';
+import EmployeeApplicationsList from './EmployeeApplicationsList';
 
 interface Holiday {
   id: string;
@@ -53,6 +54,7 @@ interface EmployeeDashboardClientProps {
   totalRemainingLeaves: number;
   initialHolidays: Holiday[];
   isAdmin: boolean;
+  applications: any[];
 }
 
 export default function EmployeeDashboardClient({
@@ -60,7 +62,8 @@ export default function EmployeeDashboardClient({
   todayRecord,
   totalRemainingLeaves,
   initialHolidays,
-  isAdmin
+  isAdmin,
+  applications
 }: EmployeeDashboardClientProps) {
   // Calendar state
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -345,6 +348,20 @@ export default function EmployeeDashboardClient({
               </span>
             </div>
           </div>
+        </section>
+
+        {/* Job Applications Section */}
+        <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[14px] font-extrabold text-navy-900 font-sans">My Job Applications</h2>
+            <span className="text-[10px] font-bold text-zinc-400 font-sans">
+              {applications.length} submitted
+            </span>
+          </div>
+          <EmployeeApplicationsList 
+            applications={applications} 
+            employeeName={employee?.name || ''} 
+          />
         </section>
 
         {/* 4. QUICK ACCESS SECTION */}
