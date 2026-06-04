@@ -96,7 +96,7 @@
       transition: color 0.2s ease;
     }
 
-    input {
+    input, select {
       width: 100%;
       padding: 10px 12px 10px 36px;
       background: rgba(15, 23, 42, 0.6);
@@ -108,11 +108,16 @@
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    input:focus, input:focus-visible {
+    input:focus, input:focus-visible, select:focus, select:focus-visible {
       border-color: var(--border-focus);
       box-shadow: 0 0 0 3px var(--glow-focus);
       background: rgba(15, 23, 42, 0.8);
       outline: none;
+    }
+
+    select option {
+      background: #0f172a;
+      color: #f8fafc;
     }
 
     .input-wrapper:focus-within .input-icon {
@@ -437,18 +442,26 @@
     <div class="subtitle" style="text-align: left; margin-bottom: 12px; font-size: 10px;">Job Application Extractor</div>
 
     <div class="form-group">
-      <label for="job-title">Job Title</label>
+      <label for="job-role">Job Role</label>
       <div class="input-wrapper">
         <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
         </svg>
-        <input type="text" id="job-title" placeholder="Job Title…" required />
+        <select id="job-role" required>
+          <option value="Control Engineer">Control Engineer</option>
+          <option value="Data Analyst">Data Analyst</option>
+          <option value="Software Engineer">Software Engineer</option>
+          <option value="QA Engineer">QA Engineer</option>
+          <option value="Data Engineer">Data Engineer</option>
+          <option value="System Administrator">System Administrator</option>
+          <option value="Other">Other</option>
+        </select>
       </div>
     </div>
 
     <div class="form-group">
-      <label for="client-name">Client / Company Name</label>
+      <label for="client-name">Client Name</label>
       <div class="input-wrapper">
         <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -456,7 +469,9 @@
           <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
           <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
         </svg>
-        <input type="text" id="client-name" placeholder="Client / Company Name…" required />
+        <select id="client-name" required>
+          <option value="General">General / Direct</option>
+        </select>
       </div>
     </div>
 
@@ -468,17 +483,6 @@
           <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
         </svg>
         <input type="url" id="job-url" placeholder="Application URL…" required />
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="job-type">Type</label>
-      <div class="input-wrapper">
-        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path>
-          <line x1="4" y1="22" x2="4" y2="15"></line>
-        </svg>
-        <input type="text" id="job-type" placeholder="Type (e.g. Upwork, LinkedIn, W2)…" required />
       </div>
     </div>
 

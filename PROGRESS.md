@@ -53,10 +53,16 @@
 *   **PWA Install Integration**: Added an interactive, conditional "Install App" banner on the employee profile page to prompt service worker installation on supported browsers.
 *   **SEO & Analytics Verification**: Configured Google Analytics script loading inside the root layout `<head>` tag for immediate domain ownership validation and verified crawlers with IndexNow verification assets.
 
+### ✅ Phase 8: Job Tracker Column Simplification & Dynamic Claiming (100% Complete)
+*   **Redesigned Sheet Structure**: Implemented S.No, Date/Month, Job Role, Client Name, URL, Apply action button, Claimed By lookup, and Claim Job dropdown trigger.
+*   **Extension Redesign**: Replaced popup text fields with Client and Job Role dropdown select menus. Automatically pre-fills roles depending on the selected client.
+*   **Next.js Dashboard Integration**: Redesigned admin Job Tracker panel columns, and added a dynamic API route to fetch assigned client lists.
+*   **Auto-Reset Claiming**: Added an Apps Script trigger to log claimed jobs to employee tabs and reset Column H selection automatically.
+
 ---
 
 #### ⏭️ Next Step
-*   Deploy database migrations to the production instance, enroll admin testers, and launch the pilot group.
+*   Implement self-hosted UniverJS spreadsheet database engine option inside the admin panel.
 
 ---
 

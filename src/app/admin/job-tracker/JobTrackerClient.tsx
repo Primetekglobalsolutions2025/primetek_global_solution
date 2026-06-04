@@ -15,9 +15,8 @@ import {
   FileSpreadsheet,
   AlertTriangle,
   Loader2,
-  Calendar,
+  Users,
   Layers,
-  Globe,
   ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,9 +30,9 @@ interface JobApplication {
   employeeName: string;
   timestamp: string;
   clientName: string;
-  jobTitle: string;
+  jobRole: string;
   url: string;
-  type: string;
+  claimedBy?: string;
 }
 
 const ITEMS_PER_PAGE = 25;
@@ -47,7 +46,7 @@ export default function JobTrackerClient() {
   // Search & Filter State
   const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedTab, setSelectedTab] = useState<'all' | 'linkedin' | 'upwork' | 'indeed' | 'other'>('all');
+  const [selectedTab, setSelectedTab] = useState<'all' | 'shared' | 'solo'>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedApp, setSelectedApp] = useState<JobApplication | null>(null);
@@ -84,7 +83,17 @@ export default function JobTrackerClient() {
 
       const resData = await res.json();
       if (resData.success) {
-        setData(resData.data || []);
+        // Map keys if the sheet returned old format key names
+        const rawData = resData.data || [];
+        const formatted = rawData.map((item: any) => ({
+          employeeName: item.employeeName || '',
+          timestamp: item.timestamp || '',
+          clientName: item.clientName || item.companyName || '',
+          jobRole: item.jobRole || item.jobTitle || '',
+          url: item.url || item.applicationUrl || '',
+          claimedBy: item.claimedBy || ''
+        }));
+        setData(formatted);
         if (showToast) {
           toast.success('Successfully refreshed job applications.');
         }
@@ -120,32 +129,23 @@ export default function JobTrackerClient() {
       const q = search.toLowerCase().trim();
       const matchesSearch = !q || 
         (app.employeeName || '').toLowerCase().includes(q) ||
-        (app.jobTitle || '').toLowerCase().includes(q) ||
+        (app.jobRole || '').toLowerCase().includes(q) ||
         (app.clientName || '').toLowerCase().includes(q) ||
-        (app.type || '').toLowerCase().includes(q);
+        (app.claimedBy || '').toLowerCase().includes(q);
 
       // 2. Employee Dropdown Filter
       const matchesEmployee = selectedEmployee === 'all' || app.employeeName === selectedEmployee;
 
-      // 3. Platform Tabs Filter
-      let matchesPlatform = false;
-      const typeLower = (app.type || '').toLowerCase().trim();
-      if (selectedTab === 'all') {
-        matchesPlatform = true;
-      } else if (selectedTab === 'linkedin') {
-        matchesPlatform = typeLower.includes('linkedin');
-      } else if (selectedTab === 'upwork') {
-        matchesPlatform = typeLower.includes('upwork');
-      } else if (selectedTab === 'indeed') {
-        matchesPlatform = typeLower.includes('indeed');
-      } else {
-        // 'other' option matches anything not in the main three platforms
-        matchesPlatform = !typeLower.includes('linkedin') && 
-                          !typeLower.includes('upwork') && 
-                          !typeLower.includes('indeed');
+      // 3. Claim Sharing Filter
+      let matchesClaims = true;
+      const claimers = (app.claimedBy || app.employeeName).split(',').map(n => n.trim()).filter(Boolean);
+      if (selectedTab === 'shared') {
+        matchesClaims = claimers.length > 1;
+      } else if (selectedTab === 'solo') {
+        matchesClaims = claimers.length === 1;
       }
 
-      return matchesSearch && matchesEmployee && matchesPlatform;
+      return matchesSearch && matchesEmployee && matchesClaims;
     });
   }, [data, search, selectedEmployee, selectedTab]);
 
@@ -168,6 +168,16 @@ export default function JobTrackerClient() {
     const todayCount = data.filter(app => {
       try {
         if (!app.timestamp) return false;
+        // Check if date is short "04-Jun" or ISO
+        if (app.timestamp.match(/^\d{2}-[A-Za-z]{3}$/)) {
+          // Compare with today formatted as "dd-MMM"
+          const todayShort = new Date().toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            timeZone: 'Asia/Kolkata'
+          }).replace(' ', '-');
+          return app.timestamp.toLowerCase() === todayShort.toLowerCase();
+        }
         const appDateStr = new Date(app.timestamp).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
         return appDateStr === todayStr;
       } catch {
@@ -175,44 +185,22 @@ export default function JobTrackerClient() {
       }
     }).length;
 
-    const linkedin = data.filter(app => (app.type || '').toLowerCase().includes('linkedin')).length;
-    const upwork = data.filter(app => (app.type || '').toLowerCase().includes('upwork')).length;
-    const indeed = data.filter(app => (app.type || '').toLowerCase().includes('indeed')).length;
-    const other = total - (linkedin + upwork + indeed);
+    const uniqueRoles = new Set(data.map(app => app.jobRole?.toLowerCase().trim()).filter(Boolean)).size;
+    const uniqueClients = new Set(data.map(app => app.clientName?.toLowerCase().trim()).filter(Boolean)).size;
+    const sharedLeads = data.filter(app => {
+      const claimers = (app.claimedBy || '').split(',').map(n => n.trim()).filter(Boolean);
+      return claimers.length > 1;
+    }).length;
 
-    return { total, todayCount, linkedin, upwork, indeed, other };
+    return { total, todayCount, uniqueRoles, uniqueClients, sharedLeads };
   }, [data]);
-
-  // Utility to style platform badges
-  const getPlatformBadge = (type: string) => {
-    const t = (type || '').toLowerCase().trim();
-    if (t.includes('linkedin')) {
-      return {
-        bg: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/10 dark:text-blue-400 dark:border-blue-800/30',
-        label: 'LinkedIn'
-      };
-    }
-    if (t.includes('upwork')) {
-      return {
-        bg: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/10 dark:text-emerald-400 dark:border-emerald-800/30',
-        label: 'Upwork'
-      };
-    }
-    if (t.includes('indeed')) {
-      return {
-        bg: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/10 dark:text-amber-400 dark:border-amber-800/30',
-        label: 'Indeed'
-      };
-    }
-    return {
-      bg: 'bg-slate-50 text-slate-700 border-slate-200 dark:bg-slate-900/10 dark:text-slate-400 dark:border-slate-800/30',
-      label: type || 'Other'
-    };
-  };
 
   // Helper to format date & time nicely in IST timezone
   const formatDateTimeIST = (timestampStr: string): { date: string; time: string } => {
     if (!timestampStr) return { date: 'N/A', time: '' };
+    if (timestampStr.match(/^\d{2}-[A-Za-z]{3}$/)) {
+      return { date: timestampStr, time: '' };
+    }
     try {
       const dateObj = new Date(timestampStr);
       if (isNaN(dateObj.getTime())) return { date: timestampStr, time: '' };
@@ -279,11 +267,11 @@ export default function JobTrackerClient() {
       {/* ─── Metrics / Operational KPIs ─── */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
         {[
-          { label: 'Total Logs', value: stats.total, icon: FileSpreadsheet, color: 'text-navy-900', bg: 'bg-white border-zinc-200/80 shadow-2xs' },
-          { label: 'Today (IST)', value: stats.todayCount, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-500/5 border-amber-500/15 shadow-2xs', pulse: stats.todayCount > 0 },
-          { label: 'LinkedIn', value: stats.linkedin, icon: Globe, color: 'text-blue-600', bg: 'bg-blue-500/5 border-blue-500/15 shadow-2xs' },
-          { label: 'Upwork', value: stats.upwork, icon: Briefcase, color: 'text-emerald-600', bg: 'bg-emerald-500/5 border-emerald-500/15 shadow-2xs' },
-          { label: 'Indeed / Other', value: stats.indeed + stats.other, icon: Layers, color: 'text-orange-600', bg: 'bg-orange-500/5 border-orange-500/15 shadow-2xs' },
+          { label: 'Total Leads', value: stats.total, icon: FileSpreadsheet, color: 'text-navy-900', bg: 'bg-white border-zinc-200/80 shadow-2xs' },
+          { label: 'Added Today', value: stats.todayCount, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-500/5 border-amber-500/15 shadow-2xs', pulse: stats.todayCount > 0 },
+          { label: 'Unique Roles', value: stats.uniqueRoles, icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-500/5 border-blue-500/15 shadow-2xs' },
+          { label: 'Active Clients', value: stats.uniqueClients, icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-500/5 border-emerald-500/15 shadow-2xs' },
+          { label: 'Shared Leads', value: stats.sharedLeads, icon: Users, color: 'text-orange-600', bg: 'bg-orange-500/5 border-orange-500/15 shadow-2xs' },
         ].map((s) => (
           <div key={s.label} className={cn('rounded-xl p-4 border flex items-center gap-3 bg-white', s.bg)}>
             <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center border bg-white/70', s.color)}>
@@ -302,13 +290,12 @@ export default function JobTrackerClient() {
 
       {/* ─── Advanced Filtering Controls ─── */}
       <div className="space-y-4">
-        {/* Search Engine Look */}
         <div className="flex flex-col md:flex-row gap-3.5 items-stretch md:items-center justify-between">
           <div className="flex-1 relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
             <input 
               type="text" 
-              placeholder="Search by Employee, Client Name, Job Title or Platform..." 
+              placeholder="Search by Employee, Client Name, Job Role or Claimer..." 
               value={searchValue} 
               onChange={(e) => setSearchValue(e.target.value)} 
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200/80 bg-white text-xs text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/55 focus:border-primary-500 transition-all font-sans"
@@ -331,7 +318,7 @@ export default function JobTrackerClient() {
             <select 
               value={selectedEmployee} 
               onChange={(e) => setSelectedEmployee(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-zinc-250 bg-white text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer transition-all"
+              className="px-3 py-2 rounded-lg border border-zinc-255 bg-white text-xs font-semibold text-navy-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer transition-all"
             >
               <option value="all">All Employees</option>
               {uniqueEmployees.map(emp => (
@@ -351,15 +338,13 @@ export default function JobTrackerClient() {
           </div>
         </div>
 
-        {/* Platform Tabs & Total Count Row */}
+        {/* Claim Filter Tabs & Total Count Row */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-200/60 pb-1.5 gap-3">
           <div className="flex flex-wrap gap-1">
             {[
-              { id: 'all', label: 'All Platforms' },
-              { id: 'linkedin', label: 'LinkedIn' },
-              { id: 'upwork', label: 'Upwork' },
-              { id: 'indeed', label: 'Indeed' },
-              { id: 'other', label: 'Other / Generic' }
+              { id: 'all', label: 'All Leads' },
+              { id: 'shared', label: 'Shared Leads (>1 Claim)' },
+              { id: 'solo', label: 'Solo Leads (1 Claim)' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -385,12 +370,12 @@ export default function JobTrackerClient() {
       <div className="block md:hidden space-y-3.5">
         {filteredData.length === 0 ? (
           <div className="p-8 text-center bg-white rounded-xl border border-zinc-200/80">
-            <p className="text-xs text-zinc-400 font-semibold">No applications matches current filters.</p>
+            <p className="text-xs text-zinc-400 font-semibold">No applications matched the current filters.</p>
           </div>
         ) : (
           paginatedData.map((app, idx) => {
-            const platform = getPlatformBadge(app.type);
             const istDT = formatDateTimeIST(app.timestamp);
+            const claimers = (app.claimedBy || app.employeeName).split(',').map(n => n.trim()).filter(Boolean);
             return (
               <Card key={`${app.timestamp}-${idx}`} hover={false} className="p-4 rounded-xl border border-zinc-200/60 shadow-2xs bg-white space-y-3">
                 <div className="flex items-start justify-between">
@@ -399,47 +384,49 @@ export default function JobTrackerClient() {
                       {renderInitials(app.employeeName)}
                     </div>
                     <div>
-                      <h4 className="text-xs font-extrabold text-navy-900 leading-tight">{app.employeeName}</h4>
+                      <h4 className="text-xs font-extrabold text-navy-900 leading-none">{app.employeeName}</h4>
                       <p className="text-[9px] font-bold text-zinc-450 font-mono mt-0.5">
-                        {istDT.time ? `${istDT.date} @ ${istDT.time}` : istDT.date}
+                        {istDT.date}
                       </p>
                     </div>
                   </div>
-                  <span className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider', platform.bg)}>
-                    {platform.label}
-                  </span>
                 </div>
 
                 <div className="bg-zinc-50 p-2.5 rounded-lg text-[11px] space-y-1.5 border border-zinc-150/40">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-zinc-400 text-[9px] uppercase font-bold tracking-wider shrink-0 mt-0.5">Title</span>
-                    <span className="font-extrabold text-navy-900 text-right truncate max-w-[200px]">{app.jobTitle || 'N/A'}</span>
+                    <span className="text-zinc-400 text-[9px] uppercase font-bold tracking-wider shrink-0 mt-0.5">Job Role</span>
+                    <span className="font-extrabold text-navy-900 text-right truncate max-w-[200px]">{app.jobRole || 'N/A'}</span>
                   </div>
                   <div className="flex items-start justify-between gap-2 border-t border-zinc-150/30 pt-1.5">
-                    <span className="text-zinc-400 text-[9px] uppercase font-bold tracking-wider shrink-0 mt-0.5">Company</span>
-                    <div className="flex items-center gap-1">
-                      <span className="font-bold text-navy-900 text-right truncate max-w-[150px]">{app.clientName || 'N/A'}</span>
-                      {app.url && (
-                        <a 
-                          href={app.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          title="Open Application Link" 
-                          className="p-1 rounded-md text-primary-500 hover:bg-primary-100 transition-colors shrink-0 active:scale-90"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
+                    <span className="text-zinc-400 text-[9px] uppercase font-bold tracking-wider shrink-0 mt-0.5">Client</span>
+                    <span className="font-bold text-navy-900 text-right truncate max-w-[150px]">{app.clientName || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-2 border-t border-zinc-150/30 pt-1.5">
+                    <span className="text-zinc-400 text-[9px] uppercase font-bold tracking-wider shrink-0 mt-0.5">Claims</span>
+                    <div className="flex flex-wrap justify-end gap-1 max-w-[200px]">
+                      {claimers.map(c => (
+                        <span key={c} className="text-[8px] px-1 rounded font-mono bg-emerald-50 text-emerald-700 border border-emerald-250 uppercase font-medium">{c}</span>
+                      ))}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end pt-1">
+                <div className="flex items-center justify-between pt-1">
+                  {app.url && (
+                    <a 
+                      href={app.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-[10px] font-mono font-bold text-primary-500 hover:underline flex items-center gap-0.5"
+                    >
+                      Apply Link <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
                   <button
                     onClick={() => setSelectedApp(app)}
                     className="text-xs text-primary-500 hover:text-primary-600 font-extrabold flex items-center gap-1 active:scale-95 transition-transform"
                   >
-                    <span>View Details</span>
+                    <span>Details</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -455,12 +442,12 @@ export default function JobTrackerClient() {
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-zinc-200 bg-zinc-50/50">
-                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40 w-[160px]">Timestamp (IST)</th>
-                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40">Employee</th>
-                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40">Job Title</th>
-                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40">Company / Client</th>
-                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40 w-[120px]">Platform</th>
-                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 w-[100px]">Actions</th>
+                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40 w-[140px]">Date Logged</th>
+                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40 w-[160px]">Submitter</th>
+                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40">Job Role</th>
+                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40">Client Name</th>
+                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 border-r border-zinc-150/40">Claimed By (Lookup)</th>
+                <th className="text-left px-5 py-3 font-mono text-[9px] font-black uppercase tracking-wider text-zinc-450 w-[160px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-150">
@@ -472,76 +459,73 @@ export default function JobTrackerClient() {
                 </tr>
               ) : (
                 paginatedData.map((app, idx) => {
-                  const platform = getPlatformBadge(app.type);
                   const istDT = formatDateTimeIST(app.timestamp);
+                  const claimers = (app.claimedBy || app.employeeName).split(',').map(n => n.trim()).filter(Boolean);
                   return (
                     <tr key={`${app.timestamp}-${idx}`} className="hover:bg-zinc-50/50 transition-colors group">
-                      {/* Timestamp */}
+                      {/* Timestamp / Date */}
                       <td className="px-5 py-3.5 text-[10px] font-bold text-zinc-500 whitespace-nowrap font-mono border-r border-zinc-150/30">
-                        {typeof istDT === 'object' ? (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-navy-900">{istDT.date}</span>
-                            <span className="text-zinc-400 font-medium text-[9px]">{istDT.time}</span>
-                          </div>
-                        ) : (
-                          <span>{istDT}</span>
-                        )}
+                        {istDT.date}
                       </td>
                       
-                      {/* Employee name with circular initials */}
+                      {/* Submitter */}
                       <td className="px-5 py-3.5 border-r border-zinc-150/30">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 rounded-full bg-navy-800 text-white flex items-center justify-center text-[9px] font-black shadow-2xs shrink-0 border border-zinc-650/15">
                             {renderInitials(app.employeeName)}
                           </div>
-                          <span className="text-xs font-extrabold text-navy-900 leading-none truncate max-w-[150px]" title={app.employeeName}>
+                          <span className="text-xs font-extrabold text-navy-900 leading-none truncate max-w-[120px]" title={app.employeeName}>
                             {app.employeeName}
                           </span>
                         </div>
                       </td>
-
-                      {/* Job Title */}
+ 
+                      {/* Job Role */}
                       <td className="px-5 py-3.5 border-r border-zinc-150/30">
-                        <p className="text-xs font-extrabold text-navy-900 truncate max-w-[220px]" title={app.jobTitle}>
-                          {app.jobTitle || 'N/A'}
+                        <p className="text-xs font-extrabold text-navy-900 truncate max-w-[200px]" title={app.jobRole}>
+                          {app.jobRole || 'N/A'}
                         </p>
                       </td>
 
-                      {/* Client / Company & Apply Link Button */}
+                      {/* Client Name */}
                       <td className="px-5 py-3.5 border-r border-zinc-150/30">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-navy-900 truncate max-w-[180px]" title={app.clientName}>
-                            {app.clientName || 'N/A'}
-                          </span>
+                        <span className="text-xs font-bold text-navy-900 truncate max-w-[180px]" title={app.clientName}>
+                          {app.clientName || 'N/A'}
+                        </span>
+                      </td>
+
+                      {/* Claimed By Lookup list */}
+                      <td className="px-5 py-3.5 border-r border-zinc-150/30">
+                        <div className="flex flex-wrap gap-1.5">
+                          {claimers.map(c => (
+                            <span key={c} className="inline-block text-[8px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/50 uppercase tracking-wider">
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+
+                      {/* Action trigger links */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
                           {app.url && (
                             <a 
                               href={app.url} 
                               target="_blank" 
                               rel="noopener noreferrer" 
-                              title="Open source application url in a new tab"
-                              className="p-1 rounded-md text-primary-500 hover:bg-primary-50 transition-all cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 hover:scale-105 active:scale-95 shrink-0"
+                              title="Redirect to Application Page"
+                              className="inline-flex items-center gap-1 text-[10px] font-mono font-bold text-primary-500 hover:text-primary-650 uppercase tracking-wider bg-primary-50/40 border border-primary-200/30 px-2.5 py-0.5 rounded transition-all shrink-0 cursor-pointer"
                             >
-                              <ExternalLink className="w-3.5 h-3.5" />
+                              Apply 🔗
                             </a>
                           )}
+                          <button
+                            onClick={() => setSelectedApp(app)}
+                            className="text-xs text-zinc-400 hover:text-zinc-600 font-extrabold active:scale-95 transition-transform"
+                          >
+                            Details
+                          </button>
                         </div>
-                      </td>
-
-                      {/* Platform Badge */}
-                      <td className="px-5 py-3.5 border-r border-zinc-150/30">
-                        <span className={cn('inline-block text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider text-center w-full max-w-[90px] leading-tight', platform.bg)}>
-                          {platform.label}
-                        </span>
-                      </td>
-
-                      {/* Action trigger details */}
-                      <td className="px-5 py-3.5">
-                        <button
-                          onClick={() => setSelectedApp(app)}
-                          className="text-xs text-primary-500 hover:text-primary-650 font-extrabold flex items-center gap-0.5 active:scale-95 transition-transform"
-                        >
-                          View Details
-                        </button>
                       </td>
                     </tr>
                   );
@@ -633,14 +617,14 @@ export default function JobTrackerClient() {
                 </div>
                 <button 
                   onClick={() => setSelectedApp(null)} 
-                  className="p-1.5 rounded-lg hover:bg-zinc-150 text-zinc-400 hover:text-zinc-700 transition-colors cursor-pointer active:scale-95"
+                  className="p-1.5 rounded-lg hover:bg-zinc-150 text-zinc-450 hover:text-zinc-700 transition-colors cursor-pointer active:scale-95"
                 >
                   <X className="w-4.5 h-4.5" />
                 </button>
               </div>
 
               {/* Drawer Content */}
-              <div className="p-6 space-y-6 flex-1">
+              <div className="p-6 space-y-6 flex-1 text-zinc-650">
                 
                 {/* Employee Card */}
                 <div className="pb-5 border-b border-zinc-150/50">
@@ -652,7 +636,7 @@ export default function JobTrackerClient() {
                     <div>
                       <p className="text-sm font-extrabold text-navy-900 leading-tight">{selectedApp.employeeName}</p>
                       <p className="text-[10px] text-zinc-450 font-bold font-mono mt-0.5">
-                        Timestamp: {formatDateTimeIST(selectedApp.timestamp).date} @ {formatDateTimeIST(selectedApp.timestamp).time}
+                        Date: {formatDateTimeIST(selectedApp.timestamp).date}
                       </p>
                     </div>
                   </div>
@@ -661,14 +645,14 @@ export default function JobTrackerClient() {
                 {/* Job Details Card */}
                 <div className="space-y-4">
                   <div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block mb-1">Job Title</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block mb-1">Job Role</span>
                     <p className="text-sm font-extrabold text-navy-900 bg-zinc-50 border border-zinc-200/50 p-3 rounded-xl leading-relaxed">
-                      {selectedApp.jobTitle || 'N/A'}
+                      {selectedApp.jobRole || 'N/A'}
                     </p>
                   </div>
 
                   <div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block mb-1">Client / Company Name</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block mb-1">Client Name</span>
                     <div className="bg-zinc-50 border border-zinc-200/50 p-3 rounded-xl flex items-center justify-between">
                       <span className="text-sm font-bold text-navy-900">{selectedApp.clientName || 'N/A'}</span>
                       <Building2 className="w-4 h-4 text-zinc-450 shrink-0" />
@@ -676,11 +660,17 @@ export default function JobTrackerClient() {
                   </div>
 
                   <div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block mb-1">Job Board Platform</span>
-                    <div className="bg-zinc-50 border border-zinc-200/50 p-3 rounded-xl flex items-center justify-between">
-                      <span className={cn('inline-block text-[9px] font-black px-2.5 py-0.5 rounded-lg border uppercase tracking-wider', getPlatformBadge(selectedApp.type).bg)}>
-                        {getPlatformBadge(selectedApp.type).label}
-                      </span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400 block mb-1">Claimed By</span>
+                    <div className="bg-zinc-50 border border-zinc-200/50 p-3 rounded-xl flex flex-wrap gap-1.5">
+                      {(selectedApp.claimedBy || selectedApp.employeeName).split(',').map((c) => {
+                        const tr = c.trim();
+                        if (!tr) return null;
+                        return (
+                          <span key={tr} className="inline-block text-[8px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-250 uppercase tracking-wider">
+                            {tr}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -698,7 +688,7 @@ export default function JobTrackerClient() {
                           className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-xs bg-navy-900 hover:bg-navy-950 text-white rounded-lg font-bold shadow-sm active:scale-[0.98] transition-all cursor-pointer"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>Open Live Job Post</span>
+                          <span>Open Application URL</span>
                         </a>
                       </div>
                     </div>

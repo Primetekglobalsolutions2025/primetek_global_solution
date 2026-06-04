@@ -117,10 +117,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // --- JOB EXTRACTOR LOGIC ---
-  const jobTitleInput = document.getElementById('job-title');
-  const clientNameInput = document.getElementById('client-name');
+  // --- JOB EXTRACTOR LOGIC ---
+  const jobRoleSelect = document.getElementById('job-role');
+  const clientNameSelect = document.getElementById('client-name');
   const jobUrlInput = document.getElementById('job-url');
-  const jobTypeInput = document.getElementById('job-type');
   const webhookInput = document.getElementById('sheet-webhook');
   const exportBtn = document.getElementById('export-sheet-btn');
   const exportStatus = document.getElementById('export-status');
@@ -140,95 +140,79 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!tab || !tab.url) return;
 
       jobUrlInput.value = tab.url;
-
-      // Auto-detect application platform Type
-      let autoType = 'Other';
-      if (tab.url.includes('linkedin.com')) {
-        autoType = 'LinkedIn';
-      } else if (tab.url.includes('upwork.com')) {
-        autoType = 'Upwork';
-      } else if (tab.url.includes('indeed.com')) {
-        autoType = 'Indeed';
-      }
-      jobTypeInput.value = autoType;
-
-      // Clean tab title for fallback job title
-      let fallbackTitle = tab.title || '';
-      fallbackTitle = fallbackTitle.replace(/ \| Upwork$/i, '')
-                                   .replace(/ \| LinkedIn$/i, '')
-                                   .replace(/ - Indeed\.com$/i, '')
-                                   .replace(/ \- Indeed$/i, '')
-                                   .trim();
-      jobTitleInput.value = fallbackTitle;
-      clientNameInput.value = ''; // Reset company name
-
-      // Execute script on tab to scrape precise details
-      if (tab.url.startsWith('http://') || tab.url.startsWith('https://')) {
-        chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => {
-            let extractedTitle = '';
-            let extractedCompany = '';
-            const pageUrl = window.location.href;
-
-            if (pageUrl.includes('linkedin.com')) {
-              const tEl = document.querySelector('.job-details-jobs-unified-top-card__job-title') || 
-                          document.querySelector('.jobs-unified-top-card__job-title') || 
-                          document.querySelector('h1');
-              if (tEl) extractedTitle = tEl.innerText.trim();
-
-              const cEl = document.querySelector('.job-details-jobs-unified-top-card__company-name') ||
-                          document.querySelector('.jobs-unified-top-card__company-name') ||
-                          document.querySelector('.jobs-unified-top-card__company-name a');
-              if (cEl) extractedCompany = cEl.innerText.trim();
-            } 
-            else if (pageUrl.includes('upwork.com')) {
-              const tEl = document.querySelector('.job-title') || 
-                          document.querySelector('h1') || 
-                          document.querySelector('h2');
-              if (tEl) extractedTitle = tEl.innerText.trim();
-
-              const cEl = document.querySelector('[data-qa="client-feedback"] .client-name') ||
-                          document.querySelector('.client-name') ||
-                          document.querySelector('[data-qa="client-country"]') ||
-                          document.querySelector('[data-qa="about-client"] strong');
-              if (cEl) extractedCompany = cEl.innerText.trim();
-            } 
-            else if (pageUrl.includes('indeed.com')) {
-              const tEl = document.querySelector('h1') || 
-                          document.querySelector('.jobsearch-JobInfoHeader-title');
-              if (tEl) extractedTitle = tEl.innerText.trim();
-
-              const cEl = document.querySelector('div[data-company-name="true"]') || 
-                          document.querySelector('.jobsearch-CompanyInfoContainer') ||
-                          document.querySelector('.jobsearch-InlineCompanyRating a');
-              if (cEl) extractedCompany = cEl.innerText.trim();
-            }
-
-            return { extractedTitle, extractedCompany };
-          }
-        }, (results) => {
-          if (results && results[0] && results[0].result) {
-            const { extractedTitle, extractedCompany } = results[0].result;
-            if (extractedTitle) jobTitleInput.value = extractedTitle;
-            if (extractedCompany) clientNameInput.value = extractedCompany;
-          }
-        });
-      }
     } catch (e) {
       console.warn('Failed to parse page telemetry details:', e);
     }
   }
 
+  // Fetch assigned clients from Next.js server
+  async function fetchAssignedClients() {
+    try {
+      const localData = await chrome.storage.local.get(['token']);
+      if (!localData.token) return;
+
+      const response = await fetch(`${BACKEND_URL}/api/extension/clients`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localData.token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch clients');
+
+      const result = await response.json();
+      if (result.success && result.clients) {
+        populateClientsDropdown(result.clients);
+      }
+    } catch (err) {
+      console.error('Failed to load assigned clients:', err);
+    }
+  }
+
+  function populateClientsDropdown(clients) {
+    if (!clientNameSelect) return;
+
+    // Reset dropdown
+    clientNameSelect.innerHTML = '<option value="General">General / Direct</option>';
+
+    clients.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.client_name;
+      opt.textContent = c.client_name;
+      opt.setAttribute('data-role', c.client_role || '');
+      clientNameSelect.appendChild(opt);
+    });
+  }
+
+  // Auto-fill Job Role when Client selection changes
+  if (clientNameSelect) {
+    clientNameSelect.addEventListener('change', () => {
+      const selectedOpt = clientNameSelect.options[clientNameSelect.selectedIndex];
+      const targetRole = selectedOpt.getAttribute('data-role');
+      if (targetRole && jobRoleSelect) {
+        let found = false;
+        for (let i = 0; i < jobRoleSelect.options.length; i++) {
+          if (jobRoleSelect.options[i].value.toLowerCase() === targetRole.toLowerCase()) {
+            jobRoleSelect.selectedIndex = i;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          jobRoleSelect.value = 'Other';
+        }
+      }
+    });
+  }
+
   exportBtn.addEventListener('click', async () => {
-    const jobTitle = jobTitleInput.value.trim();
-    const clientName = clientNameInput.value.trim();
+    const jobRole = jobRoleSelect.value.trim();
+    const clientName = clientNameSelect.value.trim();
     const applicationUrl = jobUrlInput.value.trim();
-    const jobType = jobTypeInput.value.trim();
     const webhookUrl = webhookInput.value.trim();
 
-    if (!jobTitle || !applicationUrl || !webhookUrl || !jobType) {
-      showExportStatus('Please fill in Job Title, URL, Type, and Web App URL.', 'error');
+    if (!jobRole || !clientName || !applicationUrl || !webhookUrl) {
+      showExportStatus('Please fill in Job Role, Client, URL, and Web App URL.', 'error');
       return;
     }
 
@@ -252,10 +236,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
         body: JSON.stringify({
           employeeName,
-          jobTitle,
+          jobRole,
           clientName,
-          applicationUrl,
-          jobType
+          applicationUrl
         })
       });
 
@@ -322,6 +305,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Run active job details scraper
     runJobExtractor();
+    
+    // Fetch employee's assigned clients
+    fetchAssignedClients();
   }
 
   function setWorkingStatus(text) {
