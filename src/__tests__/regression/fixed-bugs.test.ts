@@ -19,11 +19,38 @@ describe('Regression Tests for Remediated Vulnerabilities & Bugs', () => {
   beforeEach(async () => {
     employeeA = await createTestEmployee();
     employeeB = await createTestEmployee();
+
+    // Clear rate limits to prevent test interference and captcha triggering
+    await supabaseAdmin
+      .from('rate_limits')
+      .delete()
+      .in('key', [
+        'login:ip:127.0.0.1',
+        'login:ip:unknown-ip',
+        `login:account:${employeeA.email.toLowerCase()}`,
+        `login:account:${employeeB.email.toLowerCase()}`,
+        'login:account:admin-not-in-db@primetekglobalsolutions.com',
+        'login:account:test_admin@primetek.com'
+      ]);
   });
 
   afterEach(async () => {
     await cleanupTestData(employeeA.id);
     await cleanupTestData(employeeB.id);
+    
+    // Clean up rate limits after test execution
+    await supabaseAdmin
+      .from('rate_limits')
+      .delete()
+      .in('key', [
+        'login:ip:127.0.0.1',
+        'login:ip:unknown-ip',
+        `login:account:${employeeA.email.toLowerCase()}`,
+        `login:account:${employeeB.email.toLowerCase()}`,
+        'login:account:admin-not-in-db@primetekglobalsolutions.com',
+        'login:account:test_admin@primetek.com'
+      ]);
+
     if (__mockClearCookies) __mockClearCookies();
   });
 
