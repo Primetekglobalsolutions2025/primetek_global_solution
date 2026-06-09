@@ -361,19 +361,77 @@ document.addEventListener('DOMContentLoaded', async () => {
     passwordInput.value = '';
   }
 
+  const breakBtn = document.getElementById('break-btn');
+
+  function formatRelativeTime(timestamp) {
+    if (!timestamp) return 'Never';
+    const diffMs = Date.now() - timestamp;
+    if (diffMs < 5000) return 'Just Now';
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return `${diffSec}s ago`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    return `${diffHr}h ago`;
+  }
+
+  function updateStatusDisplay() {
+    chrome.runtime.sendMessage({ action: 'GET_STATUS' }, (response) => {
+      if (response) {
+        // Update badge
+        statusBadge.className = 'status-badge';
+        if (response.status === 'working') {
+          statusBadge.classList.add('status-active');
+          statusText.textContent = 'Working';
+        } else if (response.status === 'idle') {
+          statusBadge.classList.add('status-idle');
+          statusText.textContent = 'Idle';
+        } else if (response.status === 'break') {
+          statusBadge.classList.add('status-break');
+          statusText.textContent = 'On Break';
+        } else {
+          statusBadge.classList.add('status-inactive');
+          statusText.textContent = response.message || 'Offline';
+        }
+
+        // Update break button
+        if (breakBtn) {
+          if (response.onBreak) {
+            breakBtn.textContent = 'End Break';
+            breakBtn.style.background = 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)';
+            breakBtn.style.boxShadow = '0 4px 14px rgba(2, 132, 199, 0.25)';
+          } else {
+            breakBtn.textContent = 'Start Break';
+            breakBtn.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            breakBtn.style.boxShadow = '0 4px 14px rgba(245, 158, 11, 0.25)';
+          }
+          // Disable break button if not tracking (offline)
+          breakBtn.disabled = !response.trackingActive;
+        }
+
+        // Update last activity
+        const lastActSpan = document.getElementById('last-activity-time');
+        if (lastActSpan) {
+          lastActSpan.textContent = formatRelativeTime(response.lastActivity);
+        }
+      }
+    });
+  }
+
+  // Set interval to update status and activity timer every 1s
+  let statusInterval = null;
+
   function showStatusScreen(employee) {
     loginScreen.classList.add('hidden');
     statusScreen.classList.remove('hidden');
     empNameSpan.textContent = employee.name;
     
-    // Check status from background tracking
-    chrome.runtime.sendMessage({ action: 'GET_STATUS' }, (response) => {
-      if (response && response.trackingActive) {
-        setWorkingStatus(response.status || 'Active');
-      } else {
-        setInactiveStatus(response?.message || 'Idle / Not Working');
-      }
-    });
+    // Initial status update
+    updateStatusDisplay();
+
+    // Start interval
+    if (statusInterval) clearInterval(statusInterval);
+    statusInterval = setInterval(updateStatusDisplay, 1000);
 
     // Run active job details scraper
     runJobExtractor();
@@ -382,15 +440,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     fetchAssignedClients();
   }
 
-  function setWorkingStatus(text) {
-    statusBadge.className = 'status-badge status-active';
-    statusText.textContent = text;
+  // Handle break button toggle
+  if (breakBtn) {
+    breakBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'TOGGLE_BREAK' }, () => {
+        updateStatusDisplay();
+      });
+    });
   }
 
-  function setInactiveStatus(text) {
-    statusBadge.className = 'status-badge status-inactive';
-    statusText.textContent = text;
-  }
+  // Clean up interval when popup closes/unloads
+  window.addEventListener('unload', () => {
+    if (statusInterval) clearInterval(statusInterval);
+  });
 
   function showError(msg) {
     if (errorBoxText) {
@@ -405,3 +467,4 @@ document.addEventListener('DOMContentLoaded', async () => {
     errorBox.classList.add('hidden');
   }
 });
+

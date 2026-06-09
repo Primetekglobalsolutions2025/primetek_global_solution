@@ -225,6 +225,20 @@
       box-shadow: 0 0 16px rgba(244, 63, 94, 0.08);
     }
 
+    .status-idle {
+      background: rgba(251, 191, 36, 0.08);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      box-shadow: 0 0 16px rgba(251, 191, 36, 0.08);
+    }
+
+    .status-break {
+      background: rgba(249, 115, 22, 0.08);
+      color: #f97316;
+      border: 1px solid rgba(249, 115, 22, 0.2);
+      box-shadow: 0 0 16px rgba(249, 115, 22, 0.08);
+    }
+
     .status-dot {
       width: 6px;
       height: 6px;
@@ -245,6 +259,38 @@
       }
       100% {
         box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+      }
+    }
+
+    .status-idle .status-dot {
+      animation: idle-pulse 2s infinite;
+    }
+
+    @keyframes idle-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(251, 191, 36, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+      }
+    }
+
+    .status-break .status-dot {
+      animation: break-pulse 2s infinite;
+    }
+
+    @keyframes break-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.6);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(249, 115, 22, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
       }
     }
 
@@ -442,10 +488,21 @@
         </span>
         <span class="info-value" id="emp-name">Employee Name</span>
       </div>
-
+      <div class="info-row" style="margin-top: 6px; border-top: 1px solid rgba(255, 255, 255, 0.03); padding-top: 6px;">
+        <span class="info-label">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Last Activity
+        </span>
+        <span class="info-value" id="last-activity-time">Never</span>
+      </div>
     </div>
 
-    <div style="margin: 16px 0; border-top: 1px solid rgba(255,255,255,0.06);"></div>
+    <button id="break-btn" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25); margin-bottom: 12px;">Start Break</button>
+
+    <div style="margin: 12px 0; border-top: 1px solid rgba(255,255,255,0.06);"></div>
     
     <div class="subtitle" style="text-align: left; margin-bottom: 12px; font-size: 10px;">Job Application Extractor</div>
 

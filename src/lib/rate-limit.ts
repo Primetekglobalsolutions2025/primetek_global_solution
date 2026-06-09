@@ -155,6 +155,16 @@ export const attendanceRateLimiter = new DbRateLimiter({
   keyPrefix: 'attendance',
 });
 
+/**
+ * Presence API rate limiter.
+ * - Max 3 heartbeats per minute per employee
+ */
+export const presenceRateLimiter = new DbRateLimiter({
+  points: 3,
+  duration: 60,
+  keyPrefix: 'presence',
+});
+
 // CAPTCHA trigger flag at 3 attempts
 export const CAPTCHA_THRESHOLD = 3;
 

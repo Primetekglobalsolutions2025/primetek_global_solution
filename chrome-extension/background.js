@@ -7,6 +7,8 @@ let sequenceNumber = 1;
 let currentSessionId = null;
 let trackingActive = false;
 let statusMessage = 'Initializing...';
+let lastActivity = Date.now();
+let onBreak = false;
 
 // Check state on startup
 chrome.runtime.onStartup.addListener(() => {
@@ -27,11 +29,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     stopTracking();
     sendResponse({ success: true });
   } else if (request.action === 'GET_STATUS') {
+    const status = trackingActive 
+      ? (onBreak ? 'break' : (Date.now() - lastActivity > 5 * 60 * 1000 ? 'idle' : 'working')) 
+      : 'offline';
     sendResponse({
       trackingActive,
-      status: trackingActive ? 'Active' : 'Offline',
+      status,
+      lastActivity,
+      onBreak,
       message: statusMessage
     });
+  } else if (request.action === 'TOGGLE_BREAK') {
+    onBreak = !onBreak;
+    // Send presence heartbeat immediately to sync status
+    sendHeartbeat();
+    sendResponse({ success: true, onBreak });
+  } else if (request.action === 'ACTIVITY_DETECTED') {
+    lastActivity = request.timestamp || Date.now();
+    sendResponse({ success: true });
   }
   return true;
 });
@@ -158,55 +173,86 @@ async function initializeTracking() {
 function stopTracking(message = 'Disconnected') {
   trackingActive = false;
   currentSessionId = null;
+  onBreak = false;
   statusMessage = message;
   chrome.alarms.clearAll();
 }
 
 async function sendHeartbeat() {
-  if (!trackingActive || !currentSessionId) return;
+  if (!trackingActive) return;
 
-  const data = await chrome.storage.local.get(['token']);
-  if (!data.token) {
+  const data = await chrome.storage.local.get(['token', 'employee']);
+  if (!data.token || !data.employee || !data.employee.id) {
     stopTracking('Logged out');
     return;
   }
+
+  const backendUrl = await getBackendUrl();
+  const employeeId = data.employee.id;
 
   // Determine user idle state natively (within 120 seconds threshold)
   chrome.idle.queryState(120, async (idleState) => {
     const activeWindow = (idleState === 'active');
 
+    // 1. Dispatch Attendance Heartbeat (if sessionId exists)
+    if (currentSessionId) {
+      try {
+        await fetch(`${backendUrl}/api/extension/heartbeat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${data.token}`
+          },
+          body: JSON.stringify({
+            sessionId: currentSessionId,
+            sequenceNumber: sequenceNumber++,
+            activeWindow: activeWindow,
+            clicks: 0,
+            keypresses: 0,
+            pointerMoves: 0
+          })
+        }).then(async (response) => {
+          if (!response.ok) {
+            if (response.status === 400 || response.status === 404) {
+              stopTracking('Session ended / Clocked out');
+              chrome.alarms.create('session-check', {
+                periodInMinutes: 3
+              });
+            }
+          }
+        });
+      } catch (err) {
+        console.error('Attendance heartbeat ping failed:', err);
+      }
+    }
+
+    // 2. Dispatch Real-Time Presence Heartbeat
+    let presenceStatus = 'working';
+    if (onBreak) {
+      presenceStatus = 'break';
+    } else {
+      const isIdleByTime = (Date.now() - lastActivity > 5 * 60 * 1000);
+      const isIdleByChrome = (idleState !== 'active');
+      if (isIdleByTime || isIdleByChrome) {
+        presenceStatus = 'idle';
+      }
+    }
+
     try {
-      const backendUrl = await getBackendUrl();
-      const response = await fetch(`${backendUrl}/api/extension/heartbeat`, {
+      await fetch(`${backendUrl}/api/presence/heartbeat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${data.token}`
         },
         body: JSON.stringify({
-          sessionId: currentSessionId,
-          sequenceNumber: sequenceNumber++,
-          activeWindow: activeWindow,
-          clicks: 0,
-          keypresses: 0,
-          pointerMoves: 0
+          employeeId: employeeId,
+          status: presenceStatus,
+          lastActivity: lastActivity
         })
       });
-
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        // If session was closed on server side (e.g. clocked out)
-        if (response.status === 400 || response.status === 404) {
-          stopTracking('Session ended / Clocked out');
-          // Schedule session checks to see when they clock in next
-          chrome.alarms.create('session-check', {
-            periodInMinutes: 3
-          });
-        }
-      }
     } catch (err) {
-      console.error('Heartbeat ping failed:', err);
-      // We don't stop tracking on single heartbeat failure, just log it.
+      console.error('Presence heartbeat ping failed:', err);
     }
   });
 }

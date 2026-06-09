@@ -8,7 +8,7 @@ import {
   MessageSquare, Users, FileUser, FileText,
   Settings, ChevronLeft, History, Calendar, CheckSquare,
   MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2, Bell, Home,
-  Briefcase
+  Briefcase, Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -80,6 +80,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
     { href: '/admin/notifications', icon: Bell, label: 'Notifications', section: 'Operations' },
     
     // ─── Workforce ───
+    { href: '/admin/presence', icon: Activity, label: 'Live Presence', section: 'Workforce' },
     { href: '/admin/employees', icon: Users, label: 'Employees', section: 'Workforce' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'Workforce' },
     
@@ -122,6 +123,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
     { href: '/admin/holidays', icon: Calendar, label: 'Holidays', section: 'Operations' },
     { href: '/admin/wfh', icon: Home, label: 'WFH Overrides', section: 'Operations' },
     { href: '/admin/notifications', icon: Bell, label: 'Notifications', section: 'Operations' },
+    { href: '/admin/presence', icon: Activity, label: 'Live Presence', section: 'Workforce' },
     { href: '/admin/daily-reports', icon: ClipboardList, label: 'Daily Reports', section: 'Workforce' },
     { href: '/admin/client-profiles', icon: Building2, label: 'Clients', section: 'Recruitment & Clients' },
     { href: '/admin/interview-requests', icon: Calendar, label: 'Interviews', section: 'Recruitment & Clients' },
