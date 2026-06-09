@@ -36,10 +36,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-// Listen to alarms for period heartbeats (minimum alarm period in MV3 is 1 minute)
+// Listen to alarms for period heartbeats and session retry checks
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'extension-heartbeat') {
     sendHeartbeat();
+  } else if (alarm.name === 'session-check' || alarm.name === 'retry-session') {
+    initializeTracking();
+  }
+});
+
+// Trigger a check when user visits the portal tabs to immediately react to web actions
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url) {
+    try {
+      const url = new URL(tab.url);
+      const isPrimetekHost = url.hostname === 'localhost' || 
+                             url.hostname.includes('primetek') || 
+                             url.hostname.includes('vercel.app');
+      if (isPrimetekHost && !trackingActive) {
+        initializeTracking();
+      }
+    } catch (e) {}
   }
 });
 
@@ -68,12 +85,20 @@ async function initializeTracking() {
 
     if (!result.sessionActive) {
       stopTracking('Waiting for Clock-In (PWA)');
+      // Periodically check every 3 minutes if employee clocks in via PWA
+      chrome.alarms.create('session-check', {
+        periodInMinutes: 3
+      });
       return;
     }
 
     currentSessionId = result.sessionId;
     trackingActive = true;
     statusMessage = 'Active / Syncing heartbeats';
+
+    // Clear waiting/retry alarms
+    chrome.alarms.clear('session-check');
+    chrome.alarms.clear('retry-session');
 
     // Set up alarm to trigger heartbeat every 90 seconds (1.5 minutes)
     chrome.alarms.create('extension-heartbeat', {
@@ -129,11 +154,15 @@ async function sendHeartbeat() {
         })
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) {
         // If session was closed on server side (e.g. clocked out)
         if (response.status === 400 || response.status === 404) {
           stopTracking('Session ended / Clocked out');
+          // Schedule session checks to see when they clock in next
+          chrome.alarms.create('session-check', {
+            periodInMinutes: 3
+          });
         }
       }
     } catch (err) {
