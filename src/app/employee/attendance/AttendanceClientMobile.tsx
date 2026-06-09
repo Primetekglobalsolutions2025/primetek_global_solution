@@ -252,7 +252,7 @@ export default function AttendanceClient({
   };
 
   // 2. Tab Leader Election, Suspension, Version and Escalation States
-  const tabId = useRef(Math.random().toString(36).substring(7)).current;
+  const [tabId] = useState(() => Math.random().toString(36).substring(7));
   const [isLeader, setIsLeader] = useState(false);
   const isLeaderRef = useRef(false);
   
