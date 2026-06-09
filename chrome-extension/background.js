@@ -112,8 +112,16 @@ async function initializeTracking() {
     return;
   }
 
-  statusMessage = 'Connecting to session...';
-  
+  // Active tracking is enabled as long as we are logged into the extension
+  trackingActive = true;
+  statusMessage = 'Active / Syncing heartbeats';
+
+  // Create the heartbeat alarm (runs every 90 seconds)
+  chrome.alarms.create('extension-heartbeat', {
+    periodInMinutes: 1.5
+  });
+
+  // Query PWA session to check if clocked in (required for attendance heartbeats)
   try {
     const response = await fetch(`${backendUrl}/api/extension/session`, {
       headers: {
@@ -122,52 +130,29 @@ async function initializeTracking() {
     });
 
     const result = await response.json();
-    if (!response.ok || !result.success) {
-      let cookieExists = false;
-      try {
-        const cookie = await chrome.cookies.get({ url: backendUrl, name: 'employee-auth-token' });
-        cookieExists = !!cookie;
-      } catch (e) {}
-      
-      if (!cookieExists) {
-        await chrome.storage.local.remove(['token', 'employee']);
-      }
-      stopTracking('Authentication failed');
-      return;
-    }
-
-    if (!result.sessionActive) {
+    if (response.ok && result.success && result.sessionActive) {
+      currentSessionId = result.sessionId;
+      statusMessage = 'Active / Syncing heartbeats';
+      chrome.alarms.clear('session-check');
+      chrome.alarms.clear('retry-session');
+    } else {
+      currentSessionId = null;
       statusMessage = 'Waiting for Clock-In (PWA)';
-      trackingActive = false;
       // Periodically check every 3 minutes if employee clocks in via PWA
       chrome.alarms.create('session-check', {
         periodInMinutes: 3
       });
-      return;
     }
-
-    currentSessionId = result.sessionId;
-    trackingActive = true;
-    statusMessage = 'Active / Syncing heartbeats';
-
-    // Clear waiting/retry alarms
-    chrome.alarms.clear('session-check');
-    chrome.alarms.clear('retry-session');
-
-    // Set up alarm to trigger heartbeat every 90 seconds (1.5 minutes)
-    chrome.alarms.create('extension-heartbeat', {
-      periodInMinutes: 1.5
-    });
-
-    // Send initial heartbeat immediately
-    sendHeartbeat();
   } catch (err) {
     console.error('Session connection failed:', err);
+    currentSessionId = null;
     statusMessage = 'Offline / Connection lost';
-    trackingActive = false;
     // Retry in 1 minute
     chrome.alarms.create('retry-session', { delayInMinutes: 1 });
   }
+
+  // Send initial heartbeat immediately to register presence
+  sendHeartbeat();
 }
 
 function stopTracking(message = 'Disconnected') {

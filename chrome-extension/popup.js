@@ -8,7 +8,7 @@ async function resolveBackendUrl() {
 
   // Check the active tab to see if it belongs to Primetek (localhost or vercel)
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (tab && tab.url) {
       const url = new URL(tab.url);
       const isPrimetekHost = url.hostname === 'localhost' || 
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Automatically parse job info from active tab
   async function runJobExtractor() {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       if (!tab || !tab.url) return;
 
       jobUrlInput.value = tab.url;
