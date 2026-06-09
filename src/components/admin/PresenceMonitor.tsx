@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { usePresenceSubscription } from '@/lib/hooks/usePresenceSubscription';
+import { usePresenceSubscription } from '@/hooks/usePresenceSubscription';
 import PresenceKPIs from './PresenceKPIs';
 import EmployeePresenceCard from './EmployeePresenceCard';
 import { Search, Loader2, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
