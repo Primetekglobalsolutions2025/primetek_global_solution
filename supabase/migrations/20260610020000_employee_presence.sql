@@ -33,11 +33,20 @@ CREATE POLICY "Allow public SELECT on employee_presence" ON public.employee_pres
 -- Note: No write policies are defined, restricting INSERT/UPDATE/DELETE strictly to service role (server-side).
 
 -- Enable Realtime for employee_presence
-BEGIN;
-  -- Remove the table first to avoid duplicate entry errors if rerun
-  ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS public.employee_presence;
-  ALTER PUBLICATION supabase_realtime ADD TABLE public.employee_presence;
-COMMIT;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_rel pr
+    JOIN pg_publication p ON p.oid = pr.prpubid
+    JOIN pg_class c ON c.oid = pr.prrelid
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE p.pubname = 'supabase_realtime'
+      AND n.nspname = 'public'
+      AND c.relname = 'employee_presence'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.employee_presence;
+  END IF;
+END $$;
 
 -- Function to cleanup stale presence records (>5 minutes old)
 CREATE OR REPLACE FUNCTION public.cleanup_stale_presence()
