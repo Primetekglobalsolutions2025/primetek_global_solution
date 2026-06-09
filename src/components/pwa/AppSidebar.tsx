@@ -233,7 +233,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
                   <Link 
                     href={item.href} 
                     className={cn(
-                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 relative',
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 relative group',
                       isActive 
                         ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/25' 
                         : 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
@@ -241,7 +241,7 @@ export default function AppSidebar({ role, userName, initialPendingCount = 0, pe
                     title={collapsed ? item.label : undefined}
                   >
                     <div className="relative shrink-0 flex items-center justify-center">
-                      <item.icon className="w-[18px] h-[18px]" />
+                      <item.icon className="w-[18px] h-[18px] transition-transform duration-200 group-hover:scale-110" />
                       {collapsed && item.label === 'Approvals' && pendingCount > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-navy-900 animate-pulse" />
                       )}

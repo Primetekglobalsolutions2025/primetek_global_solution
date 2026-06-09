@@ -9,7 +9,8 @@
     "activeTab",
     "alarms",
     "tabs",
-    "scripting"
+    "scripting",
+    "cookies"
   ],
   "host_permissions": [
     "*://*/*"

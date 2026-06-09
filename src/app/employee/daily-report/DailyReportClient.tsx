@@ -227,8 +227,8 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-left text-xs">
                 <thead>
-                  <tr className="bg-zinc-50 text-zinc-650 border-b border-zinc-200">
-                    <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-16">Report</th>
+                  <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-semibold text-navy-955 uppercase tracking-wider font-heading">
+                    <th className="p-3 text-center w-16">Report</th>
                     <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Assign Date</th>
                     <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px]">Consultant Name</th>
                     <th className="p-3 font-mono font-semibold uppercase tracking-wider text-[9px] text-center w-28 bg-zinc-100/50">Apps Count</th>
@@ -704,7 +704,7 @@ export default function DailyReportClient({ profiles, todayMetrics, history, rep
                     <div className="overflow-x-auto rounded border border-zinc-200 bg-white">
                       <table className="w-full border-collapse text-left text-[11px]">
                         <thead>
-                          <tr className="bg-zinc-50/80 text-zinc-500 border-b border-zinc-200 font-mono font-medium text-[9px] uppercase tracking-wider">
+                          <tr className="bg-zinc-50/80 text-navy-955 border-b border-zinc-200 font-semibold text-[10px] uppercase tracking-wider font-heading">
                             <th className="p-2.5 font-semibold text-left">Consultant</th>
                             <th className="p-2.5 text-center font-semibold">Apps</th>
                             <th className="p-2.5 text-center font-semibold">Interviews</th>

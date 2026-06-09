@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useTransition } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Clock, 
   ClipboardList, 
@@ -496,9 +497,16 @@ export default function EmployeeDashboardClient({
 
 
       {/* 8. INTERACTIVE CALENDAR & HOLIDAY MANAGEMENT MODAL */}
-      {isCalendarOpen && (
-        <div className="fixed inset-0 bg-navy-900/45 backdrop-blur-xs flex items-end justify-center z-50 p-4 max-w-[430px] mx-auto animate-fade-in">
-          <div className="bg-white rounded-t-[28px] w-full max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-xl border-t border-[#E8EDF2] flex flex-col justify-between animate-slide-up">
+      <AnimatePresence>
+        {isCalendarOpen && (
+          <div className="fixed inset-0 bg-navy-900/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="bg-white rounded-t-[28px] md:rounded-[24px] w-full md:max-w-md max-h-[90vh] overflow-y-auto p-5 space-y-4 shadow-xl border-t md:border border-[#E8EDF2] flex flex-col justify-between"
+            >
             
             {/* Header */}
             <div className="flex justify-between items-center pb-2 border-b border-[#EEF2F6]">
@@ -700,14 +708,22 @@ export default function EmployeeDashboardClient({
                 )}
               </div>
             )}
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* 9. HELPDESK & SUPPORT MODAL */}
-      {isHelpdeskOpen && (
-        <div className="fixed inset-0 bg-navy-900/45 backdrop-blur-xs flex items-end justify-center z-50 p-4 max-w-[430px] mx-auto animate-fade-in">
-          <div className="bg-white rounded-t-[28px] w-full p-6 space-y-5 shadow-xl border-t border-[#E8EDF2] flex flex-col justify-between animate-slide-up">
+      <AnimatePresence>
+        {isHelpdeskOpen && (
+          <div className="fixed inset-0 bg-navy-900/60 backdrop-blur-sm flex items-end md:items-center justify-center z-50 p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 30 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="bg-white rounded-t-[28px] md:rounded-[24px] w-full md:max-w-md p-6 space-y-5 shadow-xl border-t md:border border-[#E8EDF2] flex flex-col justify-between"
+            >
             
             {/* Header */}
             <div className="flex justify-between items-center pb-2 border-b border-[#EEF2F6]">
@@ -769,9 +785,10 @@ export default function EmployeeDashboardClient({
               <Headset className="w-4 h-4" />
               SEND EMAIL REQUEST
             </a>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       <ConfirmationModal
         isOpen={!!holidayToDelete}

@@ -168,7 +168,10 @@ export default function LeavesClient({
             ].map((stat) => {
               const Icon = stat.icon;
               return (
-                <div key={stat.label} className="group bg-white rounded-lg p-5 border border-zinc-200 hover:border-primary-500/50 transition-all duration-200 shadow-2xs">
+                <div key={stat.label} className="group bg-white rounded-xl p-5 border border-zinc-250/70 hover:border-primary-500/45 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 ease-out relative overflow-hidden">
+                  {/* Subtle top border accent on hover */}
+                  <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  
                   <div className={`w-8 h-8 rounded border ${stat.bg} ${stat.color} flex items-center justify-center mb-3 transition-transform group-hover:scale-105 duration-200 shrink-0`}>
                     <Icon className="w-4 h-4" />
                   </div>
@@ -259,7 +262,10 @@ export default function LeavesClient({
             ].map((stat) => {
               const Icon = stat.icon;
               return (
-                <div key={stat.label} className="group bg-white rounded-lg p-5 border border-zinc-200 hover:border-primary-500/50 transition-all duration-200 shadow-2xs">
+                <div key={stat.label} className="group bg-white rounded-xl p-5 border border-zinc-250/70 hover:border-primary-500/45 hover:-translate-y-0.5 hover:shadow-md transition-all duration-300 ease-out relative overflow-hidden">
+                  {/* Subtle top border accent on hover */}
+                  <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
                   <div className={`w-8 h-8 rounded border ${stat.bg} ${stat.color} flex items-center justify-center mb-3 transition-transform group-hover:scale-105 duration-200 shrink-0`}>
                     <Icon className="w-4 h-4" />
                   </div>

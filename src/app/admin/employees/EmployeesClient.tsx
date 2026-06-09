@@ -476,13 +476,13 @@ export default function EmployeesClient({
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-zinc-200 bg-zinc-50/50">
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Identity</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Staff ID</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Function</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">MFA verification</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">Status</th>
-                <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 text-right">Access</th>
+              <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[10px] font-semibold text-navy-955 uppercase tracking-wider font-heading">
+                <th className="px-4 py-3">Identity</th>
+                <th className="px-4 py-3">Staff ID</th>
+                <th className="px-4 py-3">Function</th>
+                <th className="px-4 py-3">MFA verification</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Access</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100/60">
@@ -767,7 +767,24 @@ export default function EmployeesClient({
                       <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Full Name</label>
                       <div className="relative group">
                         <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
-                        <input required type="text" placeholder="John Doe" value={newEmployeeData.name} onChange={(e) => { setNewEmployeeData({...newEmployeeData, name: e.target.value}); setFormErrors({...formErrors, name: ''}); }} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
+                        <input 
+                          required 
+                          type="text" 
+                          placeholder="John Doe" 
+                          value={newEmployeeData.name} 
+                          onChange={(e) => { 
+                            setNewEmployeeData({...newEmployeeData, name: e.target.value}); 
+                            setFormErrors({...formErrors, name: ''}); 
+                          }} 
+                          className={cn(
+                            "w-full pl-11 pr-4 py-3.5 rounded-2xl border bg-zinc-100 transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450 focus:outline-none focus:ring-2",
+                            formErrors.name
+                              ? "border-red-300 focus:ring-red-500/30"
+                              : newEmployeeData.name.trim().length >= 3
+                                ? "border-emerald-300 focus:ring-emerald-500/30"
+                                : "border-zinc-200 focus:ring-primary-500/20"
+                          )} 
+                        />
                       </div>
                       {formErrors.name && (
                         <p className="text-[10px] text-red-500 font-semibold mt-1 ml-1">{formErrors.name}</p>
@@ -778,7 +795,24 @@ export default function EmployeesClient({
                       <label className="block text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] ml-1">Email Address</label>
                       <div className="relative group">
                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-primary-400 transition-colors" />
-                        <input required type="email" placeholder="john@primetek.com" value={newEmployeeData.email} onChange={(e) => { setNewEmployeeData({...newEmployeeData, email: e.target.value}); setFormErrors({...formErrors, email: ''}); }} className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-zinc-200 bg-zinc-100 focus:ring-2 focus:ring-primary-500/20 focus:outline-none transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450" />
+                        <input 
+                          required 
+                          type="email" 
+                          placeholder="john@primetek.com" 
+                          value={newEmployeeData.email} 
+                          onChange={(e) => { 
+                            setNewEmployeeData({...newEmployeeData, email: e.target.value}); 
+                            setFormErrors({...formErrors, email: ''}); 
+                          }} 
+                          className={cn(
+                            "w-full pl-11 pr-4 py-3.5 rounded-2xl border bg-zinc-100 transition-all text-sm font-medium text-navy-900 placeholder:text-zinc-450 focus:outline-none focus:ring-2",
+                            formErrors.email
+                              ? "border-red-300 focus:ring-red-500/30"
+                              : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmployeeData.email)
+                                ? "border-emerald-300 focus:ring-emerald-500/30"
+                                : "border-zinc-200 focus:ring-primary-500/20"
+                          )} 
+                        />
                       </div>
                       {formErrors.email && (
                         <p className="text-[10px] text-red-500 font-semibold mt-1 ml-1">{formErrors.email}</p>
@@ -814,7 +848,14 @@ export default function EmployeesClient({
                               });
                               setFormErrors({...formErrors, department: ''});
                             }} 
-                            className="w-full pl-11 pr-10 py-3.5 rounded-2xl border border-zinc-200 bg-white text-sm font-medium text-zinc-700 focus:ring-2 focus:ring-primary-500/20 focus:outline-none cursor-pointer appearance-none"
+                            className={cn(
+                              "w-full pl-11 pr-10 py-3.5 rounded-2xl border bg-white text-sm font-medium text-zinc-700 focus:outline-none focus:ring-2 cursor-pointer appearance-none",
+                              formErrors.department
+                                ? "border-red-300 focus:ring-red-500/30"
+                                : newEmployeeData.department
+                                  ? "border-emerald-300 focus:ring-emerald-500/30"
+                                  : "border-zinc-200 focus:ring-primary-500/20"
+                            )}
                           >
                             <option value="" disabled>Select Role...</option>
                             <option value="Talent Acquisition Specialist">Talent Acquisition Specialist</option>

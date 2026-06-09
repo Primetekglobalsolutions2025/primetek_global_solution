@@ -249,7 +249,7 @@ export default function ApprovalsClient({
               className={cn(
                 "flex items-center gap-2 px-6 py-3.5 border-b-2 text-[11px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 cursor-pointer",
                 isActive
-                  ? "border-navy-900 text-navy-900 font-bold"
+                  ? "border-primary-500 text-primary-600 font-bold"
                   : "border-transparent text-zinc-450 hover:text-zinc-700"
               )}
             >
@@ -283,7 +283,7 @@ export default function ApprovalsClient({
               ) : (
                 <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs divide-y divide-zinc-150 overflow-hidden">
                   {leaves.map((leave) => (
-                    <div key={leave.id} className="p-4 hover:bg-zinc-50/50 transition-colors text-zinc-600">
+                    <div key={leave.id} className="p-4 hover:bg-zinc-50/80 transition-all duration-200 text-zinc-600 border-l-4 border-l-primary-500 pl-5">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start gap-3">
                           <div className="w-8 h-8 rounded-md bg-zinc-50 border border-zinc-200 flex items-center justify-center shrink-0">
@@ -345,7 +345,7 @@ export default function ApprovalsClient({
               ) : (
                 <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs divide-y divide-zinc-150 overflow-hidden">
                   {wfh.map((request) => (
-                    <div key={request.id} className="p-4 hover:bg-zinc-50/50 transition-colors text-zinc-650">
+                    <div key={request.id} className="p-4 hover:bg-zinc-50/80 transition-all duration-200 text-zinc-655 border-l-4 border-l-blue-500 pl-5">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start gap-3">
                           <div className="w-8 h-8 rounded-md bg-primary-50/50 border border-primary-200/50 text-primary-600 flex items-center justify-center shrink-0">
@@ -405,7 +405,7 @@ export default function ApprovalsClient({
               ) : (
                 <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs divide-y divide-zinc-150 overflow-hidden">
                   {wfhRequests.map((request) => (
-                    <div key={request.id} className="p-4 hover:bg-zinc-50/50 transition-colors text-zinc-650">
+                    <div key={request.id} className="p-4 hover:bg-zinc-50/80 transition-all duration-200 text-zinc-655 border-l-4 border-l-indigo-500 pl-5">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start gap-3">
                           <div className="w-8 h-8 rounded-md bg-primary-50/50 border border-primary-200/50 text-primary-600 flex items-center justify-center shrink-0">
@@ -464,7 +464,7 @@ export default function ApprovalsClient({
               ) : (
                 <div className="bg-white rounded-lg border border-zinc-200 shadow-2xs divide-y divide-zinc-150 overflow-hidden">
                   {disputes.map((dispute) => (
-                    <div key={dispute.id} className="p-4 hover:bg-zinc-50/50 transition-colors text-zinc-650">
+                    <div key={dispute.id} className="p-4 hover:bg-zinc-50/80 transition-all duration-200 text-zinc-655 border-l-4 border-l-violet-500 pl-5">
                       <div className="flex flex-col md:flex-row justify-between gap-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-start gap-3">

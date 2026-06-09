@@ -1,0 +1,415 @@
+Let me read all the files and audit without making any changes.
+
+
+Invoked Context Gatherer
+Reading all employee mobile app files to perform a complete audit without making changes
+I've now read all 15 files in full. Here is the complete UI/UX audit report.
+
+UI/UX Audit Report — Employee Portal
+1. EmployeeLayoutClient.tsx
+Layout & Structure
+
+Uses fixed inset-0 with overflow-hidden for the shell — correct PWA pattern, prevents body scroll bleed.
+pb-24 on <main> accounts for the mobile bottom nav bar — good.
+The AppHeader visibility logic is broken: the outer div has hidden md:block, but then a conditional block class is added for specific routes. Because Tailwind applies classes in order, hidden md:block wins on mobile regardless of the inner conditional — the header will never show on mobile even for the listed routes. This is a real rendering bug.
+Loading State
+
+Loading spinner uses a custom "P" logo + Loader2 + text — clean and on-brand.
+No aria-live region or role="status" on the loading screen — screen readers won't announce it.
+Auth / Session Logic
+
+Session is read from sessionStorage first, then localStorage as fallback — reasonable offline strategy.
+On server errors (500+), the session is silently retained with only a console.warn. No user-facing feedback that auth verification failed.
+No timeout on the fetch('/api/auth/me') call — a hanging network request will leave the user on the loading screen indefinitely.
+Accessibility
+
+No <SkipToContent> link.
+No role="main" on the <main> element (though the tag itself is semantic).
+2. AppSidebar.tsx
+Desktop Sidebar
+
+Collapse/expand is smooth with CSS transition-[width] — good.
+Collapsed state shows only icons with title tooltip — acceptable but no aria-label on nav links in collapsed mode (only title, which is not reliably announced by screen readers).
+Section headers (text-[9px]) are extremely small — 9px is below the WCAG minimum readable size and will fail contrast checks on most monitors.
+Active state uses bg-primary-500 with white text — likely passes contrast, but not verified against the actual primary-500 value.
+The Approvals badge count is only shown for role === 'admin', which is correct.
+Mobile Bottom Nav
+
+hideMobileNav logic: the sidebar bottom nav is hidden on dashboard/attendance/daily-report/profile/settings when forceVisibleOnMobile is false. But EmployeeLayoutClient always passes forceVisibleOnMobile={true}, making the hideMobileNav logic permanently bypassed for the employee portal. This means the sidebar nav and the page's own bottom tab bar will both render simultaneously on those pages — a double navigation bar bug.
+Bottom nav items have min-w-[56px] — adequate touch target width, but height is only h-16 (64px) for the bar, and individual items have py-1 padding. The actual tap target for each icon+label is approximately 44–48px tall, which is borderline for WCAG 2.5.5 (44×44px minimum).
+The "More" button label is "More" — generic, not descriptive for screen readers. Should be "More navigation options" (the aria-label is set, which is good).
+text-primary-505 appears in the active link class — this is a typo/non-existent Tailwind color token. It will silently fall back to no color, meaning the active state color may not apply correctly.
+More Drawer (Bottom Sheet)
+
+Drag handle is purely decorative (div) with no swipe gesture handler — the handle implies swipe-to-dismiss but only click-on-backdrop dismisses it.
+max-h-[60vh] on the overflow items container is good to prevent overflow on small screens.
+Grid of 3 columns for overflow items — labels are text-[10px] with truncate, so long labels will be cut off silently.
+No role="dialog" or aria-modal="true" on the bottom sheet — screen readers won't treat it as a modal.
+Focus is not trapped inside the drawer when open.
+Logout
+
+Uses ConfirmationModal — good pattern, prevents accidental logout.
+Clears all known session keys from both sessionStorage and localStorage — thorough.
+3. AppHeader.tsx
+General
+
+Very minimal component — logo on mobile, greeting on desktop, bell icon, avatar initials.
+notificationCount badge: the badge span has w-2.5 h-2.5 but tries to render the count number inside it. At 10px × 10px, any number > 9 will overflow and be invisible. The badge is effectively just a dot, not a readable count.
+Bell button has aria-label="Notifications" — good.
+The notification click handler uses toast.info to show a message — this is a workaround, not a real notification panel. No actual notification list exists.
+text-gray-455 is a non-existent Tailwind color token on the bell button — will silently fall back.
+The avatar circle shows initials but has no aria-label or role — screen readers won't know whose avatar it is.
+The header is sticky top-0 z-30 — correct for keeping it visible on scroll.
+No mobile greeting shown — the greeting is hidden md:block only. Mobile users see only the logo and icons, no personalization.
+4. EmployeeDashboardClient.tsx
+Overall Design
+
+Constrained to max-w-[430px] with border-x — this is a deliberate "phone frame" design. On tablets and larger phones (>430px), the content will be centered with visible side borders, which looks odd on a tablet in landscape.
+pb-[98px] bottom padding — accounts for the bottom nav bar.
+Hero Section
+
+Hardcoded fallback values: employee_id || 'CMK5936306', name.split(' ')[0] || 'Janu' — real employee IDs and names should never fall back to hardcoded sample data in production.
+The greeting "Good Morning" is hardcoded text, not dynamic (unlike AppHeader which calculates it). This is inconsistent.
+The decorative clock image (
+clock_image_transparent.png
+) has alt="Attendance" — acceptable but generic.
+animate-bounce on the wave emoji — minor, but can be distracting for users with vestibular disorders (no prefers-reduced-motion check).
+Today's Overview
+
+4-column grid with very small cards — text-[8px] labels and text-[13px] values. On small screens (320px), these will be extremely cramped.
+"Last Check In" and "Last Check Out" both use a Calendar icon — the check-out card should use a LogOut or Clock icon for semantic clarity. Both using Calendar is confusing.
+Quick Access
+
+"My Tasks" and "My Clients" both link to /employee/assigned-profiles — they are the same destination with different labels. This is misleading UX.
+"Announcements" is a div with cursor-pointer but no onClick handler — it's a dead button. No href, no action, no disabled state. Users will click it and nothing will happen.
+"Helpdesk" opens isHelpdeskOpen state but the helpdesk modal/panel JSX is not visible in the rendered portion — need to verify it exists. If it doesn't render, this is another dead button.
+Quick access icons use div instead of button or Link for non-navigating items — not keyboard accessible.
+Calendar Modal
+
+isAdmin check gates the "Add Holiday" and "Delete" buttons — correct role-based UI.
+alert() is used for error feedback (alert(res.error || 'Failed to save holiday')) — native browser alert is jarring, breaks the design system, and is not accessible in the same way as the toast system used elsewhere.
+confirm() is used for delete confirmation — same issue as alert().
+The calendar defaults to August 2025 (new Date(2025, 7, 1)) — this is hardcoded. When the app is used in other months, the calendar will open on the wrong month.
+upcomingHoliday filter uses new Date(2025, 7, 1) as the cutoff — hardcoded date means holidays before August 2025 will never show as "upcoming" regardless of the current date.
+Bottom Navigation (Dashboard-specific)
+
+The dashboard has its own activeTab state and bottom nav (home | attendance | report | profile | more) — this is a separate nav from AppSidebar. Since forceVisibleOnMobile={true} is passed to AppSidebar, both navs render simultaneously. This is the double-nav bug confirmed.
+5. AttendanceClientMobile.tsx
+Overall
+
+This is the most complex component in the codebase (~1600+ lines). It handles GPS, offline queuing, tab leader election, heartbeats, idle detection, disputes, and calendar — all in one file. This is a significant maintainability concern but is a code architecture issue, not strictly UI/UX.
+Same max-w-[430px] phone-frame constraint as the dashboard.
+Header
+
+Bell button is present but has no onClick — it's a non-functional decorative button. No aria-label either.
+Avatar shows only the first letter of the name — no aria-label.
+Status Indicators
+
+"Location Accuracy: High" is hardcoded — it always shows "High" regardless of actual GPS accuracy. The coords.accuracy value is collected but never displayed. This is misleading.
+The live status dot (green/amber/purple) uses animate-pulse — no prefers-reduced-motion check.
+The "LIVE SYSTEM TIME (ACTIVE SYNC)" label is always shown even when the user is clocked out — the label implies active sync but there's no active session.
+Action Buttons
+
+Clock In / Clock Out buttons are full-width py-4 — good touch target size.
+The "Undo Clock Out" button is bg-transparent border-0 text-only — very low visual affordance, easy to miss.
+"Start Break" is disabled when currentStatus !== 'Working' && currentStatus !== 'Approved WFH' — correct, but the disabled state has no visual tooltip explaining why it's disabled.
+The confirmation dialog for clock-out uses a custom confirmAction state pattern — good, avoids native confirm().
+Calendar
+
+Day headers use single letters ['S', 'M', 'T', 'W', 'T', 'F', 'S'] — two 'T' and two 'S' entries are ambiguous (Tuesday/Thursday, Saturday/Sunday). No aria-label on the header cells.
+When selectedMonthRecords.length === 0, the calendar grid is replaced with an empty state — but the month navigation still works. This means navigating to a month with no records shows no calendar grid at all, which is confusing (the user can't see which days are weekdays vs weekends).
+isCalendarLoading shows a skeleton grid — good pattern.
+Offline Banner
+
+Clear and well-designed. "Sync Now" button is present when online with pending items — good.
+The banner uses AnimatePresence with slide-in — good feedback.
+Disputes System
+
+Dispute form uses disputeCategory defaulting to 'LATE_PENALTY' — the category options are not visible in the read portion, but the default is reasonable.
+isSubmittingDispute disables the submit button — good.
+Accessibility
+
+No role="dialog" on the WFH request modal or confirmation modal.
+The hidden Playwright test helpers (opacity-[0.01]) are present in the DOM — harmless but add noise.
+6. DailyReportClient.tsx
+Desktop Table
+
+The "Swipe horizontally to view all columns" hint uses animate-pulse — this is a permanent pulsing hint, not a one-time tooltip. It will pulse forever, which is distracting.
+Column headers use text-[9px] — extremely small, likely fails WCAG contrast at that size.
+Each metric cell has + / − buttons with aria-label attributes — good accessibility practice.
+Number inputs have type="number" with min="0" — correct. However, parseInt(e.target.value) without a radix is used; if the field is cleared, parseInt('') returns NaN, which is handled by isNaN(value) ? 0 : value in handleInputChange — safe.
+Mobile Cards
+
+The mobile + / − buttons in the grid do NOT have aria-label attributes (unlike the desktop version) — inconsistency and accessibility gap.
+(values as any)[item.field] uses a type cast — minor code smell but not a UI issue.
+History Section
+
+isHistoryExpanded state exists but the history rendering JSX was truncated — cannot fully audit. The toggle button and grouped history display appear to be present based on the state setup.
+Empty State
+
+Clean empty state with icon and descriptive text — good.
+Submission Feedback
+
+Uses toast.success / toast.error — consistent with the design system.
+The submit button is at the bottom of the form (not visible in the truncated portion) — standard placement.
+Header Status Badge
+
+"Pending" badge has animate-pulse — same concern as above, permanent animation.
+7. 
+page.tsx
+Wraps content in container mx-auto px-4 py-6 pb-24 max-w-7xl — the pb-24 is for mobile bottom nav clearance, but this is a server component wrapper. The DailyReportClient itself also has pb-12 — there may be double bottom padding on mobile.
+metadata export is correct for SEO.
+No loading state — relies on Next.js Suspense boundaries upstream (or none at all).
+8. LeavesClient.tsx
+Header
+
+Dark navy gradient header with blur accent — visually consistent with the design system.
+"Request Leave" button uses active:scale-95 — good tactile feedback.
+Summary Matrix
+
+Only shows "Casual Leave" and "Pending Approval" — no "Sick Leave" or other types even if they exist in balances. The balance lookup is hardcoded to type === 'Casual'. Other leave types are silently ignored in the summary.
+getBalance('Casual') — case-sensitive match. If the DB stores 'casual' (lowercase), this returns 0.
+Leave List
+
+TrendingUp icon on each leave row as a "view" affordance — this icon semantically means "trending up" (analytics), not "view details". Misleading icon choice.
+The icon has no aria-label and the row has no click handler — the TrendingUp icon appears to be purely decorative with a hover effect but no action.
+leave.status || 'Pending' — good defensive default.
+Reason is shown in an italic blockquote style — clean.
+Modal
+
+Uses AnimatePresence with scale+fade — smooth.
+useModalFocusTrap is used — good accessibility practice.
+Click-outside-to-close is implemented — good.
+The close X button has no aria-label.
+Inline State Sync
+
+The pattern of comparing initialLeaves !== prevInitialLeaves to sync props to state inline (instead of useEffect) is unconventional and can cause issues with React's concurrent rendering. It's a workaround for the "setState in render" warning but introduces its own risks.
+9. 
+page.tsx
+export const dynamic = 'force-dynamic' — correct for a page that reads live data.
+Wraps in <div className="pb-24"> — bottom nav clearance. Combined with LeavesClient's own pb-12, there's double bottom padding.
+No error boundary or fallback if getEmployeeLeaves() throws.
+10. AssignedProfilesClient.tsx
+Mobile Cards
+
+Clean card layout with name, role, email, phone, status select, and interview request button.
+Status <select> has color-coded styles per status — good visual differentiation.
+Eye button to open detail modal — correct icon choice.
+Desktop Table
+
+"Request Interview" button is in the actions column but not in the mobile card's action row — wait, it IS in the mobile card. Consistent.
+The desktop table has no "Request Interview" button in the status column — it's only in the actions column. On mobile, it's next to the status select. Layout is slightly different but functional.
+Detail Modal
+
+useModalFocusTrap is used — good.
+role="dialog" is missing on the modal container.
+aria-modal="true" is missing.
+The modal close button has no aria-label.
+The modal has a sticky header with close button — good for long content.
+max-h-[90dvh] with overflow-y-auto — correct use of dvh for mobile browsers.
+Status Select
+
+The select uses .toLowerCase() for comparison but the options have capitalized values ("Assigned", "Processing", etc.) — the value attributes are lowercase ("assigned", "processing"), so the comparison works. But the display text is capitalized. This is fine.
+No confirmation before changing status — a misclick can immediately update the profile status in the DB.
+Empty State
+
+Consistent empty state pattern with icon and text — good.
+11. 
+page.tsx
+max-w-5xl mx-auto pb-24 wrapper — consistent bottom padding.
+Auth check with redirect — correct.
+No loading state or error boundary.
+12. ProfileClient.tsx
+Header
+
+Avatar click triggers file input — the entire avatar div is clickable, which is good for discoverability.
+The avatar div has cursor-pointer and a hover overlay with camera icon — clear affordance.
+No aria-label on the avatar click area — screen readers won't know it's an upload button.
+@ts-expect-error for navigator.standalone — acceptable for non-standard iOS property.
+Form
+
+Email field is disabled with visual muting — correct, email is managed by HR.
+Only name and phone are actually saved (updateProfile(form.name, form.phone)) — department and designation fields are in the form state but not editable (no inputs for them in the rendered form). The form state includes them but they're display-only in the "Work Details" sidebar. This is fine but the form state is slightly misleading.
+saved state shows a success message inline — redundant with the toast.success that also fires. Double feedback.
+PWA Install
+
+Install prompt is shown only when !isStandalone — correct.
+Fallback message for Safari ("tap the browser menu...") — good cross-browser guidance.
+The install button has aria-label="Install App" — good.
+MFA Setup
+
+Rendered inside a bg-primary-50 card — visually separated, good.
+Security Note
+
+Static informational card — clear and helpful.
+Password Change
+
+Delegated to PasswordChangeForm component — not audited here.
+13. 
+page.tsx
+Fetches full employee record including mfa_enabled — correct.
+Duplicate title rendering: the page renders <h1>My Profile</h1> and <p>View and update...</p> in the page wrapper, AND ProfileClient renders its own header section. The page-level title is pt-4 md:pt-0 — on mobile there's a top padding, on desktop it's flush. This is fine but the page title and the ProfileClient header create a visual double-header on desktop.
+redirect('/employee/dashboard') on DB error — silent failure, no error message shown to the user.
+14. ReportsClient.tsx
+Tab Navigation
+
+Tab bar uses border-b-2 active indicator — clean Vercel-style tabs.
+overflow-x-auto scrollbar-none on the tab bar — tabs won't wrap on small screens, they scroll horizontally. Good.
+No role="tablist" / role="tab" / role="tabpanel" ARIA attributes — the tab pattern is not accessible to screen readers.
+focus-visible:outline-none on tab buttons removes the focus ring entirely — keyboard users lose focus visibility.
+Quick Overview Strip
+
+Only shown for attendance and security tabs — leaves and daily tabs have no summary strip. Inconsistent.
+Horizontal scroll with scrollbar-none — content may be cut off on narrow screens with no indication that more exists.
+StatCard Component
+
+color prop is accepted but never used in the component body — dead prop. The icon color is always text-zinc-550 (another non-existent Tailwind token).
+sub prop renders a small badge — good for contextual info.
+Attendance Tab
+
+Expandable rows with AnimatePresence — smooth and well-implemented.
+ChevronDown rotates on expand — clear visual feedback.
+Date cells show day number + month abbreviation — clean.
+is_late + exemption logic is clearly communicated with color-coded badges — good.
+Leaves Tab
+
+Progress bar for casual leave balance — good visual.
+data.usedCasual / 1 — the denominator 1 is hardcoded (1 day per month). If the policy changes, this breaks silently.
+Daily Reports Tab
+
+Expandable rows — consistent with attendance tab.
+total is calculated as sum of all 7 metrics — shown in the collapsed row summary. Good at-a-glance info.
+Security Tab
+
+Risk event log with expandable signal breakdown — well-designed for a technical audience.
+Emoji used for office/external network indicator (🏢, 🌐, ✓, ⚠) — emojis in data tables can cause screen reader verbosity issues.
+user_agent.slice(0, 60) + '...' — truncated UA string is shown raw. This is technical data that most employees won't understand.
+Animation
+
+AnimatePresence mode="wait" on tab content — smooth tab transitions.
+No prefers-reduced-motion check on any animation in this file.
+15. 
+page.tsx
+All 4 data fetches run in parallel with Promise.all — good performance.
+Each fetch has .catch(() => null) — graceful degradation; individual tab failures show "Failed to load" messages rather than crashing the page.
+Same double-header pattern as 
+page.tsx
+ — page-level <h1>My Reports</h1> plus ReportsClient's own tab header.
+pb-24 bottom padding — consistent.
+Cross-Cutting Issues Summary
+Issue	Severity	Affected Files
+Double bottom navigation bar (AppSidebar + page-specific nav both render)	High	EmployeeLayoutClient, AppSidebar, EmployeeDashboardClient, AttendanceClientMobile
+AppHeader mobile visibility logic broken (CSS class conflict)	High	EmployeeLayoutClient
+Hardcoded dates (Aug 2025) in dashboard calendar	High	EmployeeDashboardClient
+Non-existent Tailwind color tokens (text-primary-505, text-gray-455, text-zinc-550)	Medium	AppSidebar, AppHeader, ReportsClient
+alert() / confirm() used instead of design system modals	Medium	EmployeeDashboardClient
+No role="dialog" / aria-modal on modals	Medium	AppSidebar, AssignedProfilesClient, LeavesClient
+No role="tablist" / role="tab" on tab navigation	Medium	ReportsClient
+focus-visible:outline-none removes keyboard focus ring	Medium	ReportsClient
+Dead/non-functional buttons (Announcements, Bell in Attendance)	Medium	EmployeeDashboardClient, AttendanceClientMobile
+"My Tasks" and "My Clients" link to the same URL	Medium	EmployeeDashboardClient
+Notification badge too small to show count (10×10px)	Low	AppHeader
+Permanent animate-pulse on status badges and hints	Low	DailyReportClient, EmployeeDashboardClient
+No prefers-reduced-motion checks on any animations	Low	All animated components
+Double bottom padding (pb-24 + pb-12) on several pages	Low	
+page.tsx
+, 
+page.tsx
+TrendingUp icon used as "view" affordance in Leaves	Low	LeavesClient
+Raw user-agent string shown to employees in Security tab	Low	ReportsClient
+color prop on StatCard is accepted but never applied	Low	ReportsClient
+No auth fetch timeout (infinite loading possible)	Medium	EmployeeLayoutClient
+Hardcoded fallback employee ID/name in production UI	Medium	EmployeeDashboardClient
+Now I have read everything. Here's the complete audit report:
+
+✅ / ❌ Full Mobile UI/UX Audit Report
+LAYOUT & NAVIGATION
+EmployeeLayoutClient.tsx
+
+Check	Status	Detail
+Sidebar hidden on mobile	❌ FAIL	forceVisibleOnMobile={true} is being passed to AppSidebar — this overrides the hide logic
+Header hidden on mobile	❌ FAIL	The header div has broken CSS: hidden md:block ${pathname === '/employee/daily-report'... ? 'block' : ''} — the string interpolation inside a className doesn't work in Tailwind. The block class won't apply, but hidden will still hide it on mobile
+Bottom padding for tab bar	✅ PASS	pb-24 is on the main element
+AppSidebar.tsx
+
+Check	Status	Detail
+Bottom nav hidden on dashboard	✅ PASS	hideMobileNav correctly hides on /employee/dashboard and /employee/attendance
+Bottom nav hidden on daily-report	✅ PASS	Also hidden on /employee/daily-report and /employee/profile
+Duplicate bottom tab bar	⚠️ RISK	EmployeeDashboardClient has its own bottom tab bar AND AppSidebar has one — but hideMobileNav prevents the duplicate on dashboard/attendance. However EmployeeDashboardClient bottom tab bar uses fixed bottom-0 with no md:hidden — it will show on desktop too
+PAGE-BY-PAGE AUDIT
+1. Home (EmployeeDashboardClient.tsx)
+
+Check	Status	Detail
+Mobile container max-w-430px	✅ PASS	Correct
+Bottom tab bar present	✅ PASS	Has own nav
+Bottom tab bar has md:hidden	❌ FAIL	The <nav> bottom tab bar has NO md:hidden — it shows on desktop too
+Greeting time-based	❌ FAIL	Hardcoded "Good Morning," — never changes to Afternoon/Evening
+3D illustration image path	❌ FAIL	Uses 
+clock_image_transparent.png
+ — file may not exist (original was 
+attendance_illustration_v3.png
+)
+Upcoming holiday filter	❌ FAIL	Hardcoded new Date(2025, 7, 1) filter — shows "No upcoming holidays" for current date (May 2026)
+Bottom tab bar Home active	✅ PASS	Teal color on Home tab
+2. Attendance (AttendanceClientMobile.tsx)
+
+Check	Status	Detail
+Mobile container max-w-430px	✅ PASS	Correct
+Bottom tab bar present	✅ PASS	Has own nav
+Bottom tab bar has md:hidden	❌ FAIL	Same issue — no md:hidden on the nav
+Attendance tab active	✅ PASS	Teal on Attendance tab
+Calendar with status dots	✅ PASS	Full calendar with colored dots
+Clock In button teal	✅ PASS	bg-[#0B8B83]
+3. Daily Report (DailyReportClient.tsx + page.tsx)
+
+Check	Status	Detail
+Header compact on mobile	✅ PASS	Fixed — p-4 md:p-6
+Title responsive	✅ PASS	Fixed — text-base md:text-xl
+Mobile card view	✅ PASS	lg:hidden cards render on mobile
+Submit button full width on mobile	✅ PASS	w-full sm:w-auto
+Bottom padding	✅ PASS	pb-24 on page wrapper
+Bottom tab bar visible	❌ FAIL	AppSidebar hides nav on /employee/daily-report via hideMobileNav — so NO bottom nav shows on this page
+4. Leaves (LeavesClient.tsx + page.tsx)
+
+Check	Status	Detail
+Leave balance cards visible	✅ PASS	2 summary cards at top
+Leave request form mobile-friendly	✅ PASS	Modal with full-width form
+Bottom padding	✅ PASS	pb-24 wrapper added
+Bottom tab bar visible	✅ PASS	AppSidebar nav shows (leaves not in hideMobileNav list)
+Correct active tab	⚠️ WARN	Leaves is in "More" overflow — no direct tab, user must tap More
+5. Profiles (AssignedProfilesClient.tsx + page.tsx)
+
+Check	Status	Detail
+Mobile card layout	✅ PASS	block md:hidden card list
+Bottom padding	✅ PASS	pb-24 added
+Bottom tab bar visible	✅ PASS	AppSidebar nav shows, Profiles tab active
+Empty state	✅ PASS	Has empty state with icon
+6. Profile (ProfileClient.tsx + page.tsx)
+
+Check	Status	Detail
+Avatar visible	✅ PASS	Avatar with initials/photo
+Work details card	✅ PASS	Role, Department, Member Since
+Bottom padding	✅ PASS	pb-24 pt-4 added
+Bottom tab bar visible	❌ FAIL	AppSidebar hides nav on /employee/profile via hideMobileNav — no bottom nav
+Header card padding on mobile	⚠️ WARN	Profile header uses p-6 — no mobile reduction
+7. Reports (ReportsClient.tsx + page.tsx)
+
+Check	Status	Detail
+Summary cards readable	✅ PASS	grid-cols-2 md:grid-cols-4
+Tab bar horizontal scroll	✅ PASS	overflow-x-auto scrollbar-none
+Bottom padding	✅ PASS	pb-24 pt-4 added
+Bottom tab bar visible	✅ PASS	AppSidebar nav shows (reports not in hideMobileNav)
+SUMMARY OF FAILS TO FIX
+#	Issue	File	Fix
+1	forceVisibleOnMobile={true} passed to AppSidebar — overrides all hide logic	EmployeeLayoutClient.tsx	Remove forceVisibleOnMobile={true}, pass nothing
+2	Header CSS broken — string interpolation in className doesn't work	EmployeeLayoutClient.tsx	Remove the broken conditional, keep hidden md:block only
+3	Bottom tab bar on Home has no md:hidden — shows on desktop	EmployeeDashboardClient.tsx	Add md:hidden to the <nav> bottom tab bar
+4	Bottom tab bar on Attendance has no md:hidden — shows on desktop	AttendanceClientMobile.tsx	Add md:hidden to the <nav> bottom tab bar
+5	Greeting hardcoded "Good Morning" — never changes	EmployeeDashboardClient.tsx	Add time-based greeting logic
+6	Image path 
+clock_image_transparent.png
+ may not exist	EmployeeDashboardClient.tsx	Verify file exists or change to 
+attendance_illustration_v3.png
+7	Upcoming holiday filter hardcoded to Aug 2025	EmployeeDashboardClient.tsx	Change filter to new Date() (today)
+8	AppSidebar hides nav on /employee/daily-report — no bottom nav shows	AppSidebar.tsx	Remove /employee/daily-report from hideMobileNav list
+9	AppSidebar hides nav on /employee/profile — no bottom nav shows	AppSidebar.tsx	Remove /employee/profile from hideMobileNav list

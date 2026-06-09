@@ -1345,8 +1345,8 @@ export default function AttendanceClient({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
-                        <th className="w-10 px-3 py-1.5 text-center">
+                      <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[10px] font-semibold text-navy-950 uppercase tracking-wider font-heading">
+                        <th className="w-10 px-3 py-2.5 text-center">
                           <input 
                             type="checkbox"
                             onChange={handleSelectAll}
@@ -1354,12 +1354,12 @@ export default function AttendanceClient({
                             className="rounded border-zinc-350 text-primary-600 focus:ring-primary-500/30 w-3.5 h-3.5 cursor-pointer"
                           />
                         </th>
-                        <th className="px-3 py-1.5">Employee Name</th>
-                        <th className="px-3 py-1.5">Date</th>
-                        <th className="px-3 py-1.5">Clock In</th>
-                        <th className="px-3 py-1.5">Clock Out</th>
-                        <th className="px-3 py-1.5">Total Hours</th>
-                        <th className="px-3 py-1.5">Final Status</th>
+                        <th className="px-3 py-2.5">Employee Name</th>
+                        <th className="px-3 py-2.5">Date</th>
+                        <th className="px-3 py-2.5">Clock In</th>
+                        <th className="px-3 py-2.5">Clock Out</th>
+                        <th className="px-3 py-2.5">Total Hours</th>
+                        <th className="px-3 py-2.5">Final Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-100/60">
@@ -1510,13 +1510,13 @@ export default function AttendanceClient({
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left border-collapse">
                   <thead>
-                    <tr className="bg-zinc-50 border-b border-zinc-200 text-[9px] font-mono font-bold text-zinc-500 uppercase tracking-widest">
-                      <th className="px-3 py-1.5">Employee Name</th>
-                      <th className="px-3 py-1.5">Current Status</th>
-                      <th className="px-3 py-1.5">Clock In (IST)</th>
-                      <th className="px-3 py-1.5">Work Duration</th>
-                      <th className="px-3 py-1.5">Break Duration</th>
-                      <th className="px-3 py-1.5">Last Activity</th>
+                    <tr className="bg-zinc-50 border-b border-zinc-200 text-[10px] font-semibold text-navy-950 uppercase tracking-wider font-heading">
+                      <th className="px-3 py-2.5">Employee Name</th>
+                      <th className="px-3 py-2.5">Current Status</th>
+                      <th className="px-3 py-2.5">Clock In (IST)</th>
+                      <th className="px-3 py-2.5">Work Duration</th>
+                      <th className="px-3 py-2.5">Break Duration</th>
+                      <th className="px-3 py-2.5">Last Activity</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-150/60 font-sans">
@@ -1655,13 +1655,13 @@ export default function AttendanceClient({
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-500">
-                      <th className="px-3 py-1.5">Staff Member</th>
-                      <th className="px-3 py-1.5">Date</th>
-                      <th className="px-3 py-1.5">Check In</th>
-                      <th className="px-3 py-1.5">Delay</th>
-                      <th className="px-3 py-1.5">Deduction</th>
-                      <th className="px-3 py-1.5 text-center">Exemption Toggles</th>
+                    <tr className="border-b border-zinc-200 bg-zinc-50/50 text-[10px] font-semibold text-navy-950 uppercase tracking-wider font-heading">
+                      <th className="px-3 py-2.5">Staff Member</th>
+                      <th className="px-3 py-2.5">Date</th>
+                      <th className="px-3 py-2.5">Check In</th>
+                      <th className="px-3 py-2.5">Delay</th>
+                      <th className="px-3 py-2.5">Deduction</th>
+                      <th className="px-3 py-2.5 text-center">Exemption Toggles</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100/60">

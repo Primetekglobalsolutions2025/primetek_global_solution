@@ -92,21 +92,27 @@ async function OperationalKPIGrid() {
         <Link 
           key={kpi.label} 
           href={kpi.href}
-          className="group bg-white rounded-xl p-3.5 lg:p-4 border border-zinc-200/80 flex flex-col items-center gap-2.5 relative hover:border-primary-500/50 transition-all duration-200 shadow-2xs cursor-pointer text-center"
+          className="group bg-white rounded-xl p-3.5 lg:p-4 border border-zinc-250/70 flex flex-col items-center gap-2.5 relative hover:border-primary-500/45 hover:-translate-y-1 hover:shadow-md transition-all duration-300 ease-out cursor-pointer text-center overflow-hidden"
         >
+          {/* Subtle top border accent on hover */}
+          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          
+          {/* Shimmer on hover */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out pointer-events-none" />
+
           <div className={cn(
-            'w-8 h-8 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 border',
+            'w-8 h-8 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-108 border',
             kpi.color,
             kpi.bg
           )}>
             <kpi.icon className="w-4 h-4" />
           </div>
           <div>
-            <p className="text-lg font-bold tracking-tight text-navy-900 font-sans leading-none">
+            <p className="text-lg font-extrabold tracking-tight text-navy-950 font-sans leading-none">
               {kpi.value}
               {kpi.pulse && kpi.value > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1 align-middle" />}
             </p>
-            <p className="text-[8px] font-bold uppercase tracking-wider text-zinc-400 mt-1.5 font-sans leading-tight">{kpi.label}</p>
+            <p className="text-[8px] font-black uppercase tracking-wider text-zinc-400 mt-1.5 font-sans leading-tight">{kpi.label}</p>
           </div>
         </Link>
       ))}
@@ -193,7 +199,7 @@ async function RealtimeActivityFeed() {
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-zinc-200 shadow-2xs p-5 relative">
+      <div className="bg-white rounded-xl border border-zinc-200 hover:border-primary-500/40 hover:shadow-xs transition-all duration-300 p-5 relative">
         {filteredEvents.length === 0 ? (
           <div className="py-10 text-center">
             <Activity className="w-8 h-8 text-zinc-300 mx-auto mb-2" />
@@ -201,8 +207,8 @@ async function RealtimeActivityFeed() {
           </div>
         ) : (
           <div className="relative pl-8 space-y-6">
-            {/* The vertical dashed timeline line */}
-            <div className="absolute left-3 top-2 bottom-2 w-px border-l border-dashed border-zinc-250 z-0" />
+            {/* The vertical gradient timeline line */}
+            <div className="absolute left-3 top-2 bottom-2 w-[2px] bg-gradient-to-b from-primary-400/50 via-zinc-200/50 to-transparent z-0" />
             
             {filteredEvents.slice(0, 12).map((evt) => {
               const config = eventConfig[evt.event_type] || { color: 'text-zinc-500', bg: 'bg-zinc-500/5', label: evt.event_type, icon: Activity };
@@ -212,7 +218,7 @@ async function RealtimeActivityFeed() {
                 <div key={evt.id} className="relative z-10 flex items-center justify-between gap-3 group">
                   {/* Floating Circular Bubble Icon */}
                   <div className={cn(
-                    'absolute left-3 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center border border-white shadow-xs z-10', 
+                    'absolute left-3 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center border border-white shadow-xs z-10 transition-transform duration-300 group-hover:scale-110', 
                     config.bg
                   )}>
                     <EvtIcon className={cn('w-3 h-3', config.color)} />
@@ -328,20 +334,20 @@ async function SystemStatusSection() {
   const nodes = systemNodes && systemNodes.length ? systemNodes : defaultNodes;
 
   return (
-    <div className="bg-white border border-zinc-200 hover:border-primary-500/50 rounded-xl p-5 relative overflow-hidden transition-all duration-200 shadow-2xs group">
-      <div className="absolute top-0 right-0 p-5 opacity-[0.03] text-navy-900 pointer-events-none">
+    <div className="bg-white border border-zinc-250 hover:border-primary-500/45 hover:-translate-y-0.5 hover:shadow-sm rounded-xl p-5 relative overflow-hidden transition-all duration-300 ease-out shadow-2xs group">
+      <div className="absolute top-0 right-0 p-5 opacity-[0.03] text-navy-900 pointer-events-none transition-transform duration-500 group-hover:scale-110">
         <Zap className="w-20 h-20" />
       </div>
-      <h3 className="text-sm font-bold tracking-tight mb-1 relative z-10 text-navy-900 font-sans">Operational Health</h3>
+      <h3 className="text-sm font-extrabold tracking-tight mb-1 relative z-10 text-navy-955 font-sans">Operational Health</h3>
       <p className="text-xs text-zinc-450 font-medium mb-4 relative z-10 font-sans">Real-time status across all services.</p>
       
       <div className="space-y-3 relative z-10">
         {nodes.map(node => (
-          <div key={node.node_name} className="flex items-center justify-between">
-            <span className="text-[10px] font-mono font-semibold text-zinc-550 uppercase tracking-wider">{node.node_name}</span>
+          <div key={node.node_name} className="flex items-center justify-between hover:bg-zinc-50/80 p-1 -mx-1 rounded-md transition-colors duration-200">
+            <span className="text-[10px] font-mono font-bold text-zinc-550 uppercase tracking-wider">{node.node_name}</span>
             <div className="flex items-center gap-2">
               <span className="text-[9px] font-mono font-semibold uppercase text-zinc-400">{node.status}</span>
-              <div className={`w-1.5 h-1.5 rounded-full ${node.color} shrink-0`} />
+              <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", node.color, node.color.includes('emerald') && 'animate-pulse')} />
             </div>
           </div>
         ))}
@@ -431,7 +437,13 @@ export default async function AdminAppDashboard() {
             <div className="grid grid-cols-1 gap-3.5">
               {quickActions.map((action) => (
                 <Link key={action.href} href={action.href}>
-                  <div className="bg-white border border-zinc-200 rounded-lg p-4 shadow-2xs hover:shadow-sm transition-all duration-200 group flex items-center gap-4 hover:border-primary-500/30">
+                  <div className="bg-white border border-zinc-250 hover:border-primary-500/45 hover:-translate-y-1 hover:shadow-md rounded-xl p-4 shadow-2xs transition-all duration-300 ease-out group flex items-center gap-4 relative overflow-hidden">
+                    {/* Subtle top border accent on hover */}
+                    <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    {/* Shimmer on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out pointer-events-none" />
+
                     <div className={cn(
                       "w-8 h-8 rounded-md flex items-center justify-center shrink-0 border transition-transform duration-300 group-hover:scale-105",
                       action.color,
@@ -440,10 +452,10 @@ export default async function AdminAppDashboard() {
                       <action.icon className="w-4 h-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-navy-900 tracking-tight leading-snug font-sans">{action.label}</p>
+                      <p className="text-sm font-extrabold text-navy-955 tracking-tight leading-snug font-sans">{action.label}</p>
                       <p className="text-[11px] text-zinc-500 mt-0.5 font-medium font-sans">{action.desc}</p>
                     </div>
-                    <div className="w-7 h-7 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all -translate-x-1 group-hover:translate-x-0">
+                    <div className="w-7 h-7 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1 group-hover:translate-x-0">
                       <ArrowRight className="w-3.5 h-3.5 text-navy-900" />
                     </div>
                   </div>

@@ -61,8 +61,38 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 async function initializeTracking() {
-  const data = await chrome.storage.local.get(['token']);
-  if (!data.token) {
+  let stored = await chrome.storage.local.get(['token']);
+  const backendUrl = await getBackendUrl();
+
+  // Try to sync state from cookies if token is missing
+  if (!stored.token) {
+    try {
+      const cookie = await chrome.cookies.get({ url: backendUrl, name: 'employee-auth-token' });
+      if (cookie && cookie.value) {
+        const token = cookie.value;
+        const response = await fetch(`${backendUrl}/api/auth/me?role=employee`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.user && (result.user.role === 'employee' || result.user.role === 'hr')) {
+            const employee = {
+              id: result.user.id,
+              name: result.user.name,
+              email: result.user.email,
+              role: result.user.role
+            };
+            await chrome.storage.local.set({ token, employee });
+            stored = { token };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Background cookie auth sync failed:', e);
+    }
+  }
+
+  if (!stored.token) {
     stopTracking('Logged out');
     return;
   }
@@ -70,21 +100,30 @@ async function initializeTracking() {
   statusMessage = 'Connecting to session...';
   
   try {
-    const backendUrl = await getBackendUrl();
     const response = await fetch(`${backendUrl}/api/extension/session`, {
       headers: {
-        'Authorization': `Bearer ${data.token}`
+        'Authorization': `Bearer ${stored.token}`
       }
     });
 
     const result = await response.json();
     if (!response.ok || !result.success) {
+      let cookieExists = false;
+      try {
+        const cookie = await chrome.cookies.get({ url: backendUrl, name: 'employee-auth-token' });
+        cookieExists = !!cookie;
+      } catch (e) {}
+      
+      if (!cookieExists) {
+        await chrome.storage.local.remove(['token', 'employee']);
+      }
       stopTracking('Authentication failed');
       return;
     }
 
     if (!result.sessionActive) {
-      stopTracking('Waiting for Clock-In (PWA)');
+      statusMessage = 'Waiting for Clock-In (PWA)';
+      trackingActive = false;
       // Periodically check every 3 minutes if employee clocks in via PWA
       chrome.alarms.create('session-check', {
         periodInMinutes: 3

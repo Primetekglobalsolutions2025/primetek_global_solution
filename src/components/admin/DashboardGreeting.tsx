@@ -16,7 +16,7 @@ export default function DashboardGreeting({ userName, email }: DashboardGreeting
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="min-h-[255px] rounded-[24px] bg-gradient-to-r from-navy-900 to-primary-600 relative overflow-hidden p-5 flex flex-col justify-between gap-4 shadow-sm mb-6 text-white"
+      className="min-h-[255px] rounded-[24px] bg-gradient-to-r from-navy-900 via-primary-800 to-primary-600 bg-[length:200%_200%] animate-gradient-shift relative overflow-hidden p-5 flex flex-col justify-between gap-4 shadow-sm mb-6 text-white"
     >
       {/* Background Decorative Rings */}
       <div className="absolute top-[-20%] right-[-10%] w-[160px] h-[160px] rounded-full border border-white/10 pointer-events-none" />

@@ -26,6 +26,39 @@ async function resolveBackendUrl() {
   return BACKEND_URL;
 }
 
+async function syncStateFromCookies() {
+  try {
+    const backendUrl = await resolveBackendUrl();
+    const cookie = await chrome.cookies.get({ url: backendUrl, name: 'employee-auth-token' });
+    if (cookie && cookie.value) {
+      const token = cookie.value;
+      const response = await fetch(`${backendUrl}/api/auth/me?role=employee`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const result = await response.json();
+        if (result.user && (result.user.role === 'employee' || result.user.role === 'hr')) {
+          const employee = {
+            id: result.user.id,
+            name: result.user.name,
+            email: result.user.email,
+            role: result.user.role
+          };
+          await chrome.storage.local.set({ token, employee });
+          chrome.runtime.sendMessage({ action: 'START_TRACKING' });
+          return employee;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to sync authentication state from cookies:', err);
+  }
+  return null;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await resolveBackendUrl();
 
@@ -44,14 +77,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusText = document.getElementById('status-text');
 
   // Pre-fill backend URL input and display host
-  serverUrlInput.value = BACKEND_URL;
-  connHostSpan.textContent = BACKEND_URL.replace('http://', '').replace('https://', '');
+  if (serverUrlInput) serverUrlInput.value = BACKEND_URL;
+  if (connHostSpan) connHostSpan.textContent = BACKEND_URL.replace('http://', '').replace('https://', '');
 
-  // 1. Initial State Check
-  const data = await chrome.storage.local.get(['token', 'employee']);
-  if (data.token && data.employee) {
-    showStatusScreen(data.employee);
+  // 1. Initial State Check (Synchronized with browser cookies)
+  const storedData = await chrome.storage.local.get(['token', 'employee']);
+  const backendUrl = await resolveBackendUrl();
+  let cookie = null;
+  try {
+    cookie = await chrome.cookies.get({ url: backendUrl, name: 'employee-auth-token' });
+  } catch (e) {
+    console.warn('Failed to fetch cookies on startup:', e);
+  }
+
+  if (cookie && cookie.value) {
+    if (storedData.token !== cookie.value) {
+      const employee = await syncStateFromCookies();
+      if (employee) {
+        showStatusScreen(employee);
+      } else {
+        showLoginScreen();
+      }
+    } else {
+      showStatusScreen(storedData.employee);
+    }
   } else {
+    if (storedData.token) {
+      await chrome.storage.local.remove(['token', 'employee']);
+      chrome.runtime.sendMessage({ action: 'STOP_TRACKING' });
+    }
     showLoginScreen();
   }
 
@@ -73,7 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Update backend URL dynamically from input
     BACKEND_URL = serverUrl;
     await chrome.storage.local.set({ backendUrl: BACKEND_URL });
-    connHostSpan.textContent = BACKEND_URL.replace('http://', '').replace('https://', '');
+    if (connHostSpan) connHostSpan.textContent = BACKEND_URL.replace('http://', '').replace('https://', '');
 
     try {
       const response = await fetch(`${BACKEND_URL}/api/extension/auth`, {
@@ -214,7 +268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     exportBtn.textContent = 'Saving…';
     hideExportStatus();
 
-    const localData = await chrome.storage.local.get(['token']);
+    const localData = await chrome.storage.local.get(['token', 'employee']);
     if (!localData.token) {
       showExportStatus('Unauthorized: Please log in again.', 'error');
       exportBtn.disabled = false;
@@ -222,7 +276,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const employeeName = (localData.employee && localData.employee.name) ? localData.employee.name : 'General';
+    const sheetWebhookInput = document.getElementById('sheet-webhook');
+    const sheetWebhookUrl = sheetWebhookInput ? sheetWebhookInput.value : '';
+
     try {
+      // 1. Save to Next.js portal (Supabase DB virtual sheet)
       const response = await fetch(`${BACKEND_URL}/api/extension/save-job`, {
         method: 'POST',
         headers: {
@@ -237,6 +296,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       const result = await response.json().catch(() => ({}));
+
+      // 2. Save directly to Google Sheets Apps Script Web App
+      if (sheetWebhookUrl) {
+        try {
+          const appsScriptPayload = {
+            employeeName: employeeName,
+            jobRole: jobRole,
+            clientName: clientName,
+            applicationUrl: applicationUrl,
+            date: new Date().toISOString(),
+            status: "New",
+            priority: "Medium"
+          };
+          
+          await fetch(sheetWebhookUrl, {
+            method: 'POST',
+            mode: 'no-cors', // Avoid CORS issues with Google Apps Script redirect
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(appsScriptPayload)
+          });
+          console.log('[Extension] Successfully forwarded application data to Google Sheets Apps Script.');
+        } catch (scriptErr) {
+          console.error('[Extension] Failed to send data to Google Sheets Apps Script:', scriptErr);
+        }
+      }
 
       if (response.ok && result.success) {
         showExportStatus('Successfully saved to spreadsheet database!', 'success');

@@ -343,7 +343,7 @@ export default function AdminSettingsClient() {
   };
 
   const googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}&z=17`;
-  const inputClasses = 'w-full px-3 py-2 rounded-md border border-zinc-200 bg-white text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500/20 transition-all text-xs font-semibold shadow-2xs';
+  const inputClasses = 'w-full px-4 py-3 rounded-xl border border-zinc-200 bg-white text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 hover:border-zinc-350 transition-all text-xs font-semibold shadow-2xs';
 
   if (loading) {
     return (

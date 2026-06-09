@@ -1251,8 +1251,7 @@ export default function AttendanceClient({
                   onClick={handleCheckIn}
                   data-testid="clock-in-btn"
                   disabled={gpsStatus === 'loading'}
-                  style={{ backgroundColor: '#10B981' }}
-                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
+                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 cursor-pointer disabled:opacity-50"
                 >
                   {gpsStatus === 'loading' ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>
@@ -1270,8 +1269,7 @@ export default function AttendanceClient({
                 <button
                   onClick={handleCheckOut}
                   disabled={gpsStatus === 'loading'}
-                  style={{ backgroundColor: '#EF4444' }}
-                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider hover:opacity-90 active:scale-[0.98] transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-red-500/10 cursor-pointer disabled:opacity-50"
+                  className="w-full py-4 rounded-xl text-white text-xs font-bold uppercase tracking-wider bg-red-500 hover:bg-red-600 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-red-500/30 transition-all font-sans flex items-center justify-center gap-2 shadow-lg shadow-red-500/10 cursor-pointer disabled:opacity-50"
                 >
                   {gpsStatus === 'loading' ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Locating GPS...</>

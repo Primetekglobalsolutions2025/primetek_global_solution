@@ -131,8 +131,8 @@ export default function InterviewRequestModal({
     }
   };
 
-  const inputClasses = 'w-full px-3 py-2 rounded-lg border border-border bg-white text-navy-900 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-400/50 text-xs font-semibold';
-  const readOnlyClasses = 'w-full px-3 py-2 rounded-lg border border-border bg-zinc-50 text-text-secondary cursor-not-allowed text-xs font-semibold';
+  const inputClasses = 'w-full px-4 py-2.5 rounded-xl border border-zinc-200 bg-white text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 hover:border-zinc-350 transition-all text-xs font-semibold shadow-2xs';
+  const readOnlyClasses = 'w-full px-4 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-500 cursor-not-allowed text-xs font-semibold';
 
   return (
     <div 
@@ -145,17 +145,17 @@ export default function InterviewRequestModal({
     >
       <div 
         ref={modalRef}
-        className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default"
+        className="bg-white rounded-xl w-full max-w-md max-h-[90dvh] overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 cursor-default border-t-3 border-t-primary-500"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white border-b border-border/60 px-4 py-3 flex justify-between items-center z-10">
-          <h2 className="text-sm font-bold text-navy-900 flex items-center gap-1.5">
+        <div className="sticky top-0 bg-white border-b border-zinc-100 px-4 py-3 flex justify-between items-center z-10">
+          <h2 className="text-sm font-heading font-bold text-navy-900 flex items-center gap-1.5">
             <Building className="w-4 h-4 text-primary-500" />
             <span>Request Support Interview</span>
           </h2>
           <button 
             onClick={onClose} 
-            className="p-1 hover:bg-surface-alt rounded-lg text-text-muted cursor-pointer transition-colors"
+            className="p-1 hover:bg-zinc-50 rounded-lg text-zinc-400 cursor-pointer transition-colors border border-zinc-200"
           >
             <X className="w-4 h-4" />
           </button>

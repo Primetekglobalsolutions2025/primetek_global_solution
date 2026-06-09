@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import InterviewRequestModal from './InterviewRequestModal';
 import { useModalFocusTrap } from '@/hooks/useModalFocusTrap';
 import { typography } from '@/styles/design-system';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ClientProfile {
   id: string;
@@ -77,7 +78,7 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
           </div>
         ) : (
           profiles.map(profile => (
-            <div key={profile.id} className="p-4 rounded-lg border border-zinc-200 shadow-2xs bg-white">
+            <div key={profile.id} className="p-4 rounded-lg border border-zinc-200 border-t-2 border-t-primary-500/80 shadow-2xs bg-white transition-all hover:-translate-y-0.5 hover:shadow-xs">
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <h3 className="font-semibold text-navy-900 text-sm tracking-tight">{profile.client_name}</h3>
@@ -155,16 +156,16 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
       </div>
 
       {/* Desktop Table Layout */}
-      <div className="p-0 overflow-hidden border border-zinc-200 shadow-2xs bg-white hidden md:block rounded-lg">
+      <div className="p-0 overflow-hidden border border-zinc-200 border-t-3 border-t-primary-500 shadow-sm bg-white hidden md:block rounded-lg transition-all hover:shadow-md">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-50 text-[9px] font-mono font-semibold text-zinc-500 uppercase tracking-wider border-b border-zinc-200">
-                <th className="px-4 py-3">Client Profile</th>
-                <th className="px-4 py-3">Contact Details</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Resume</th>
-                <th className="px-4 py-3 text-right">Actions</th>
+              <tr className="bg-zinc-50 border-b border-zinc-200">
+                <th className="px-4 py-3 font-heading font-semibold text-xs tracking-wider text-navy-800 uppercase">Client Profile</th>
+                <th className="px-4 py-3 font-heading font-semibold text-xs tracking-wider text-navy-800 uppercase">Contact Details</th>
+                <th className="px-4 py-3 font-heading font-semibold text-xs tracking-wider text-navy-800 uppercase">Status</th>
+                <th className="px-4 py-3 font-heading font-semibold text-xs tracking-wider text-navy-800 uppercase">Resume</th>
+                <th className="px-4 py-3 text-right font-heading font-semibold text-xs tracking-wider text-navy-800 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-150">
@@ -264,128 +265,138 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
       </div>
 
       {/* Detail View Modal */}
-      {selectedProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4 cursor-pointer" onClick={() => setSelectedProfile(null)}>
-          <div ref={modalRef} className="bg-white rounded-lg w-full max-w-3xl max-h-[90dvh] overflow-y-auto shadow-xl border border-zinc-200 cursor-default" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white border-b border-zinc-200 px-4 py-3 flex justify-between items-center z-10">
-              <h2 className="text-base font-bold text-navy-900">Client Profile View</h2>
-              <button onClick={() => setSelectedProfile(null)} className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 text-zinc-400 cursor-pointer transition-colors">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <AnimatePresence>
+        {selectedProfile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 backdrop-blur-sm p-4 cursor-pointer" onClick={() => setSelectedProfile(null)}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              ref={modalRef} 
+              className="bg-white rounded-xl w-full max-w-3xl max-h-[90dvh] overflow-y-auto shadow-xl border border-zinc-200 cursor-default" 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 bg-white border-b border-zinc-200 px-4 py-3 flex justify-between items-center z-10">
+                <h2 className="text-base font-bold text-navy-900">Client Profile View</h2>
+                <button onClick={() => setSelectedProfile(null)} className="p-1.5 hover:bg-zinc-100 rounded border border-zinc-200 text-zinc-400 cursor-pointer transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
-            <div className="p-5 space-y-5">
-              {/* Header Info */}
-              <div className="flex flex-col sm:flex-row gap-4 items-start">
-                <div className="w-10 h-10 rounded bg-primary-500 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-3xs">
-                  {selectedProfile.client_name?.[0]}
-                </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-base font-bold text-navy-900 tracking-tight">{selectedProfile.client_name}</h3>
-                  <p className="text-[10px] font-mono font-semibold text-primary-600 uppercase tracking-wider">{selectedProfile.client_role}</p>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
-                    <a href={`mailto:${selectedProfile.client_email}`} className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-primary-600 transition-colors">
-                      <Mail className="w-3.5 h-3.5 text-zinc-400" /> {selectedProfile.client_email}
-                    </a>
-                    <a href={`tel:${selectedProfile.client_phone}`} className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-primary-600 transition-colors">
-                      <Phone className="w-3.5 h-3.5 text-zinc-400" /> {selectedProfile.client_phone}
-                    </a>
-                    {selectedProfile.client_linkedin && (
-                      <a href={selectedProfile.client_linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-primary-600 transition-colors">
-                        <Globe className="w-3.5 h-3.5 text-zinc-400" /> LinkedIn
+              <div className="p-5 space-y-5">
+                {/* Header Info */}
+                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                  <div className="w-10 h-10 rounded bg-primary-500 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-3xs">
+                    {selectedProfile.client_name?.[0]}
+                  </div>
+                  <div className="space-y-0.5">
+                    <h3 className="text-base font-bold text-navy-900 tracking-tight">{selectedProfile.client_name}</h3>
+                    <p className="text-[10px] font-mono font-semibold text-primary-600 uppercase tracking-wider">{selectedProfile.client_role}</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2">
+                      <a href={`mailto:${selectedProfile.client_email}`} className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-primary-600 transition-colors">
+                        <Mail className="w-3.5 h-3.5 text-zinc-400" /> {selectedProfile.client_email}
                       </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Education */}
-                <div className="space-y-2">
-                  <h4 className="flex items-center gap-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
-                    <GraduationCap className="w-3.5 h-3.5" /> Education
-                  </h4>
-                  <div className="bg-zinc-50 rounded-lg p-3 space-y-3 border border-zinc-200">
-                    <div>
-                      <p className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Master&apos;s Degree</p>
-                      <p className="text-xs font-semibold text-navy-900 mt-0.5">{selectedProfile.education_details?.masters || 'Not specified'}</p>
-                    </div>
-                    <div className="pt-2.5 border-t border-zinc-150">
-                      <p className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Bachelor&apos;s Degree</p>
-                      <p className="text-xs font-semibold text-navy-900 mt-0.5">{selectedProfile.education_details?.bachelors || 'Not specified'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Details */}
-                <div className="space-y-2">
-                  <h4 className="flex items-center gap-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
-                    <MapPin className="w-3.5 h-3.5" /> Location & Files
-                  </h4>
-                  <div className="space-y-3 bg-zinc-50 rounded-lg p-3 border border-zinc-200">
-                    <div>
-                      <p className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Address</p>
-                      <p className="text-xs font-semibold text-zinc-600 leading-relaxed mt-0.5">{selectedProfile.client_address || 'No address provided'}</p>
-                    </div>
-                    {selectedProfile.resume_url && (
-                      <div className="pt-1">
-                        <a 
-                          href={selectedProfile.resume_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          onClick={(e) => {
-                            if (!window.confirm('Are you sure you want to download the Consultant Resume?')) {
-                              e.preventDefault();
-                            }
-                          }}
-                          className="block"
-                        >
-                          <Button variant="outline" className="w-full text-xs py-1.5 rounded-md border-zinc-200 font-semibold bg-white cursor-pointer active:scale-98 transition-transform">
-                            <Download className="w-3.5 h-3.5 mr-1.5" /> Download DOCX Resume
-                          </Button>
+                      <a href={`tel:${selectedProfile.client_phone}`} className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-primary-600 transition-colors">
+                        <Phone className="w-3.5 h-3.5 text-zinc-400" /> {selectedProfile.client_phone}
+                      </a>
+                      {selectedProfile.client_linkedin && (
+                        <a href={selectedProfile.client_linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-zinc-600 hover:text-primary-600 transition-colors">
+                          <Globe className="w-3.5 h-3.5 text-zinc-400" /> LinkedIn
                         </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Education */}
+                  <div className="space-y-2">
+                    <h4 className="flex items-center gap-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
+                      <GraduationCap className="w-3.5 h-3.5" /> Education
+                    </h4>
+                    <div className="bg-zinc-50 rounded-lg p-3 space-y-3 border border-zinc-200">
+                      <div>
+                        <p className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Master&apos;s Degree</p>
+                        <p className="text-xs font-semibold text-navy-900 mt-0.5">{selectedProfile.education_details?.masters || 'Not specified'}</p>
                       </div>
-                    )}
+                      <div className="pt-2.5 border-t border-zinc-150">
+                        <p className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Bachelor&apos;s Degree</p>
+                        <p className="text-xs font-semibold text-navy-900 mt-0.5">{selectedProfile.education_details?.bachelors || 'Not specified'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div className="space-y-2">
+                    <h4 className="flex items-center gap-1.5 text-[9px] font-mono font-semibold uppercase tracking-wider text-zinc-400">
+                      <MapPin className="w-3.5 h-3.5" /> Location & Files
+                    </h4>
+                    <div className="space-y-3 bg-zinc-50 rounded-lg p-3 border border-zinc-200">
+                      <div>
+                        <p className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider">Address</p>
+                        <p className="text-xs font-semibold text-zinc-600 leading-relaxed mt-0.5">{selectedProfile.client_address || 'No address provided'}</p>
+                      </div>
+                      {selectedProfile.resume_url && (
+                        <div className="pt-1">
+                          <a 
+                            href={selectedProfile.resume_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              if (!window.confirm('Are you sure you want to download the Consultant Resume?')) {
+                                e.preventDefault();
+                              }
+                            }}
+                            className="block"
+                          >
+                            <Button variant="outline" className="w-full text-xs py-1.5 rounded-md border-zinc-200 font-semibold bg-white cursor-pointer active:scale-98 transition-transform">
+                              <Download className="w-3.5 h-3.5 mr-1.5" /> Download DOCX Resume
+                            </Button>
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Update */}
+                <div className="pt-4 border-t border-zinc-200 flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider mb-0.5">Current Status</p>
+                    <span className={cn(
+                      "inline-flex items-center text-[10px] font-mono font-semibold uppercase tracking-wider px-2.5 py-1 rounded border mt-1",
+                      selectedProfile.status === 'assigned' && "bg-blue-50 text-blue-700 border-blue-200",
+                      selectedProfile.status === 'processing' && "bg-violet-50 text-violet-700 border-violet-200",
+                      selectedProfile.status === 'completed' && "bg-emerald-50 text-emerald-700 border-emerald-200",
+                      selectedProfile.status === 'rejected' && "bg-red-50 text-red-700 border-red-200"
+                    )}>
+                      <span className={cn("w-1.5 h-1.5 rounded-full mr-1.5 shrink-0",
+                        selectedProfile.status === 'assigned' && "bg-blue-500",
+                        selectedProfile.status === 'processing' && "bg-violet-500",
+                        selectedProfile.status === 'completed' && "bg-emerald-500",
+                        selectedProfile.status === 'rejected' && "bg-red-500"
+                      )} />
+                      {selectedProfile.status}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => {
+                        setRequestProfile(selectedProfile);
+                        setIsRequestModalOpen(true);
+                      }}
+                      className="bg-navy-900 hover:bg-navy-800 text-white rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm active:scale-95 transition-all cursor-pointer font-sans"
+                    >
+                      Request Interview
+                    </Button>
                   </div>
                 </div>
               </div>
-
-              {/* Status Update */}
-              <div className="pt-4 border-t border-zinc-200 flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] font-mono font-semibold text-zinc-400 uppercase tracking-wider mb-0.5">Current Status</p>
-                  <span className={cn(
-                    "inline-flex items-center text-[10px] font-mono font-semibold uppercase tracking-wider px-2.5 py-1 rounded border mt-1",
-                    selectedProfile.status === 'assigned' && "bg-blue-50 text-blue-700 border-blue-200",
-                    selectedProfile.status === 'processing' && "bg-violet-50 text-violet-700 border-violet-200",
-                    selectedProfile.status === 'completed' && "bg-emerald-50 text-emerald-700 border-emerald-200",
-                    selectedProfile.status === 'rejected' && "bg-red-50 text-red-700 border-red-200"
-                  )}>
-                    <span className={cn("w-1.5 h-1.5 rounded-full mr-1.5 shrink-0",
-                      selectedProfile.status === 'assigned' && "bg-blue-500",
-                      selectedProfile.status === 'processing' && "bg-violet-500",
-                      selectedProfile.status === 'completed' && "bg-emerald-500",
-                      selectedProfile.status === 'rejected' && "bg-red-500"
-                    )} />
-                    {selectedProfile.status}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={() => {
-                      setRequestProfile(selectedProfile);
-                      setIsRequestModalOpen(true);
-                    }}
-                    className="bg-navy-900 hover:bg-navy-800 text-white rounded-md px-3 py-1.5 text-xs font-semibold shadow-sm active:scale-95 transition-all cursor-pointer font-sans"
-                  >
-                    Request Interview
-                  </Button>
-                </div>
-              </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {requestProfile && (
         <InterviewRequestModal

@@ -3,83 +3,94 @@
 <head>
   <meta charset="utf-8">
   <title>Primetek Portal Tracker</title>
+  <!-- Load Premium Google Font for refined modern typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <style>
-    /* CSS Variables for design token consistency */
+    /* Premium SaaS Design Tokens */
     :root {
-      --bg-gradient: radial-gradient(circle at 50% 0%, #151e33 0%, #0a0d16 100%);
-      --container-bg: rgba(15, 23, 42, 0.65);
-      --border-color: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(6, 182, 212, 0.5);
-      --glow-focus: rgba(6, 182, 212, 0.15);
+      --bg-gradient: radial-gradient(circle at 50% 0%, #151c30 0%, #07090e 100%);
+      --container-bg: rgba(13, 20, 38, 0.7);
+      --border-color: rgba(255, 255, 255, 0.06);
+      --border-focus: #22d3ee;
+      --glow-focus: rgba(34, 211, 238, 0.15);
       --text-primary: #f8fafc;
       --text-muted: #94a3b8;
       --accent-gradient: linear-gradient(135deg, #06b6d4 0%, #4f46e5 100%);
       --active-green: #34d399;
       --inactive-rose: #fb7185;
+      --transition-bezier: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
-    body {
+    html, body {
       width: 320px;
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg-gradient);
       color: var(--text-primary);
-      padding: 16px;
-      overflow: hidden;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: 12px;
+      overflow: hidden !important;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     .header {
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     h2 {
       font-size: 18px;
-      margin: 0;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      background: linear-gradient(90deg, #22d3ee, #818cf8);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(90deg, #22d3ee 0%, #818cf8 50%, #a78bfa 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-wrap: balance;
+      text-shadow: 0 4px 20px rgba(34, 211, 238, 0.15);
+      display: inline-block;
     }
 
     .subtitle {
-      font-size: 11px;
+      font-size: 9px;
       color: var(--text-muted);
       margin-top: 4px;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      font-weight: 600;
+      font-weight: 700;
+      opacity: 0.8;
     }
 
     .container {
       background: var(--container-bg);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      backdrop-filter: blur(12px) saturate(180%);
-      -webkit-backdrop-filter: blur(12px) saturate(180%);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 20px 40px 0 rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255,255,255,0.05);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border-color);
-      transition: border-color 0.2s ease;
+      transition: border-color 0.3s var(--transition-bezier);
     }
 
     .form-group {
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
 
     label {
       display: block;
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       margin-bottom: 6px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
+      opacity: 0.9;
     }
 
     .input-wrapper {
@@ -91,85 +102,101 @@
     .input-icon {
       position: absolute;
       left: 12px;
-      color: #64748b;
+      color: #475569;
       pointer-events: none;
-      transition: color 0.2s ease;
+      transition: color 0.3s var(--transition-bezier);
     }
 
     input, select {
       width: 100%;
-      padding: 10px 12px 10px 36px;
-      background: rgba(15, 23, 42, 0.6);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
+      padding: 11px 12px 11px 38px;
+      background: rgba(8, 12, 24, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
       color: var(--text-primary);
-      font-size: 14px;
+      font-size: 13px;
+      font-family: inherit;
       outline: none;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.3s var(--transition-bezier);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
-    input:focus, input:focus-visible, select:focus, select:focus-visible {
+    input::placeholder {
+      color: #334155;
+    }
+
+    input:focus, select:focus {
       border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px var(--glow-focus);
-      background: rgba(15, 23, 42, 0.8);
-      outline: none;
+      box-shadow: 0 0 0 3px var(--glow-focus), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      background: rgba(8, 12, 24, 0.8);
+    }
+
+    select {
+      appearance: none;
+      cursor: pointer;
     }
 
     select option {
-      background: #0f172a;
+      background: #090d16;
       color: #f8fafc;
     }
 
     .input-wrapper:focus-within .input-icon {
-      color: #06b6d4;
+      color: var(--border-focus);
     }
 
     button {
       width: 100%;
-      padding: 12px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
       background: var(--accent-gradient);
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       color: #ffffff;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25);
+      transition: all 0.3s var(--transition-bezier);
+      letter-spacing: 0.01em;
     }
 
     button:hover:not(:disabled) {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(6, 182, 212, 0.3), 0 2px 4px rgba(99, 102, 241, 0.2);
+      transform: translateY(-1.5px);
+      box-shadow: 0 8px 22px rgba(6, 182, 212, 0.35);
       filter: brightness(1.1);
     }
 
     button:active:not(:disabled) {
       transform: translateY(0);
-      box-shadow: 0 2px 8px rgba(6, 182, 212, 0.2);
+      box-shadow: 0 4px 10px rgba(6, 182, 212, 0.25);
       filter: brightness(0.95);
     }
 
     button:focus-visible {
       outline: none;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4), 0 4px 12px rgba(6, 182, 212, 0.2);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4), 0 4px 14px rgba(6, 182, 212, 0.25);
     }
 
     button:disabled {
-      opacity: 0.6;
+      opacity: 0.55;
       cursor: not-allowed;
-      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
       box-shadow: none;
     }
 
     .hidden {
-      display: none;
+      display: none !important;
     }
 
     /* Status Badge styling with pulses */
     .status-badge-container {
       text-align: center;
-      margin-bottom: 16px;
+      margin-bottom: 10px;
     }
 
     .status-badge {
@@ -177,40 +204,41 @@
       align-items: center;
       gap: 8px;
       padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      transition: all 0.3s ease;
+      border-radius: 24px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: all 0.3s var(--transition-bezier);
     }
 
     .status-active {
-      background: rgba(16, 185, 129, 0.12);
+      background: rgba(16, 185, 129, 0.08);
       color: var(--active-green);
-      border: 1px solid rgba(16, 185, 129, 0.25);
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.08);
     }
 
     .status-inactive {
-      background: rgba(244, 63, 94, 0.12);
+      background: rgba(244, 63, 94, 0.08);
       color: var(--inactive-rose);
-      border: 1px solid rgba(244, 63, 94, 0.25);
-      box-shadow: 0 0 12px rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+      box-shadow: 0 0 16px rgba(244, 63, 94, 0.08);
     }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background-color: currentColor;
     }
 
     .status-active .status-dot {
-      animation: active-pulse 1.8s infinite;
+      animation: active-pulse 2s infinite;
     }
 
     @keyframes active-pulse {
       0% {
-        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
       }
       70% {
         box-shadow: 0 0 0 6px rgba(52, 211, 153, 0);
@@ -238,18 +266,18 @@
 
     /* Toast style error block */
     .error-msg {
-      color: #fda4af;
-      background: rgba(244, 63, 94, 0.12);
-      border: 1px solid rgba(244, 63, 94, 0.25);
-      border-radius: 8px;
+      color: #fca5a5;
+      background: rgba(244, 63, 94, 0.08);
+      border: 1px solid rgba(244, 63, 94, 0.18);
+      border-radius: 10px;
       padding: 10px 12px;
-      font-size: 12px;
-      margin-top: 12px;
+      font-size: 11px;
+      margin-top: 14px;
       text-align: left;
       display: flex;
       align-items: center;
       gap: 8px;
-      animation: shake 0.3s ease-in-out;
+      animation: shake 0.3s var(--transition-bezier);
     }
 
     @keyframes shake {
@@ -263,25 +291,25 @@
     }
 
     .status-msg-box {
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 10px 12px;
-      font-size: 12px;
-      margin-top: 12px;
+      font-size: 11px;
+      margin-top: 14px;
       text-align: left;
       display: flex;
       align-items: center;
       gap: 8px;
-      animation: shake 0.3s ease-in-out;
+      animation: shake 0.3s var(--transition-bezier);
     }
     .status-msg-box.success {
       color: #a7f3d0;
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.18);
     }
     .status-msg-box.error {
-      color: #fda4af;
-      background: rgba(244, 63, 94, 0.12);
-      border: 1px solid rgba(244, 63, 94, 0.25);
+      color: #fca5a5;
+      background: rgba(244, 63, 94, 0.08);
+      border: 1px solid rgba(244, 63, 94, 0.18);
     }
     .status-msg-box svg {
       flex-shrink: 0;
@@ -289,64 +317,55 @@
 
     /* Details Panel inside Status screen */
     .info-group {
-      background: rgba(15, 23, 42, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
+      background: rgba(8, 12, 24, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
     }
 
     .info-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 13px;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    }
-
-    .info-row:last-child {
-      border-bottom: none;
-      padding-bottom: 0;
-    }
-
-    .info-row:first-child {
-      padding-top: 0;
+      font-size: 12px;
+      padding: 6px 0;
     }
 
     .info-label {
       color: var(--text-muted);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
     }
 
     .info-value {
-      font-weight: 500;
+      font-weight: 600;
       color: #f1f5f9;
     }
 
     /* Secondary action styling */
     .btn-secondary {
-      background: transparent;
-      border: 1px solid rgba(244, 63, 94, 0.3);
-      color: var(--inactive-rose);
+      background: rgba(244, 63, 94, 0.02);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+      color: #fca5a5;
       box-shadow: none;
+      margin-top: 6px;
     }
 
     .btn-secondary:hover:not(:disabled) {
       background: rgba(244, 63, 94, 0.08);
-      border-color: rgba(244, 63, 94, 0.5);
-      color: #fda4af;
-      box-shadow: 0 4px 12px rgba(244, 63, 94, 0.1);
+      border-color: rgba(244, 63, 94, 0.45);
+      color: #fecaca;
+      box-shadow: 0 4px 16px rgba(244, 63, 94, 0.1);
     }
 
     .btn-secondary:active:not(:disabled) {
-      background: rgba(244, 63, 94, 0.15);
+      background: rgba(244, 63, 94, 0.14);
     }
 
     .btn-secondary:focus-visible {
-      box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.4);
+      box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.3);
     }
   </style>
 </head>
@@ -423,18 +442,7 @@
         </span>
         <span class="info-value" id="emp-name">Employee Name</span>
       </div>
-      <div class="info-row">
-        <span class="info-label">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-            <line x1="6" y1="6" x2="6.01" y2="6"></line>
-            <line x1="6" y1="18" x2="6.01" y2="18"></line>
-          </svg>
-          Connection
-        </span>
-        <span class="info-value" id="conn-host">Server Host</span>
-      </div>
+
     </div>
 
     <div style="margin: 16px 0; border-top: 1px solid rgba(255,255,255,0.06);"></div>
@@ -496,7 +504,7 @@
           <line x1="9" y1="13" x2="15" y2="13"></line>
           <line x1="9" y1="17" x2="15" y2="17"></line>
         </svg>
-        <input type="url" id="sheet-webhook" value="https://script.google.com/macros/s/AKfycby3FOFLhpys8r5JQvVkn2YjFbGY6Oe0Uyd-z7Dt_FgKjFpPUqWOg_HaOO-kAm_mbVt50w/exec" placeholder="Paste Apps Script URL…" required />
+        <input type="url" id="sheet-webhook" value="https://script.google.com/macros/s/AKfycbxNRz1WxcBqu5zAommagj2L04N-AJG3-Bplz38bOYNbsQjsaC16_k5Swkczcx-m7dLxMw/exec" placeholder="Paste Apps Script URL…" required />
       </div>
     </div>
 
