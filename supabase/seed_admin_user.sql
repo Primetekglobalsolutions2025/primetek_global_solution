@@ -1,7 +1,5 @@
 -- ====================================================================
 -- PRIMETEK HR PORTAL — Seed Admin User
--- Email: admin@globalps.com
--- Password: AdminPass123!
 -- Run this block in the Supabase SQL Editor to seed the admin account.
 -- ====================================================================
 
@@ -10,7 +8,7 @@ DO $$
 DECLARE
     v_user_id UUID := 'a8c148fa-bb4b-4a5c-9c02-e2d96c9c614b'; -- Static UUID for consistency
     v_email TEXT := 'admin@globalps.com';
-    -- Pre-calculated bcrypt hash for 'AdminPass123!' using the project's exact bcrypt engine.
+    -- Pre-calculated bcrypt hash for the admin password using the project's exact bcrypt engine.
     -- This guarantees compatibility and bypasses any extension or encoding differences.
     v_encrypted_password TEXT := '$2b$12$HgVQrD/xYxjqJ.F8LHZU2ebcTCxRAKBO9T4Ir0yfZULo06yvxthnu';
     
