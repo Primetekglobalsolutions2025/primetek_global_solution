@@ -1,4 +1,4 @@
-const CACHE_NAME = 'primetek-app-e1900c59-0a88-4bc6-b4b0-a90ff895e3cb';
+const CACHE_NAME = 'primetek-app-0fe7954c-9822-4a9a-9879-730c89486ac0';
 const SCOPES = ['/employee', '/admin'];
 
 // Utility to bound dynamic caches to prevent storage exhaustion

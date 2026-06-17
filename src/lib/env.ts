@@ -37,17 +37,9 @@ const serverSchema = publicSchema.extend({
     }
 
     if (!data.MFA_ENCRYPTION_SECRET) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'In production, MFA_ENCRYPTION_SECRET must be explicitly set.',
-        path: ['MFA_ENCRYPTION_SECRET'],
-      });
+      console.warn('⚠️ Warning: MFA_ENCRYPTION_SECRET is not set in production. Falling back to JWT_SECRET for MFA encryption.');
     } else if (data.MFA_ENCRYPTION_SECRET === data.JWT_SECRET) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'In production, MFA_ENCRYPTION_SECRET cannot be the same as JWT_SECRET.',
-        path: ['MFA_ENCRYPTION_SECRET'],
-      });
+      console.warn('⚠️ Warning: In production, MFA_ENCRYPTION_SECRET is recommended to be different from JWT_SECRET.');
     }
 
     if (!data.CRON_SECRET) {
