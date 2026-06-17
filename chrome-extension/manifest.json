@@ -13,7 +13,8 @@
     "cookies"
   ],
   "host_permissions": [
-    "https://www.primetekglobalsolutions.com/*",
+    "https://primetekglobalsolutions.com/*",
+    "https://*.primetekglobalsolutions.com/*",
     "https://*.vercel.app/*",
     "http://localhost/*"
   ],

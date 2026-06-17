@@ -1,4 +1,4 @@
-let BACKEND_URL = 'https://www.primetekglobalsolutions.com';
+let BACKEND_URL = 'https://primetekglobalsolutions.com';
 
 async function resolveBackendUrl() {
   const stored = await chrome.storage.local.get(['backendUrl']);

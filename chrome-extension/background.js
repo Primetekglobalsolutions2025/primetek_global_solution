@@ -1,6 +1,6 @@
 async function getBackendUrl() {
   const data = await chrome.storage.local.get(['backendUrl']);
-  return data.backendUrl || 'https://www.primetekglobalsolutions.com';
+  return data.backendUrl || 'https://primetekglobalsolutions.com';
 }
 
 // Retrieve extension state safely from local storage to survive MV3 service worker restarts
