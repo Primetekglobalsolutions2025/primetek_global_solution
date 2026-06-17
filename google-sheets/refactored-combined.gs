@@ -1273,7 +1273,9 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(CONFIG.LOCK_TIMEOUT);
     if (!e || !e.postData || !e.postData.contents) {
       return sendJsonResponse(
         { error: "Missing payload POST contents." },
@@ -1285,6 +1287,8 @@ function doPost(e) {
   } catch (err) {
     console.error("Error in ApiService.doPost:", err);
     return sendJsonResponse({ error: err.toString() }, false);
+  } finally {
+    lock.releaseLock();
   }
 }
 

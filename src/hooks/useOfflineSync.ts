@@ -7,9 +7,8 @@ import {
   updateQueueEntry,
   removeFromQueue,
   clearSyncedEntries,
-  type OfflineAttendanceEntry,
 } from '@/lib/offline-queue';
-import { checkIn, checkOut, requestWFH, startBreak, endBreak, submitOfflineRecoveryRequest } from '@/app/employee/attendance/actions';
+import { checkIn, requestWFH, startBreak, endBreak, submitOfflineRecoveryRequest } from '@/app/employee/attendance/actions';
 
 const MAX_RETRIES = 3;
 

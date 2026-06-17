@@ -24,8 +24,8 @@ import '@univerjs/docs-ui/lib/index.css';
 import '@univerjs/sheets-ui/lib/index.css';
 
 interface UniverSheetEditorProps {
-  initialData: any;
-  onSave: (data: any) => void;
+  initialData: Record<string, unknown>;
+  onSave: (data: Record<string, unknown>) => void;
 }
 
 export default function UniverSheetEditor({ initialData, onSave }: UniverSheetEditorProps) {
@@ -74,9 +74,9 @@ export default function UniverSheetEditor({ initialData, onSave }: UniverSheetEd
       const workbook = univer.createUnit(UniverInstanceType.UNIVER_SHEET, initialData);
 
       // Expose save function to window for the dashboard toolbar buttons
-      (window as any).__univerSaveHandler = () => {
+      (window as unknown as { __univerSaveHandler?: () => void }).__univerSaveHandler = () => {
         try {
-          const snapshot = (workbook as any).save();
+          const snapshot = (workbook as unknown as { save: () => Record<string, unknown> }).save();
           onSave(snapshot);
         } catch (err) {
           console.error('Failed to get Univer snapshot:', err);
@@ -94,7 +94,7 @@ export default function UniverSheetEditor({ initialData, onSave }: UniverSheetEd
           console.warn('Error disposing UniverJS:', err);
         }
       }
-      delete (window as any).__univerSaveHandler;
+      delete (window as unknown as { __univerSaveHandler?: () => void }).__univerSaveHandler;
     };
   }, [initialData, onSave]);
 

@@ -36,20 +36,26 @@ function getAdminClient(): SupabaseClient | null {
   return _client;
 }
 
+interface MockProxy {
+  (...args: unknown[]): MockProxy;
+  [key: string]: MockProxy | ((resolve: (val: { data: unknown[]; error: null }) => void) => void) | undefined;
+  then?: (resolve: (val: { data: unknown[]; error: null }) => void) => void;
+}
+
 // A chainable recursive proxy that resolves to empty results.
 // This prevents crashes during `next build` static page generation.
-const createMockClient = (): any => {
-  const mock: any = new Proxy(() => {}, {
+const createMockClient = (): MockProxy => {
+  const mock = new Proxy(() => {}, {
     get(_target, prop: string) {
       if (prop === 'then') {
-        return (resolve: any) => resolve({ data: [], error: null });
+        return (resolve: (val: { data: unknown[]; error: null }) => void) => resolve({ data: [], error: null });
       }
       return createMockClient();
     },
     apply() {
       return createMockClient();
     }
-  });
+  }) as unknown as MockProxy;
   return mock;
 };
 
@@ -62,7 +68,7 @@ export const supabaseAdmin: SupabaseClient = new Proxy({} as SupabaseClient, {
     if (!client) {
       return mockClient[prop];
     }
-    const value = (client as any)[prop];
+    const value = (client as unknown as Record<string, unknown>)[prop];
     if (typeof value === 'function') {
       return value.bind(client);
     }

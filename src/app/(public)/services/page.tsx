@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
-import { Briefcase, Building2, UserCheck, Users, ArrowRight } from 'lucide-react';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
+import { Briefcase, Building2, UserCheck, Users } from 'lucide-react';
 import CTASection from '@/components/sections/CTASection';
 import SchemaMarkup from '@/components/layout/SchemaMarkup';
 import { generateBreadcrumbSchema } from '@/lib/seo';

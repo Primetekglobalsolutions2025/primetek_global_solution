@@ -4,9 +4,8 @@ import { useState, useRef } from 'react';
 import { 
   Eye, Download, Mail, Globe, 
   Phone, MapPin, Briefcase, GraduationCap, 
-  FileText, X, CheckCircle2, Loader2 
+  X
 } from 'lucide-react';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { updateProfileStatus } from './actions';
 import { useToast } from '@/components/ui/Toast';
@@ -55,7 +54,7 @@ export default function AssignedProfilesClient({ initialProfiles }: { initialPro
       } else {
         toast.error(res?.error || 'Failed to update status.');
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to update status.');
     } finally {
       setUpdating(null);

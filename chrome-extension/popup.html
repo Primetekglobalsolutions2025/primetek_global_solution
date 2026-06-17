@@ -32,12 +32,12 @@
 
     html, body {
       width: 320px;
-      height: 480px;
+      max-height: 600px;
       background: var(--bg-gradient);
       color: var(--text-primary);
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       padding: 10px 12px;
-      overflow: hidden !important;
+      overflow-y: auto;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
@@ -414,27 +414,40 @@
     .btn-secondary:focus-visible {
       box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.3);
     }
+
+    /* Settings Button & Panel overrides */
+    #settings-toggle-btn {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      transform: none !important;
+      filter: none !important;
+      transition: all 0.3s var(--transition-bezier) !important;
+    }
+    #settings-toggle-btn:hover {
+      background: transparent !important;
+      box-shadow: none !important;
+      transform: rotate(30deg) !important;
+    }
+    #settings-toggle-btn:hover svg {
+      color: var(--border-focus) !important;
+    }
   </style>
 </head>
 <body>
-  <div class="header">
+  <div class="header" style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
     <h2>Primetek&nbsp;Portal</h2>
     <div class="subtitle">Activity Tracker</div>
+    <button id="settings-toggle-btn" aria-label="Settings" style="position: absolute; right: 4px; top: 0; width: 28px; height: 28px; background: transparent; border: none; box-shadow: none; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); transition: color 0.3s var(--transition-bezier);">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
   </div>
   
   <!-- 1. LOGIN SCREEN -->
   <div id="login-screen" class="container">
-    <div class="form-group hidden">
-      <label for="server-url">Server URL</label>
-      <div class="input-wrapper">
-        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="2" y1="12" x2="22" y2="12"></line>
-          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-        </svg>
-        <input type="url" id="server-url" value="https://www.primetekglobalsolutions.com" placeholder="https://example.com…" required />
-      </div>
-    </div>
     
     <div class="form-group">
       <label for="email">Email or Employee ID</label>
@@ -551,7 +564,36 @@
       </div>
     </div>
 
-    <div class="form-group hidden">
+    <button id="export-sheet-btn" style="margin-top: 8px;">Save Application</button>
+    <div id="export-status" class="status-msg-box hidden" aria-live="polite">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <span></span>
+    </div>
+
+    <button id="logout-btn" class="btn-secondary">Log Out</button>
+  </div>
+
+  <!-- 3. SETTINGS PANEL -->
+  <div id="settings-panel" class="container hidden" style="margin-top: 10px;">
+    <div class="subtitle" style="text-align: left; margin-bottom: 8px; font-size: 10px;">Configuration Settings</div>
+    
+    <div class="form-group">
+      <label for="server-url">Server URL</label>
+      <div class="input-wrapper">
+        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <input type="url" id="server-url" value="https://www.primetekglobalsolutions.com" placeholder="https://example.com…" required />
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top: 6px;">
       <label for="sheet-webhook">Apps Script Web App URL</label>
       <div class="input-wrapper">
         <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -564,18 +606,6 @@
         <input type="url" id="sheet-webhook" value="https://script.google.com/macros/s/AKfycbxNRz1WxcBqu5zAommagj2L04N-AJG3-Bplz38bOYNbsQjsaC16_k5Swkczcx-m7dLxMw/exec" placeholder="Paste Apps Script URL…" required />
       </div>
     </div>
-
-    <button id="export-sheet-btn" style="margin-top: 8px;">Save Application</button>
-    <div id="export-status" class="status-msg-box hidden" aria-live="polite">
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-      </svg>
-      <span></span>
-    </div>
-
-    <button id="logout-btn" class="btn-secondary">Log Out</button>
   </div>
 
   <script src="popup.js"></script>

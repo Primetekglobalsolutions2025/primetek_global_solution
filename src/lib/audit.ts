@@ -12,8 +12,8 @@ export async function logAuditAction(
   action: string,
   entityType: string,
   entityId?: string,
-  oldData?: any,
-  newData?: any,
+  oldData?: unknown,
+  newData?: unknown,
   overrideUser?: { id: string; role: string }
 ) {
   try {
@@ -32,7 +32,7 @@ export async function logAuditAction(
     let finalNewData = newData;
     if (correlationId) {
       if (typeof finalNewData === 'object' && finalNewData !== null) {
-        finalNewData = { ...finalNewData, _correlation_id: correlationId };
+        finalNewData = { ...(finalNewData as Record<string, unknown>), _correlation_id: correlationId };
       } else if (finalNewData === undefined || finalNewData === null) {
         finalNewData = { _correlation_id: correlationId };
       }

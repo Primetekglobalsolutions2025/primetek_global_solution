@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { getSession } = await import('@/lib/auth');
     const session = await getSession();
@@ -88,14 +88,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data, error } = await supabaseAdmin
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '100', 10) || 100, 1), 500);
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10) || 0, 0);
+
+    const { data, error, count } = await supabaseAdmin
       .from('inquiries')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
-    return NextResponse.json({ data });
+    return NextResponse.json({ data, total: count });
   } catch (err) {
     console.error('Error fetching inquiries:', err);
     return NextResponse.json({ error: 'Failed to fetch inquiries' }, { status: 500 });

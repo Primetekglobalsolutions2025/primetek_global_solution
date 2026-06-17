@@ -1,6 +1,6 @@
 import React from 'react';
 import { PresenceStats } from '@/types/presence';
-import { Users, Activity, Coffee, Moon, ShieldAlert, Monitor } from 'lucide-react';
+import { Activity, Coffee, Moon, ShieldAlert, Monitor } from 'lucide-react';
 import Card from '@/components/ui/Card';
 
 interface PresenceKPIsProps {

@@ -1084,8 +1084,8 @@ export async function processHeartbeat(payload: {
     const distance = calculateDistance(payload.telemetry.lat, payload.telemetry.lng, officeLat, officeLng);
     const withinRange = distance <= (radius + payload.telemetry.accuracy * 0.1);
 
-    let resolvedEventType: 'HEARTBEAT_RECEIVED' | 'AUTO_BREAK_TRIGGERED' = 'HEARTBEAT_RECEIVED';
-    let nextStatus = record.status;
+    const resolvedEventType: 'HEARTBEAT_RECEIVED' | 'AUTO_BREAK_TRIGGERED' = 'HEARTBEAT_RECEIVED';
+    const nextStatus = record.status;
 
     // 3. Write transactionally to DB using RPC write_heartbeat_event
     const { error: rpcErr } = await supabaseAdmin.rpc('write_heartbeat_event', {

@@ -37,8 +37,9 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess: () => void 
       } else {
         setError(result.error || 'Failed to submit request');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit request');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to submit request';
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,19 @@ import { env } from '@/lib/env';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { revalidatePath } from 'next/cache';
 
+interface PushSubscriptionRow {
+  id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  employee_id?: string | null;
+  admin_id?: string | null;
+  employees?: {
+    status: string;
+    notification_preferences: Record<string, boolean | undefined> | null;
+  } | null;
+}
+
 // Track VAPID initialization status
 let isVapidInitialized = false;
 
@@ -55,7 +68,7 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
   let inAppNotificationId: string | null = null;
   if (!skipInApp) {
     try {
-      const insertData: any = {
+      const insertData: Record<string, unknown> = {
         title,
         message,
         type: type.includes('alert') ? 'alert' : type.includes('announcement') ? 'announcement' : 'personal',
@@ -93,7 +106,7 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
   }
 
   // 2. Resolve target push subscriptions & preference check
-  let subscriptions: any[] = [];
+  let subscriptions: PushSubscriptionRow[] = [];
   try {
     if (adminId) {
       // Admin preference check
@@ -119,7 +132,7 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
         .eq('admin_id', adminId)
         .eq('is_active', true);
       
-      subscriptions = adminSubs || [];
+      subscriptions = (adminSubs || []) as unknown as PushSubscriptionRow[];
     } else if (employeeId) {
       // Employee preference check
       const { data: employee, error: empErr } = await supabaseAdmin
@@ -129,7 +142,7 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
         .maybeSingle();
 
       if (!empErr && employee) {
-        const preferences = employee.notification_preferences || {};
+        const preferences = (employee.notification_preferences || {}) as Record<string, boolean | undefined>;
         const isEnabled = preferences[type] !== false; // Default to true if not explicitly false
         if (!isEnabled) {
           console.log(`[Dispatch] Employee ${employeeId} has disabled notifications of type "${type}". Aborting push.`);
@@ -144,7 +157,7 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
         .eq('employee_id', employeeId)
         .eq('is_active', true);
       
-      subscriptions = empSubs || [];
+      subscriptions = (empSubs || []) as unknown as PushSubscriptionRow[];
     } else {
       // Broadcast / Announcement to all active employees and admins
       // 1. Fetch active employee subscriptions and filter by preferences
@@ -154,7 +167,8 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
         .eq('is_active', true)
         .eq('employees.status', 'Active');
 
-      const filteredEmployeeSubs = (employeeSubs || []).filter((sub: any) => {
+      const employeeSubsTyped = (employeeSubs || []) as unknown as PushSubscriptionRow[];
+      const filteredEmployeeSubs = employeeSubsTyped.filter((sub) => {
         const preferences = sub.employees?.notification_preferences || {};
         return preferences[type] !== false;
       });
@@ -166,7 +180,8 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
         .eq('is_active', true)
         .not('admin_id', 'is', null);
 
-      subscriptions = [...filteredEmployeeSubs, ...(adminSubs || [])];
+      const adminSubsTyped = (adminSubs || []) as unknown as PushSubscriptionRow[];
+      subscriptions = [...filteredEmployeeSubs, ...adminSubsTyped];
     }
   } catch (err) {
     console.error('Failed to resolve target subscriptions and preferences:', err);
@@ -210,11 +225,12 @@ export async function dispatchNotification(options: DispatchNotificationOptions)
         pushPayload
       );
       pushSentCount++;
-    } catch (err: any) {
-      console.error(`Failed to deliver push notification to subscriber ${sub.id}:`, err.message);
+    } catch (err) {
+      const error = err as { message?: string; statusCode?: number };
+      console.error(`Failed to deliver push notification to subscriber ${sub.id}:`, error.message);
       
       // Auto-prune invalid/expired subscription endpoints (standard Web Push behavior)
-      if (err.statusCode === 404 || err.statusCode === 410 || err.statusCode === 414) {
+      if (error.statusCode === 404 || error.statusCode === 410 || error.statusCode === 414) {
         try {
           await supabaseAdmin
             .from('push_subscriptions')

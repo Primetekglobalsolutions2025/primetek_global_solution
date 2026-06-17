@@ -7,11 +7,11 @@ import { useNotifications } from '@/components/pwa/NotificationContext';
 
 interface AppHeaderProps {
   userName?: string;
-  role?: 'admin' | 'employee' | 'hr';
   notificationCount?: number;
+  role?: string;
 }
 
-export default function AppHeader({ userName, role, notificationCount }: AppHeaderProps) {
+export default function AppHeader({ userName, notificationCount }: AppHeaderProps) {
   const { toast } = useToast();
   const notifications = useNotifications();
 

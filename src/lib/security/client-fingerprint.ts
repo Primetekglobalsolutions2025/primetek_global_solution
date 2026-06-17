@@ -18,7 +18,7 @@ export function getOrCreateFingerprint(): string {
   
   try {
     // 1. Try to load from localStorage first
-    let fp = localStorage.getItem('pm_device_fp');
+    const fp = localStorage.getItem('pm_device_fp');
     if (fp) {
       return fp;
     }
@@ -72,11 +72,11 @@ export function getOrCreateFingerprint(): string {
     
     localStorage.setItem('pm_device_fp', derivedFp);
     return derivedFp;
-  } catch (e) {
+  } catch {
     const backupFp = `fp-fallback-${Math.random().toString(36).substring(2, 15)}`;
     try {
       localStorage.setItem('pm_device_fp', backupFp);
-    } catch (_) {}
+    } catch {}
     return backupFp;
   }
 }

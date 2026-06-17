@@ -101,7 +101,7 @@ export default function EmployeesClient({
     return () => {
       active = false;
     };
-  }, [currentPage, search, departmentFilter]);
+  }, [currentPage, search, departmentFilter, toast]);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);

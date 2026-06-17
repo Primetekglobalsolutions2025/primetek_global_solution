@@ -36,6 +36,20 @@ const serverSchema = publicSchema.extend({
       });
     }
 
+    if (!data.MFA_ENCRYPTION_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'In production, MFA_ENCRYPTION_SECRET must be explicitly set.',
+        path: ['MFA_ENCRYPTION_SECRET'],
+      });
+    } else if (data.MFA_ENCRYPTION_SECRET === data.JWT_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'In production, MFA_ENCRYPTION_SECRET cannot be the same as JWT_SECRET.',
+        path: ['MFA_ENCRYPTION_SECRET'],
+      });
+    }
+
     if (!data.CRON_SECRET) {
       console.warn('⚠️ Warning: CRON_SECRET is not set in production. Cron endpoints will not verify authorization via bearer token.');
     }
@@ -82,12 +96,12 @@ function createLazyEnv() {
                 NEXT_PUBLIC_SUPABASE_URL: rawEnv.NEXT_PUBLIC_SUPABASE_URL,
                 NEXT_PUBLIC_SUPABASE_ANON_KEY: rawEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY,
                 NEXT_PUBLIC_GEOAPIFY_API_KEY: rawEnv.NEXT_PUBLIC_GEOAPIFY_API_KEY,
-              }) as any;
+              }) as unknown as z.infer<typeof serverSchema>;
         } catch (err) {
           if (isBuildPhase) {
             // Provide placeholder values so build doesn't crash
-            cached = rawEnv as any;
-            return (cached as any)[prop] ?? '';
+            cached = rawEnv as unknown as z.infer<typeof serverSchema>;
+            return (cached as unknown as Record<string, unknown>)[prop] ?? '';
           }
           if (err instanceof z.ZodError) {
             const missing = err.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
@@ -96,7 +110,7 @@ function createLazyEnv() {
           throw err;
         }
       }
-      return (cached as any)[prop];
+      return cached[prop as keyof z.infer<typeof serverSchema>];
     },
   });
 }

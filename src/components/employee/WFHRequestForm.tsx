@@ -34,8 +34,9 @@ export default function WFHRequestForm({ onSuccess }: { onSuccess: () => void })
       } else {
         setError(result.error || 'Failed to submit WFH request');
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit WFH request');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to submit WFH request';
+      setError(message);
     } finally {
       setLoading(false);
     }

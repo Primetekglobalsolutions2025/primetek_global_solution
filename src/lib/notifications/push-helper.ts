@@ -78,14 +78,15 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
     const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: convertedKey as any
+      applicationServerKey: convertedKey as unknown as BufferSource
     });
 
     await syncSubscriptionWithServer(sub);
     return { success: true };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error subscribing user to push notifications:', err);
-    return { success: false, error: err.message || 'Failed to subscribe to push notifications.' };
+    const msg = err instanceof Error ? err.message : 'Failed to subscribe to push notifications.';
+    return { success: false, error: msg };
   }
 }
 
@@ -117,9 +118,10 @@ export async function unsubscribeUserFromPush(): Promise<{ success: boolean; err
     // Unsubscribe from browser manager
     await sub.unsubscribe();
     return { success: true };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error unsubscribing user:', err);
-    return { success: false, error: err.message || 'Failed to unsubscribe.' };
+    const msg = err instanceof Error ? err.message : 'Failed to unsubscribe.';
+    return { success: false, error: msg };
   }
 }
 

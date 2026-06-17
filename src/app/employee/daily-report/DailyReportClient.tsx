@@ -4,13 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ClipboardCheck, Loader2, Calendar, FileText, 
-  CheckCircle2, AlertCircle, Sparkles, Plus, Minus
+  CheckCircle2, AlertCircle, Plus, Minus
 } from 'lucide-react';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { submitDailyMetrics } from './actions';
-import { cn } from '@/lib/utils';
 import { typography } from '@/styles/design-system';
 
 interface Profile {

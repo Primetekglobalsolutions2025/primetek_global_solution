@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { 
   Search, 
   ExternalLink, 
@@ -151,7 +151,7 @@ export default function JobTrackerClient() {
   }, [search, selectedTab, selectedEmployee, selectedRole, dateFilterType, startDate, endDate]);
 
   // Fetch job applications
-  const fetchApplications = async (showToast = false) => {
+  const fetchApplications = useCallback(async (showToast = false) => {
     try {
       if (showToast) setRefreshing(true);
       else setLoading(true);
@@ -191,11 +191,11 @@ export default function JobTrackerClient() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchApplications();
-  }, []);
+  }, [fetchApplications]);
 
   // Compute unique lists for filter dropdowns
   const uniqueEmployees = useMemo(() => {

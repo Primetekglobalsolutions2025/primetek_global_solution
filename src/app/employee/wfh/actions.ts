@@ -129,8 +129,9 @@ export async function submitWFHRequest(formData: {
             });
           }
         }
-      } catch (pushErr: any) {
-        console.warn(`[Push Delivery Failed] action: submitWFHRequest, error: ${pushErr.message}`);
+      } catch (pushErr) {
+        const msg = pushErr instanceof Error ? pushErr.message : String(pushErr);
+        console.warn(`[Push Delivery Failed] action: submitWFHRequest, error: ${msg}`);
       }
     } catch (notifErr) {
       console.error('Failed to send WFH request notification:', notifErr);
@@ -138,8 +139,9 @@ export async function submitWFHRequest(formData: {
 
     revalidatePath('/employee/leaves');
     return { success: true, request: data };
-  } catch (err: any) {
+  } catch (err) {
     console.error('Error submitting WFH request:', err);
-    return { success: false, error: err.message || 'Failed to submit WFH request' };
+    const msg = err instanceof Error ? err.message : 'Failed to submit WFH request';
+    return { success: false, error: msg };
   }
 }

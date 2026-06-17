@@ -835,7 +835,7 @@ export default function AdminSettingsClient() {
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-navy-900">Mobile Installation Tips</h4>
                 </div>
                 <ul className="list-disc pl-4 text-[10px] text-zinc-500 space-y-1.5 leading-relaxed">
-                  <li><strong>Chrome/Edge on Android:</strong> Click the "One-Click Install App" button above or select "Install app" in the browser menu.</li>
+                  <li><strong>Chrome/Edge on Android:</strong> Click the &quot;One-Click Install App&quot; button above or select &quot;Install app&quot; in the browser menu.</li>
                   <li><strong>Safari on iOS:</strong> Tap the <strong>Share</strong> button (box with an up arrow) at the bottom, scroll down, and tap <strong>Add to Home Screen</strong>.</li>
                 </ul>
               </div>
@@ -846,7 +846,7 @@ export default function AdminSettingsClient() {
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-navy-900">Why Install the App?</h4>
                 </div>
                 <ul className="list-disc pl-4 text-[10px] text-zinc-500 space-y-1.5 leading-relaxed">
-                  <li><strong>Custom Branding:</strong> System notifications will be delivered with the official Primetek logo/icon instead of your browser's default logo (like Brave or Chrome).</li>
+                  <li><strong>Custom Branding:</strong> System notifications will be delivered with the official Primetek logo/icon instead of your browser&apos;s default logo (like Brave or Chrome).</li>
                   <li><strong>Quick Launch:</strong> Creates a shortcut on your home screen or desktop for direct launch.</li>
                   <li><strong>Immersive Experience:</strong> Hides browser navigation bars, tabs, and URL fields for full-screen portal access.</li>
                 </ul>

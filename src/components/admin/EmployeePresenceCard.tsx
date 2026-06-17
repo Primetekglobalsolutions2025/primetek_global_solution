@@ -77,7 +77,7 @@ export default function EmployeePresenceCard({ presence }: EmployeePresenceCardP
 
   const empName = presence.employees?.name || 'Unknown Employee';
   const empRole = presence.employees?.role || 'Employee';
-  const empDept = (presence.employees as any)?.department || 'Operations';
+  const empDept = presence.employees?.department || 'Operations';
 
   return (
     <Card 
@@ -101,7 +101,7 @@ export default function EmployeePresenceCard({ presence }: EmployeePresenceCardP
           "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider select-none shrink-0",
           config.badgeClass
         )}>
-          <span className={cn("w-1.5 h-1.5 rounded-full", config.dotClass)} />
+          <Icon className="w-3 h-3 shrink-0" />
           {config.label}
         </span>
       </div>

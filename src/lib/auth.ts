@@ -137,9 +137,9 @@ export async function createCaptchaToken(answer: number, nonce: string): Promise
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const payloadBuffer = new TextEncoder().encode(payload);
   const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
+    { name: 'AES-GCM', iv: iv as unknown as BufferSource },
     aesKey,
-    payloadBuffer
+    payloadBuffer as unknown as BufferSource
   );
 
   return `${bufToHex(iv.buffer)}:${bufToHex(encrypted)}`;
@@ -152,14 +152,14 @@ export async function verifyCaptchaToken(token: string, submittedAnswer: number,
     const [ivHex, cipherHex] = parts;
     if (!ivHex || !cipherHex) return false;
 
-    const iv = hexToBuf(ivHex) as any;
-    const cipher = hexToBuf(cipherHex) as any;
+    const iv = hexToBuf(ivHex);
+    const cipher = hexToBuf(cipherHex);
     const aesKey = await getCaptchaKey();
 
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
+      { name: 'AES-GCM', iv: iv as unknown as BufferSource },
       aesKey,
-      cipher
+      cipher as unknown as BufferSource
     );
 
     const payloadStr = new TextDecoder().decode(decrypted);

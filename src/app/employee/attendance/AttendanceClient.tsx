@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert, MapPin, Bell } from 'lucide-react';
+import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert, MapPin, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
 import Button from '@/components/ui/Button';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth, submitOfflineRecoveryRequest, hasPendingClockOutRequestForToday, getActiveSessionForToday } from './actions';
+import { checkIn, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, getAttendanceSessionState, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth, submitOfflineRecoveryRequest, hasPendingClockOutRequestForToday } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
@@ -86,11 +86,7 @@ export default function AttendanceClient({
   const { isOnline, pendingCount, isSyncing, syncQueue, refreshPendingCount } = useOfflineSync();
 
   const [sessionState, setSessionState] = useState<'ACTIVE' | 'WARNING' | 'ON_BREAK'>('ACTIVE');
-  const clickCount = useRef(0);
-  const keypressCount = useRef(0);
-  const pointerMovesCount = useRef(0);
-  const sequenceNumber = useRef(2);
-  const geofenceOutsideHistory = useRef<boolean[]>([]);
+
 
   // 1. Stateful records array for real-time reconciliation updates without reload
   const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
@@ -117,7 +113,7 @@ export default function AttendanceClient({
 
   const checkAndRequestPermissions = async (onGranted: () => void) => {
     let geoState: PermissionState = 'prompt';
-    let notifState = typeof window !== 'undefined' ? Notification.permission : 'default';
+    const notifState = typeof window !== 'undefined' ? Notification.permission : 'default';
 
     try {
       if (navigator.permissions && navigator.permissions.query) {
@@ -257,8 +253,7 @@ export default function AttendanceClient({
   const [heartbeatPulse, setHeartbeatPulse] = useState(false);
 
   const projectionVersion = useRef<number>(1);
-  const gpsSuppressionUntil = useRef<number>(0);
-  const LEASE_KEY = 'primetek_attendance_leader_lease_' + employeeId;
+
   const lastRefreshTimeRef = useRef<number>(0);
   const isMountedRef = useRef(true);
 
@@ -337,8 +332,9 @@ export default function AttendanceClient({
     }
   };
 
+  /* eslint-disable react-hooks/preserve-manual-memoization */
   // Lightweight projection reconciliation - pulls latest DB projection state safely
-  const refreshProjectionState = async (sessionId?: string, force = false) => {
+  const refreshProjectionState = useCallback(async (sessionId?: string, force = false) => {
     const targetSessionId = sessionId || todayRecord?.id;
     if (!targetSessionId) return;
     const now = Date.now();
@@ -408,7 +404,8 @@ export default function AttendanceClient({
     } catch (err) {
       console.error('[Sync]: Reconciliation error:', err);
     }
-  };
+  }, [todayRecord?.id]);
+  /* eslint-enable react-hooks/preserve-manual-memoization */
 
   // Projection Version Verification wrapper for mutations
   const executeMutationWithVersionCheck = async (
@@ -478,7 +475,7 @@ export default function AttendanceClient({
           const leader = lease.tabId === tabId;
           setIsLeader(leader);
           isLeaderRef.current = leader;
-        } catch (e) {
+        } catch {
           setIsLeader(false);
           isLeaderRef.current = false;
         }
@@ -504,7 +501,7 @@ export default function AttendanceClient({
       }
     };
     return () => bc.close();
-  }, [todayRecord?.id]);
+  }, [todayRecord?.id, refreshProjectionState]);
 
   // Listen to heartbeat pulse from global AttendanceTracker
   useEffect(() => {
@@ -612,7 +609,7 @@ export default function AttendanceClient({
           });
           currentCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
           setCoords(currentCoords);
-        } catch (err) {
+        } catch {
           setGpsStatus('error');
           showNotification('Could not retrieve your GPS location for WFH request.', 'error');
           return;
@@ -881,15 +878,6 @@ export default function AttendanceClient({
   const elapsed = (checkInTime && !isCheckedOut) ? Math.floor((currentTime.getTime() - checkInTime.getTime()) / 1000) : 0;
   const elapsedHrs = Math.floor(elapsed / 3600);
   const elapsedMin = Math.floor((elapsed % 3600) / 60);
-  const elapsedSec = elapsed % 60;
-
-  const runningHrsDecimal = (productiveSeconds / 3600).toFixed(1);
-  const displayHrs = !isCheckedOut 
-    ? `${runningHrsDecimal}h / 9h` 
-    : `${todayRecord?.productive_hours || 0}h / 9h`;
-  const completedPercentage = !isCheckedOut
-    ? Math.min(Math.round((productiveSeconds / (9 * 3600)) * 100), 100)
-    : Math.min(Math.round(((todayRecord?.productive_hours || 0) / 9) * 100), 100);
 
   const monthStart = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
   const daysInMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0).getDate();
@@ -1023,7 +1011,7 @@ export default function AttendanceClient({
                 <h3 className="text-lg font-bold text-navy-900 font-sans">Are you still working?</h3>
               </div>
               <p className="text-xs text-zinc-600 leading-relaxed font-sans">
-                We haven't detected activity for a few minutes. Confirm you're still working to keep your session active.
+                We haven&apos;t detected activity for a few minutes. Confirm you&apos;re still working to keep your session active.
               </p>
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between font-sans">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700">Auto-Break Countdown</span>
@@ -1035,7 +1023,7 @@ export default function AttendanceClient({
                     const sw = new SharedWorker('/workers/idle-worker.js');
                     sw.port.postMessage({ type: 'ACTIVITY' });
                     sw.port.close();
-                  } catch (err) {}
+                  } catch {}
                   
                   const bc = new BroadcastChannel('idle_sync');
                   bc.postMessage({ type: 'STATE_CHANGED', state: 'ACTIVE' });
@@ -1310,7 +1298,7 @@ export default function AttendanceClient({
             {/* Today's Summary Card */}
             {checkedIn && (
               <div className="w-full border-t border-zinc-100 pt-5 space-y-3 font-sans">
-                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block">Today's Summary</span>
+                <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-400 block">Today&apos;s Summary</span>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="bg-zinc-50 border border-zinc-150 rounded-xl p-3 shadow-3xs">
                     <span className="text-[8px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-1">Check-in</span>

@@ -12,8 +12,8 @@ async function resolveBackendUrl() {
     if (tab && tab.url) {
       const url = new URL(tab.url);
       const isPrimetekHost = url.hostname === 'localhost' || 
-                             url.hostname.includes('primetek') || 
-                             url.hostname.includes('vercel.app');
+                             url.hostname === '127.0.0.1' ||
+                             url.hostname.includes('primetek');
       
       if (isPrimetekHost) {
         BACKEND_URL = url.origin;
@@ -79,6 +79,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Pre-fill backend URL input and display host
   if (serverUrlInput) serverUrlInput.value = BACKEND_URL;
   if (connHostSpan) connHostSpan.textContent = BACKEND_URL.replace('http://', '').replace('https://', '');
+
+  // Pre-fill webhook URL input if stored
+  const sheetWebhookInput = document.getElementById('sheet-webhook');
+  const storedWebhook = await chrome.storage.local.get(['sheetWebhook']);
+  if (storedWebhook.sheetWebhook && sheetWebhookInput) {
+    sheetWebhookInput.value = storedWebhook.sheetWebhook;
+  }
+
+  // 1.1. Settings Panel Toggle and Auto-Save Event Listeners
+  const settingsToggleBtn = document.getElementById('settings-toggle-btn');
+  const settingsPanel = document.getElementById('settings-panel');
+
+  if (settingsToggleBtn && settingsPanel) {
+    settingsToggleBtn.addEventListener('click', () => {
+      settingsPanel.classList.toggle('hidden');
+    });
+  }
+
+  if (serverUrlInput) {
+    const saveServerUrl = async () => {
+      const serverUrl = serverUrlInput.value.trim().replace(/\/$/, '');
+      if (serverUrl) {
+        BACKEND_URL = serverUrl;
+        await chrome.storage.local.set({ backendUrl: BACKEND_URL });
+        if (connHostSpan) connHostSpan.textContent = BACKEND_URL.replace('http://', '').replace('https://', '');
+      }
+    };
+    serverUrlInput.addEventListener('input', saveServerUrl);
+    serverUrlInput.addEventListener('change', saveServerUrl);
+  }
+
+  if (sheetWebhookInput) {
+    const saveWebhook = async () => {
+      const sheetWebhook = sheetWebhookInput.value.trim();
+      await chrome.storage.local.set({ sheetWebhook });
+    };
+    sheetWebhookInput.addEventListener('input', saveWebhook);
+    sheetWebhookInput.addEventListener('change', saveWebhook);
+  }
 
   // 1. Initial State Check (Synchronized with browser cookies)
   const storedData = await chrome.storage.local.get(['token', 'employee']);
@@ -155,7 +194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       chrome.runtime.sendMessage({ action: 'START_TRACKING' });
 
       showStatusScreen(result.employee);
-    } catch (err) {
+    } catch {
       showError('Cannot connect to server.');
       loginBtn.disabled = false;
       loginBtn.textContent = 'Log In';
@@ -278,7 +317,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const employeeName = (localData.employee && localData.employee.name) ? localData.employee.name : 'General';
     const sheetWebhookInput = document.getElementById('sheet-webhook');
-    const sheetWebhookUrl = sheetWebhookInput ? sheetWebhookInput.value : '';
+    const sheetWebhookUrl = sheetWebhookInput ? sheetWebhookInput.value.trim() : '';
+    if (sheetWebhookUrl) {
+      await chrome.storage.local.set({ sheetWebhook: sheetWebhookUrl });
+    }
 
     try {
       // 1. Save to Next.js portal (Supabase DB virtual sheet)

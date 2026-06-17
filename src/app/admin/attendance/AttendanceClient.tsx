@@ -11,21 +11,15 @@ import {
   Clock, 
   Calendar, 
   MapPin, 
-  Sparkles, 
   AlertTriangle, 
   ShieldCheck, 
   Wifi, 
   Smartphone, 
   Monitor, 
-  ChevronDown, 
-  ChevronUp,
   ChevronRight,
   Coffee,
   ShieldAlert,
   Gavel,
-  Activity,
-  Signal,
-  Info,
   ExternalLink,
   RefreshCw,
   SlidersHorizontal
@@ -183,7 +177,7 @@ export default function AttendanceClient({
 
   // Recovery Queue State & Callbacks
   const [recoveryQueue, setRecoveryQueue] = useState<any[]>([]);
-  const [isRecoveryQueueLoading, setIsRecoveryQueueLoading] = useState(false);
+  const [, setIsRecoveryQueueLoading] = useState(false);
 
   const fetchRecoveryQueue = useCallback(async () => {
     try {
@@ -1940,21 +1934,18 @@ export default function AttendanceClient({
                       const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
                       
                       let dotColor = 'bg-gray-500';
-                      let iconColor = 'text-gray-400';
                       let cardBg = 'bg-zinc-50 border-zinc-200 text-zinc-700';
                       let description = '';
 
                       switch(evt.event_type) {
                         case 'CLOCK_IN':
                           dotColor = 'bg-emerald-500 ring-4 ring-emerald-500/20';
-                          iconColor = 'text-emerald-600';
                           cardBg = 'bg-emerald-50 border-emerald-100 text-emerald-800';
                           description = `Geofence: ${evt.payload?.within_geofence ? 'OK' : 'OUTSIDE'} (${evt.payload?.distance_meters ? Math.round(evt.payload.distance_meters) + 'm' : 'Unknown'})\nIP: ${evt.client_ip || '—'}`;
                           break;
                         case 'CLOCK_OUT':
                         case 'FORCE_LOGOUT':
                           dotColor = 'bg-red-500 ring-4 ring-red-500/20';
-                          iconColor = 'text-red-600';
                           cardBg = 'bg-red-50 border-red-100 text-red-800';
                           if (evt.event_type === 'FORCE_LOGOUT' && evt.payload?.forced_by === 'system_sweeper') {
                             const staleReason = evt.payload?.stale_reason === 'heartbeat_timeout' ? 'Heartbeat Timeout' 
@@ -1974,75 +1965,62 @@ export default function AttendanceClient({
                           break;
                         case 'BREAK_STARTED':
                           dotColor = 'bg-amber-500';
-                          iconColor = 'text-amber-600';
                           description = `Self initiated lunch/rest break`;
                           break;
                         case 'BREAK_ENDED':
                           dotColor = 'bg-emerald-400';
-                          iconColor = 'text-emerald-600';
                           description = `Resumed operations${evt.payload?.reason ? '\nAdmin reversal: ' + evt.payload.reason : ''}`;
                           break;
                         case 'AUTO_BREAK_TRIGGERED':
                           dotColor = 'bg-red-500 animate-pulse ring-4 ring-red-500/10';
-                          iconColor = 'text-red-600';
                           cardBg = 'bg-red-50 border-red-100 text-red-800';
                           description = `Automatic break enforcement (No heartbeat activity detected for 5 minutes)`;
                           break;
                         case 'IDLE_WARNING':
                           dotColor = 'bg-amber-400';
-                          iconColor = 'text-amber-500';
                           description = `Idle popup triggered (No telemetry for 3 minutes)`;
                           break;
                         case 'GPS_EXIT':
                           dotColor = 'bg-amber-500 ring-4 ring-amber-500/10';
-                          iconColor = 'text-amber-600';
                           description = `GPS coordinate change: User exited the office bounds. Countdown started.`;
                           break;
                         case 'GPS_REENTRY':
                           dotColor = 'bg-emerald-400';
-                          iconColor = 'text-emerald-505';
                           description = `GPS coordinate change: User returned within geofence boundaries.`;
                           break;
                         case 'ADMIN_OVERRIDE':
                           dotColor = 'bg-violet-500 ring-4 ring-violet-500/20';
-                          iconColor = 'text-violet-600';
                           cardBg = 'bg-violet-50 border-violet-100 text-violet-800';
                           description = `Override: ${evt.payload?.override_field}\nFrom: ${String(evt.payload?.old_value)} → To: ${String(evt.payload?.new_value)}\nReason: ${evt.payload?.reason || '—'}`;
                           break;
                         case 'HEARTBEAT_RECEIVED':
                           dotColor = 'bg-blue-400';
-                          iconColor = 'text-blue-505';
                           const clicks = evt.payload?.clicks_count ?? evt.payload?.telemetry?.clicks ?? 0;
                           const keys = evt.payload?.keys_count ?? evt.payload?.telemetry?.keys ?? 0;
                           description = `Heartbeat check secure. Keyboard/Mouse telemetry: ${clicks} clicks, ${keys} keystrokes.`;
                           break;
                         case 'MOBILE_CLOCK_IN':
                           dotColor = 'bg-violet-500 ring-4 ring-violet-500/20';
-                          iconColor = 'text-violet-600';
                           cardBg = 'bg-violet-50 border-violet-100 text-violet-800';
                           description = `Mobile Clock-In initiated. Grace period activated.\nDevice: ${evt.payload?.device_label || 'Mobile'}\nIP: ${evt.client_ip || '—'}`;
                           break;
                         case 'DESKTOP_SESSION_VERIFIED':
                           dotColor = 'bg-emerald-500 ring-4 ring-emerald-500/20';
-                          iconColor = 'text-emerald-600';
                           cardBg = 'bg-emerald-50 border-emerald-100 text-emerald-800';
                           description = `Workstation verified. Productive time accumulating.\nDevice: ${evt.payload?.device_label || 'Workstation'}\nIP: ${evt.client_ip || '—'}`;
                           break;
                         case 'DESKTOP_SESSION_MISSING':
                           dotColor = 'bg-red-500 ring-4 ring-red-500/20';
-                          iconColor = 'text-red-600';
                           cardBg = 'bg-red-50 border-red-100 text-red-800';
                           description = `Workstation verification missed. Grace period expired. Productive time paused.`;
                           break;
                         case 'PRODUCTIVE_TIMER_PAUSED':
                           dotColor = 'bg-amber-500 ring-4 ring-amber-500/20';
-                          iconColor = 'text-amber-600';
                           cardBg = 'bg-amber-50 border-amber-100 text-amber-800';
                           description = `Productive work timer paused.`;
                           break;
                         case 'PRODUCTIVE_TIMER_RESUMED':
                           dotColor = 'bg-emerald-450 ring-4 ring-emerald-500/20';
-                          iconColor = 'text-emerald-600';
                           cardBg = 'bg-emerald-50/50 border-emerald-100 text-emerald-800';
                           description = `Productive work timer resumed.`;
                           break;

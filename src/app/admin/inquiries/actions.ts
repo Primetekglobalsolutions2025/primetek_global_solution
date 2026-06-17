@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getSession, verifyActiveAdmin } from '@/lib/auth';
 import { logAuditAction } from '@/lib/audit';
 
-export async function getAdminInquiries() {
+export async function getAdminInquiries(limit = 200, offset = 0) {
   const session = await getSession();
   if (!session || session.role !== 'admin' || !session.id) throw new Error('Unauthorized');
   await verifyActiveAdmin(session.id);
@@ -13,7 +13,8 @@ export async function getAdminInquiries() {
   const { data, error } = await supabaseAdmin
     .from('inquiries')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) {
     console.error('Error fetching admin inquiries:', error);

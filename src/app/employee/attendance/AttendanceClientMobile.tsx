@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { CheckCircle2, LogIn, LogOut, Loader2, Home, AlertCircle, X, Sparkles, History, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, Coffee, ShieldAlert, Bell, ChevronLeft, ChevronRight, ClipboardList, Briefcase, MoreHorizontal, Headset, MapPin, Compass, LayoutGrid, Contact } from 'lucide-react';
-import Link from 'next/link';
-import Logo from '@/components/ui/Logo';
+import { CheckCircle2, Loader2, Home, AlertCircle, X, Calendar as CalendarIcon, Clock, Info, WifiOff, RefreshCw, AlertTriangle, ShieldAlert, Bell, ChevronLeft, ChevronRight, Headset, MapPin, Compass } from 'lucide-react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn, formatDistance, getISTShiftDate } from '@/lib/utils';
-import Button from '@/components/ui/Button';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { checkIn, checkOut, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, processHeartbeat, getAttendanceSessionState, logGPSDismissEvent, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth, submitOfflineRecoveryRequest, hasPendingClockOutRequestForToday, getActiveSessionForToday } from './actions';
+
+import { checkIn, resumeSession, requestWFH, startBreak, endBreak, getLateLoginsStats, getAttendanceSessionState, submitDispute, getEmployeeDisputes, logStatusTransitionEvent, moveActiveSession, getAttendanceForMonth, submitOfflineRecoveryRequest, hasPendingClockOutRequestForToday } from './actions';
 import { getOrCreateFingerprint } from '@/lib/security/client-fingerprint';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
 import { enqueueOfflineAction, getOfflineQueue } from '@/lib/offline-queue';
@@ -53,7 +51,6 @@ export interface EmployeeDispute {
 
 
 export default function AttendanceClient({ 
-  employee, 
   employeeId, 
   initialRecords, 
   wasAutoLoggedOut = false,
@@ -67,8 +64,8 @@ export default function AttendanceClient({
   initialHolidays?: Holiday[];
   hasPendingClockOutRequest?: boolean;
 }) {
-  const { open: openNotifications, unreadCount } = useNotifications();
-  const [holidays, setHolidays] = useState<Holiday[]>(initialHolidays);
+  useNotifications();
+  const [holidays] = useState<Holiday[]>(initialHolidays);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -90,11 +87,7 @@ export default function AttendanceClient({
   const { isOnline, pendingCount, isSyncing, syncQueue, refreshPendingCount } = useOfflineSync();
 
   const [sessionState, setSessionState] = useState<'ACTIVE' | 'WARNING' | 'ON_BREAK'>('ACTIVE');
-  const clickCount = useRef(0);
-  const keypressCount = useRef(0);
-  const pointerMovesCount = useRef(0);
-  const sequenceNumber = useRef(2);
-  const geofenceOutsideHistory = useRef<boolean[]>([]);
+
 
   // 1. Stateful records array for real-time reconciliation updates without reload
   const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
@@ -121,7 +114,7 @@ export default function AttendanceClient({
 
   const checkAndRequestPermissions = async (onGranted: () => void) => {
     let geoState: PermissionState = 'prompt';
-    let notifState = typeof window !== 'undefined' ? Notification.permission : 'default';
+    const notifState = typeof window !== 'undefined' ? Notification.permission : 'default';
 
     try {
       if (navigator.permissions && navigator.permissions.query) {
@@ -253,16 +246,15 @@ export default function AttendanceClient({
 
   // 2. Tab Leader Election, Suspension, Version and Escalation States
   const [tabId] = useState(() => Math.random().toString(36).substring(7));
-  const [isLeader, setIsLeader] = useState(false);
+  const [, setIsLeader] = useState(false);
   const isLeaderRef = useRef(false);
   
 
-  const [syncBannerVisible, setSyncBannerVisible] = useState(false);
-  const [heartbeatPulse, setHeartbeatPulse] = useState(false);
+  const [, setSyncBannerVisible] = useState(false);
+  const [, setHeartbeatPulse] = useState(false);
 
   const projectionVersion = useRef<number>(1);
-  const gpsSuppressionUntil = useRef<number>(0);
-  const LEASE_KEY = 'primetek_attendance_leader_lease_' + employeeId;
+
   const lastRefreshTimeRef = useRef<number>(0);
   const isMountedRef = useRef(true);
 
@@ -341,8 +333,9 @@ export default function AttendanceClient({
     }
   };
 
+  /* eslint-disable react-hooks/preserve-manual-memoization */
   // Lightweight projection reconciliation - pulls latest DB projection state safely
-  const refreshProjectionState = async (sessionId?: string, force = false) => {
+  const refreshProjectionState = useCallback(async (sessionId?: string, force = false) => {
     const targetSessionId = sessionId || todayRecord?.id;
     if (!targetSessionId) return;
     const now = Date.now();
@@ -412,7 +405,8 @@ export default function AttendanceClient({
     } catch (err) {
       console.error('[Sync]: Reconciliation error:', err);
     }
-  };
+  }, [todayRecord?.id]);
+  /* eslint-enable react-hooks/preserve-manual-memoization */
 
   // Projection Version Verification wrapper for mutations
   const executeMutationWithVersionCheck = async (
@@ -482,7 +476,7 @@ export default function AttendanceClient({
           const leader = lease.tabId === tabId;
           setIsLeader(leader);
           isLeaderRef.current = leader;
-        } catch (e) {
+        } catch {
           setIsLeader(false);
           isLeaderRef.current = false;
         }
@@ -508,7 +502,7 @@ export default function AttendanceClient({
       }
     };
     return () => bc.close();
-  }, [todayRecord?.id]);
+  }, [todayRecord?.id, refreshProjectionState]);
 
   // Listen to heartbeat pulse from global AttendanceTracker
   useEffect(() => {
@@ -616,7 +610,7 @@ export default function AttendanceClient({
           });
           currentCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
           setCoords(currentCoords);
-        } catch (err) {
+        } catch {
           setGpsStatus('error');
           showNotification('Could not retrieve your GPS location for WFH request.', 'error');
           return;
@@ -859,7 +853,6 @@ export default function AttendanceClient({
   // Break variables calculation
   let breakUsedSeconds = 0;
   let productiveSeconds = 0;
-  let remainingBreakSeconds = 3600; // 1 hour allowed
 
   if (checkInTime && !isCheckedOut) {
     const totalBreakSec = todayRecord?.total_break_seconds || 0;
@@ -873,27 +866,17 @@ export default function AttendanceClient({
     breakUsedSeconds = totalBreakSec + activeBreakSec;
     const totalElapsedSec = Math.max(0, Math.floor((currentTime.getTime() - checkInTime.getTime()) / 1000));
     productiveSeconds = Math.max(0, totalElapsedSec - breakUsedSeconds);
-    remainingBreakSeconds = Math.max(0, 3600 - breakUsedSeconds);
+    // remainingBreakSeconds omitted (unused)
   }
 
-  const formatSeconds = (sec: number) => {
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    const s = sec % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
+
   const elapsed = (checkInTime && !isCheckedOut) ? Math.floor((currentTime.getTime() - checkInTime.getTime()) / 1000) : 0;
   const elapsedHrs = Math.floor(elapsed / 3600);
   const elapsedMin = Math.floor((elapsed % 3600) / 60);
-  const elapsedSec = elapsed % 60;
+
 
   const runningHrsDecimal = (productiveSeconds / 3600).toFixed(1);
-  const displayHrs = !isCheckedOut 
-    ? `${runningHrsDecimal}h / 9h` 
-    : `${todayRecord?.productive_hours || 0}h / 9h`;
-  const completedPercentage = !isCheckedOut
-    ? Math.min(Math.round((productiveSeconds / (9 * 3600)) * 100), 100)
-    : Math.min(Math.round(((todayRecord?.productive_hours || 0) / 9) * 100), 100);
+
 
   const monthStart = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth(), 1);
   const daysInMonth = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + 1, 0).getDate();
@@ -947,7 +930,7 @@ export default function AttendanceClient({
 
   // Calculate dynamic absent count including past days with no attendance records (excluding Sundays)
   const todayObj = new Date();
-  const todayMidnight = new Date(todayObj.getFullYear(), todayObj.getMonth(), todayObj.getDate());
+
   let absentCount = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'absent').length;
   
   const lastDayToCheck = selectedMonthDate.getMonth() === todayObj.getMonth() && selectedMonthDate.getFullYear() === todayObj.getFullYear()
@@ -967,23 +950,7 @@ export default function AttendanceClient({
 
   const wfhCount = selectedMonthRecords.filter(r => r.status?.toLowerCase().includes('wfh')).length;
 
-  const getWorkingDaysCount = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    let workingDays = 0;
-    for (let d = 1; d <= totalDays; d++) {
-      const dayOfWeek = new Date(year, month, d).getDay();
-      if (dayOfWeek !== 0) { // Exclude Sundays
-        workingDays++;
-      }
-    }
-    return workingDays;
-  };
-
-  const workingDaysCount = getWorkingDaysCount(selectedMonthDate);
   const leaveTaken = selectedMonthRecords.filter(r => r.status?.toLowerCase().includes('leave')).length;
-  const lossOfPay = selectedMonthRecords.filter(r => r.status?.toLowerCase() === 'absent').length;
 
   const now = new Date();
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -991,7 +958,7 @@ export default function AttendanceClient({
 
   const isNextDisabled = selectedMonthDate >= currentMonthStart;
   const isPrevDisabled = selectedMonthDate <= minMonthStart;
-  const isPastMonth = selectedMonthDate < currentMonthStart;
+
 
   const navigateMonth = async (direction: 'prev' | 'next') => {
     const nextDate = new Date(selectedMonthDate.getFullYear(), selectedMonthDate.getMonth() + (direction === 'prev' ? -1 : 1), 1);
@@ -1138,7 +1105,7 @@ export default function AttendanceClient({
         {checkedIn && (
           <section className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-[14px] font-extrabold text-navy-900">Today's Overview</h2>
+              <h2 className="text-[14px] font-extrabold text-navy-900">Today&apos;s Overview</h2>
               <div 
                 onClick={() => {
                   document.getElementById('monthly-calendar-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -1437,7 +1404,7 @@ export default function AttendanceClient({
 
                 const dStr = `${selectedMonthDate.getFullYear()}-${String(selectedMonthDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const isHoliday = isCurrentMonth && holidays.some(h => h.date === dStr);
-                const holidayObj = isHoliday ? holidays.find(h => h.date === dStr) : null;
+
 
                 const getStatusDotColor = (s: string | null, dayNum: number) => {
                   if (!isCurrentMonth) return null;
@@ -2055,7 +2022,7 @@ export default function AttendanceClient({
                 <h3 className="text-sm font-bold text-navy-900">Are you still working?</h3>
               </div>
               <p className="text-xs text-zinc-500 leading-relaxed font-semibold">
-                We haven't detected activity. Confirm you are active to avoid auto-break.
+                We haven&apos;t detected activity. Confirm you are active to avoid auto-break.
               </p>
               <button
                 type="button"
@@ -2064,7 +2031,7 @@ export default function AttendanceClient({
                     const sw = new SharedWorker('/workers/idle-worker.js');
                     sw.port.postMessage({ type: 'ACTIVITY' });
                     sw.port.close();
-                  } catch (err) {}
+                  } catch {}
                   
                   const bc = new BroadcastChannel('idle_sync');
                   bc.postMessage({ type: 'STATE_CHANGED', state: 'ACTIVE' });

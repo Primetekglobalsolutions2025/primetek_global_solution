@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize default structure if empty
-    let content = record?.content || {
+    const content = record?.content || {
       id: 'Master_Job_Tracker',
       name: 'Master Job Tracker',
       sheets: {

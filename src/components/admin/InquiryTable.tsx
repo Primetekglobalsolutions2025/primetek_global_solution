@@ -53,7 +53,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
         setSelectedInquiry(updated);
       }
     }
-  }, [inquiries]);
+  }, [inquiries, selectedInquiry]);
 
   // Focus trap, Escape closing, and focus restoration for accessibility
   useEffect(() => {
@@ -136,7 +136,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
       if (selectedInquiry?.id === id) {
         setSelectedInquiry({ ...selectedInquiry, status: newStatus });
       }
-    } catch (error) {
+    } catch {
       setLocalInquiries((prev) =>
         prev.map((inq) => (inq.id === id ? { ...inq, status: oldStatus } : inq))
       );
@@ -154,7 +154,7 @@ export default function InquiryTable({ inquiries, updateStatus, deleteInquiry }:
           setLocalInquiries(prev => prev.filter(inq => inq.id !== id));
           toast.success('Inquiry deleted successfully.');
           if (selectedInquiry?.id === id) setSelectedInquiry(null);
-        } catch (error) {
+        } catch {
           toast.error('Failed to delete inquiry.');
         }
       }

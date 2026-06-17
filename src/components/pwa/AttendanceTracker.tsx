@@ -20,7 +20,7 @@ interface AttendanceRecordSimple {
 export default function AttendanceTracker({ employeeId }: { employeeId: string }) {
   const LEASE_KEY = 'primetek_attendance_leader_lease_' + employeeId;
   const [record, setRecord] = useState<AttendanceRecordSimple | null>(null);
-  const [isLeader, setIsLeader] = useState(false);
+  const [, setIsLeader] = useState(false);
   const [isClockOutPending, setIsClockOutPending] = useState(false);
   const [hijackWarning, setHijackWarning] = useState<{ active: boolean; sessionId: string } | null>(null);
   const [isMovingSession, setIsMovingSession] = useState(false);
@@ -101,7 +101,7 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
         if (leaseRaw) {
           lease = JSON.parse(leaseRaw);
         }
-      } catch (e) {}
+      } catch {}
 
       if (!lease || now > lease.expiresAt || lease.tabId === tabId) {
         const expiresAt = now + 4000; // lease valid for 4 seconds
@@ -124,7 +124,7 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
               console.log(`[AttendanceTracker] Tab ${tabId} lost write race for leadership.`);
             }
           }
-        } catch (err) {
+        } catch {
           if (isLeaderRef.current) {
             isLeaderRef.current = false;
             setIsLeader(false);
@@ -157,7 +157,7 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
             localStorage.removeItem(LEASE_KEY); // release lease immediately
           }
         }
-      } catch (err) {}
+      } catch {}
     };
 
     window.addEventListener('beforeunload', handleUnload);
@@ -167,7 +167,7 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
       window.removeEventListener('beforeunload', handleUnload);
       handleUnload();
     };
-  }, [employeeId]);
+  }, [employeeId, LEASE_KEY]);
 
   // 2. Global Event Listeners to Track Telemetry (mouse, keys, click, scroll)
   useEffect(() => {
@@ -194,13 +194,17 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
     const isClockedIn = record && !record.check_out && record.status !== 'Logged Out';
     if (!employeeId || !isClockedIn || isClockOutPending) return;
 
+    // Detect if the Chrome extension is active
+    const isExtensionActive = typeof document !== 'undefined' && document.documentElement.hasAttribute('data-primetek-extension-active');
+    if (isExtensionActive) return;
+
     // Only run idle tracking if currently in Working, Idle, or Break (Auto)
     const currentStatus = record.status;
     if (!['Working', 'Idle', 'Break (Auto)'].includes(currentStatus)) return;
 
     let worker: SharedWorker | null = null;
     let fallbackBc: BroadcastChannel | null = null;
-    let localInterval: any = null;
+    let localInterval: ReturnType<typeof setInterval> | null = null;
     let fallbackOnActivity: (() => void) | null = null;
     const activityEvents = ['mousemove', 'keydown', 'click', 'scroll'];
 
@@ -262,9 +266,8 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
           await handleStateTransition('Idle');
           if (fallbackBc) fallbackBc.postMessage({ type: 'STATE_CHANGED', state: 'Idle' });
         } 
-        // 7 minutes (420,000 ms) auto break threshold — matches Supabase sweep_active_sessions_telemetry
         else if (delta >= 420000 && (currentStatus === 'Working' || currentStatus === 'Idle')) {
-          clearInterval(localInterval);
+          if (localInterval) clearInterval(localInterval);
           if (fallbackBc) fallbackBc.postMessage({ type: 'TRIGGER_AUTO_BREAK' });
           await handleStateTransition('Break (Auto)');
         }
@@ -306,6 +309,13 @@ export default function AttendanceTracker({ employeeId }: { employeeId: string }
   useEffect(() => {
     const isClockedIn = record && !record.check_out && record.status !== 'Logged Out';
     if (!employeeId || !isClockedIn || isClockOutPending) return;
+
+    // Detect if the Chrome extension is active
+    const isExtensionActive = typeof document !== 'undefined' && document.documentElement.hasAttribute('data-primetek-extension-active');
+    if (isExtensionActive) {
+      console.log('[AttendanceTracker] Chrome extension detected. Suppressing PWA heartbeat loop to prevent sequence conflicts.');
+      return;
+    }
 
     const isHeartbeatActive = ['Working', 'Approved WFH', 'Break', 'Break (Auto)', 'Idle'].includes(record.status);
     if (!isHeartbeatActive) return;

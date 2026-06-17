@@ -9,7 +9,7 @@ interface DashboardGreetingProps {
   email?: string;
 }
 
-export default function DashboardGreeting({ userName, email }: DashboardGreetingProps) {
+export default function DashboardGreeting({ userName }: DashboardGreetingProps) {
   const firstName = userName ? userName.split(' ')[0] : 'Admin';
 
   return (

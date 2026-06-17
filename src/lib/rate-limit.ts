@@ -45,62 +45,34 @@ export class DbRateLimiter {
 
   async consume(key: string) {
     const fullKey = `${this.keyPrefix}:${key}`;
-    const now = Date.now();
 
     try {
-      const { data: record, error } = await supabaseAdmin
-        .from('rate_limits')
-        .select('points, expire_at')
-        .eq('key', fullKey)
-        .maybeSingle();
+      const { data, error } = await supabaseAdmin.rpc('consume_rate_limit', {
+        p_key: fullKey,
+        p_max_points: this.points,
+        p_duration_sec: this.duration,
+        p_block_duration_sec: this.blockDuration || 0
+      });
 
       if (error) {
-        console.error('[DbRateLimiter] DB Error on consume fetch:', error);
+        console.error('[DbRateLimiter] RPC Error on consume:', error.message);
         return { remainingPoints: this.points, msBeforeNext: 0 };
       }
 
-      const expireAt = record ? new Date(record.expire_at).getTime() : 0;
-
-      if (!record || expireAt <= now) {
-        const nextPoints = this.points - 1;
-        const newExpireIso = new Date(now + this.duration * 1000).toISOString();
-        
-        await supabaseAdmin
-          .from('rate_limits')
-          .upsert({
-            key: fullKey,
-            points: nextPoints,
-            expire_at: newExpireIso
-          });
-
-        return { remainingPoints: nextPoints, msBeforeNext: this.duration * 1000 };
+      // Supabase RPC returns table as an array of rows
+      const res = Array.isArray(data) ? data[0] : data;
+      if (!res) {
+        return { remainingPoints: this.points, msBeforeNext: 0 };
       }
 
-      const msBeforeNext = Math.max(0, expireAt - now);
+      const { allowed, remaining_points, ms_before_next } = res;
 
-      if (record.points <= 0) {
-        if (this.blockDuration) {
-          const newBlockExpireIso = new Date(now + this.blockDuration * 1000).toISOString();
-          await supabaseAdmin
-            .from('rate_limits')
-            .update({
-              points: 0,
-              expire_at: newBlockExpireIso
-            })
-            .eq('key', fullKey);
-          throw { remainingPoints: 0, msBeforeNext: this.blockDuration * 1000 };
-        }
-        throw { remainingPoints: 0, msBeforeNext };
+      if (!allowed) {
+        throw { remainingPoints: remaining_points, msBeforeNext: ms_before_next };
       }
 
-      const nextPoints = record.points - 1;
-      await supabaseAdmin
-        .from('rate_limits')
-        .update({ points: nextPoints })
-        .eq('key', fullKey);
-
-      return { remainingPoints: nextPoints, msBeforeNext };
-    } catch (err: any) {
+      return { remainingPoints: remaining_points, msBeforeNext: ms_before_next };
+    } catch (err: unknown) {
       if (err && typeof err === 'object' && 'remainingPoints' in err) {
         throw err;
       }
@@ -178,8 +150,9 @@ export async function consumeRateLimit(
   try {
     await limiter.consume(key);
     return { allowed: true };
-  } catch (rejRes: any) {
-    const retryAfterMs = rejRes?.msBeforeNext ?? 60_000;
+  } catch (rejRes: unknown) {
+    const errorObject = rejRes as { msBeforeNext?: number } | null | undefined;
+    const retryAfterMs = errorObject?.msBeforeNext ?? 60_000;
     return { allowed: false, retryAfterMs };
   }
 }

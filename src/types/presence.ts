@@ -8,6 +8,7 @@ export interface EmployeePresence {
   employees?: {
     name: string;
     role: string;
+    department?: string;
   };
 }
 

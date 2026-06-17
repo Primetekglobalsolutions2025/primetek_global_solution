@@ -5,7 +5,6 @@ import {
   Briefcase, 
   Building2, 
   ExternalLink, 
-  Clock, 
   ChevronRight, 
   Calendar, 
   X,

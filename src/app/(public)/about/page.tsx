@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
-import { Target, Eye, XCircle, Award, Users, Zap } from 'lucide-react';
-import Card from '@/components/ui/Card';
+import { Target, Eye, XCircle } from 'lucide-react';
 import CTASection from '@/components/sections/CTASection';
 import SchemaMarkup from '@/components/layout/SchemaMarkup';
 import { generateBreadcrumbSchema } from '@/lib/seo';

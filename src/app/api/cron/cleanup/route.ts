@@ -43,6 +43,12 @@ export async function GET(req: Request) {
     const { data: riskDeleted, error: err2 } = await supabaseAdmin.rpc('cleanup_old_risk_events');
     if (err2) throw err2;
 
+    try {
+      await supabaseAdmin.rpc('cleanup_stale_presence');
+    } catch (presenceErr) {
+      console.error('[Cron/Cleanup] Failed to cleanup stale presence:', presenceErr);
+    }
+
     // 3. Purge exported Excel spreadsheets older than 1 hour from exports storage bucket
     let exportsDeletedCount = 0;
     try {

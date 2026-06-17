@@ -51,11 +51,12 @@ export function usePresenceSubscription(token: string) {
           data
         }));
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('[usePresenceSubscription] Fetch error:', err);
       // Only set error if we don't have cached data to show
       if (listRef.current.length === 0) {
-        setError(err.message || 'Failed to load presence list');
+        const message = err instanceof Error ? err.message : 'Failed to load presence list';
+        setError(message);
       }
     } finally {
       setLoading(false);
@@ -81,7 +82,14 @@ export function usePresenceSubscription(token: string) {
           table: 'employee_presence'
         },
         async (payload) => {
-          const updatedRow = payload.new as any;
+          const updatedRow = payload.new as {
+            employee_id: string;
+            status: 'working' | 'idle' | 'break' | 'offline';
+            last_activity: string;
+            last_heartbeat: string;
+            break_started_at: string | null;
+            updated_at: string;
+          };
           
           // Check if we already have the employee details in the list
           const existing = listRef.current.find(p => p.employee_id === updatedRow.employee_id);
@@ -118,7 +126,7 @@ export function usePresenceSubscription(token: string) {
           table: 'employee_presence'
         },
         (payload) => {
-          const oldRow = payload.old as any;
+          const oldRow = payload.old as { employee_id?: string };
           // Remove from list immediately
           setPresenceList(prev => prev.filter(p => p.employee_id !== oldRow.employee_id));
         }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, Loader2, Calendar, Building, HelpCircle, FileUp } from 'lucide-react';
+import { X, Loader2, Building, FileUp } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { submitInterviewRequest } from './actions';
@@ -132,7 +132,6 @@ export default function InterviewRequestModal({
   };
 
   const inputClasses = 'w-full px-4 py-2.5 rounded-xl border border-zinc-200 bg-white text-navy-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 hover:border-zinc-350 transition-all text-xs font-semibold shadow-2xs';
-  const readOnlyClasses = 'w-full px-4 py-2.5 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-500 cursor-not-allowed text-xs font-semibold';
 
   return (
     <div 

@@ -229,12 +229,18 @@ export function enqueueOfflineAction(
     'serviceWorker' in navigator &&
     'ServiceWorkerRegistration' in window
   ) {
+    interface ServiceWorkerRegistrationWithSync extends ServiceWorkerRegistration {
+      sync: {
+        register(tag: string): Promise<void>;
+      };
+    }
+
     navigator.serviceWorker.ready
       .then((registration) => {
         if ('sync' in registration) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (registration as any).sync.register('attendance-sync')
-            .catch((err: any) => console.warn('Background sync registration failed:', err));
+          const regWithSync = registration as unknown as ServiceWorkerRegistrationWithSync;
+          regWithSync.sync.register('attendance-sync')
+            .catch((err) => console.warn('Background sync registration failed:', err));
         }
       })
       .catch(() => {});

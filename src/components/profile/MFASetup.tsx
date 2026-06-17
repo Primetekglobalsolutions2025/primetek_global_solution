@@ -26,8 +26,8 @@ export default function MFASetup({ initialEnabled }: MFASetupProps) {
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setSetupData(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -49,8 +49,8 @@ export default function MFASetup({ initialEnabled }: MFASetupProps) {
       setEnabled(true);
       setSetupData(null);
       setTimeout(() => setSuccess(false), 5000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setVerifying(false);
     }

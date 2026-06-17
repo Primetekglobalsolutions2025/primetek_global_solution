@@ -5,20 +5,22 @@ import { Bell, ToggleLeft, ToggleRight } from 'lucide-react';
 import { updateAdminNotificationPreferences } from '@/app/admin/profile/actions';
 import { useToast } from '@/components/ui/Toast';
 
+interface NotificationPreferences {
+  leave_approval_required: boolean;
+  attendance_issues: boolean;
+  daily_reports_submitted: boolean;
+  new_applications: boolean;
+  system_alerts: boolean;
+}
+
 export default function AdminNotificationPreferences({
   initialPreferences
 }: {
-  initialPreferences?: {
-    leave_approval_required: boolean;
-    attendance_issues: boolean;
-    daily_reports_submitted: boolean;
-    new_applications: boolean;
-    system_alerts: boolean;
-  };
+  initialPreferences?: NotificationPreferences;
 }) {
   const { toast } = useToast();
-  const [preferences, setPreferences] = useState(() => {
-    const defaults = {
+  const [preferences, setPreferences] = useState<NotificationPreferences>(() => {
+    const defaults: NotificationPreferences = {
       leave_approval_required: true,
       attendance_issues: true,
       daily_reports_submitted: true,
@@ -29,10 +31,10 @@ export default function AdminNotificationPreferences({
   });
   const [saving, setSaving] = useState(false);
 
-  const handleToggle = async (key: string) => {
+  const handleToggle = async (key: keyof NotificationPreferences) => {
     const newPrefs = {
       ...preferences,
-      [key]: !(preferences as any)[key]
+      [key]: !preferences[key]
     };
     setPreferences(newPrefs);
     setSaving(true);
@@ -64,14 +66,16 @@ export default function AdminNotificationPreferences({
       </div>
 
       <div className="space-y-4">
-        {[
-          { key: 'leave_approval_required', label: 'Leave Requests Requiring Approval' },
-          { key: 'attendance_issues', label: 'Employee Attendance & Clocking Issues' },
-          { key: 'daily_reports_submitted', label: 'Daily Metrics & Reports Submissions' },
-          { key: 'new_applications', label: 'New Candidate Job Applications' },
-          { key: 'system_alerts', label: 'System Health & Security Alerts' },
-        ].map((item) => {
-          const isEnabled = (preferences as any)[item.key];
+        {(
+          [
+            { key: 'leave_approval_required', label: 'Leave Requests Requiring Approval' },
+            { key: 'attendance_issues', label: 'Employee Attendance & Clocking Issues' },
+            { key: 'daily_reports_submitted', label: 'Daily Metrics & Reports Submissions' },
+            { key: 'new_applications', label: 'New Candidate Job Applications' },
+            { key: 'system_alerts', label: 'System Health & Security Alerts' },
+          ] as const
+        ).map((item) => {
+          const isEnabled = preferences[item.key];
           return (
             <div key={item.key} className="flex items-center justify-between py-1.5 border-b border-zinc-100 last:border-0">
               <span className="text-xs font-semibold text-zinc-650">{item.label}</span>

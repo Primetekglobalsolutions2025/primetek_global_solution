@@ -16,7 +16,6 @@ export default function PresenceMonitor({ token }: PresenceMonitorProps) {
     presenceList,
     connectionStatus,
     loading,
-    error,
     refresh
   } = usePresenceSubscription(token);
 

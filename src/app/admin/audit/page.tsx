@@ -2,27 +2,16 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import Card from '@/components/ui/Card';
-import { History, User, Clock, ShieldCheck, Search, Activity, LogIn, LogOut, Home, AlertTriangle, RefreshCw, Layers } from 'lucide-react';
+import { History, User, Clock, ShieldCheck, Search, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import StatusBadge from '@/components/ui/StatusBadge';
 
-const formatSafeDateTime = (dateStr: any) => {
+const formatSafeDateTime = (dateStr: string | number | Date | null | undefined) => {
   if (!dateStr) return 'N/A';
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return String(dateStr);
   return d.toLocaleString('en-IN', { 
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
-    timeZone: 'Asia/Kolkata', hour12: true
-  });
-};
-
-const formatSafeTimeOnly = (dateStr: any) => {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleTimeString('en-IN', { 
-    hour: '2-digit', minute: '2-digit',
     timeZone: 'Asia/Kolkata', hour12: true
   });
 };
@@ -191,7 +180,6 @@ export default async function AuditLogsPage(props: PageProps) {
             <tbody className="divide-y divide-zinc-150">
               {logs?.map((log) => {
                 const isDelete = log.action.includes('DELETE');
-                const isCreate = log.action.includes('CREATE') || log.action.includes('ONBOARD');
                 const isOverride = log.action.includes('OVERRIDE') || log.action.includes('REVERSE') || log.action.includes('CORRECT') || log.action.includes('REBUILD');
                 
                 return (

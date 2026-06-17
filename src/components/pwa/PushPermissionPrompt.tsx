@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Bell, X, ShieldAlert } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getNotificationPermissionState, subscribeUserToPush } from '@/lib/notifications/push-helper';
 import { useToast } from '@/components/ui/Toast';

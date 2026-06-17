@@ -101,7 +101,7 @@ export async function getAdminAttendance(startDate?: string, endDate?: string, p
 
   const recordIds = data.map(record => record.id);
   let riskEvents: any[] = [];
-  let projectionsMap: Record<string, { last_heartbeat_at: string | null; productive_seconds: number; break_seconds: number }> = {};
+  const projectionsMap: Record<string, { last_heartbeat_at: string | null; productive_seconds: number; break_seconds: number }> = {};
 
   if (recordIds.length > 0) {
     const [riskRes, projectionsRes] = await Promise.all([
@@ -826,7 +826,7 @@ export async function overrideDeviceValidation(
   const nextSequence = (lastEvent?.sequence_number || 1) + 1;
 
   // All simplified device overrides map directly to 'Working' status
-  let targetStatus = 'Working';
+  const targetStatus = 'Working';
 
   // Insert ADMIN_OVERRIDE event to change status
   const { error: insertError } = await supabaseAdmin
@@ -945,7 +945,7 @@ export async function getRealtimeAttendanceUpdates() {
 
   // Resolve employee names for events
   const empIds = [...new Set(latestEvents.map(e => e.employee_id).filter(Boolean))];
-  let empMap: Record<string, string> = {};
+  const empMap: Record<string, string> = {};
   if (empIds.length > 0) {
     try {
       const { data: emps } = await supabaseAdmin.from('employees').select('id, name').in('id', empIds);

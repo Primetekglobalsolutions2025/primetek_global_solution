@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   LayoutDashboard, Clock, UserCircle, LogOut, 
   MessageSquare, Users, FileUser, FileText,
-  Settings, ChevronLeft, History, Calendar, CheckSquare,
+  Settings, ChevronLeft, Calendar, CheckSquare,
   MoreHorizontal, X, ClipboardList, BarChart2, Shield, Building2, Bell, Home,
   Briefcase, Activity
 } from 'lucide-react';
@@ -21,7 +21,6 @@ interface AppSidebarProps {
   userName?: string;
   initialPendingCount?: number;
   pendingCount?: number;
-  forceVisibleOnMobile?: boolean;
 }
 
 interface NavItem {
@@ -31,7 +30,7 @@ interface NavItem {
   section: string;
 }
 
-export default function AppSidebar({ role, userName, initialPendingCount = 0, pendingCount: propPendingCount, forceVisibleOnMobile }: AppSidebarProps) {
+export default function AppSidebar({ role, userName, initialPendingCount = 0, pendingCount: propPendingCount }: AppSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);

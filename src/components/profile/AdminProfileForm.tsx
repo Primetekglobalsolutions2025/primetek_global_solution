@@ -31,9 +31,10 @@ export default function AdminProfileForm({
       setTimeout(() => {
         window.location.reload();
       }, 1000);
-    } catch (err: any) {
+    } catch (err) {
       setStatus('error');
-      setErrorMsg(err.message || 'Failed to update profile name');
+      const message = err instanceof Error ? err.message : 'Failed to update profile name';
+      setErrorMsg(message);
     }
   };
 

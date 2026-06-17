@@ -13,7 +13,9 @@
     "cookies"
   ],
   "host_permissions": [
-    "*://*/*"
+    "https://www.primetekglobalsolutions.com/*",
+    "https://*.vercel.app/*",
+    "http://localhost/*"
   ],
   "action": {
     "default_popup": "popup.html"

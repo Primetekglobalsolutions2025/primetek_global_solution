@@ -6,7 +6,6 @@ import {
   Clock, 
   ClipboardList, 
   User, 
-  MoreHorizontal, 
   Bell, 
   ArrowRight, 
   Calendar, 
@@ -17,8 +16,6 @@ import {
   Loader2, 
   Users, 
   Megaphone,
-  LayoutGrid,
-  Contact,
   Headset
 } from 'lucide-react';
 import Link from 'next/link';
@@ -26,9 +23,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { addHoliday, deleteHoliday } from '@/app/admin/holidays/actions';
 import { useToast } from '@/components/ui/Toast';
-import { useNotifications } from '@/components/pwa/NotificationContext';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
-import Logo from '@/components/ui/Logo';
 import EmployeeApplicationsList from './EmployeeApplicationsList';
 
 interface Holiday {
@@ -76,7 +71,6 @@ export default function EmployeeDashboardClient({
   const [holidayToDelete, setHolidayToDelete] = useState<string | null>(null);
   
   const { toast } = useToast();
-  const { open: openNotifications, unreadCount } = useNotifications();
 
   // Holiday form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -242,7 +236,7 @@ export default function EmployeeDashboardClient({
                 {employee?.name ? employee.name.split(' ')[0] : 'Janu'} <span className="animate-bounce">👋</span>
               </h1>
               <p className="text-white/60 text-[11px] mt-1.5 pb-2 leading-relaxed">
-                Welcome back! Here's what's happening today.
+                Welcome back! Here&apos;s what&apos;s happening today.
               </p>
             </div>
           </div>
@@ -298,7 +292,7 @@ export default function EmployeeDashboardClient({
         {/* 3. TODAY'S OVERVIEW SECTION */}
         <section data-testid="today-overview" className="bg-white rounded-[20px] p-5 border border-[#E8EDF2] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-[14px] font-extrabold text-navy-900">Today's Overview</h2>
+            <h2 className="text-[14px] font-extrabold text-navy-900">Today&apos;s Overview</h2>
             <Link href="/employee/attendance" className="text-[11px] font-bold text-primary-600 hover:underline flex items-center gap-0.5">
               View all <ChevronRight className="w-3 h-3" />
             </Link>

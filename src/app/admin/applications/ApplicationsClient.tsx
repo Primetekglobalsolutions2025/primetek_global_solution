@@ -11,7 +11,6 @@ import Button from '@/components/ui/Button';
 import { updateApplicationStatus, assignApplication, getAllEmployees } from './actions';
 import AddApplicationForm from '@/components/admin/AddApplicationForm';
 import { useToast } from '@/components/ui/Toast';
-import StatusBadge from '@/components/ui/StatusBadge';
 
 export interface ApplicationRecord {
   id: string;

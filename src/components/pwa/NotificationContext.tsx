@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useTransition } from 'react';
+import React, { createContext, useContext, useState, useEffect, useTransition, useCallback } from 'react';
 import { Bell, X, Megaphone, AlertTriangle, Info, Clock, CheckSquare, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -42,7 +42,7 @@ export function NotificationProvider({
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  const refreshNotifications = async () => {
+  const refreshNotifications = useCallback(async () => {
     if (!employeeId) return;
     const isAdmin = role === 'admin' || role === 'hr';
     const res = isAdmin 
@@ -52,7 +52,7 @@ export function NotificationProvider({
     if (res.success && res.notifications) {
       setNotifications(res.notifications as AppNotification[]);
     }
-  };
+  }, [employeeId, role]);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -61,7 +61,7 @@ export function NotificationProvider({
     // Poll for new notifications every 30 seconds
     const interval = setInterval(refreshNotifications, 30000);
     return () => clearInterval(interval);
-  }, [employeeId, role]);
+  }, [employeeId, refreshNotifications]);
 
   const open = () => setIsOpen(true);
   const close = () => setIsOpen(false);
