@@ -39,12 +39,14 @@ async function globalSetup() {
   const adminPassword = 'AdminPass123!';
   let adminId: string;
 
-  const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers();
-  if (authError) throw authError;
+  const { data: existingAdmin } = await supabase
+    .from('admin_users')
+    .select('id')
+    .eq('email', adminEmail)
+    .maybeSingle();
 
-  const existingAuthAdmin = authUsers.find(u => u.email === adminEmail);
-  if (existingAuthAdmin) {
-    adminId = existingAuthAdmin.id;
+  if (existingAdmin) {
+    adminId = existingAdmin.id;
     // Reset password to ensure it matches
     const { error: updateError } = await supabase.auth.admin.updateUserById(adminId, {
       password: adminPassword,
@@ -57,7 +59,13 @@ async function globalSetup() {
       password: adminPassword,
       email_confirm: true,
     });
-    if (createError) throw createError;
+    if (createError) {
+      if (createError.message.includes('already') || createError.message.includes('registered')) {
+        // In case auth user exists but public profile doesn't, let's try to query auth metadata if possible or fail gracefully
+        throw new Error(`Admin auth user exists but public profile is missing for email: ${adminEmail}. Please run SQL cleanup.`);
+      }
+      throw createError;
+    }
     adminId = newAuthAdmin.user.id;
     console.log('Admin user created in Supabase Auth.');
   }

@@ -175,11 +175,13 @@ export async function createTestAdmin() {
 
   if (authError) {
     if (authError.message.includes('already') || authError.message.includes('registered')) {
-      // Find the existing user's ID
-      const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-      const user = users.find(u => u.email === email);
-      if (!user) throw new Error(`User claimed to exist but not found in list: ${email}`);
-      userId = user.id;
+      const { data: existingAdmin } = await supabaseAdmin
+        .from('admin_users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+      if (!existingAdmin) throw new Error(`User claimed to exist but not found in public.admin_users: ${email}`);
+      userId = existingAdmin.id;
     } else {
       throw new Error(`Failed to create test admin auth user: ${authError.message}`);
     }
